@@ -48,12 +48,14 @@
     return new TextDecoder().decode(plain);
   }
   function start(src) {
+    D.log("Sperre", "entsperrt, Verwaltung startet");
     $("#lock").hidden = true;
     $("#app").hidden = false;
     // Verwaltung starten (Quelltext stammt aus der eigenen, verschlüsselten Datei)
     new Function(src)();
   }
   function lockNow() {
+    D.log("Sperre", "gesperrt");
     try { sessionStorage.removeItem(SKEY); } catch (e) { /* */ }
     location.reload();
   }
@@ -69,7 +71,7 @@
     if (!enc) { msg.textContent = D.t("lockBroken"); return; }
     if (!window.crypto || !crypto.subtle) { msg.textContent = D.t("lockInsecure"); return; }
     const left = Math.ceil((waitUntil - Date.now()) / 1000);
-    if (left > 0) { msg.textContent = D.t("lockWait", { s: left }); return; }
+    if (left > 0) { msg.textContent = D.t("lockWait", { s: left }); D.log("Sperre", `zu früh, noch ${left} s warten`); return; }
     btn.disabled = true; msg.textContent = D.t("lockBusy");
     try {
       const key = await keyFromPassword(pw.value);
@@ -82,6 +84,7 @@
       const n = fails() + 1; setFails(n);
       waitUntil = Date.now() + Math.min(30, 2 ** Math.max(0, n - 2)) * 1000;
       msg.textContent = D.t("lockWrong");
+      D.log("Sperre", `Passwort falsch (Versuch ${n}, nächster Versuch in ${Math.min(30, 2 ** Math.max(0, n - 2))} s)`);
       form.classList.remove("shake"); void form.offsetWidth; form.classList.add("shake");
       pw.select();
     } finally { btn.disabled = false; }
@@ -93,6 +96,7 @@
     try { raw = sessionStorage.getItem(SKEY); } catch (e) { /* */ }
     if (!raw || !enc || !window.crypto || !crypto.subtle) { pw.focus(); return; }
     try {
+      D.log("Sperre", "Schlüssel dieser Browser-Sitzung gefunden");
       const key = await crypto.subtle.importKey("raw", b64.dec(raw), { name: "AES-GCM" }, false, ["decrypt"]);
       start(await decrypt(key));
     } catch (e) { lockNow(); }

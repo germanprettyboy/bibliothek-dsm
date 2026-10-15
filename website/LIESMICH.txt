@@ -88,3 +88,12 @@ Buchempfehlungen
 
 Kategorien auf Italienisch
   assets/kategorien-it.js. Neue Kategorien ohne Eintrag erscheinen auf Deutsch.
+
+Protokoll in der Browser-Konsole
+  Jede Bedienung (Klicks, Suche, Fenster, Einstellungen, Netzabfragen, Fehler) erscheint
+  fortlaufend und farbig in der Konsole (Entwicklerwerkzeuge: F12 bzw. Cmd+Alt+I).
+  Befehle in der Konsole:
+    DSM_LOG.verlauf()   alle Einträge dieser Browser-Sitzung als Tabelle (auch seitenübergreifend)
+    DSM_LOG.alsText()   dasselbe als Text, kopieren mit copy(DSM_LOG.alsText())
+    DSM_LOG.aus()       abschalten (bleibt in diesem Browser gespeichert), DSM_LOG.an() einschalten
+  Passwörter werden nie mitgeschrieben. Das Protokoll bleibt im Browser, nichts wird gesendet.

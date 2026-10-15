@@ -3,6 +3,7 @@
 (function () {
   "use strict";
   const root = document.documentElement;
+  const log = window.DSM_LOG || function () {}; // assets/protokoll.js
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* privat/gesperrt */ } },
@@ -81,6 +82,7 @@
   // ---------- Hinweis unten ----------
   let toastEl = null, toastT = 0;
   function toast(msg) {
+    log("Hinweis", msg);
     if (!toastEl) { toastEl = document.createElement("div"); toastEl.className = "toast"; toastEl.setAttribute("role", "status"); document.body.appendChild(toastEl); }
     toastEl.textContent = msg;
     requestAnimationFrame(() => toastEl.classList.add("show"));
@@ -139,7 +141,7 @@
   function openSettings() { syncSettings(); openSheet(sDlg); }
 
   window.DSM = {
-    store,
+    store, log,
     get lang() { return lang; },
     t,
     nf: n => new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE").format(n),
