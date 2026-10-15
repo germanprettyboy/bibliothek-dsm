@@ -10,3 +10,8 @@ Nach jeder Änderung an quelle/ oder um das Passwort zu ändern (Node.js 18+):
   node admin-verschluesseln.js "<Passwort>"
 Danach assets/admin.enc.js auf den Webspace laden. Wer das alte Passwort kennt, kommt mit der
 neuen Datei nicht mehr hinein; in offenen Browser-Sitzungen muss neu entsperrt werden.
+
+anleitung/vorlage.html + anleitung-bauen.js
+                    Anleitung für Kolleginnen und Kollegen (Verwaltung, WinBook-Datei kopieren).
+                    node werkzeuge/anleitung-bauen.js  ->  anleitung/Anleitung_Verwaltung.html
+                    (eigenständige Datei mit eingebetteter Schrift und Logo, offline und druckbar)
