@@ -101,7 +101,7 @@ integrieren() {
   verschluesselung_pruefen main
   if [ -n "$wt" ]; then
     echo "Worktree aufräumen, sobald seine Session beendet ist:"
-    echo "  git worktree unlock \"$wt\"; git worktree remove \"$wt\"; git branch -d $b"
+    echo "  git worktree unlock \"$wt\" 2>/dev/null; git worktree remove \"$wt\" && git branch -d $b"
   fi
   return 0
 }

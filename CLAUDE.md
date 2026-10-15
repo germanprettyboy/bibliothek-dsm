@@ -133,8 +133,8 @@ Ablauf:
    Das Skript ändert `main` nicht, wenn: Haupt-Checkout nicht sauber / nicht auf `main`, Branch hat
    Uncommittetes, Konflikt, Syntaxfehler in `website/**.js` oder `werkzeuge/**.js`. Dann zurück in den
    Worktree, Ursache beheben, erneut.
-5. Aufräumen: `git worktree unlock <pfad>`, `git worktree remove <pfad>`, `git branch -d <branch>`
-   (`-d`, nie `-D` – verweigert, was nicht in `main` ist).
+5. Aufräumen: `git worktree remove <pfad>`, `git branch -d <branch>` (`-d`, nie `-D` – verweigert, was
+   nicht in `main` ist). ExitWorktree entsperrt den eigenen Worktree; fremde ggf. erst `git worktree unlock <pfad>`.
 6. Im Abschlussbericht: Merge-Commit und Warnungen des Skripts (z. B. veraltete Verschlüsselung) nennen.
 
 Regeln:
