@@ -214,7 +214,9 @@
     if (!on || wide.matches || fromScroll !== true) { fl.classList.remove("show"); return; }
     if (on !== flLetter) {
       flLetter = on; fl.textContent = on;
-      fl.classList.remove("pop"); void fl.offsetWidth; fl.classList.add("pop");
+      // Wechsel zwischen zwei gleichen Animationen startet neu, ohne Layout zu erzwingen
+      const a = fl.classList.contains("pop-a");
+      fl.classList.toggle("pop-a", !a); fl.classList.toggle("pop-b", a);
     }
     fl.classList.add("show");
     clearTimeout(flHide);
@@ -391,7 +393,7 @@
     askDone = true;
     setPref({ want: true, gruppe: g });
     D.closeSheet(ask, "done");
-    setTimeout(() => { renderRecs(true); scrollTo({ top: 0, behavior: "smooth" }); }, 230);
+    setTimeout(() => { renderRecs(true); scrollTo({ top: 0, behavior: still.matches ? "instant" : "smooth" }); }, 230);
   }
   function buildAsk() {
     ask = document.createElement("dialog");

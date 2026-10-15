@@ -36,7 +36,10 @@
   /* Genau drei Schriftgrößen auf allen Seiten: klein (Zusatzangaben), normal (Text), groß (Überschriften) */
   --fs-s: .875rem; --fs-m: 1rem; --fs-l: 1.5rem;
   --w: 46rem;
+  /* Bewegung: kurz (150–300 ms). Hinein mit --ease (ease-out), hinaus mit --ease-in. */
+  --t-fast: 150ms; --t-base: 220ms; --t-slow: 280ms;
   --ease: cubic-bezier(.2, .7, .2, 1);
+  --ease-in: cubic-bezier(.4, 0, 1, 1);
   --snap: cubic-bezier(.25, 1, .35, 1);
   --bar-h: 4.25rem;
   color-scheme: light;
@@ -202,19 +205,19 @@ main.books { min-height: calc(100dvh - var(--bar-h)); }
   text-align: left; border: 0; background: none; cursor: pointer; border-radius: 10px;
   transition: background-color .15s;
 }
-.row:hover { background: var(--surface); }
+@media (hover: hover) { .row:hover { background: var(--surface); } }
 .row:active { background: var(--line); }
 .row .tx { min-width: 0; }
 .row .t { display: block; font-size: var(--fs-m); line-height: 1.35; overflow-wrap: anywhere; }
 .row .a { display: block; margin-top: 2px; font-size: var(--fs-s); color: var(--muted); overflow-wrap: anywhere; }
 .row .go { width: 16px; height: 16px; color: var(--muted); opacity: .55; transition: transform .2s var(--ease), opacity .2s; }
-.row:hover .go { transform: translateX(3px); opacity: 1; }
+@media (hover: hover) { .row:hover .go { transform: translateX(3px); opacity: 1; } }
 mark { background: color-mix(in srgb, var(--gelb) 45%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
 
 .empty { padding: 48px 0; text-align: center; color: var(--muted); }
 .empty strong { display: block; color: var(--fg); font-weight: 600; font-size: var(--fs-m); margin-bottom: 4px; }
 
-.list.enter { animation: rise .45s var(--ease) both; }
+.list.enter { animation: rise var(--t-slow) var(--ease) both; }
 @keyframes rise { from { opacity: .001; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 /* Suchtreffer: jede neue Trefferliste blendet kurz ein */
 .list.live > * { animation: hits-in .18s ease-out both; }
@@ -231,11 +234,14 @@ mark { background: color-mix(in srgb, var(--gelb) 45%, transparent); color: inhe
   background: var(--fg); color: var(--bg); font-weight: 600; font-size: var(--fs-l); line-height: 1;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .18); pointer-events: none;
   opacity: 0; transform: translateX(12px) scale(.9);
-  transition: opacity .25s ease, transform .3s var(--ease);
+  transition: opacity var(--t-base) ease-out, transform var(--t-slow) var(--ease);
 }
 .floater.show { opacity: 1; transform: none; }
-.floater.pop { animation: pop-l .34s var(--ease); }
-@keyframes pop-l { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+/* Zwei gleiche Keyframes im Wechsel: Neustart ohne erzwungenes Layout im Scroll-Handler */
+.floater.pop-a { animation: pop-a var(--t-slow) var(--ease); }
+.floater.pop-b { animation: pop-b var(--t-slow) var(--ease); }
+@keyframes pop-a { 40% { transform: scale(1.18); } }
+@keyframes pop-b { 40% { transform: scale(1.18); } }
 
 /* Fenster über der Seite (Detail, Einstellungen, Fragen): Bottom Sheet auf dem Handy, Dialog ab Tablet.
    Glas-Effekt: Hintergrund unscharf und leicht abgedunkelt, Fenster selbst halbtransparent mit Lichtkante. */
@@ -257,10 +263,10 @@ dialog.sheet::backdrop {
   background: var(--veil);
   -webkit-backdrop-filter: blur(12px) saturate(1.15); backdrop-filter: blur(12px) saturate(1.15);
 }
-dialog.sheet[open] { animation: sheet-in .36s var(--ease); }
-dialog.sheet[open]::backdrop { animation: fade .3s ease; }
-dialog.sheet.closing { animation: sheet-out .22s ease forwards; }
-dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
+dialog.sheet[open] { animation: sheet-in var(--t-slow) var(--ease); }
+dialog.sheet[open]::backdrop { animation: fade var(--t-base) ease-out; }
+dialog.sheet.closing { animation: sheet-out var(--t-base) var(--ease-in) forwards; }
+dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) reverse forwards; }
 @keyframes sheet-in { from { transform: translateY(48px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes sheet-out { to { transform: translateY(32px); opacity: 0; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -282,8 +288,8 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 .sheet .src { grid-column: 1 / -1; margin: 0; font-size: var(--fs-s); color: var(--muted); }
 @media (min-width: 40rem) {
   dialog.sheet { margin: auto; width: min(36rem, calc(100% - 48px)); border-radius: 24px; max-height: 88dvh; }
-  dialog.sheet[open] { animation: pop .32s var(--ease); }
-  dialog.sheet.closing { animation: pop-out .2s ease forwards; }
+  dialog.sheet[open] { animation: pop var(--t-slow) var(--ease); }
+  dialog.sheet.closing { animation: pop-out 200ms var(--ease-in) forwards; }
   .sheet .grab { display: none; }
   .sheet .inner { grid-template-columns: 150px 1fr; padding: 28px; gap: 24px; }
 }
@@ -292,11 +298,11 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 /* Buch-Detail: kürzer und knackiger als die übrigen Fenster */
 #detail[open] { animation: snap-up .2s var(--snap); }
 #detail[open]::backdrop { animation: fade .16s ease-out; }
-#detail.closing { animation: snap-down .14s ease-in forwards; }
-#detail.closing::backdrop { animation: fade .14s ease-in reverse forwards; }
+#detail.closing { animation: snap-down .14s var(--ease-in) forwards; }
+#detail.closing::backdrop { animation: fade .14s var(--ease-in) reverse forwards; }
 @media (min-width: 40rem) {
   #detail[open] { animation: snap-pop .18s var(--snap); }
-  #detail.closing { animation: pop-out .13s ease-in forwards; }
+  #detail.closing { animation: pop-out .13s var(--ease-in) forwards; }
 }
 @keyframes snap-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes snap-down { to { transform: translateY(16px); opacity: 0; } }
@@ -304,13 +310,14 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 
 /* Cover */
 .cover { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 4px 8px 8px 4px; overflow: hidden; background: var(--surface); }
+/* Ladezustand: Lichtband wandert per transform (kein Neuzeichnen), endet mit .loading */
 .cover.loading::after {
   z-index: 2;
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--bg) 70%, transparent) 50%, transparent 70%);
-  background-size: 220% 100%; animation: shimmer 1.2s linear infinite;
+  transform: translateX(-100%); animation: shimmer 1.2s ease-in-out infinite;
 }
-@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@keyframes shimmer { to { transform: translateX(100%); } }
 .cover img { position: absolute; inset: 0; z-index: 1; background: #ffffff; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .22s ease-out; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
 .cover img.in { opacity: 1; }
 .cover .ph {
@@ -358,7 +365,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 .flag.warn { border-left-color: var(--rot); }
 .flag.mid { border-left-color: var(--gelb); }
 .meter { display: flex; height: 8px; margin-top: 12px; border-radius: 4px; overflow: hidden; background: var(--line); }
-.meter i { display: block; height: 100%; width: 0; transition: width .4s var(--ease); }
+.meter i { display: block; height: 100%; width: 0; }
 .meter .m-ol { background: var(--gruen); } .meter .m-gb { background: var(--blau); } .meter .m-none { background: var(--rot); }
 .lines .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: 0; }
 .hist { margin-top: 18px; }
@@ -428,7 +435,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 .seg3::before {
   content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px;
   background: var(--bg); box-shadow: 0 2px 8px rgba(0, 0, 0, .1), inset 0 0 0 1px var(--line);
-  transform: translateX(calc(var(--i, 0) * 100%)); transition: transform .3s var(--ease);
+  transform: translateX(calc(var(--i, 0) * 100%)); transition: transform var(--t-slow) var(--ease);
 }
 .seg3 button { position: relative; z-index: 1; height: 40px; border: 0; background: none; cursor: pointer; border-radius: 10px; font-weight: 500; color: var(--muted); }
 .seg3 button[aria-checked="true"] { color: var(--fg); font-weight: 600; }
@@ -441,7 +448,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 
 /* ---------- Fragen beim ersten Besuch ---------- */
 .ask .pane { min-height: 15rem; }
-.step { display: grid; gap: 18px; animation: step-in .35s var(--ease); }
+.step { display: grid; gap: 18px; animation: step-in var(--t-base) var(--ease); }
 @keyframes step-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
 .step .lead { margin: 0; color: var(--muted); }
 .step .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -470,9 +477,9 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
   margin-left: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
   margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px)));
   box-shadow: inset 0 1px 0 var(--line), inset 0 -1px 0 var(--line); overflow: hidden;
-  animation: rise .5s var(--ease) both;
+  animation: rise var(--t-slow) var(--ease) both;
 }
-.recs-card.hide { animation: recs-out .3s ease forwards; }
+.recs-card.hide { animation: recs-out var(--t-base) var(--ease-in) forwards; }
 @keyframes recs-out { to { opacity: 0; transform: translateY(-6px) scale(.98); } }
 .recs-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px 0 max(16px, env(safe-area-inset-left, 0px)); }
 .recs-head h2 { margin: 0; font-weight: 600; font-size: var(--fs-m); line-height: 1.2; }
@@ -507,7 +514,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
   .rec { display: block; padding: 0; background: none; box-shadow: none; border-radius: 0; }
   .rec:active { transform: none; }
   .rec .cover { box-shadow: 0 6px 16px rgba(0, 0, 0, .14); }
-  .rec:hover .cover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0, 0, 0, .18); }
+  @media (hover: hover) { .rec:hover .cover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0, 0, 0, .18); } }
   .rec b { margin-top: 9px; }
   .cover.small .ph { padding: 9px 8px 8px 15px; }
   .cover.small .ph::before { width: 9px; }
@@ -523,7 +530,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
   width: max-content; max-width: min(30rem, calc(100vw - 32px)); padding: 12px 18px; border-radius: 16px; font-size: var(--fs-m);
   background: var(--glass); color: var(--fg); border: 1px solid var(--glass-brd); box-shadow: var(--shadow), inset 0 1px 0 var(--glass-hi);
   -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6);
-  opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .35s var(--ease);
+  opacity: 0; pointer-events: none; transition: opacity var(--t-base) ease-out, transform var(--t-slow) var(--ease);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
@@ -540,7 +547,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 }
 .lock input:focus { border-color: var(--blau); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blau) 40%, transparent); }
 .lock .msg { color: var(--fg); font-weight: 500; min-height: 1.4em; }
-.lock form.shake { animation: shake .4s; }
+.lock form.shake { animation: shake var(--t-slow) ease-out; }
 @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 .tabs { position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: auto; padding: 4px; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 18px; }
 .tabs button { height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: none; cursor: pointer; font-weight: 500; color: var(--muted); }
@@ -573,7 +580,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 .info { padding-bottom: 14px; }
 .info-card {
   width: 100%; display: grid; padding: 0; border: 0; border-radius: 16px; cursor: pointer; text-align: left; color: var(--fg);
-  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); animation: rise .45s var(--ease) both;
+  background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); animation: rise var(--t-slow) var(--ease) both;
   transition: transform .15s var(--ease);
 }
 .info-card:active { transform: scale(.99); }
