@@ -88,6 +88,8 @@ body {
 img { max-width: 100%; display: block; }
 button, input { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
+b, strong { font-weight: 600; }
+h1, h2, h3, h4 { font-size: var(--fs-m); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
 .wrap {
   max-width: calc(var(--w) + 2 * 16px); margin: 0 auto;
@@ -322,6 +324,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 
 /* Admin */
 .panel { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: var(--bg); }
+.panel > h2 { margin: 0 0 6px; font-weight: 600; font-size: var(--fs-m); }
 .drop {
   display: grid; place-items: center; text-align: center; gap: 10px; padding: 36px 18px; cursor: pointer;
   border: 1.5px dashed var(--line); border-radius: 14px; background: var(--surface);
@@ -478,7 +481,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 .recs-head .icon-btn svg { width: 15px; height: 15px; }
 .recs-row {
   display: grid; grid-auto-flow: column; grid-auto-columns: min(66vw, 16rem); gap: 10px; margin-top: 12px;
-  overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
+  align-items: start; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
   padding: 2px max(16px, env(safe-area-inset-right, 0px)) 2px max(16px, env(safe-area-inset-left, 0px));
   scroll-padding-inline: max(16px, env(safe-area-inset-left, 0px));
 }
@@ -598,7 +601,9 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
 
 /* ---------- Admin: Info-Editor ---------- */
 .hours { display: grid; margin-top: 10px; }
-.hours .day { display: grid; grid-template-columns: 6.5rem 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.hours .day { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--line); }
+.hours .day b { font-weight: 500; }
+@media (min-width: 40rem) { .hours .day { grid-template-columns: 7rem 1fr; gap: 10px; align-items: center; } }
 .hours .day:first-child { border-top: 0; }
 .hours .ranges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .hours .range { display: inline-flex; align-items: center; gap: 6px; }
@@ -607,6 +612,7 @@ dialog.sheet.closing::backdrop { animation: fade .22s ease reverse forwards; }
   height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font: inherit; font-size: var(--fs-m);
 }
 .hours input[type="time"] { width: 7rem; }
+.hours input[aria-invalid="true"] { border-color: var(--rot); }
 .mini { width: 34px; height: 34px; flex: none; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; display: inline-grid; place-items: center; }
 .mini svg { width: 15px; height: 15px; }
 .clo { display: grid; gap: 10px; padding: 14px 0; border-top: 1px solid var(--line); }

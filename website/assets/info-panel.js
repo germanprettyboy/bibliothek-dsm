@@ -95,7 +95,7 @@
   function status(now) {
     const today = iso(now), nowHm = hm(now), c = closedOn(today);
     const again = () => { const n = hasHours && nextOpen(now); return n ? D.t("again", { w: when(n) }) : ""; };
-    if (c) return { k: "zu", t: D.t("closedToday"), sub: [label(c), again()].filter(Boolean).join(" · ") };
+    if (c) return { k: "zu", t: D.t("closedToday"), sub: [label(c) === D.t("abwesend") ? "" : label(c), again()].filter(Boolean).join(" · ") };
     if (!hasHours) return null;
     const rs = dayRanges(keyOf(now)), all = D.t("today") + " " + rs.map(span).join(", ");
     const cur = rs.find(r => r[0] <= nowHm && nowHm < r[1]);
