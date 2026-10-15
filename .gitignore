@@ -7,3 +7,7 @@ node_modules/
 # Lokale Testumgebung (Playwright, Screenshots) und Sicherungskopien
 .pruefung/
 *.bak
+
+# Claude-Worktrees und lokale Einstellungen (.claude/settings.json mit dem Hook wird eingecheckt)
+.claude/worktrees/
+.claude/settings.local.json

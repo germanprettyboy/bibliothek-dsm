@@ -31,6 +31,7 @@ werkzeuge/          ← NICHT hochladen
   quelle/admin.js     Verwaltungsoberfläche (Klartext)
   admin-verschluesseln.js   quelle/* → website/assets/admin.enc.js
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
+  branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
 daten/              ← NIEMALS einchecken/hochladen (in .gitignore)
   BIBLIOTHEK_DSM_2024.winbook   Original-DB mit Schülerdaten (Leser, Ausleihen, Gebühren)
   Schullogo_original.png
@@ -44,6 +45,8 @@ npm run books                                 # daten/*.winbook → website/book
 npm run serve                                 # http://localhost:8765
 npm run dev                                   # dasselbe mit Live-Reload (browser-sync über npx)
 node werkzeuge/admin-verschluesseln.js "<Passwort>"   # nach JEDER Änderung an werkzeuge/quelle/*
+npm run branches                              # was ist noch nicht in main?
+npm run integrieren -- <branch>               # fertigen Branch in main mergen (siehe unten)
 ```
 
 Das Admin-Passwort steht absichtlich in keiner Datei. Johann fragen, nicht raten, nicht notieren.
@@ -111,7 +114,45 @@ Fragen-Ablauf, Empfehlungen, Einstellungen, Admin-Sperre (falsch/richtig/Sitzung
 Empfehlungs-Editor, Cover-Logik mit simulierten API-Antworten. Admin-Import muss byte-gleich zu
 `npm run books` sein.
 
+## Branches integrieren (Pflicht am Ende jeder Aufgabe)
+
+Jede Aufgabe läuft in einem eigenen Worktree (`.claude/worktrees/<name>`, Branch `worktree-<name>`).
+Fertige Arbeit wird am Ende derselben Session in `main` integriert, nicht liegen gelassen.
+Kein Remote: „integrieren“ heißt `--no-ff`-Merge in den lokalen `main` im Haupt-Checkout.
+`main` ist immer der Stand, der per FTP hochgeladen werden darf – also lauffähig.
+
+Ablauf:
+1. Im eigenen Worktree alles committen.
+2. Im Worktree `git merge main` – neuen Stand holen, Konflikte **hier** lösen, nie in `main`:
+   - `CLAUDE.md`, `LIESMICH.txt`, Quelltext: beide Seiten inhaltlich zusammenführen.
+   - `admin.enc.js`: nicht mischen, nach dem Merge neu verschlüsseln.
+   - `books.js`: neu erzeugen (`npm run books`); `empfehlungen.js`/`info.js`: Inhalt fachlich zusammenführen.
+3. Prüfen: Seite mit `npm run serve` laden (Konsole fehlerfrei), vorhandene Tests laufen lassen.
+   `werkzeuge/quelle/*` geändert → neu verschlüsseln (Passwort bei Johann erfragen). Committen.
+4. Worktree verlassen (ExitWorktree, `keep`), im Haupt-Checkout `npm run integrieren -- worktree-<name>`.
+   Das Skript ändert `main` nicht, wenn: Haupt-Checkout nicht sauber / nicht auf `main`, Branch hat
+   Uncommittetes, Konflikt, Syntaxfehler in `website/**.js` oder `werkzeuge/**.js`. Dann zurück in den
+   Worktree, Ursache beheben, erneut.
+5. Aufräumen: `git worktree unlock <pfad>`, `git worktree remove <pfad>`, `git branch -d <branch>`
+   (`-d`, nie `-D` – verweigert, was nicht in `main` ist).
+6. Im Abschlussbericht: Merge-Commit und Warnungen des Skripts (z. B. veraltete Verschlüsselung) nennen.
+
+Regeln:
+- Ein SessionStart-Hook (`.claude/settings.json`) ruft `werkzeuge/branches.sh --hook` auf und meldet
+  offene Branches. Steht dort „fertig committet, aber nicht in main“: zu Beginn der Session erledigen –
+  integrieren, wenn der Branch erkennbar abgeschlossen ist (letzter Commit beschreibt eine fertige Aufgabe),
+  sonst Johann fragen.
+- Branches mit uncommitteten Dateien gehören einer laufenden Session: nicht anfassen. In fremden
+  Worktrees nie committen, stashen, resetten oder mergen.
+- `main` nur per Merge-Commit ändern. Kein Rebase von `main`, kein `--force`, kein `reset --hard` auf `main`.
+- Worktree-Sessions dürfen nur ihren Worktree mit Git anfassen; einfache Befehle ggf. als
+  `git -C <worktree-pfad> …`. Der Merge in `main` passiert erst nach ExitWorktree.
+
 ## Offen
+
+- `website/assets/admin.enc.js` ist älter als `werkzeuge/quelle/admin.js` (Öffnungszeiten-Editor aus b7ed4bd
+  fehlt in der verschlüsselten Fassung). Mit Johanns Passwort neu verschlüsseln und integrieren.
+  `npm run branches` meldet das, solange es besteht.
 
 - Echte Cover-Abfragen (Open Library/Google) nie live getestet – in der Cloud-Umgebung gab es kein Internet.
   Erste Aufgabe: lokal `npm run serve`, Seite öffnen, Netzwerk-Tab prüfen; dann in admin.html

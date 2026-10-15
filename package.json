@@ -6,7 +6,9 @@
     "books": "node werkzeuge/books-erzeugen.js daten/BIBLIOTHEK_DSM_2024.winbook",
     "verschluesseln": "node werkzeuge/admin-verschluesseln.js",
     "serve": "python3 -m http.server 8765 -d website",
-    "dev": "npx --yes browser-sync@3 start --server website --files website --port 8765 --no-open --no-notify --no-ui"
+    "dev": "npx --yes browser-sync@3 start --server website --files website --port 8765 --no-open --no-notify --no-ui",
+    "branches": "bash werkzeuge/branches.sh",
+    "integrieren": "bash werkzeuge/branches.sh integrieren"
   },
   "devDependencies": {
     "sql.js": "1.10.3"
