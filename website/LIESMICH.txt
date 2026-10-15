@@ -1,0 +1,71 @@
+Bibliothek DSM – Website
+========================
+
+Inhalt
+  index.html        Bücherliste (öffentlich)
+  admin.html        Verwaltung (passwortgeschützt): Bestand aktualisieren, Empfehlungen pflegen
+  books.js          Daten der Bücherliste (wird von admin.html erzeugt)
+  empfehlungen.js   Buchempfehlungen (wird von admin.html erzeugt)
+  assets/           Stil, Skripte, Logos, Schrift Fira Sans (lokal), sql.js,
+                    admin.enc.js (verschlüsselte Verwaltung), admin-lock.js (Sperre)
+
+  Der Ordner „werkzeuge“ gehört NICHT auf den Webspace. Er enthält den Klartext der
+  Verwaltung und das Werkzeug zum Verschlüsseln (siehe werkzeuge/LIESMICH.txt).
+
+Veröffentlichen
+  Den ganzen Ordner auf den Webspace laden (z. B. DSM-Server oder GitHub Pages).
+  Kein Server-Programm nötig. Funktioniert auch lokal per Doppelklick auf index.html.
+
+Verwaltung entsperren
+  admin.html fragt nach dem Passwort. Die Verwaltungslogik liegt nur verschlüsselt vor
+  (AES-GCM 256, Schlüssel aus dem Passwort per PBKDF2 mit 310.000 Durchläufen); das Passwort
+  steht in keiner Datei. Nach falschen Eingaben wartet die Seite zunehmend länger.
+  Innerhalb derselben Browser-Sitzung bleibt die Verwaltung entsperrt; „Sperren“ beendet das.
+  Voraussetzung: https:// oder lokal geöffnete Datei (Browser-Kryptografie).
+  Schutzniveau: gegen Neugierige gedacht, nicht gegen gezielte Angriffe – es gibt keinen Server.
+
+Bestand aktualisieren
+  1. admin.html öffnen, entsperren, Reiter „Bestand“.
+  2. Die .winbook-Datei aus WinBIAP auswählen oder hineinziehen.
+     Die Datei wird nur im Browser gelesen und nicht hochgeladen.
+  3. Bericht prüfen: Übernommen werden nur Titel, Untertitel, Autor, Verlag, Jahr,
+     ISBN, Kategorie und Standort. Leser-, Ausleih-, Gebühren-, Benutzer- und
+     Sitzungsdaten sowie der Ausleihstatus werden verworfen.
+  4. Optional „Vorschau ansehen“.
+  5. „books.js herunterladen“ und die alte books.js im Website-Ordner ersetzen.
+
+Cover
+  Nur über die vorhandene ISBN; ohne ISBN gibt es kein Cover (gestalteter Platzhalter).
+  Die Liste bleibt reiner Text. Für Bücher in Sichtweite lädt der Browser die Cover im
+  Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–180 px Breite):
+    - Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s). Bilder kommen über
+      die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN wären auf
+      100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
+    - Google Books als Rückfall, einzeln, höchstens alle 1,8 s.
+    - Pause bei verstecktem Tab und bei aktivem Datensparmodus.
+  Beim Antippen wird ein noch fehlendes Cover sofort mit Vorrang geholt.
+  Ergebnisse (auch „kein Cover“) merkt sich der Browser: Treffer 60 Tage, Fehlanzeigen 14 Tage.
+  Beim Laden eines Covers erhält der jeweilige Dienst die IP-Adresse des Besuchers.
+
+Cover-Abdeckung
+  admin.html zeigt nach dem Einlesen den Anteil mit ISBN und prüft auf Knopfdruck alle ISBN
+  (Open Library in Sammelabfragen, danach Google Books gedrosselt; einige Minuten).
+  Ergebnis und Verlauf (letzte 24 Aktualisierungen) werden in books.js gespeichert und beim
+  nächsten Einlesen fortgeführt. Abgebrochene Prüfungen gelten als vorläufig (* im Verlauf).
+
+Einstellungen (Zahnrad oben rechts)
+  Darstellung Automatisch/Hell/Dunkel, größere Schrift, hoher Kontrast, Buchempfehlungen
+  an/aus und Gruppe. Alles wird im Browser des Besuchers gespeichert.
+
+Buchempfehlungen
+  Beim ersten Besuch fragt die Seite, ob Empfehlungen gewünscht sind (Mittelstufe, Oberstufe,
+  Erwachsenenliteratur mit Romane / Sachbücher / Biografien & Geschichte). Die Antwort wird im
+  Browser gespeichert. Empfehlungen erscheinen über der Liste (3–4 Bücher mit Cover); ein Klick
+  öffnet die Vorschau mit dem Text „Warum dieses Buch?“. Das X blendet sie aus.
+  Pflege: admin.html, Reiter „Empfehlungen“ – Bücher aus dem Bestand suchen, Texte auf Deutsch
+  und Italienisch schreiben, Reihenfolge ändern, „empfehlungen.js herunterladen“ und die Datei
+  im Website-Ordner ersetzen. Der Entwurf bleibt im Browser gespeichert, bis er verworfen wird.
+  Bücher, die nach einem Bestands-Update fehlen, werden nicht angezeigt (Hinweis im Editor).
+
+Kategorien auf Italienisch
+  assets/kategorien-it.js. Neue Kategorien ohne Eintrag erscheinen auf Deutsch.

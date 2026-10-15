@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bibliothek – Deutsche Schule Mailand</title>
+<meta name="description" content="Bücherliste der Bibliothek der Deutschen Schule Mailand · Elenco dei libri della biblioteca della Scuola Germanica di Milano">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1a19" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/favicon.png">
+<link rel="preload" href="assets/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/common.js"></script>
+</head>
+<body>
+<div class="banner" id="preview" hidden>
+  <div class="wrap"><span data-i18n="preview">Vorschau der neuen Liste – noch nicht veröffentlicht.</span><a href="./" data-i18n="previewEnd">Vorschau beenden</a></div>
+</div>
+
+<header class="wrap top">
+  <a class="logo" href="./">
+    <img class="logo-l" src="assets/logo-hell.png" width="720" height="401" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+    <img class="logo-d" src="assets/logo-dunkel.png" width="720" height="401" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+  </a>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Sprache · Lingua">
+      <button type="button" data-lang="de" aria-pressed="true" lang="de">DE</button>
+      <button type="button" data-lang="it" aria-pressed="false" lang="it">IT</button>
+    </div>
+    <button type="button" class="icon-btn settings-btn" data-i18n-label="settings" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="wrap intro">
+  <h1 class="ui" data-i18n="title">Bibliothek</h1>
+</section>
+
+<section class="wrap info" id="info" hidden></section>
+
+<section class="wrap recs" id="recs" hidden aria-labelledby="recs-title"></section>
+
+<div id="bar-anchor"></div>
+<div class="bar" id="bar">
+  <div class="wrap">
+    <label class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>
+      <input id="q" type="search" autocomplete="off" spellcheck="false" enterkeyhint="search"
+        data-i18n-ph="search" data-i18n-label="searchLabel" placeholder="Titel, Autor oder ISBN suchen" aria-label="Bücher durchsuchen">
+      <button type="button" class="clear" hidden data-i18n-label="clear" aria-label="Suche löschen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </label>
+    <nav class="index" id="index" data-i18n-label="index" aria-label="Alphabetischer Index"></nav>
+  </div>
+</div>
+
+<div class="floater" id="floater" aria-hidden="true"></div>
+
+<main class="wrap books">
+  <p class="meta ui" id="meta" aria-live="polite"></p>
+  <div class="list" id="list"></div>
+</main>
+
+<footer class="foot">
+  <div class="wrap"><span class="ui" data-i18n="footer">Bibliothek der Deutschen Schule Mailand</span></div>
+</footer>
+
+<dialog class="sheet glass" id="detail" aria-labelledby="d-title">
+  <div class="grab" aria-hidden="true"></div>
+  <button type="button" class="icon-btn close" data-close data-i18n-label="close" aria-label="Schließen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+  <div class="inner">
+    <div class="cover" id="d-cover"></div>
+    <div>
+      <h3 id="d-title"></h3>
+      <p class="sub" id="d-sub"></p>
+      <p class="by" id="d-by"></p>
+    </div>
+    <div class="teaser" id="d-teaser" hidden><b data-i18n="why">Warum dieses Buch?</b><p></p></div>
+    <dl id="d-dl"></dl>
+    <p class="src ui" id="d-src"></p>
+  </div>
+</dialog>
+
+<script src="books.js"></script>
+<script src="assets/kategorien-it.js"></script>
+<script src="empfehlungen.js"></script>
+<script src="info.js"></script>
+<script src="assets/covers.js"></script>
+<script src="assets/app.js"></script>
+<script src="assets/info-panel.js"></script>
+</body>
+</html>

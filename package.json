@@ -1,0 +1,14 @@
+{
+  "name": "bibliothek-dsm",
+  "private": true,
+  "description": "Bücherliste der Bibliothek der Deutschen Schule Mailand (statische Website) und Werkzeuge",
+  "scripts": {
+    "books": "node werkzeuge/books-erzeugen.js daten/BIBLIOTHEK_DSM_2024.winbook",
+    "verschluesseln": "node werkzeuge/admin-verschluesseln.js",
+    "serve": "python3 -m http.server 8765 -d website",
+    "dev": "npx --yes browser-sync@3 start --server website --files website --port 8765 --no-open --no-notify --no-ui"
+  },
+  "devDependencies": {
+    "sql.js": "1.10.3"
+  }
+}

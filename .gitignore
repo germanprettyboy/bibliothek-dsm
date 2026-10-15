@@ -1,0 +1,9 @@
+# Enthält Leser- und Ausleihdaten (Schülerdaten) – niemals einchecken oder hochladen
+daten/
+*.winbook
+node_modules/
+.DS_Store
+
+# Lokale Testumgebung (Playwright, Screenshots) und Sicherungskopien
+.pruefung/
+*.bak

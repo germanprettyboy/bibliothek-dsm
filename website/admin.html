@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Bibliothek – Verwaltung</title>
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1a19" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preload" href="assets/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/common.js"></script>
+</head>
+<body>
+<header class="wrap top">
+  <a class="logo" href="./">
+    <img class="logo-l" src="assets/logo-hell.png" width="720" height="401" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+    <img class="logo-d" src="assets/logo-dunkel.png" width="720" height="401" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+  </a>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Sprache · Lingua">
+      <button type="button" data-lang="de" aria-pressed="true" lang="de">DE</button>
+      <button type="button" data-lang="it" aria-pressed="false" lang="it">IT</button>
+    </div>
+    <button type="button" class="icon-btn settings-btn" data-i18n-label="settings" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+    </button>
+  </div>
+</header>
+
+<section class="wrap intro">
+  <h1 data-i18n="admTitle">Verwaltung</h1>
+  <p id="current"></p>
+</section>
+
+<main class="wrap">
+  <div class="lock" id="lock">
+    <form id="lock-form" autocomplete="off">
+      <h2 data-i18n="lockT">Geschützter Bereich</h2>
+      <p data-i18n="lockP">Bitte das Passwort der Bibliothek eingeben.</p>
+      <input type="password" id="pw" autocomplete="current-password" data-i18n-label="lockPw" aria-label="Passwort" required>
+      <button type="submit" class="btn" id="unlock"><span data-i18n="lockBtn">Entsperren</span></button>
+      <p class="msg" id="lock-msg" role="alert"></p>
+    </form>
+  </div>
+
+  <div id="app" hidden>
+  <div class="adm-top">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-tab="bestand" data-i18n="tabBestand">Bestand</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="empf" data-i18n="tabEmpf">Empfehlungen</button>
+    </div>
+    <button type="button" class="textbtn" id="lock-btn" data-i18n="lockAgain">Sperren</button>
+  </div>
+
+  <div class="steps" id="tab-bestand">
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept=".winbook,.sqlite,.sqlite3,.db,application/vnd.sqlite3,application/x-sqlite3">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v6.2c0 1.6 3.4 2.8 7.5 2.8s7.5-1.2 7.5-2.8V5.5"/><path d="M4.5 11.7v6.2c0 1.6 3.4 2.8 7.5 2.8"/><path d="M18 15v6M15.3 17.6 18 15l2.7 2.6"/></svg>
+    <strong class="ui" data-i18n="dropT">Datenbank auswählen</strong>
+    <p class="ui" data-i18n="dropP">WinBIAP-Datei (.winbook) hierher ziehen oder antippen.</p>
+  </label>
+
+  <div class="status" id="status" hidden><span class="spin" aria-hidden="true"></span><span class="ui" id="statusText"></span></div>
+  <div class="flag warn" id="error" hidden></div>
+
+  <div class="report" id="report" hidden>
+    <div class="panel">
+      <h2 class="ui" data-i18n="takenT">Übernommen</h2>
+      <div class="big" id="r-books"></div>
+      <p class="note ui" data-i18n="takenP">Bücher in der öffentlichen Liste</p>
+      <ul class="lines" id="r-taken"></ul>
+    </div>
+    <div class="panel">
+      <h2 class="ui" data-i18n="removedT">Nicht übernommen: Personen- und Ausleihdaten</h2>
+      <ul class="lines" id="r-removed"></ul>
+    </div>
+    <div class="flag" id="r-check"></div>
+    <div class="panel" id="cov">
+      <h2 data-i18n="covT">Cover-Abdeckung</h2>
+      <div class="big" id="c-big"></div>
+      <p class="note" id="c-sub"></p>
+      <div class="meter" id="c-meter" aria-hidden="true"><i class="m-ol"></i><i class="m-gb"></i><i class="m-none"></i></div>
+      <ul class="lines" id="c-lines"></ul>
+      <div class="actions" style="margin-top:14px">
+        <button type="button" class="btn ghost" id="c-run"><span data-i18n="covRun">Cover-Abdeckung prüfen</span></button>
+        <button type="button" class="btn ghost" id="c-stop" hidden><span data-i18n="covStop">Abbrechen</span></button>
+      </div>
+      <p class="note" id="c-hint" style="margin-top:10px"></p>
+      <div class="hist" id="c-hist" hidden>
+        <h3 data-i18n="histT">Verlauf</h3>
+        <div class="tscroll"><table><thead><tr><th data-i18n="hDate">Stand</th><th data-i18n="hBooks">Bücher</th><th data-i18n="hIsbn">mit ISBN</th><th data-i18n="hCover">mit Cover</th></tr></thead><tbody id="c-hbody"></tbody></table></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 class="ui" data-i18n="publishT">Veröffentlichen</h2>
+      <p class="note ui" id="r-howto"></p>
+      <div class="actions" style="margin-top:14px">
+        <button type="button" class="btn" id="dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>
+          <span class="ui-btn" data-i18n="download">books.js herunterladen</span>
+        </button>
+        <a class="btn ghost" id="preview" href="index.html#vorschau" target="_blank" rel="noopener"><span class="ui" data-i18n="preview">Vorschau ansehen</span></a>
+        <button type="button" class="btn ghost" id="again"><span class="ui" data-i18n="again">Andere Datei laden</span></button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="steps" id="tab-empf" hidden>
+    <div class="panel">
+      <h2 data-i18n="eT">Buchempfehlungen</h2>
+      <p class="note" data-i18n="eP">Pro Gruppe bis zu vier Bücher aus dem Bestand, jeweils mit einem kurzen Text auf Deutsch und Italienisch.</p>
+      <div class="chips" id="e-groups" role="radiogroup" style="margin-top:12px"></div>
+      <div id="e-list" style="margin-top:8px"></div>
+      <div class="find" style="margin-top:10px">
+        <input id="e-q" type="search" autocomplete="off" data-i18n-ph="eFind" placeholder="Buch aus dem Bestand suchen">
+        <ul id="e-res"></ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 data-i18n="publishT">Veröffentlichen</h2>
+      <p class="note" data-i18n="eHow">Die heruntergeladene Datei empfehlungen.js im Website-Ordner ersetzen (neben index.html).</p>
+      <div class="actions" style="margin-top:14px">
+        <button type="button" class="btn" id="e-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>
+          <span data-i18n="eDl">empfehlungen.js herunterladen</span>
+        </button>
+        <a class="btn ghost" id="e-prev" href="index.html#vorschau" target="_blank" rel="noopener"><span data-i18n="preview">Vorschau ansehen</span></a>
+        <button type="button" class="btn ghost" id="e-reset"><span data-i18n="eReset">Entwurf verwerfen</span></button>
+      </div>
+      <p class="note" id="e-state" style="margin-top:10px"></p>
+    </div>
+  </div>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap"><span class="ui" data-i18n="footer">Bibliothek der Deutschen Schule Mailand · Verwaltung</span><a class="ui" href="./" data-i18n="toList" style="color:inherit;text-decoration:none">Zur Bücherliste</a></div>
+</footer>
+
+<script src="books.js"></script>
+<script src="empfehlungen.js"></script>
+<script src="assets/covers.js"></script>
+<script src="assets/admin.enc.js"></script>
+<script src="assets/admin-lock.js"></script>
+</body>
+</html>
