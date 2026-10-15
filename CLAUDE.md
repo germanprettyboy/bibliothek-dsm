@@ -150,9 +150,6 @@ Regeln:
 
 ## Offen
 
-- `website/assets/admin.enc.js` ist älter als `werkzeuge/quelle/admin.js` (Öffnungszeiten-Editor aus b7ed4bd
-  fehlt in der verschlüsselten Fassung). Mit Johanns Passwort neu verschlüsseln und integrieren.
-  `npm run branches` meldet das, solange es besteht.
 
 - Echte Cover-Abfragen (Open Library/Google) nie live getestet – in der Cloud-Umgebung gab es kein Internet.
   Erste Aufgabe: lokal `npm run serve`, Seite öffnen, Netzwerk-Tab prüfen; dann in admin.html
