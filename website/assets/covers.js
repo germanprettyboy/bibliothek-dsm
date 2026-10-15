@@ -1,34 +1,43 @@
 /*
  * covers.js – Cover über die ISBN laden (nur vorhandene ISBN, keine Ergänzung).
  *
- * Quellen
- *  1. Open Library, Sammelabfrage über /api/books (bis zu 20 Bücher je Anfrage). Liefert eine
- *     Cover-ID; Bilder über die ID sind nicht ratenbegrenzt (Abrufe direkt über die ISBN wären
- *     auf 100 je 5 Minuten und IP begrenzt – im Schulnetz teilen sich alle eine IP).
- *  2. Google Books als Rückfall, einzeln und gedrosselt.
- * Auflösung: klein (Open Library „M“, ca. 180 px breit; Google „thumbnail“, ca. 128 px breit).
+ * 1. Cover-Index (cover-index.js, window.DSM_COVER, erzeugt mit werkzeuge/cover-index.js oder admin.html):
+ *    je ISBN die schon ermittelte Quelle. Das Bild wird direkt geladen, ohne Abfrage vorab.
+ * 2. Live für Bücher, die noch nicht im Index stehen:
+ *    - Deutsche Nationalbibliothek (MVB-Cover der Verlage): Bild direkt über die ISBN, 404 = keins.
+ *    - Open Library, Sammelabfrage über /search.json (bis zu 30 ISBN je Anfrage) → Cover-ID der Ausgabe.
+ *      Bilder über die ID sind nicht ratenbegrenzt (Abrufe über /b/isbn/ wären auf 100 je 5 Minuten
+ *      und IP begrenzt – im Schulnetz teilen sich alle eine IP).
+ *    - Google Books, Bild direkt über die ISBN (ohne API, die ohne Schlüssel kein Kontingent hat).
+ *      Ohne Cover liefert Google ein Ersatzbild 128×184, das wird verworfen.
+ * Reihenfolge bei mehreren Treffern: DNB (schnell, 200 px) > Open Library (180 px) > Google (128 px).
  *
  * Betrieb
  *  - get(book): sofort, mit Vorrang (beim Antippen).
- *  - want(book) / unwant(book): Hintergrund-Warteschlange für Bücher in Sichtweite,
- *    gestaffelt abgearbeitet, pausiert bei verstecktem Tab und bei „Datensparen“.
- *  - Ergebnisse (auch „kein Cover“) werden im Browser gemerkt.
+ *  - want(book) / unwant(book): Hintergrund für Bücher in Sichtweite, gestaffelt, pausiert bei
+ *    verstecktem Tab und bei „Datensparen“. Geladene Bilder bleiben als Element im Speicher (img()).
+ *  - Live-Ergebnisse (auch „kein Cover“) werden im Browser gemerkt.
  */
 (function (root) {
   "use strict";
-  const log = root.DSM_LOG || function () {}; // assets/protokoll.js
 
-  const OL_API = "https://openlibrary.org/api/books?format=json&jscmd=viewapi&bibkeys=";
-  const GB_API = "https://www.googleapis.com/books/v1/volumes?fields=items(volumeInfo/imageLinks)&q=isbn:";
-  const BATCH = 20;            // Bücher je Open-Library-Abfrage
-  const BG_TICK = 1500;        // ms zwischen Hintergrund-Abfragen an Open Library
-  const GB_TICK = 1800;        // ms zwischen Hintergrund-Abfragen an Google Books
-  const IMG_TICK = 350;        // ms zwischen vorgeladenen Bildern
-  const CACHE_KEY = "dsm-cover-v2", HIT_TTL = 60 * 864e5, MISS_TTL = 14 * 864e5, MAX_ENTRIES = 3000;
+  const OL_SEARCH = "https://openlibrary.org/search.json?fields=key,cover_i,editions,editions.isbn,editions.cover_i&limit=100&q=";
+  const SRC = {
+    ol: id => "https://covers.openlibrary.org/b/id/" + id + "-M.jpg",
+    dnb: i => "https://portal.dnb.de/opac/mvb/cover?isbn=" + i + "&size=m",
+    gb: i => "https://books.google.com/books/content?vid=ISBN" + i + "&printsec=frontcover&img=1&zoom=1"
+  };
+  const BY = { ol: "coverOL", dnb: "coverDNB", gb: "coverGB" };
+  const BATCH = 30;            // ISBN je Open-Library-Abfrage
+  const BG_TICK = 1200;        // ms zwischen Hintergrund-Abfragen an Open Library
+  const PROBE_TICK = 300;      // ms zwischen Bildproben (DNB/Google) im Hintergrund
+  const IMG_TICK = 250;        // ms zwischen vorgeladenen Bildern
+  const POOL = 40;             // vorgeladene Bildelemente im Speicher
+  const CACHE_KEY = "dsm-cover-v3", HIT_TTL = 60 * 864e5, MISS_TTL = 14 * 864e5, MAX_ENTRIES = 3000;
 
-  // ---------- Cache ----------
+  // ---------- Cache (nur Live-Ergebnisse) ----------
   let cache = {};
-  try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {}; } catch (e) { cache = {}; }
+  try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {}; localStorage.removeItem("dsm-cover-v2"); } catch (e) { cache = {}; }
   let saveT = 0;
   function persist() {
     clearTimeout(saveT);
@@ -48,200 +57,239 @@
   }
   function store(key, v) { cache[key] = { u: v ? v.src : "", b: v ? v.by : "", t: Date.now() }; persist(); }
 
-  // ---------- Hilfen ----------
-  function isbn10(i13) {
-    if (!/^978\d{10}$/.test(i13)) return null;
-    const core = i13.slice(3, 12);
-    let s = 0;
-    for (let i = 0; i < 9; i++) s += +core[i] * (10 - i);
-    const c = (11 - (s % 11)) % 11;
-    return core + (c === 10 ? "X" : String(c));
+  // ---------- Index ----------
+  // Werte: Zahl = Open-Library-Cover-ID, "d" = DNB, "g" = Google (jeweils mit dieser ISBN), 0 = geprüft, keins.
+  function decode(v, i) {
+    if (typeof v === "number") return v > 0 ? { src: SRC.ol(v), by: BY.ol } : null;
+    if (v === "d") return { src: SRC.dnb(i), by: BY.dnb };
+    if (v === "g") return { src: SRC.gb(i), by: BY.gb };
+    return null;
   }
-  function timeoutSignal(ms) {
-    if (!("AbortController" in root)) return { signal: undefined, done() {} };
-    const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
-    return { signal: c.signal, done() { clearTimeout(t); } };
+  // {src,by} | null (geprüft, keins) | undefined (nicht im Index)
+  function indexed(b) {
+    const X = root.DSM_COVER && root.DSM_COVER.c;
+    if (!X) return undefined;
+    let seen = false;
+    for (const i of b.i) {
+      if (!(i in X)) continue;
+      seen = true;
+      const h = decode(X[i], i);
+      if (h) return h;
+    }
+    return seen ? null : undefined;
   }
+  const known = b => { const x = indexed(b); return x !== undefined ? x : cached(keyOf(b)); };
+
+  // ---------- Bilder ----------
+  const pool = new Map(); // src -> geladenes <img>
+  function keep(src, img) {
+    pool.delete(src); pool.set(src, img);
+    if (pool.size > POOL) pool.delete(pool.keys().next().value);
+  }
+  // Google-Ersatzbild „kein Bild verfügbar“ und Ein-Pixel-Bilder verwerfen
+  const real = img => img.naturalWidth > 20 && img.naturalHeight > 20 && !(img.naturalWidth === 128 && img.naturalHeight === 184 && /books\.google/.test(img.src));
   function loadImg(src, ms) {
+    const p = pool.get(src);
+    if (p) return Promise.resolve(true);
     return new Promise(res => {
       const img = new Image();
       const t = setTimeout(() => { img.src = ""; res(false); }, ms || 8000);
       img.referrerPolicy = "no-referrer";
       img.decoding = "async";
-      img.onload = () => { clearTimeout(t); res(img.naturalWidth > 20 && img.naturalHeight > 20); };
+      img.onload = () => { clearTimeout(t); const ok = real(img); if (ok) keep(src, img); res(ok); };
       img.onerror = () => { clearTimeout(t); res(false); };
       img.src = src;
     });
   }
+  // Fertig geladenes Bildelement (aus dem Speicher, sonst neu) – nicht doppelt im Dokument verwenden
+  function img(found) {
+    const p = pool.get(found.src);
+    if (p && !p.isConnected) return p;
+    const n = new Image();
+    n.referrerPolicy = "no-referrer"; n.decoding = "async"; n.src = found.src;
+    return n;
+  }
+  // Erste ladbare Quelle aus einer Liste von {src,by}, nacheinander
+  async function firstImg(cands) {
+    for (const c of cands) if (await loadImg(c.src)) return c;
+    return null;
+  }
+  const probes = b => b.i.map(i => ({ src: SRC.dnb(i), by: BY.dnb }));
+  const gbProbes = b => b.i.map(i => ({ src: SRC.gb(i), by: BY.gb }));
 
-  // Open Library: mehrere Bücher in einer Anfrage. Ergebnis: Map key -> {src,by} | null
+  // ---------- Open Library ----------
+  function timeoutSignal(ms) {
+    if (!("AbortController" in root)) return { signal: undefined, done() {} };
+    const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+    return { signal: c.signal, done() { clearTimeout(t); } };
+  }
+  // Mehrere Bücher in einer Anfrage. Ergebnis: Map key -> {src,by} | null; null bei Netzfehler.
   async function olLookup(books) {
-    const want = new Map(); // bibkey -> key
-    for (const b of books) for (const i of b.i) {
-      want.set("ISBN:" + i, keyOf(b));
-      const i10 = isbn10(i); if (i10) want.set("ISBN:" + i10, keyOf(b));
-    }
-    const out = new Map(books.map(b => [keyOf(b), null]));
-    const to = timeoutSignal(8000);
+    const isbns = [...new Set(books.flatMap(b => b.i))];
+    const to = timeoutSignal(10000);
     try {
-      const r = await fetch(OL_API + [...want.keys()].join(","), { referrerPolicy: "no-referrer", signal: to.signal });
+      const r = await fetch(OL_SEARCH + encodeURIComponent("isbn:(" + isbns.join(" OR ") + ")"), { referrerPolicy: "no-referrer", signal: to.signal });
       if (!r.ok) throw new Error("ol " + r.status);
       const j = await r.json();
-      for (const [bib, v] of Object.entries(j)) {
-        const k = want.get(bib);
-        if (!k || out.get(k) || !v || !v.thumbnail_url) continue;
-        out.set(k, { src: v.thumbnail_url.replace(/^http:/, "https:").replace(/-S\.jpg$/, "-M.jpg"), by: "coverOL" });
-      }
-      return out;
+      const ed = new Map();
+      for (const d of j.docs || []) for (const e of (d.editions && d.editions.docs) || [])
+        if (e.cover_i > 0) for (const i of e.isbn || []) if (!ed.has(i)) ed.set(i, e.cover_i);
+      return new Map(books.map(b => {
+        const id = b.i.map(i => ed.get(i)).find(Boolean);
+        return [keyOf(b), id ? { src: SRC.ol(id), by: BY.ol, id } : null];
+      }));
     } catch (e) {
       return null; // Netzfehler: nichts merken, später erneut versuchen
     } finally { to.done(); }
   }
 
-  // Google Books: ein Buch je Anfrage. Ergebnis: {src,by} | null | undefined (Fehler)
-  let gbBlockedUntil = 0;
-  async function gbLookup(b) {
-    if (Date.now() < gbBlockedUntil) return undefined;
-    const to = timeoutSignal(6000);
-    try {
-      const r = await fetch(GB_API + b.i[0], { referrerPolicy: "no-referrer", signal: to.signal });
-      if (r.status === 429 || r.status === 403) { gbBlockedUntil = Date.now() + 5 * 60e3; return undefined; }
-      if (!r.ok) return undefined;
-      const j = await r.json();
-      const l = j.items && j.items[0] && j.items[0].volumeInfo && j.items[0].volumeInfo.imageLinks;
-      const u = l && (l.thumbnail || l.smallThumbnail);
-      return u ? { src: u.replace(/^http:/, "https:").replace("&edge=curl", ""), by: "coverGB" } : null;
-    } catch (e) { return undefined; } finally { to.done(); }
-  }
-
   // ---------- Vorrang (Antippen) ----------
   const inflight = new Map();
-  function get(b) {
+  // olHit: optional Promise auf das Open-Library-Ergebnis aus einer Sammelabfrage
+  function get(b, olHit) {
     if (!b || !b.i || !b.i.length) return Promise.resolve(null);
     const key = keyOf(b);
-    const c = cached(key);
-    if (c !== undefined) return Promise.resolve(c);
     if (inflight.has(key)) return inflight.get(key);
-    // Open Library und Google parallel, erstes ladbares Bild gewinnt
-    const p = new Promise(res => {
-      let left = 2, missOk = true;
-      const fin = v => {
-        if (v) { res(v); return; }
-        if (v === undefined) missOk = false;
-        if (--left === 0) res(missOk ? null : undefined);
-      };
-      olLookup([b]).then(async m => {
-        const h = m ? m.get(key) : undefined;
-        fin(h ? (await loadImg(h.src) ? h : null) : h);
-      });
-      gbLookup(b).then(async g => fin(g ? (await loadImg(g.src) ? g : null) : g));
-    }).then(v => { inflight.delete(key); if (v !== undefined) store(key, v); return v || null; });
+    const k = known(b);
+    if (k === null) return Promise.resolve(null);
+    // Bekannte Quelle: Bild laden; nur wenn es nicht mehr ladbar ist, live neu suchen
+    const p = (k ? loadImg(k.src).then(ok => ok ? k : live(b)) : live(b, olHit))
+      .then(v => { inflight.delete(key); return v || null; });
     inflight.set(key, p);
     return p;
   }
+  // DNB und Open Library parallel; DNB gewinnt, sobald klar ist, dass es eins hat. Dann Google.
+  function live(b, olHit) {
+    const key = keyOf(b);
+    const dnb = firstImg(probes(b));
+    const ol = (olHit || olLookup([b]).then(m => m && m.get(key))).then(async h => {
+      if (h === undefined) return undefined;
+      return h && await loadImg(h.src) ? h : null;
+    });
+    return dnb.then(async d => {
+      if (d) return d;
+      const o = await ol;
+      if (o) return o;
+      const g = await firstImg(gbProbes(b));
+      return g || (o === undefined ? undefined : null);
+    }).then(v => { if (v !== undefined) store(key, v); return v; });
+  }
 
   // ---------- Hintergrund (gestaffelt) ----------
-  const queue = new Map();   // key -> book (in Sichtweite, noch offen)
-  const gbQueue = [];        // Bücher ohne Open-Library-Treffer
-  const imgQueue = [];       // aufgelöste Bild-URLs zum Vorladen
+  const queue = new Map();   // key -> Buch ohne bekannte Quelle (in Sichtweite)
+  const probeQueue = [];     // Bücher ohne Open-Library-Treffer: DNB, dann Google
+  const imgQueue = [];       // bekannte Quellen zum Vorladen
   const conn = navigator.connection || {};
   const enabled = !conn.saveData && !/(^|-)2g$/.test(conn.effectiveType || "");
-  let olBusy = false, gbBusy = false, imgBusy = false;
+  let olBusy = false, probeBusy = false, imgBusy = false;
 
   function want(b) {
     if (!enabled || !b || !b.i || !b.i.length) return;
     const key = keyOf(b);
-    if (cached(key) !== undefined || inflight.has(key)) return;
-    queue.set(key, b);
+    if (inflight.has(key)) return;
+    const k = known(b);
+    if (k) { if (!pool.has(k.src)) imgQueue.push({ key, hit: k, book: b }); }
+    else if (k === undefined) queue.set(key, b);
   }
-  function unwant(b) { if (b && b.i) queue.delete(keyOf(b)); }
+  function unwant(b) {
+    if (!b || !b.i) return;
+    const key = keyOf(b);
+    queue.delete(key);
+    for (let n = imgQueue.length - 1; n >= 0; n--) if (imgQueue[n].key === key) imgQueue.splice(n, 1);
+  }
   const paused = () => document.hidden;
 
   setInterval(async () => {
     if (olBusy || paused() || !queue.size) return;
     olBusy = true;
-    const batch = [...queue.values()].slice(0, BATCH);
+    const batch = [];
+    let n = 0;
+    for (const b of queue.values()) { if (n + b.i.length > BATCH) break; batch.push(b); n += b.i.length; }
     batch.forEach(b => queue.delete(keyOf(b)));
     const m = await olLookup(batch);
-    if (m) {
-      let hits = 0;
-      for (const b of batch) {
-        const h = m.get(keyOf(b));
-        if (h) { hits++; imgQueue.push({ key: keyOf(b), hit: h, book: b }); } else gbQueue.push(b);
-      }
-      log("Cover", `Hintergrund: ${batch.length} Bücher in Sichtweite bei Open Library abgefragt, ${hits} mit Cover`);
+    if (m) for (const b of batch) {
+      const h = m.get(keyOf(b));
+      // DNB zuerst prüfen (schneller und größer), Open Library als Rückfall merken
+      probeQueue.push({ book: b, steps: probes(b).concat(h ? [h] : [], gbProbes(b)) });
     }
     olBusy = false;
   }, BG_TICK);
 
   setInterval(async () => {
-    if (gbBusy || paused() || !gbQueue.length) return;
-    gbBusy = true;
-    const b = gbQueue.shift();
-    const g = await gbLookup(b);
-    if (g) imgQueue.push({ key: keyOf(b), hit: g, book: b });
-    else if (g === null) store(keyOf(b), null);
-    gbBusy = false;
-  }, GB_TICK);
+    if (probeBusy || paused() || !probeQueue.length) return;
+    probeBusy = true;
+    const job = probeQueue.shift(), key = keyOf(job.book);
+    const c = job.steps.shift();
+    if (await loadImg(c.src)) store(key, c);
+    else if (job.steps.length) probeQueue.unshift(job);
+    else store(key, null);
+    probeBusy = false;
+  }, PROBE_TICK);
 
   setInterval(async () => {
     if (imgBusy || paused() || !imgQueue.length) return;
     imgBusy = true;
-    const { key, hit, book } = imgQueue.shift();
-    if (await loadImg(hit.src)) store(key, hit);
-    else gbQueue.push(book); // Bild defekt: Google versuchen
+    const { book, hit } = imgQueue.shift();
+    if (!await loadImg(hit.src)) queue.set(keyOf(book), book); // Bild weg: live neu suchen
     imgBusy = false;
   }, IMG_TICK);
 
   // ---------- Messung für die Admin-Seite ----------
-  // Prüft alle Bücher mit ISBN gestaffelt. onProgress({done,total,ol,gb,none,err}); stop() bricht ab.
+  // Prüft alle Bücher mit ISBN live (ohne Index und Cache). onProgress({done,total,dnb,ol,gb,none,err});
+  // stop() bricht ab. index() liefert danach die Daten für cover-index.js.
   function survey(books, onProgress) {
     let stopped = false;
     const list = books.filter(b => b.i && b.i.length);
-    const st = { total: list.length, done: 0, ol: 0, gb: 0, none: 0, err: 0, paused: false, complete: false };
+    const st = { total: list.length, done: 0, dnb: 0, ol: 0, gb: 0, none: 0, err: 0, complete: false };
+    const out = {}; // ISBN -> Indexwert
     const report = () => onProgress && onProgress(Object.assign({}, st));
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const hit = (b, v) => {
+      if (v.by === BY.ol) out[b.i[0]] = v.id;
+      else out[v.src.match(/(\d{13})/)[1]] = v.by === BY.dnb ? "d" : "g";
+      st[v.by === BY.ol ? "ol" : v.by === BY.dnb ? "dnb" : "gb"]++;
+    };
     const run = (async () => {
       report();
-      const misses = [];
-      for (let i = 0; i < list.length && !stopped; i += 40) {
-        const part = list.slice(i, i + 40);
+      // 1. Open Library in Sammelabfragen
+      const olHit = new Map();
+      for (let i = 0; i < list.length && !stopped;) {
+        const part = [];
+        for (let n = 0; i < list.length && n + list[i].i.length <= BATCH; i++) { part.push(list[i]); n += list[i].i.length; }
+        if (!part.length) part.push(list[i++]);
         let m = await olLookup(part);
         if (!m) { await sleep(3000); m = await olLookup(part); }
-        for (const b of part) {
-          const h = m ? m.get(keyOf(b)) : undefined;
-          if (h) { st.ol++; st.done++; store(keyOf(b), h); } else misses.push(b);
+        for (const b of part) olHit.set(keyOf(b), m ? m.get(keyOf(b)) : undefined);
+        await sleep(300);
+      }
+      // 2. je Buch: DNB, sonst Open Library, sonst Google – vier Bücher gleichzeitig
+      let next = 0;
+      const worker = async () => {
+        while (!stopped && next < list.length) {
+          const b = list[next++];
+          const o = olHit.get(keyOf(b));
+          const v = await firstImg(probes(b)) || (o ? o : null) || await firstImg(gbProbes(b));
+          if (v) hit(b, v);
+          else if (o === undefined) st.err++;
+          else { st.none++; out[b.i[0]] = 0; }
+          st.done++;
+          if (st.done % 10 === 0) report();
         }
-        report();
-        await sleep(600);
-      }
-      for (const b of misses) {
-        if (stopped) break;
-        while (!stopped && Date.now() < gbBlockedUntil) { st.paused = true; report(); await sleep(5000); }
-        st.paused = false;
-        if (stopped) break;
-        const g = await gbLookup(b);
-        if (g) { st.gb++; store(keyOf(b), g); } else if (g === null) { st.none++; store(keyOf(b), null); } else st.err++;
-        st.done++;
-        report();
-        await sleep(900);
-      }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
       st.complete = !stopped;
       report();
       return st;
     })();
-    return { done: run, stop() { stopped = true; } };
+    return { done: run, stop() { stopped = true; }, index: () => Object.assign({}, out) };
   }
 
-  // Mehrere Bücher auf einmal (z. B. Empfehlungen): eine Sammelabfrage, danach einzeln
-  async function prime(books) {
-    const todo = books.filter(b => b && b.i && b.i.length && cached(keyOf(b)) === undefined && !inflight.has(keyOf(b)));
-    if (todo.length > 1) {
-      const m = await olLookup(todo);
-      if (m) await Promise.all(todo.map(async b => { const h = m.get(keyOf(b)); if (h && await loadImg(h.src)) store(keyOf(b), h); }));
-    }
-    return Promise.all(books.map(get));
+  // Mehrere Bücher auf einmal (z. B. Empfehlungen): eine Open-Library-Sammelabfrage für die unbekannten
+  function prime(books) {
+    const todo = books.filter(b => b && b.i && b.i.length && known(b) === undefined && !inflight.has(keyOf(b)));
+    const m = todo.length > 1 ? olLookup(todo.slice(0, BATCH)) : null;
+    return Promise.all(books.map(b => get(b, m && todo.includes(b) ? m.then(x => x ? x.get(keyOf(b)) : undefined) : undefined)));
   }
 
-  root.DSMCovers = { get, prime, want, unwant, survey, enabled };
+  root.DSMCovers = { get, prime, want, unwant, survey, img, enabled };
 })(window);
