@@ -50,6 +50,7 @@
     <div class="tabs" role="tablist">
       <button type="button" role="tab" aria-selected="true" data-tab="bestand" data-i18n="tabBestand">Bestand</button>
       <button type="button" role="tab" aria-selected="false" data-tab="empf" data-i18n="tabEmpf">Empfehlungen</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="info" data-i18n="tabInfo">Info</button>
     </div>
     <button type="button" class="textbtn" id="lock-btn" data-i18n="lockAgain">Sperren</button>
   </div>
@@ -116,6 +117,7 @@
       <div id="e-list" style="margin-top:8px"></div>
       <div class="find" style="margin-top:10px">
         <input id="e-q" type="search" autocomplete="off" data-i18n-ph="eFind" placeholder="Buch aus dem Bestand suchen">
+        <span class="full" id="e-full" hidden></span>
         <ul id="e-res"></ul>
       </div>
     </div>
@@ -133,6 +135,45 @@
       <p class="note" id="e-state" style="margin-top:10px"></p>
     </div>
   </div>
+
+  <div class="steps" id="tab-info" hidden>
+    <div class="panel">
+      <h2 data-i18n="iHoursT">Öffnungszeiten</h2>
+      <p class="note" data-i18n="iHoursP">Pro Wochentag bis zu zwei Zeiträume. Ohne Zeitraum gilt der Tag als geschlossen.</p>
+      <div class="hours" id="i-hours"></div>
+    </div>
+    <div class="panel">
+      <h2 data-i18n="iNoteT">Hinweis (optional)</h2>
+      <p class="note" data-i18n="iNoteP">Erscheint im Fenster „Öffnungszeiten“, z. B. „Ausleihe nur mit Schülerausweis“.</p>
+      <div class="rec-ed" style="border:0;padding-bottom:0">
+        <label><span data-i18n="eTeaserDe">Text Deutsch</span><textarea id="i-note-de" rows="2"></textarea></label>
+        <label><span data-i18n="eTeaserIt">Text Italienisch</span><textarea id="i-note-it" rows="2"></textarea></label>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 data-i18n="iCloT">Ferien und Abwesenheiten</h2>
+      <p class="note" data-i18n="iCloP">An diesen Tagen zeigt die Website „geschlossen“. Vergangene Einträge blenden sich auf der Website von selbst aus.</p>
+      <div id="i-clo" style="margin-top:8px"></div>
+      <div class="actions" style="margin-top:12px">
+        <button type="button" class="btn ghost sm" id="i-add-ferien" data-i18n="iAddFerien">+ Ferien</button>
+        <button type="button" class="btn ghost sm" id="i-add-abw" data-i18n="iAddAbw">+ Abwesenheit</button>
+        <button type="button" class="btn ghost sm" id="i-clean" data-i18n="iClean" hidden>Vergangene entfernen</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2 data-i18n="publishT">Veröffentlichen</h2>
+      <p class="note" data-i18n="iHow">Die heruntergeladene Datei info.js im Website-Ordner ersetzen (neben index.html).</p>
+      <div class="actions" style="margin-top:14px">
+        <button type="button" class="btn" id="i-dl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>
+          <span data-i18n="iDl">info.js herunterladen</span>
+        </button>
+        <a class="btn ghost" id="i-prev" href="index.html#vorschau" target="_blank" rel="noopener"><span data-i18n="preview">Vorschau ansehen</span></a>
+        <button type="button" class="btn ghost" id="i-reset"><span data-i18n="eReset">Entwurf verwerfen</span></button>
+      </div>
+      <p class="note" id="i-state" style="margin-top:10px"></p>
+    </div>
+  </div>
   </div>
 </main>
 
@@ -142,6 +183,7 @@
 
 <script src="books.js"></script>
 <script src="empfehlungen.js"></script>
+<script src="info.js"></script>
 <script src="assets/covers.js"></script>
 <script src="assets/admin.enc.js"></script>
 <script src="assets/admin-lock.js"></script>

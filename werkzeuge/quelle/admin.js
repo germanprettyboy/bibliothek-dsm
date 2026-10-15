@@ -62,6 +62,19 @@
       eHow: "Die heruntergeladene Datei empfehlungen.js im Website-Ordner ersetzen (neben index.html).",
       eDl: "empfehlungen.js herunterladen", eReset: "Entwurf verwerfen", eResetSure: "Wirklich verwerfen?",
       eSaved: "Entwurf im Browser gespeichert · {n} Bücher in {g} Gruppen", eNoResults: "Kein Treffer im Bestand.",
+      tabInfo: "Info",
+      iHoursT: "Öffnungszeiten", iHoursP: "Pro Wochentag bis zu zwei Zeiträume. Ohne Zeitraum gilt der Tag als geschlossen.",
+      iClosed: "geschlossen", iFrom: "von", iTo: "bis", iAddRange: "Zeitraum hinzufügen", iDelRange: "Zeitraum entfernen",
+      iCopy: "Zeiten vom Montag auf Dienstag bis Freitag übertragen",
+      iNoteT: "Hinweis (optional)", iNoteP: "Erscheint im Fenster „Öffnungszeiten“, z. B. „Ausleihe nur mit Schülerausweis“.",
+      iCloT: "Ferien und Abwesenheiten", iCloP: "An diesen Tagen zeigt die Website „geschlossen“. Vergangene Einträge blenden sich auf der Website von selbst aus.",
+      iFerien: "Ferien", iAbw: "Abwesenheit", iVon: "Erster Tag", iBis: "Letzter Tag (leer = nur ein Tag)",
+      iPhFerien: "z. B. Herbstferien", iPhAbw: "Bibliothek geschlossen", iPhFerienIt: "es. Vacanze autunnali", iPhAbwIt: "Biblioteca chiusa",
+      iAddFerien: "+ Ferien", iAddAbw: "+ Abwesenheit", iClean: "Vergangene entfernen", iDel: "Eintrag entfernen",
+      iNoDate: "Erster Tag fehlt – wird nicht veröffentlicht.", iBadRange: "Letzter Tag liegt vor dem ersten.", iPast: "Vorbei – wird nicht mehr angezeigt.",
+      iNone: "Keine Einträge.", iHow: "Die heruntergeladene Datei info.js im Website-Ordner ersetzen (neben index.html).",
+      iDl: "info.js herunterladen", iSaved: "Entwurf im Browser gespeichert", iIncomplete: "{n} unvollständige Angaben werden nicht veröffentlicht",
+      wd_mo: "Montag", wd_di: "Dienstag", wd_mi: "Mittwoch", wd_do: "Donnerstag", wd_fr: "Freitag", wd_sa: "Samstag",
       g_mittelstufe: "Mittelstufe", g_oberstufe: "Oberstufe", "g_erw-roman": "Erwachsene · Romane", "g_erw-sach": "Erwachsene · Sachbücher", "g_erw-bio": "Erwachsene · Biografien & Geschichte",
       t_leser: "Leserinnen und Leser", t_lesergruppen: "Gruppenzuordnungen", t_ausleihen: "Laufende Ausleihen",
       t_historie: "Ausleihhistorie", t_vormerkungen: "Vormerkungen", t_gebuehren: "Gebührenbuchungen", t_ausgaben: "Ausgaben",
@@ -126,6 +139,19 @@
       eHow: "Sostituisci il file empfehlungen.js nella cartella del sito (accanto a index.html) con quello scaricato.",
       eDl: "Scarica empfehlungen.js", eReset: "Scarta la bozza", eResetSure: "Scartare davvero?",
       eSaved: "Bozza salvata nel browser · {n} libri in {g} gruppi", eNoResults: "Nessun risultato nel catalogo.",
+      tabInfo: "Info",
+      iHoursT: "Orari di apertura", iHoursP: "Per ogni giorno fino a due fasce orarie. Senza fascia il giorno risulta chiuso.",
+      iClosed: "chiusa", iFrom: "dalle", iTo: "alle", iAddRange: "Aggiungi fascia oraria", iDelRange: "Rimuovi fascia oraria",
+      iCopy: "Copia gli orari del lunedì da martedì a venerdì",
+      iNoteT: "Avviso (facoltativo)", iNoteP: "Compare nella finestra «Orari di apertura», ad es. «Prestito solo con tessera studente».",
+      iCloT: "Vacanze e assenze", iCloP: "In questi giorni il sito indica «chiusa». Le voci passate scompaiono dal sito da sole.",
+      iFerien: "Vacanze", iAbw: "Assenza", iVon: "Primo giorno", iBis: "Ultimo giorno (vuoto = un solo giorno)",
+      iPhFerien: "es. Herbstferien", iPhAbw: "Bibliothek geschlossen", iPhFerienIt: "es. Vacanze autunnali", iPhAbwIt: "Biblioteca chiusa",
+      iAddFerien: "+ Vacanze", iAddAbw: "+ Assenza", iClean: "Rimuovi voci passate", iDel: "Rimuovi voce",
+      iNoDate: "Manca il primo giorno – non verrà pubblicato.", iBadRange: "L'ultimo giorno precede il primo.", iPast: "Passato – non viene più mostrato.",
+      iNone: "Nessuna voce.", iHow: "Sostituisci il file info.js nella cartella del sito (accanto a index.html) con quello scaricato.",
+      iDl: "Scarica info.js", iSaved: "Bozza salvata nel browser", iIncomplete: "{n} dati incompleti non verranno pubblicati",
+      wd_mo: "lunedì", wd_di: "martedì", wd_mi: "mercoledì", wd_do: "giovedì", wd_fr: "venerdì", wd_sa: "sabato",
       g_mittelstufe: "Livello intermedio", g_oberstufe: "Livello superiore", "g_erw-roman": "Adulti · Romanzi", "g_erw-sach": "Adulti · Saggistica", "g_erw-bio": "Adulti · Biografie e storia",
       t_leser: "Lettrici e lettori", t_lesergruppen: "Assegnazioni ai gruppi", t_ausleihen: "Prestiti in corso",
       t_historie: "Storico dei prestiti", t_vormerkungen: "Prenotazioni", t_gebuehren: "Registrazioni di tariffe", t_ausgaben: "Distribuzioni",
@@ -137,14 +163,14 @@
 
   const cur = window.DSM_BIBLIOTHEK;
   // Alte Vorschauen verwerfen, damit index.html#vorschau nur zeigt, was in dieser Sitzung entsteht
-  try { localStorage.removeItem("dsm-vorschau"); localStorage.removeItem("dsm-vorschau-empf"); } catch (e) { /* */ }
+  try { ["dsm-vorschau", "dsm-vorschau-empf", "dsm-vorschau-info"].forEach(k => localStorage.removeItem(k)); } catch (e) { /* */ }
 
   // Reiter und Sperre
   document.querySelectorAll(".tabs [data-tab]").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll(".tabs [data-tab]").forEach(x => x.setAttribute("aria-selected", String(x === b)));
-    $("#tab-bestand").hidden = b.dataset.tab !== "bestand";
-    $("#tab-empf").hidden = b.dataset.tab !== "empf";
+    ["bestand", "empf", "info"].forEach(t => { $("#tab-" + t).hidden = b.dataset.tab !== t; });
     if (b.dataset.tab === "empf") renderEditor();
+    if (b.dataset.tab === "info") renderInfo();
   }));
   $("#lock-btn").addEventListener("click", () => window.DSM_ADMIN_LOCK && window.DSM_ADMIN_LOCK());
   const drop = $("#drop"), input = $("#file"), status = $("#status"), statusText = $("#statusText"), err = $("#error"), report = $("#report");
@@ -329,6 +355,7 @@
     up: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3.5 10 8 5.5 12.5 10"/></svg>',
     down: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3.5 6 8 10.5 12.5 6"/></svg>',
     del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    add: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>',
   };
   let saveT = 0;
   function saveDraft() {
@@ -360,16 +387,22 @@
     stateLine();
   }
   function findRender() {
-    const q = normE($("#e-q").value);
-    const res = $("#e-res");
+    const input = $("#e-q"), res = $("#e-res"), fullEl = $("#e-full");
+    const list = draft.gruppen[eGroup], full = list.length >= 4;
+    // Gruppe voll: Suche gesperrt, Hinweis mittig im Feld
+    input.disabled = full; fullEl.hidden = !full; fullEl.textContent = D.t("eFull");
+    input.placeholder = full ? "" : D.t("eFind");
+    if (full) { input.value = ""; res.innerHTML = ""; return; }
+    const q = normE(input.value);
     if (q.length < 2) { res.innerHTML = ""; return; }
     const terms = q.split(" ");
     const hits = catalog().filter(b => { const s = normE([b.t, b.u, (b.a || []).join(" "), (b.i || []).join(" ")].join(" ")); return terms.every(t => s.includes(t)); }).slice(0, 8);
-    const list = draft.gruppen[eGroup], have = new Set(list.map(r => r.k));
+    const have = new Set(list.map(r => r.k));
+    // Schon in der Gruppe: ausgegraut, ohne Knopf
     res.innerHTML = hits.length ? hits.map((b, n) => {
-      const k = keyB(b), dis = have.has(k) ? D.t("eIn") : list.length >= 4 ? D.t("eFull") : "";
-      return `<li><span><b>${escE(b.t)}</b><small>${escE((b.a || []).join(", "))}${b.j ? " · " + escE(b.j) : ""}</small></span>
-        <button type="button" class="btn ghost sm" data-add="${n}"${dis ? " disabled" : ""}>${escE(dis || D.t("eAdd"))}</button></li>`;
+      const drin = have.has(keyB(b));
+      return `<li${drin ? ' class="drin"' : ""}><span><b>${escE(b.t)}</b><small>${escE((b.a || []).join(", "))}${b.j ? " · " + escE(b.j) : ""}</small></span>
+        ${drin ? "" : `<button type="button" class="btn ghost sm" data-add="${n}">${escE(D.t("eAdd"))}</button>`}</li>`;
     }).join("") : `<li><span class="note">${escE(D.t("eNoResults"))}</span></li>`;
     res._hits = hits;
   }
@@ -378,6 +411,7 @@
   $("#e-res").addEventListener("click", e => {
     const b = e.target.closest("[data-add]"); if (!b) return;
     const book = $("#e-res")._hits[+b.dataset.add];
+    if (draft.gruppen[eGroup].length >= 4 || draft.gruppen[eGroup].some(r => r.k === keyB(book))) return;
     draft.gruppen[eGroup].push({ k: keyB(book), t: book.t, a: (book.a || []).join(", "), de: "", it: "" });
     saveDraft(); renderEditor();
     const last = $("#e-list").querySelector(".rec-ed:last-child textarea"); if (last) last.focus();
@@ -418,9 +452,162 @@
     renderEditor();
   });
 
+  // ---------- Info: Öffnungszeiten, Ferien, Abwesenheiten ----------
+  const IDAYS = ["mo", "di", "mi", "do", "fr", "sa"];
+  const IDRAFT = "dsm-info-entwurf";
+  const HHMM = /^\d{2}:\d{2}$/, YMD = /^\d{4}-\d{2}-\d{2}$/;
+  const today = () => new Date().toLocaleDateString("sv-SE");
+  function normInfo(x) {
+    const o = { zeiten: {}, hinweis: { de: "", it: "" }, schliessungen: [] };
+    IDAYS.forEach(k => { o.zeiten[k] = (x && x.zeiten && Array.isArray(x.zeiten[k]) ? x.zeiten[k] : []).slice(0, 2).map(r => [r[0] || "", r[1] || ""]); });
+    if (x && x.hinweis) o.hinweis = { de: x.hinweis.de || "", it: x.hinweis.it || "" };
+    if (x && Array.isArray(x.schliessungen)) {
+      o.schliessungen = x.schliessungen.map(c => ({ art: c.art === "abwesend" ? "abwesend" : "ferien", von: c.von || "", bis: c.bis || "", de: c.de || "", it: c.it || "" }));
+    }
+    return o;
+  }
+  let info = null, iResetArmed = false, iSaveT = 0;
+  try { info = JSON.parse(localStorage.getItem(IDRAFT) || "null"); } catch (e) { info = null; }
+  info = normInfo(info || window.DSM_INFO);
+  const okRange = r => HHMM.test(r[0]) && HHMM.test(r[1]) && r[0] < r[1];
+  const endOf = c => (c.bis && c.bis >= c.von ? c.bis : c.von);
+  function cloProblem(c) {
+    if (!YMD.test(c.von)) return "iNoDate";
+    if (c.bis && c.bis < c.von) return "iBadRange";
+    if (endOf(c) < today()) return "iPast";
+    return "";
+  }
+  function saveInfo() {
+    clearTimeout(iSaveT);
+    iSaveT = setTimeout(() => { try { localStorage.setItem(IDRAFT, JSON.stringify(info)); } catch (e) { /* */ } infoState(); }, 300);
+  }
+  function infoState() {
+    const bad = IDAYS.reduce((a, k) => a + info.zeiten[k].filter(r => !okRange(r)).length, 0) +
+      info.schliessungen.filter(c => !YMD.test(c.von)).length;
+    $("#i-state").textContent = D.t("iSaved") + (bad ? " · " + D.t("iIncomplete", { n: D.nf(bad) }) : "");
+  }
+  function renderHours() {
+    $("#i-hours").innerHTML = IDAYS.map(k => {
+      const rs = info.zeiten[k];
+      return `<div class="day" data-d="${k}"><b>${escE(D.t("wd_" + k))}</b><div class="ranges">` +
+        rs.map((r, n) => `<span class="range" data-n="${n}">
+          <input type="time" data-f="0" value="${escE(r[0])}" aria-label="${escE(D.t("wd_" + k) + " " + D.t("iFrom"))}"${okRange(r) ? "" : ' aria-invalid="true"'}>
+          <span aria-hidden="true">–</span>
+          <input type="time" data-f="1" value="${escE(r[1])}" aria-label="${escE(D.t("wd_" + k) + " " + D.t("iTo"))}"${okRange(r) ? "" : ' aria-invalid="true"'}>
+          <button type="button" class="mini" data-op="del" aria-label="${escE(D.t("iDelRange"))}">${ICON.del}</button></span>`).join("") +
+        (rs.length ? "" : `<span class="zu">${escE(D.t("iClosed"))}</span>`) +
+        (rs.length < 2 ? `<button type="button" class="mini" data-op="add" aria-label="${escE(D.t("iAddRange"))}">${ICON.add}</button>` : "") +
+        `</div></div>`;
+    }).join("") + `<div><button type="button" class="textbtn" id="i-copy">${escE(D.t("iCopy"))}</button></div>`;
+  }
+  function renderClo() {
+    const idx = info.schliessungen.map((c, n) => n)
+      .sort((a, b) => { const x = info.schliessungen[a].von || "9", y = info.schliessungen[b].von || "9"; return x < y ? -1 : x > y ? 1 : a - b; });
+    $("#i-clo").innerHTML = idx.length ? idx.map(n => {
+      const c = info.schliessungen[n], p = cloProblem(c), ab = c.art === "abwesend";
+      return `<div class="clo${p === "iPast" ? " vorbei" : ""}" data-n="${n}">
+        <div class="hd"><span class="seg2" role="radiogroup">
+          <button type="button" role="radio" data-art="ferien" aria-checked="${!ab}">${escE(D.t("iFerien"))}</button>
+          <button type="button" role="radio" data-art="abwesend" aria-checked="${ab}">${escE(D.t("iAbw"))}</button></span>
+          <button type="button" class="mini" data-op="del" aria-label="${escE(D.t("iDel"))}">${ICON.del}</button></div>
+        <div class="dates">
+          <label>${escE(D.t("iVon"))}<input type="date" data-f="von" value="${escE(c.von)}"></label>
+          <label>${escE(D.t("iBis"))}<input type="date" data-f="bis" value="${escE(c.bis)}"></label></div>
+        <div class="texts">
+          <label>${escE(D.t("eTeaserDe"))}<input class="txt" data-f="de" value="${escE(c.de)}" placeholder="${escE(D.t(ab ? "iPhAbw" : "iPhFerien"))}"></label>
+          <label>${escE(D.t("eTeaserIt"))}<input class="txt" data-f="it" value="${escE(c.it)}" placeholder="${escE(D.t(ab ? "iPhAbwIt" : "iPhFerienIt"))}"></label></div>
+        <span class="warn"${p ? "" : " hidden"}>${p ? escE(D.t(p)) : ""}</span>
+      </div>`;
+    }).join("") : `<p class="note">${escE(D.t("iNone"))}</p>`;
+    $("#i-clean").hidden = !info.schliessungen.some(c => cloProblem(c) === "iPast");
+  }
+  function renderInfo() {
+    renderHours();
+    $("#i-note-de").value = info.hinweis.de;
+    $("#i-note-it").value = info.hinweis.it;
+    renderClo();
+    infoState();
+  }
+  $("#i-hours").addEventListener("click", e => {
+    if (e.target.closest("#i-copy")) {
+      ["di", "mi", "do", "fr"].forEach(k => { info.zeiten[k] = info.zeiten.mo.map(r => r.slice()); });
+      saveInfo(); renderHours(); return;
+    }
+    const b = e.target.closest("[data-op]"); if (!b) return;
+    const k = b.closest(".day").dataset.d, rs = info.zeiten[k];
+    if (b.dataset.op === "add") rs.push(rs.length ? [rs[0][1] || "", ""] : ["08:00", "13:00"]);
+    else rs.splice(+b.closest(".range").dataset.n, 1);
+    saveInfo(); renderHours();
+    const inp = $(`#i-hours .day[data-d="${k}"] .range:last-of-type input`); if (inp && b.dataset.op === "add") inp.focus();
+  });
+  $("#i-hours").addEventListener("input", e => {
+    const inp = e.target.closest("input[type=time]"); if (!inp) return;
+    const r = info.zeiten[inp.closest(".day").dataset.d][+inp.closest(".range").dataset.n];
+    r[+inp.dataset.f] = inp.value;
+    inp.closest(".range").querySelectorAll("input").forEach(x => { if (okRange(r)) x.removeAttribute("aria-invalid"); else x.setAttribute("aria-invalid", "true"); });
+    saveInfo();
+  });
+  ["de", "it"].forEach(l => $("#i-note-" + l).addEventListener("input", e => { info.hinweis[l] = e.target.value; saveInfo(); }));
+  function addClo(art) {
+    info.schliessungen.push({ art, von: "", bis: "", de: "", it: "" });
+    saveInfo(); renderClo();
+    const n = info.schliessungen.length - 1, inp = $(`#i-clo .clo[data-n="${n}"] input[data-f="von"]`);
+    if (inp) inp.focus();
+  }
+  $("#i-add-ferien").addEventListener("click", () => addClo("ferien"));
+  $("#i-add-abw").addEventListener("click", () => addClo("abwesend"));
+  $("#i-clean").addEventListener("click", () => {
+    info.schliessungen = info.schliessungen.filter(c => cloProblem(c) !== "iPast");
+    saveInfo(); renderClo();
+  });
+  $("#i-clo").addEventListener("click", e => {
+    const box = e.target.closest(".clo"); if (!box) return;
+    const n = +box.dataset.n, c = info.schliessungen[n];
+    const art = e.target.closest("[data-art]"), del = e.target.closest("[data-op=del]");
+    if (del) { info.schliessungen.splice(n, 1); saveInfo(); renderClo(); return; }
+    if (art && c.art !== art.dataset.art) { c.art = art.dataset.art; saveInfo(); renderClo(); }
+  });
+  $("#i-clo").addEventListener("input", e => {
+    const inp = e.target.closest("input[data-f]"); if (!inp) return;
+    const box = inp.closest(".clo"), c = info.schliessungen[+box.dataset.n];
+    c[inp.dataset.f] = inp.value;
+    // Warnung an Ort und Stelle aktualisieren, ohne neu zu zeichnen (sonst geht beim Datumtippen der Fokus verloren)
+    const p = cloProblem(c), w = box.querySelector(".warn");
+    w.hidden = !p; w.textContent = p ? D.t(p) : "";
+    box.classList.toggle("vorbei", p === "iPast");
+    $("#i-clean").hidden = !info.schliessungen.some(x => cloProblem(x) === "iPast");
+    saveInfo();
+  });
+  function infoOut() {
+    const zeiten = {};
+    IDAYS.forEach(k => { zeiten[k] = info.zeiten[k].filter(okRange).map(r => [r[0], r[1]]).sort(); });
+    const schliessungen = info.schliessungen.filter(c => YMD.test(c.von))
+      .map(c => ({ art: c.art, von: c.von, bis: endOf(c), de: c.de.trim(), it: c.it.trim() }))
+      .sort((a, b) => (a.von < b.von ? -1 : a.von > b.von ? 1 : 0));
+    return { stand: today(), zeiten, hinweis: { de: info.hinweis.de.trim(), it: info.hinweis.it.trim() }, schliessungen };
+  }
+  $("#i-dl").addEventListener("click", () => {
+    const text = "/* Öffnungszeiten, Ferien und Abwesenheiten der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */\n" +
+      "window.DSM_INFO = " + JSON.stringify(infoOut(), null, 1).replace(/</g, "\\u003c") + ";\n";
+    const url = URL.createObjectURL(new Blob([text], { type: "text/javascript;charset=utf-8" }));
+    const a = document.createElement("a"); a.href = url; a.download = "info.js";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
+  $("#i-prev").addEventListener("click", () => { try { localStorage.setItem("dsm-vorschau-info", JSON.stringify(infoOut())); } catch (e) { /* */ } });
+  $("#i-reset").addEventListener("click", () => {
+    const lbl = $("#i-reset span");
+    if (!iResetArmed) { iResetArmed = true; lbl.textContent = D.t("eResetSure"); setTimeout(() => { iResetArmed = false; lbl.textContent = D.t("eReset"); }, 4000); return; }
+    iResetArmed = false; lbl.textContent = D.t("eReset");
+    try { localStorage.removeItem(IDRAFT); } catch (e) { /* */ }
+    info = normInfo(window.DSM_INFO);
+    renderInfo();
+  });
+
   D.onLang(() => {
     showCurrent();
     if (!$("#tab-empf").hidden) renderEditor();
+    if (!$("#tab-info").hidden) renderInfo();
     if (statusText.dataset.i18n) statusText.textContent = D.t(statusText.dataset.i18n);
     if (!err.hidden && err.dataset.key) err.textContent = D.t(err.dataset.key, JSON.parse(err.dataset.vars || "{}"));
     if (!report.hidden) show();

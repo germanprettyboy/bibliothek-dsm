@@ -3,9 +3,10 @@ Bibliothek DSM – Website
 
 Inhalt
   index.html        Bücherliste (öffentlich)
-  admin.html        Verwaltung (passwortgeschützt): Bestand aktualisieren, Empfehlungen pflegen
+  admin.html        Verwaltung (passwortgeschützt): Bestand, Empfehlungen, Öffnungszeiten/Ferien
   books.js          Daten der Bücherliste (wird von admin.html erzeugt)
   empfehlungen.js   Buchempfehlungen (wird von admin.html erzeugt)
+  info.js           Öffnungszeiten, Ferien, Abwesenheiten (wird von admin.html erzeugt)
   assets/           Stil, Skripte, Logos, Schrift Fira Sans (lokal), sql.js,
                     admin.enc.js (verschlüsselte Verwaltung), admin-lock.js (Sperre)
 
@@ -66,6 +67,24 @@ Buchempfehlungen
   und Italienisch schreiben, Reihenfolge ändern, „empfehlungen.js herunterladen“ und die Datei
   im Website-Ordner ersetzen. Der Entwurf bleibt im Browser gespeichert, bis er verworfen wird.
   Bücher, die nach einem Bestands-Update fehlen, werden nicht angezeigt (Hinweis im Editor).
+  Pro Gruppe höchstens vier Bücher: Ist die Gruppe voll, ist die Suche gesperrt. Bücher, die schon
+  in der Gruppe sind, erscheinen in den Suchtreffern ausgegraut.
+
+Öffnungszeiten, Ferien und Abwesenheiten
+  Über der Liste zeigt die Website, ob die Bibliothek gerade geöffnet ist („Jetzt geöffnet · bis 13:30“,
+  „Heute geschlossen · Herbstferien“) und die nächsten Schließtage (bis 3 Wochen voraus).
+  Antippen öffnet ein Fenster mit allen Zeiten der Woche und allen geplanten Schließtagen.
+  Ohne Einträge bleibt das Feld unsichtbar.
+  Pflege: admin.html, Reiter „Info“:
+    1. Öffnungszeiten je Wochentag (bis zu zwei Zeiträume, z. B. 8:00–10:00 und 12:00–15:00).
+       „Zeiten vom Montag … übertragen“ füllt Dienstag bis Freitag.
+    2. Optional ein Hinweis (Deutsch/Italienisch), erscheint im Fenster.
+    3. „+ Ferien“ oder „+ Abwesenheit“: ersten und letzten Tag wählen (letzter leer = ein Tag),
+       Text optional (sonst „Ferien“ bzw. „Bibliothek geschlossen“).
+    4. „Vorschau ansehen“, dann „info.js herunterladen“ und die Datei im Website-Ordner ersetzen.
+  Vergangene Einträge verschwinden auf der Website von selbst; im Editor räumt
+  „Vergangene entfernen“ sie weg. Der Entwurf bleibt im Browser gespeichert.
+  Die Uhrzeit für „geöffnet/geschlossen“ kommt vom Gerät des Besuchers.
 
 Kategorien auf Italienisch
   assets/kategorien-it.js. Neue Kategorien ohne Eintrag erscheinen auf Deutsch.

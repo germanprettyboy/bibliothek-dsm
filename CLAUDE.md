@@ -12,11 +12,13 @@ website/            ← NUR dieser Ordner kommt auf den Webspace (https!)
   admin.html          Verwaltung (Passwortsperre)
   books.js            window.DSM_BIBLIOTHEK  – erzeugt, nicht von Hand bearbeiten
   empfehlungen.js     window.DSM_EMPFEHLUNGEN – erzeugt, nicht von Hand bearbeiten
+  info.js             window.DSM_INFO – Öffnungszeiten/Ferien/Abwesenheiten, erzeugt
   LIESMICH.txt        Anleitung für Johann / die Bibliothek
   assets/
     style.css         gesamtes CSS (Tokens oben, Komponenten unten)
     common.js         Sprache DE/IT, Einstellungen (Theme/Schrift/Kontrast), Glas-Fenster, Toast
     app.js            Liste, Suche, A–Z-Leiste, Floater, Detail, Empfehlungen, Fragen beim 1. Besuch
+    info-panel.js     Info über der Liste (geöffnet/geschlossen, Schließtage) + Fenster mit Wochenzeiten
     covers.js         Cover-Laden (Open Library Sammelabfrage + Google Books), Cache, Abdeckungsmessung
     kategorien-it.js  italienische Namen der Kategorien
     admin-lock.js     Passwortsperre: entschlüsselt admin.enc.js und startet es
@@ -39,6 +41,7 @@ daten/              ← NIEMALS einchecken/hochladen (in .gitignore)
 npm install                                   # sql.js für books-erzeugen.js
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
+npm run dev                                   # dasselbe mit Live-Reload (browser-sync über npx)
 node werkzeuge/admin-verschluesseln.js "<Passwort>"   # nach JEDER Änderung an werkzeuge/quelle/*
 ```
 
@@ -54,6 +57,14 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - Nur Bücher (Medientyp Buch/Graphic Novel), Mehrfachexemplare zusammengefasst (Titel + Erstautor).
 - **Keine ISBN-Ergänzung.** Cover nur über vorhandene ISBN; ohne ISBN → gestalteter Platzhalter.
 - Liste bleibt reiner Text (Titel + Autor). Cover nur in Detailansicht und Empfehlungen.
+- Keine Buchanzahl und kein Stand auf der öffentlichen Seite (nur im Admin).
+- Platzhalter-Cover ohne Autor (Autor steht schon daneben). Empfehlungen auf dem Handy: Band über die
+  ganze Breite mit kleinen Karten (Cover links, Text rechts) zum Wischen; ab 40rem vier große Cover.
+- Suchleiste klebt deckend oben; beim Suchen springt die Seite so, dass die Treffer direkt unter der
+  Leiste beginnen (`main.books` mindestens bildschirmhoch).
+- Empfehlungs-Editor: Gruppe voll (4) → Suchfeld gesperrt mit Hinweis mittig; Bücher schon in der
+  Gruppe → Treffer ausgegraut, ohne Knopf.
+- Änderungen im Admin werden als Datei heruntergeladen und per FTP hochgeladen (vom Auftraggeber so gewollt).
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
   (OL „M“ ≈180 px, Google „thumbnail“ ≈128 px). Open Library NICHT über `/b/isbn/` laden
   (100 Abrufe / 5 min / IP, Schulnetz = eine IP) – immer `/api/books?jscmd=viewapi` (Sammelabfrage) → Cover-ID.
@@ -69,6 +80,7 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 ## Design
 
 DSM Corporate Design: Fira Sans (Regular/Medium/SemiBold), Anthrazit #333333 als Textfarbe,
+Genau drei Schriftgrößen überall (`--fs-s` .875rem, `--fs-m` 1rem, `--fs-l` 1.5rem), keine anderen Werte.
 Logofarben nur für Linien/Balken/Akzente (Mauve #BA8EA7, Gelb #DDD300, Orange #DB9F00,
 Blau #B5C9D0, Rot #A93A39, Grün #B3CEA1). Keine Versalien, kein Kursiv, kein Unterstreichen.
 Alle Farben als Tokens in `style.css` (`:root`, Dark per `prefers-color-scheme` + `[data-theme]`,
@@ -81,8 +93,10 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
   (i = ISBN-13, geprüft; s = Standorte). `abdeckung`/`verlauf` = Cover-Abdeckung aus admin.html.
 - `empfehlungen.js`: `{stand, gruppen:{mittelstufe|oberstufe|erw-roman|erw-sach|erw-bio:[{k,t,a,de,it}]}}`,
   `k` = norm(Titel) + "|" + norm(Erstautor) (norm: klein, ohne Akzente, ß→ss, nur a–z0–9 und Leerzeichen).
+- `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
+  (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
 - localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache),
-  Admin: `dsm-empf-entwurf`, Vorschau `dsm-vorschau` / `dsm-vorschau-empf` (index.html#vorschau).
+  Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
 
 ## Prüfen
 
