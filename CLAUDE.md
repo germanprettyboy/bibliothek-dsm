@@ -32,6 +32,7 @@ werkzeuge/          ← NICHT hochladen
   admin-verschluesseln.js   quelle/* → website/assets/admin.enc.js
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
+tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
 daten/              ← NIEMALS einchecken/hochladen (in .gitignore)
   BIBLIOTHEK_DSM_2024.winbook   Original-DB mit Schülerdaten (Leser, Ausleihen, Gebühren)
   Schullogo_original.png
@@ -40,11 +41,14 @@ daten/              ← NIEMALS einchecken/hochladen (in .gitignore)
 ## Befehle
 
 ```bash
-npm install                                   # sql.js für books-erzeugen.js
+npm install                                   # sql.js, Playwright
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
 npm run dev                                   # dasselbe mit Live-Reload (browser-sync über npx)
 node werkzeuge/admin-verschluesseln.js "<Passwort>"   # nach JEDER Änderung an werkzeuge/quelle/*
+npm test                                      # Unit-Tests (node:test, ~5 s)
+npm run test:e2e                              # Browser-Tests (Playwright/Chromium, eigener Server auf :8766, ~1 min)
+npm run test:alle                             # beides
 npm run branches                              # was ist noch nicht in main?
 npm run integrieren -- <branch>               # fertigen Branch in main mergen (siehe unten)
 ```
@@ -109,10 +113,19 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
 
 ## Prüfen
 
-Bisher mit Playwright (Chromium) gegen `npm run serve` getestet: 390 px und 1280 px, hell/dunkel/Kontrast,
-Fragen-Ablauf, Empfehlungen, Einstellungen, Admin-Sperre (falsch/richtig/Sitzung/Sperren), DB-Import,
-Empfehlungs-Editor, Cover-Logik mit simulierten API-Antworten. Admin-Import muss byte-gleich zu
-`npm run books` sein.
+Nach jeder Änderung `npm run test:alle`. Tests in `tests/`:
+
+- `unit/extract.test.js` – Whitelist-Extraktion gegen synthetische DB (`helfer/testdb.js`, erfundene Leser):
+  SQL-Spion prüft, dass Ausleihspalten/Personentabellen nur gezählt werden; Namensabgleich, Zusammenfassen, ISBN, Sortierung, `toScript`.
+- `unit/covers.test.js` – covers.js in VM-Sandbox (fetch/Image gestubbt): Sammelabfrage, nie `/b/isbn/`, Google-Rückfall, 429-Sperre, Cache-TTL, Warteschlange, Messung.
+- `unit/verschluesseln.test.js` – Roundtrip, falsches Passwort. Mit `DSM_ADMIN_PW=… npm test` zusätzlich: ist `admin.enc.js` aktuell?
+- `unit/daten.test.js` – Format von books.js, empfehlungen.js (Schlüssel im Bestand), info.js, Kategorien-Übersetzung.
+- `unit/regeln.test.js` – harte Regeln am Quelltext (keine externen Hosts außer OL/Google, keine Google Fonts, Design-Verbote, Klartext nicht in website/).
+- `unit/echte-db.test.js` – nur wenn `daten/*.winbook` da ist: books.js aktuell, keine Leser-Namen. Meldungen nennen nur Anzahlen.
+- `e2e/*.spec.js` – Liste/Suche/A–Z/Floater (390/768/1280 px), Detail+Cover (APIs gemockt, echtes Netz gesperrt), DE/IT,
+  Einstellungen, Fragen-Ablauf, Empfehlungen, Info-Karte (feste Uhrzeit), Admin. Admin-Tests ersetzen `admin.enc.js` per Route durch
+  eine mit „test-passwort“ verschlüsselte Fassung der aktuellen Quellen – das echte Passwort wird nicht gebraucht.
+  Admin-Import muss byte-gleich zu `npm run books` sein (synthetische DB immer, Original-DB wenn vorhanden).
 
 ## Branches integrieren (Pflicht am Ende jeder Aufgabe)
 
@@ -127,7 +140,7 @@ Ablauf:
    - `CLAUDE.md`, `LIESMICH.txt`, Quelltext: beide Seiten inhaltlich zusammenführen.
    - `admin.enc.js`: nicht mischen, nach dem Merge neu verschlüsseln.
    - `books.js`: neu erzeugen (`npm run books`); `empfehlungen.js`/`info.js`: Inhalt fachlich zusammenführen.
-3. Prüfen: Seite mit `npm run serve` laden (Konsole fehlerfrei), vorhandene Tests laufen lassen.
+3. Prüfen: `npm run test:alle` muss grün sein; bei sichtbaren Änderungen zusätzlich Seite mit `npm run serve` ansehen.
    `werkzeuge/quelle/*` geändert → neu verschlüsseln (Passwort bei Johann erfragen). Committen.
 4. Worktree verlassen (ExitWorktree, `keep`), im Haupt-Checkout `npm run integrieren -- worktree-<name>`.
    Das Skript ändert `main` nicht, wenn: Haupt-Checkout nicht sauber / nicht auf `main`, Branch hat
@@ -144,12 +157,13 @@ Regeln:
   sonst Johann fragen.
 - Branches mit uncommitteten Dateien gehören einer laufenden Session: nicht anfassen. In fremden
   Worktrees nie committen, stashen, resetten oder mergen.
+- Fremder fertiger Branch mit Konflikt: eigenen Worktree von `main` anlegen, den fremden Branch dort
+  hineinmergen, Konflikte lösen, testen, dann den eigenen Branch integrieren.
 - `main` nur per Merge-Commit ändern. Kein Rebase von `main`, kein `--force`, kein `reset --hard` auf `main`.
 - Worktree-Sessions dürfen nur ihren Worktree mit Git anfassen; einfache Befehle ggf. als
   `git -C <worktree-pfad> …`. Der Merge in `main` passiert erst nach ExitWorktree.
 
 ## Offen
-
 
 - Echte Cover-Abfragen (Open Library/Google) nie live getestet – in der Cloud-Umgebung gab es kein Internet.
   Erste Aufgabe: lokal `npm run serve`, Seite öffnen, Netzwerk-Tab prüfen; dann in admin.html
