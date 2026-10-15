@@ -16,6 +16,7 @@ website/            ← NUR dieser Ordner kommt auf den Webspace (https!)
   LIESMICH.txt        Anleitung für Johann / die Bibliothek
   assets/
     style.css         gesamtes CSS (Tokens oben, Komponenten unten)
+    protokoll.js      DSM_LOG: jede Interaktion formatiert in die Browser-Konsole (vor common.js geladen)
     common.js         Sprache DE/IT, Einstellungen (Theme/Schrift/Kontrast), Glas-Fenster, Toast
     app.js            Liste, Suche, A–Z-Leiste, Floater, Detail, Empfehlungen, Fragen beim 1. Besuch
     info-panel.js     Info über der Liste (geöffnet/geschlossen, Schließtage) + Fenster mit Wochenzeiten
@@ -97,6 +98,11 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
 - localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache),
   Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
+  Protokoll: `dsm-protokoll` (localStorage, "aus" = abgeschaltet), `dsm-protokoll-verlauf` (sessionStorage, letzte 500 Einträge).
+- Konsolen-Protokoll (`assets/protokoll.js`): erfasst automatisch Klicks, Eingaben (600 ms entprellt), Schalter, Dateien,
+  Tasten (Escape/Enter/Kombinationen), Formulare, `<dialog>` auf/zu mit Grund, Scrollen, Netz (fetch, fremde Bilder),
+  Speicher-Schreibzugriffe, Fehler. Eigene Einträge: `DSM.log(bereich, text, daten?)`. Passwortfelder und Schlüssel
+  (`/key|pass|pw|token/`) nie im Klartext. Felder mit `data-protokoll="eigen"` (Suchfeld) protokolliert die Seite selbst.
 
 ## Prüfen
 

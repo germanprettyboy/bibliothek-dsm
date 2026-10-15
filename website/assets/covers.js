@@ -16,6 +16,7 @@
  */
 (function (root) {
   "use strict";
+  const log = root.DSM_LOG || function () {}; // assets/protokoll.js
 
   const OL_API = "https://openlibrary.org/api/books?format=json&jscmd=viewapi&bibkeys=";
   const GB_API = "https://www.googleapis.com/books/v1/volumes?fields=items(volumeInfo/imageLinks)&q=isbn:";
@@ -163,10 +164,12 @@
     batch.forEach(b => queue.delete(keyOf(b)));
     const m = await olLookup(batch);
     if (m) {
+      let hits = 0;
       for (const b of batch) {
         const h = m.get(keyOf(b));
-        if (h) imgQueue.push({ key: keyOf(b), hit: h, book: b }); else gbQueue.push(b);
+        if (h) { hits++; imgQueue.push({ key: keyOf(b), hit: h, book: b }); } else gbQueue.push(b);
       }
+      log("Cover", `Hintergrund: ${batch.length} Bücher in Sichtweite bei Open Library abgefragt, ${hits} mit Cover`);
     }
     olBusy = false;
   }, BG_TICK);

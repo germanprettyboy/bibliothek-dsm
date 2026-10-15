@@ -164,6 +164,19 @@
     list.classList.add("live");
     render(false);
     toBar();
+    logSearch();
+  }
+  // Protokoll: erst wenn die Eingabe ruht, sonst eine Zeile je Tastendruck
+  let logT = 0, logged = "";
+  function logSearch() {
+    clearTimeout(logT);
+    logT = setTimeout(() => {
+      const s = terms.join(" ");
+      if (s === logged) return;
+      if (!s) D.log("Suche", "geleert");
+      else D.log("Suche", `„${q.value.trim()}“: ${current.length} Treffer`, current.length ? { Erste: current.slice(0, 5).map(b => b.t).join(" · ") } : undefined);
+      logged = s;
+    }, 600);
   }
   let timer;
   q.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(filter, 90); });
@@ -288,9 +301,11 @@
     placeholder(box, b); // sofort sichtbar, echtes Cover blendet darüber ein
     src.textContent = ""; delete src.dataset.i18n;
     box.classList.toggle("loading", !!b.i);
+    const t0 = performance.now();
     const found = b.i ? await C.get(b) : null;
     if (my !== token) return;
     box.classList.remove("loading");
+    D.log("Cover", `„${b.t}“: ` + (!b.i ? "keine ISBN, Platzhalter" : found ? `${D.t(found.by).replace(/^[^:]*:\s*/, "")} · ${Math.round(performance.now() - t0)} ms` : "kein Cover gefunden, Platzhalter"));
     if (!found) return;
     showImg(box, found);
     src.dataset.i18n = found.by; src.textContent = D.t(found.by);
@@ -322,11 +337,12 @@
   const gChip = g => g.startsWith("erw-") ? D.t("g_erwShort") + " · " + D.t("g_" + g) : D.t("g_" + g);
   function recsFor(g) { return ((R.gruppen && R.gruppen[g]) || []).map(r => ({ r, b: byKey.get(r.k) })).filter(x => x.b).slice(0, 4); }
   const recsEl = $("#recs");
-  let shownRecs = [];
+  let shownRecs = [], loggedRecs = null;
   function renderRecs(animate) {
     const p = pref();
     shownRecs = p && p.want && p.gruppe ? recsFor(p.gruppe) : [];
-    if (!shownRecs.length) { recsEl.hidden = true; recsEl.innerHTML = ""; return; }
+    if (!shownRecs.length) { recsEl.hidden = true; recsEl.innerHTML = ""; loggedRecs = null; return; }
+    if (p.gruppe !== loggedRecs) { loggedRecs = p.gruppe; D.log("Empfehlung", `${gLabel(p.gruppe)}: ${shownRecs.length} Bücher`, { Bücher: shownRecs.map(x => x.b.t).join(" · ") }); }
     recsEl.innerHTML = `<div class="recs-card"${animate ? "" : ' style="animation:none"'}>
       <div class="recs-head"><div><h2 id="recs-title">${esc(D.t("recsT"))}</h2><p>${esc(gLabel(p.gruppe))}</p></div>
       <button type="button" class="icon-btn" id="recs-x" aria-label="${esc(D.t("recsClose"))}">${D.ICON_X}</button></div>
@@ -340,6 +356,7 @@
     if (e.target.closest("#recs-x")) {
       const p = pref() || {};
       setPref({ want: false, gruppe: p.gruppe || null });
+      loggedRecs = null;
       const card = recsEl.querySelector(".recs-card");
       card.classList.add("hide");
       setTimeout(() => { recsEl.hidden = true; recsEl.innerHTML = ""; }, 300);
