@@ -145,20 +145,34 @@
   const imgQueue = [];       // aufgelöste Bild-URLs zum Vorladen
   const conn = navigator.connection || {};
   const enabled = !conn.saveData && !/(^|-)2g$/.test(conn.effectiveType || "");
-  let olBusy = false, gbBusy = false, imgBusy = false;
 
   function want(b) {
     if (!enabled || !b || !b.i || !b.i.length) return;
     const key = keyOf(b);
     if (cached(key) !== undefined || inflight.has(key)) return;
     queue.set(key, b);
+    kickOl();
   }
   function unwant(b) { if (b && b.i) queue.delete(keyOf(b)); }
   const paused = () => document.hidden;
 
-  setInterval(async () => {
-    if (olBusy || paused() || !queue.size) return;
-    olBusy = true;
+  // Taktgeber, der nur läuft, solange Arbeit ansteht (statt Dauer-Intervallen, die das Gerät
+  // auch ohne Arbeit mehrmals pro Sekunde wecken). Abstand zwischen zwei Starts mindestens „tick“.
+  function worker(tick, hasWork, run) {
+    let t = 0, busy = false, last = 0;
+    const loop = async () => {
+      t = 0;
+      if (busy || paused() || !hasWork()) return; // versteckter Tab: weiter bei visibilitychange
+      busy = true; last = Date.now();
+      try { await run(); } finally { busy = false; kick(); }
+    };
+    const kick = () => {
+      if (t || busy || !hasWork()) return;
+      t = setTimeout(loop, last ? Math.max(0, tick - (Date.now() - last)) : tick);
+    };
+    return kick;
+  }
+  const kickOl = worker(BG_TICK, () => queue.size > 0, async () => {
     const batch = [...queue.values()].slice(0, BATCH);
     batch.forEach(b => queue.delete(keyOf(b)));
     const m = await olLookup(batch);
@@ -167,28 +181,22 @@
         const h = m.get(keyOf(b));
         if (h) imgQueue.push({ key: keyOf(b), hit: h, book: b }); else gbQueue.push(b);
       }
+      kickImg(); kickGb();
     }
-    olBusy = false;
-  }, BG_TICK);
-
-  setInterval(async () => {
-    if (gbBusy || paused() || !gbQueue.length) return;
-    gbBusy = true;
+  });
+  const kickGb = worker(GB_TICK, () => gbQueue.length > 0, async () => {
     const b = gbQueue.shift();
     const g = await gbLookup(b);
-    if (g) imgQueue.push({ key: keyOf(b), hit: g, book: b });
+    if (g) { imgQueue.push({ key: keyOf(b), hit: g, book: b }); kickImg(); }
     else if (g === null) store(keyOf(b), null);
-    gbBusy = false;
-  }, GB_TICK);
-
-  setInterval(async () => {
-    if (imgBusy || paused() || !imgQueue.length) return;
-    imgBusy = true;
+  });
+  const kickImg = worker(IMG_TICK, () => imgQueue.length > 0, async () => {
     const { key, hit, book } = imgQueue.shift();
     if (await loadImg(hit.src)) store(key, hit);
-    else gbQueue.push(book); // Bild defekt: Google versuchen
-    imgBusy = false;
-  }, IMG_TICK);
+    else if (hit.by === "coverGB") store(key, null); // auch Google-Bild defekt: kein Cover (sonst Endlosschleife)
+    else { gbQueue.push(book); kickGb(); } // Open-Library-Bild defekt: Google versuchen
+  });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { kickOl(); kickGb(); kickImg(); } });
 
   // ---------- Messung für die Admin-Seite ----------
   // Prüft alle Bücher mit ISBN gestaffelt. onProgress({done,total,ol,gb,none,err}); stop() bricht ab.

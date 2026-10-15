@@ -44,9 +44,10 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const DAYS = ["mo", "di", "mi", "do", "fr", "sa", "so"];
   const ISO = /^\d{4}-\d{2}-\d{2}$/, HM = /^\d{2}:\d{2}$/;
-  const iso = d => d.toLocaleDateString("sv-SE"); // JJJJ-MM-TT, lokales Datum
+  const p2 = n => (n < 10 ? "0" : "") + n;
+  const iso = d => d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()); // JJJJ-MM-TT, lokales Datum (ohne Intl: läuft bis zu 120-mal je Aufruf)
   const keyOf = d => DAYS[(d.getDay() + 6) % 7];
-  const hm = d => String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  const hm = d => p2(d.getHours()) + ":" + p2(d.getMinutes());
   const tm = s => s.replace(/^0(\d)/, "$1");
   const span = r => tm(r[0]) + "–" + tm(r[1]);
   const dayRanges = k => ((I.zeiten || {})[k] || []).filter(r => r && HM.test(r[0]) && HM.test(r[1]) && r[0] < r[1]).sort();
