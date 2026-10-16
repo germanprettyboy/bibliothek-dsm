@@ -72,15 +72,15 @@ test.describe("Detail", () => {
 });
 
 test.describe("Cover", () => {
-  test("DNB zuerst: Bild direkt über die ISBN, Quelle genannt", async ({ page, netz }) => {
+  test("ekz zuerst: Bild direkt über die ISBN, Quelle genannt", async ({ page, netz }) => {
     netz.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
-    netz.bild = url => url.includes("portal.dnb.de");
+    netz.bild = url => url.includes("cover.ekz.de");
     await oeffnen(page);
     await oeffneBuch(page, MIT_ISBN);
     const img = page.locator("#d-cover img");
-    await expect(img).toHaveAttribute("src", "https://portal.dnb.de/opac/mvb/cover?isbn=" + MIT_ISBN.i[0] + "&size=m");
+    await expect(img).toHaveAttribute("src", "https://cover.ekz.de/" + MIT_ISBN.i[0] + ".jpg");
     await expect(img).toHaveClass(/in/);
-    await expect(page.locator("#d-src")).toHaveText("Cover: Deutsche Nationalbibliothek");
+    await expect(page.locator("#d-src")).toHaveText("Cover: ekz-Bibliotheksservice");
   });
 
   test("Open Library: Sammelabfrage, Größe M, Quelle genannt, nie /b/isbn/", async ({ page, netz }) => {
@@ -130,9 +130,9 @@ test.describe("Cover", () => {
     expect(ol.length).toBeGreaterThan(0);
     expect(ol.length).toBeLessThanOrEqual(3);
     for (const u of ol) expect(decodeURIComponent(u).match(/ISBN:\d{13}/g).length).toBeLessThanOrEqual(20);
-    const dnb = netz.anfragen.filter(u => u.includes("portal.dnb.de"));
-    expect(dnb.length).toBeGreaterThan(0); // DNB vor Open Library, nur für Bücher in Sichtweite
-    expect(dnb.length).toBeLessThan(40);
+    const ekz = netz.anfragen.filter(u => u.includes("cover.ekz.de"));
+    expect(ekz.length).toBeGreaterThan(0); // ekz vor Open Library, nur für Bücher in Sichtweite
+    expect(ekz.length).toBeLessThan(40);
   });
 });
 

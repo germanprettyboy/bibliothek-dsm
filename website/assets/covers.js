@@ -2,22 +2,23 @@
  * covers.js – Cover über die ISBN laden (nur vorhandene ISBN, keine Ergänzung).
  *
  * Quellen, in dieser Reihenfolge
- *  1. Deutsche Nationalbibliothek (MVB-Cover der Verlage): Bild direkt über die ISBN, 404 = keins.
- *     Trifft beim Bestand rund 9 von 10 Büchern, ohne Abfrage vorab.
+ *  1. ekz-Bibliotheksservice: Bild direkt über die ISBN (cover.ekz.de/<ISBN>.jpg), 404 = keins.
+ *     Trifft beim Bestand rund 8 von 10 Büchern, ohne Abfrage vorab. (Die Deutsche Nationalbibliothek
+ *     scheidet aus: portal.dnb.de steht hinter einem Bot-Schutz, Browser bekommen dort HTML statt Bild.)
  *  2. Open Library, Sammelabfrage über /api/books (bis zu 20 Bücher je Anfrage) → Bild über die
  *     Cover-ID. Bilder über die ID sind nicht ratenbegrenzt (Abrufe direkt über die ISBN wären auf
  *     100 je 5 Minuten und IP begrenzt – im Schulnetz teilen sich alle eine IP).
  *  3. Google Books, Bild direkt über die ISBN. Die Google-API wird nicht benutzt: ohne Schlüssel
  *     ist ihr gemeinsames Tageskontingent erschöpft (immer 429). Ohne Cover liefert Google ein
  *     Ersatzbild 128×184, das wird verworfen.
- * Auflösung: klein (DNB „m“ 200 px, Open Library „M“ ca. 180 px, Google ca. 128 px breit).
+ * Auflösung: ekz 170–440 px (fest), Open Library „M“ ca. 180 px, Google ca. 128 px breit.
  *
  * Betrieb
- *  - get(book): sofort, mit Vorrang (beim Antippen). DNB und Open Library parallel.
+ *  - get(book): sofort, mit Vorrang (beim Antippen). ekz und Open Library parallel.
  *  - want(book) / unwant(book): Hintergrund für Bücher in Sichtweite, gestaffelt; Open Library nur
- *    für Bücher ohne DNB-Cover. Pausiert bei verstecktem Tab und bei „Datensparen“.
- *  - Geladene Bilder bleiben als Element im Speicher (img()): DNB sendet „no-store“, ein neues
- *    <img> mit derselben Adresse würde das Bild sonst ein zweites Mal laden.
+ *    für Bücher ohne ekz-Cover. Pausiert bei verstecktem Tab und bei „Datensparen“.
+ *  - Geladene Bilder bleiben als Element im Speicher (img()): ein neues
+ *    <img> mit derselben Adresse würde das Bild ohne Cache-Kopfzeilen sonst ein zweites Mal laden.
  *  - Ergebnisse (auch „kein Cover“) werden im Browser gemerkt.
  */
 (function (root) {
@@ -26,11 +27,11 @@
 
   const OL_API = "https://openlibrary.org/api/books?format=json&jscmd=viewapi&bibkeys=";
   const SRC = {
-    dnb: i => "https://portal.dnb.de/opac/mvb/cover?isbn=" + i + "&size=m",
+    ekz: i => "https://cover.ekz.de/" + i + ".jpg",
     gb: i => "https://books.google.com/books/content?vid=ISBN" + i + "&printsec=frontcover&img=1&zoom=1"
   };
   const BATCH = 20;            // Bücher je Open-Library-Abfrage
-  const PROBE_TICK = 300;      // ms zwischen DNB-Bildproben im Hintergrund
+  const PROBE_TICK = 300;      // ms zwischen ekz-Bildproben im Hintergrund
   const BG_TICK = 1500;        // ms zwischen Hintergrund-Abfragen an Open Library
   const TAIL_TICK = 600;       // ms zwischen Bildproben nach Open Library (Open-Library-Bild, Google-Bild)
   const IMG_TICK = 350;        // ms zwischen vorgeladenen Bildern aus dem Cache
@@ -38,7 +39,7 @@
   const CACHE_KEY = "dsm-cover-v3", HIT_TTL = 60 * 864e5, MISS_TTL = 14 * 864e5, MAX_ENTRIES = 3000;
 
   // ---------- Cache ----------
-  // v2 stammt aus der Zeit ohne DNB (viele falsche „kein Cover“) und wird verworfen
+  // v2 stammt aus der Zeit ohne ekz (viele falsche „kein Cover“) und wird verworfen
   let cache = {};
   try { localStorage.removeItem("dsm-cover-v2"); } catch (e) { /* gesperrt */ }
   try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {}; } catch (e) { cache = {}; }
@@ -110,7 +111,7 @@
     for (const c of cands) if (await loadImg(c.src)) return c;
     return null;
   }
-  const dnbCands = b => b.i.map(i => ({ src: SRC.dnb(i), by: "coverDNB" }));
+  const ekzCands = b => b.i.map(i => ({ src: SRC.ekz(i), by: "coverEKZ" }));
   const gbCands = b => b.i.map(i => ({ src: SRC.gb(i), by: "coverGB" }));
 
   // Open Library: mehrere Bücher in einer Anfrage. Ergebnis: Map key -> {src,by} | null; null bei Netzfehler.
@@ -152,15 +153,15 @@
     inflight.set(key, p);
     return p;
   }
-  // DNB und Open Library parallel; DNB gewinnt, sobald klar ist, dass es eins hat. Dann Google.
+  // ekz und Open Library parallel; ekz gewinnt, sobald klar ist, dass es eins hat. Dann Google.
   function live(b, olHit) {
     const key = keyOf(b);
-    const dnb = firstImg(dnbCands(b));
+    const ekz = firstImg(ekzCands(b));
     const ol = (olHit || olLookup([b]).then(m => m ? m.get(key) : undefined)).then(async h => {
       if (h === undefined) return undefined; // Netzfehler
       return h && await loadImg(h.src) ? h : null;
     });
-    return dnb.then(async d => {
+    return ekz.then(async d => {
       if (d) return d;
       const o = await ol;
       if (o) return o;
@@ -170,8 +171,8 @@
   }
 
   // ---------- Hintergrund (gestaffelt) ----------
-  const queue = new Map();   // key -> Buch in Sichtweite, noch offen: DNB probieren
-  const olQueue = new Map(); // ohne DNB-Cover: Open Library
+  const queue = new Map();   // key -> Buch in Sichtweite, noch offen: ekz probieren
+  const olQueue = new Map(); // ohne ekz-Cover: Open Library
   const tail = [];           // {key, steps:[{src,by}]}: Open-Library-Bild, dann Google-Bild
   const imgQueue = [];       // bekannte Quellen (Cache) zum Vorladen
   const conn = navigator.connection || {};
@@ -184,7 +185,7 @@
     if (pending(key)) return;
     const c = cached(key);
     if (c) { if (!pool.has(c.src) && !imgQueue.some(x => x.key === key)) { imgQueue.push({ key, hit: c, book: b }); kickImg(); } }
-    else if (c === undefined) { queue.set(key, b); kickDnb(); }
+    else if (c === undefined) { queue.set(key, b); kickEkz(); }
   }
   function unwant(b) {
     if (!b || !b.i) return;
@@ -208,10 +209,10 @@
     const kick = () => { if (!t && !busy && hasWork()) t = setTimeout(loop, tick); };
     return kick;
   }
-  const kickDnb = worker(PROBE_TICK, () => queue.size > 0, async () => {
+  const kickEkz = worker(PROBE_TICK, () => queue.size > 0, async () => {
     const [key, b] = queue.entries().next().value;
     queue.delete(key);
-    const d = await firstImg(dnbCands(b));
+    const d = await firstImg(ekzCands(b));
     if (d) store(key, d);
     else { olQueue.set(key, b); kickOl(); }
   });
@@ -226,7 +227,7 @@
       if (h) hits++;
       tail.push({ key: keyOf(b), steps: (h ? [h] : []).concat(gbCands(b)) });
     }
-    log("Cover", `Hintergrund: ${batch.length} Bücher ohne DNB-Cover bei Open Library abgefragt, ${hits} mit Cover`);
+    log("Cover", `Hintergrund: ${batch.length} Bücher ohne ekz-Cover bei Open Library abgefragt, ${hits} mit Cover`);
     kickTail();
   });
   const kickTail = worker(TAIL_TICK, () => tail.length > 0, async () => {
@@ -237,33 +238,33 @@
   });
   const kickImg = worker(IMG_TICK, () => imgQueue.length > 0, async () => {
     const { key, hit, book } = imgQueue.shift();
-    if (!await loadImg(hit.src)) { delete cache[key]; queue.set(key, book); kickDnb(); } // Bild weg: neu suchen
+    if (!await loadImg(hit.src)) { delete cache[key]; queue.set(key, book); kickEkz(); } // Bild weg: neu suchen
   });
 
   // ---------- Messung für die Admin-Seite ----------
-  // Prüft alle Bücher mit ISBN (ohne Cache), vier gleichzeitig. onProgress({done,total,dnb,ol,gb,none,err});
+  // Prüft alle Bücher mit ISBN (ohne Cache), vier gleichzeitig. onProgress({done,total,ekz,ol,gb,none,err});
   // stop() bricht ab. Ergebnisse landen im Cache.
   function survey(books, onProgress) {
     let stopped = false;
     const list = books.filter(b => b.i && b.i.length);
-    const st = { total: list.length, done: 0, dnb: 0, ol: 0, gb: 0, none: 0, err: 0, complete: false };
+    const st = { total: list.length, done: 0, ekz: 0, ol: 0, gb: 0, none: 0, err: 0, complete: false };
     const report = () => onProgress && onProgress(Object.assign({}, st));
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    const COUNT = { coverDNB: "dnb", coverOL: "ol", coverGB: "gb" };
+    const COUNT = { coverEKZ: "ekz", coverOL: "ol", coverGB: "gb" };
     const run = (async () => {
       report();
-      // 1. DNB je Buch; Fehltreffer sammeln
+      // 1. ekz je Buch; Fehltreffer sammeln
       const misses = [];
       let next = 0;
-      const dnbWorker = async () => {
+      const ekzWorker = async () => {
         while (!stopped && next < list.length) {
           const b = list[next++];
-          const d = await firstImg(dnbCands(b));
-          if (d) { st.dnb++; st.done++; store(keyOf(b), d); } else misses.push(b);
+          const d = await firstImg(ekzCands(b));
+          if (d) { st.ekz++; st.done++; store(keyOf(b), d); } else misses.push(b);
           if (st.done % 10 === 0) report();
         }
       };
-      await Promise.all([dnbWorker(), dnbWorker(), dnbWorker(), dnbWorker()]);
+      await Promise.all([ekzWorker(), ekzWorker(), ekzWorker(), ekzWorker()]);
       report();
       // 2. Fehltreffer: Open Library in Sammelabfragen, sonst Google-Bild
       for (let i = 0; i < misses.length && !stopped; i += BATCH) {

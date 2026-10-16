@@ -389,7 +389,7 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
 .flag.mid { border-left-color: var(--gelb); }
 .meter { display: flex; height: 8px; margin-top: 12px; border-radius: 4px; overflow: hidden; background: var(--line); }
 .meter i { display: block; height: 100%; width: 0; }
-.meter .m-dnb { background: var(--mauve); } .meter .m-ol { background: var(--gruen); } .meter .m-gb { background: var(--blau); } .meter .m-none { background: var(--rot); }
+.meter .m-ekz { background: var(--mauve); } .meter .m-ol { background: var(--gruen); } .meter .m-gb { background: var(--blau); } .meter .m-none { background: var(--rot); }
 .lines .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: 0; }
 .hist { margin-top: 18px; }
 .hist h3 { margin: 0 0 6px; font-weight: 600; font-size: var(--fs-m); }

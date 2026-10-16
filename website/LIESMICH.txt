@@ -52,9 +52,9 @@ Bestand aktualisieren
 Cover
   Nur über die vorhandene ISBN; ohne ISBN gibt es kein Cover (gestalteter Platzhalter).
   Die Liste bleibt reiner Text. Für Bücher in Sichtweite lädt der Browser die Cover im
-  Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–200 px Breite):
-    - Deutsche Nationalbibliothek (Verlagscover): Bild direkt über die ISBN, alle 0,3 s ein Buch.
-      Trifft rund 9 von 10 Büchern des Bestands.
+  Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–440 px Breite):
+    - ekz-Bibliotheksservice: Bild direkt über die ISBN, alle 0,3 s ein Buch. Trifft rund 8 von
+      10 Büchern des Bestands. (Deutsche Nationalbibliothek geht nicht: Bot-Schutz.)
     - Für die übrigen Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s).
       Bilder kommen über die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN
       wären auf 100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
@@ -67,7 +67,7 @@ Cover
 
 Cover-Abdeckung
   admin.html zeigt nach dem Einlesen den Anteil mit ISBN und prüft auf Knopfdruck alle ISBN
-  (DNB-Cover, für die übrigen Open Library in Sammelabfragen, danach Google-Bild; einige Minuten).
+  (ekz-Cover, für die übrigen Open Library in Sammelabfragen, danach Google-Bild; einige Minuten).
   Ergebnis und Verlauf (letzte 24 Aktualisierungen) werden in books.js gespeichert und beim
   nächsten Einlesen fortgeführt. Abgebrochene Prüfungen gelten als vorläufig (* im Verlauf).
 

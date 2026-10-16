@@ -1,6 +1,6 @@
 /*
  * covers.js in einer Sandbox: fetch, Image, localStorage und die Takt-Timer (setTimeout 300/350/600/1500 ms) sind ersetzt.
- * Kein Netz. Prüft Reihenfolge DNB → Open Library (Sammelabfrage) → Google-Bild, Ersatzbild-Erkennung,
+ * Kein Netz. Prüft Reihenfolge ekz → Open Library (Sammelabfrage) → Google-Bild, Ersatzbild-Erkennung,
  * keine Google-API, Cache, Hintergrund-Warteschlangen und Messung.
  */
 "use strict";
@@ -13,7 +13,7 @@ const { WEB } = require("../helfer/laden.js");
 
 const CODE = fs.readFileSync(path.join(WEB, "assets", "covers.js"), "utf8");
 const OL = "https://openlibrary.org/api/books?format=json&jscmd=viewapi&bibkeys=";
-const DNB = "https://portal.dnb.de/opac/mvb/cover?isbn=";
+const EKZ = "https://cover.ekz.de/";
 const GB = "https://books.google.com/books/content?vid=ISBN";
 const warte = ms => new Promise(r => setTimeout(r, ms));
 const TAKTE = [300, 350, 600, 1500];
@@ -79,7 +79,7 @@ function sandbox({ ol = () => ({}), bild = () => false, cache = null, conn = {},
   return {
     C: ctx.DSMCovers, calls, bilder, tick, gespeichert, ls, takte: () => intervals.length, ctx,
     ol: () => calls.filter(c => c.url.startsWith(OL)),
-    dnb: () => bilder.filter(s => s.startsWith(DNB)),
+    ekz: () => bilder.filter(s => s.startsWith(EKZ)),
     gb: () => bilder.filter(s => s.startsWith(GB)),
   };
 }
@@ -97,14 +97,14 @@ describe("get(): Antippen, mit Vorrang", () => {
     assert.equal(s.calls.length + s.bilder.length, 0);
   });
 
-  test("DNB zuerst: Bild direkt über die ISBN, Größe m", async () => {
-    const s = sandbox({ bild: nur("dnb.de"), ol: OLHIT(42) });
+  test("ekz zuerst: Bild direkt über die ISBN", async () => {
+    const s = sandbox({ bild: nur("ekz.de"), ol: OLHIT(42) });
     const r = await s.C.get(buch(K1));
-    assert.deepEqual({ ...r }, { src: DNB + K1 + "&size=m", by: "coverDNB" });
+    assert.deepEqual({ ...r }, { src: EKZ + K1 + ".jpg", by: "coverEKZ" });
     assert.equal(s.gb().length, 0);
   });
 
-  test("ohne DNB-Cover: Open Library viewapi mit ISBN-13 und ISBN-10, Bild in Größe M über https", async () => {
+  test("ohne ekz-Cover: Open Library viewapi mit ISBN-13 und ISBN-10, Bild in Größe M über https", async () => {
     const s = sandbox({ bild: nur("openlibrary"), ol: OLHIT(42) });
     const r = await s.C.get(buch(K1));
     assert.deepEqual({ ...r }, { src: "https://covers.openlibrary.org/b/id/42-M.jpg", by: "coverOL" });
@@ -139,10 +139,10 @@ describe("get(): Antippen, mit Vorrang", () => {
     assert.equal((await s.C.get(buch(K2))).by, "coverGB");
   });
 
-  test("mehrere ISBN: jede wird bei der DNB probiert", async () => {
-    const s = sandbox({ bild: nur("isbn=" + K2) });
+  test("mehrere ISBN: jede wird bei ekz probiert", async () => {
+    const s = sandbox({ bild: nur("ekz.de/" + K2) });
     const r = await s.C.get({ t: "x", i: [K1, K2] });
-    assert.equal(r.src, DNB + K2 + "&size=m");
+    assert.equal(r.src, EKZ + K2 + ".jpg");
   });
 
   test("kein Cover: null, wird gemerkt, zweiter Aufruf ohne Netz", async () => {
@@ -175,7 +175,7 @@ describe("get(): Antippen, mit Vorrang", () => {
     const [a, b] = await Promise.all([s.C.get(buch(K1)), s.C.get(buch(K1))]);
     assert.equal(a.src, b.src);
     assert.equal(s.ol().length, 1);
-    assert.equal(s.dnb().length, 1);
+    assert.equal(s.ekz().length, 1);
   });
 
   test("nie /b/isbn/ (Ratenbegrenzung bei Open Library)", async () => {
@@ -185,9 +185,9 @@ describe("get(): Antippen, mit Vorrang", () => {
   });
 });
 
-describe("img(): geladenes Bild wiederverwenden (DNB sendet no-store)", () => {
+describe("img(): geladenes Bild wiederverwenden (nicht doppelt laden)", () => {
   test("nach get() kommt das schon geladene Element, ein zweites Mal ein neues", async () => {
-    const s = sandbox({ bild: nur("dnb.de") });
+    const s = sandbox({ bild: nur("ekz.de") });
     const r = await s.C.get(buch(K1));
     const n = s.bilder.length;
     const a = s.C.img(r);
@@ -212,8 +212,8 @@ describe("Cache dsm-cover-v3", () => {
     assert.deepEqual(s.bilder, ["https://x/1-M.jpg"]);
   });
   test("gemerktes Bild nicht mehr ladbar → neu suchen", async () => {
-    const s = sandbox({ bild: nur("dnb.de"), cache: { [K1]: { u: "https://x/1-M.jpg", b: "coverOL", t: Date.now() } } });
-    assert.equal((await s.C.get(buch(K1))).by, "coverDNB");
+    const s = sandbox({ bild: nur("ekz.de"), cache: { [K1]: { u: "https://x/1-M.jpg", b: "coverOL", t: Date.now() } } });
+    assert.equal((await s.C.get(buch(K1))).by, "coverEKZ");
   });
   test("Treffer älter als 60 Tage → neu abfragen", async () => {
     const s = sandbox({ cache: { [K1]: { u: "https://x/1-M.jpg", b: "coverOL", t: Date.now() - 61 * tag } } });
@@ -246,7 +246,7 @@ describe("Cache dsm-cover-v3", () => {
 });
 
 describe("Hintergrund: want/unwant, gestaffelt", () => {
-  test("Takte: DNB 0,3 s, Open Library 1,5 s, danach Bildproben 0,6 s, Vorladen 0,35 s", () => {
+  test("Takte: ekz 0,3 s, Open Library 1,5 s, danach Bildproben 0,6 s, Vorladen 0,35 s", () => {
     const s = sandbox();
     assert.ok(s.C.enabled);
     assert.match(CODE, /PROBE_TICK = 300/);
@@ -255,24 +255,24 @@ describe("Hintergrund: want/unwant, gestaffelt", () => {
     assert.match(CODE, /IMG_TICK = 350/);
   });
 
-  test("DNB-Treffer: gemerkt, keine Open-Library-Abfrage", async () => {
-    const s = sandbox({ bild: nur("dnb.de") });
+  test("ekz-Treffer: gemerkt, keine Open-Library-Abfrage", async () => {
+    const s = sandbox({ bild: nur("ekz.de") });
     s.C.want(buch(K1));
     assert.equal(s.bilder.length, 0, "nichts sofort");
     await s.tick(300);
-    assert.equal(s.dnb().length, 1);
+    assert.equal(s.ekz().length, 1);
     await s.tick(1500);
     assert.equal(s.ol().length, 0);
     await warte(450);
-    assert.equal(s.gespeichert()[K1].b, "coverDNB");
+    assert.equal(s.gespeichert()[K1].b, "coverEKZ");
   });
 
-  test("nur Bücher ohne DNB-Cover gehen an Open Library, bis zu 20 je Abfrage", async () => {
+  test("nur Bücher ohne ekz-Cover gehen an Open Library, bis zu 20 je Abfrage", async () => {
     const s = sandbox();
     const bs = Array.from({ length: 25 }, (_, n) => buch("97835222021" + String(n).padStart(2, "0")));
     bs.forEach(b => s.C.want(b));
     for (let n = 0; n < 25; n++) await s.tick(300);
-    assert.equal(s.dnb().length, 25);
+    assert.equal(s.ekz().length, 25);
     assert.equal(s.ol().length, 0);
     await s.tick(1500);
     assert.equal(s.ol().length, 1);
@@ -316,7 +316,7 @@ describe("Hintergrund: want/unwant, gestaffelt", () => {
   });
 
   test("„kein Cover“ bekannt → nichts; Treffer bekannt → nur Bild vorladen", async () => {
-    const s = sandbox({ bild: () => true, cache: { [K1]: { u: "", b: "", t: Date.now() }, [K2]: { u: "https://x/2.jpg", b: "coverDNB", t: Date.now() } } });
+    const s = sandbox({ bild: () => true, cache: { [K1]: { u: "", b: "", t: Date.now() }, [K2]: { u: "https://x/2.jpg", b: "coverEKZ", t: Date.now() } } });
     s.C.want(buch(K1)); s.C.want(buch(K2));
     await s.tick(300); await s.tick(350);
     assert.equal(s.calls.length, 0);
@@ -337,7 +337,7 @@ describe("Hintergrund: want/unwant, gestaffelt", () => {
   });
 
   test("ohne Arbeit läuft kein Takt-Timer (Gerät wird nicht geweckt)", async () => {
-    const s = sandbox({ bild: nur("dnb.de") });
+    const s = sandbox({ bild: nur("ekz.de") });
     assert.equal(s.takte(), 0, "nach dem Laden");
     s.C.want(buch(K1));
     assert.equal(s.takte(), 1);
@@ -357,33 +357,33 @@ describe("Hintergrund: want/unwant, gestaffelt", () => {
 });
 
 describe("prime(): Empfehlungen", () => {
-  test("mehrere Bücher: eine Open-Library-Sammelabfrage parallel zu den DNB-Bildern", async () => {
-    const s = sandbox({ ol: OLHIT(9), bild: nur("openlibrary", "isbn=" + K2) });
+  test("mehrere Bücher: eine Open-Library-Sammelabfrage parallel zu den ekz-Bildern", async () => {
+    const s = sandbox({ ol: OLHIT(9), bild: nur("openlibrary", "ekz.de/" + K2) });
     const r = await s.C.prime([buch(K1), buch(K2), { t: "ohne ISBN" }]);
     assert.equal(s.ol().length, 1);
     assert.equal(r[0].by, "coverOL");
-    assert.equal(r[1].by, "coverDNB");
+    assert.equal(r[1].by, "coverEKZ");
     assert.equal(r[2], null);
     assert.equal(s.gb().length, 0);
   });
 });
 
 describe("survey(): Abdeckung messen (admin.html)", () => {
-  test("zählt DNB, Open Library, Google, ohne Cover; Open Library nur für DNB-Fehltreffer", async () => {
+  test("zählt ekz, Open Library, Google, ohne Cover; Open Library nur für ekz-Fehltreffer", async () => {
     const K4 = "9783453604117";
     const s = sandbox({
       ol: keys => (keys.includes("ISBN:" + K1) ? OLHIT(1)(["ISBN:" + K1]) : {}),
-      bild: nur("openlibrary", "ISBN" + K2, "isbn=" + K4),
+      bild: nur("openlibrary", "ISBN" + K2, "ekz.de/" + K4),
     });
     const verlauf = [];
     const sv = s.C.survey([buch(K1), buch(K2), buch(K3), buch(K4), { t: "ohne" }], st => verlauf.push(st));
     const st = await sv.done;
     assert.equal(st.total, 4);
-    assert.equal(st.dnb, 1); assert.equal(st.ol, 1); assert.equal(st.gb, 1); assert.equal(st.none, 1); assert.equal(st.err, 0);
+    assert.equal(st.ekz, 1); assert.equal(st.ol, 1); assert.equal(st.gb, 1); assert.equal(st.none, 1); assert.equal(st.err, 0);
     assert.equal(st.done, 4);
     assert.equal(st.complete, true);
     assert.equal(s.ol().length, 1, "eine Sammelabfrage");
-    assert.ok(!decodeURIComponent(s.ol()[0].url).includes(K4), "DNB-Treffer nicht an Open Library");
+    assert.ok(!decodeURIComponent(s.ol()[0].url).includes(K4), "ekz-Treffer nicht an Open Library");
     assert.ok(verlauf.every((v, n) => n === 0 || v.done >= verlauf[n - 1].done), "Fortschritt steigt");
   });
   test("stop() bricht ab, complete = false", async () => {

@@ -18,7 +18,7 @@
       emptyP: "Eine andere Schreibweise oder nur einen Teil des Titels versuchen.",
       close: "Schließen",
       verlag: "Verlag", jahr: "Jahr", isbn: "ISBN", kategorie: "Kategorie", standort: "Standort",
-      coverDNB: "Cover: Deutsche Nationalbibliothek", coverOL: "Cover: Open Library", coverGB: "Cover: Google Books",
+      coverEKZ: "Cover: ekz-Bibliotheksservice", coverOL: "Cover: Open Library", coverGB: "Cover: Google Books",
       footer: "Bibliothek der Deutschen Schule Mailand",
       preview: "Vorschau der neuen Liste – noch nicht veröffentlicht.", previewEnd: "Vorschau beenden",
       noData: "Die Bücherliste konnte nicht geladen werden (books.js fehlt).",
@@ -50,7 +50,7 @@
       emptyP: "Prova un'altra grafia o solo una parte del titolo.",
       close: "Chiudi",
       verlag: "Editore", jahr: "Anno", isbn: "ISBN", kategorie: "Categoria", standort: "Collocazione",
-      coverDNB: "Copertina: Deutsche Nationalbibliothek", coverOL: "Copertina: Open Library", coverGB: "Copertina: Google Books",
+      coverEKZ: "Copertina: ekz-Bibliotheksservice", coverOL: "Copertina: Open Library", coverGB: "Copertina: Google Books",
       footer: "Biblioteca della Scuola Germanica di Milano",
       preview: "Anteprima del nuovo elenco – non ancora pubblicato.", previewEnd: "Chiudi anteprima",
       noData: "Impossibile caricare l'elenco dei libri (manca books.js).",
@@ -267,7 +267,7 @@
   let warmed = false;
   function warm() {
     if (warmed) return; warmed = true;
-    [["https://portal.dnb.de", false], ["https://openlibrary.org", true], ["https://covers.openlibrary.org", false]]
+    [["https://cover.ekz.de", false], ["https://openlibrary.org", true], ["https://covers.openlibrary.org", false]]
       .forEach(([href, cors]) => { const l = document.createElement("link"); l.rel = "preconnect"; l.href = href; if (cors) l.crossOrigin = ""; document.head.appendChild(l); });
   }
   const IO = "IntersectionObserver" in window;

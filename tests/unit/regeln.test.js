@@ -64,8 +64,8 @@ describe("externe Verbindungen", () => {
       assert.ok(fs.existsSync(path.join(WEB, "assets", u)), u);
     }
   });
-  test("nur DNB, Open Library und Google Books als externe Ziele", () => {
-    const erlaubt = new Set(["portal.dnb.de", "openlibrary.org", "covers.openlibrary.org", "books.google.com", "www.w3.org"]);
+  test("nur ekz, Open Library und Google Books als externe Ziele", () => {
+    const erlaubt = new Set(["cover.ekz.de", "openlibrary.org", "covers.openlibrary.org", "books.google.com", "www.w3.org"]);
     for (const p of text.filter(f => !f.endsWith(".txt"))) {
       for (const m of fs.readFileSync(p, "utf8").matchAll(/https?:\/\/([a-z0-9.-]+)/gi)) {
         assert.ok(erlaubt.has(m[1].toLowerCase()), path.relative(WEB, p) + ": " + m[1]);

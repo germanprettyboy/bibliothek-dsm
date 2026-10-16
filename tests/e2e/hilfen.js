@@ -17,7 +17,7 @@ const test = base.test.extend({
   speicher: [{ "dsm-empf": AUS }, { option: true }],
   netz: async ({ context }, use) => {
     const n = { anfragen: [], ol: null, bild: url => /covers\.openlibrary\.org\/b\/id\//.test(url) };
-    await context.route(/openlibrary\.org|books\.google\.com|portal\.dnb\.de/, async route => {
+    await context.route(/openlibrary\.org|books\.google\.com|cover\.ekz\.de/, async route => {
       const url = route.request().url();
       n.anfragen.push(url);
       if (url.startsWith("https://openlibrary.org/api/books") && n.ol) {
