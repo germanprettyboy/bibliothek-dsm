@@ -10,7 +10,10 @@ const { webcrypto: crypto } = require("crypto");
 const { ROOT, WEB, TMP } = require("../helfer/laden.js");
 
 const TOOL = path.join(ROOT, "werkzeuge", "admin-verschluesseln.js");
-const quelle = () => ["extract.js", "admin.js"].map(f => fs.readFileSync(path.join(ROOT, "werkzeuge", "quelle", f), "utf8")).join("\n;\n");
+// Klartext wie im Werkzeug: extract.js + gebaute Verwaltung (werkzeuge/quelle/verwaltung/, React)
+const { quelleBauen } = require(TOOL);
+let quelleText = null;
+const quelle = async () => (quelleText ??= await quelleBauen());
 
 function lesen(datei) {
   const ctx = { window: {} };
@@ -47,8 +50,19 @@ describe("admin-verschluesseln.js", () => {
     assert.notEqual(a.iv, b.iv);
     assert.notEqual(a.data, b.data);
   });
-  test("richtiges Passwort: ergibt extract.js + admin.js", async () => {
-    assert.equal(await entschluesseln(a, "test-passwort"), quelle());
+  test("richtiges Passwort: ergibt extract.js + gebaute Verwaltung", async () => {
+    const q = await quelle();
+    assert.equal(await entschluesseln(a, "test-passwort"), q);
+    assert.ok(q.includes("window.DSMExtract") || q.includes("root.DSMExtract"));
+    assert.match(q, /window\.DSM_VERWALTUNG\s*=/);
+  });
+  test("Verwaltung nutzt React und Bausteine der Seite (keine zweite React-Kopie)", async () => {
+    const q = await quelle();
+    assert.match(q, /DSM_GEMEINSAM\.react\b/);
+    assert.ok(!/react\.dev\/errors/.test(q), "React steckt nicht im verschlüsselten Teil");
+    // jedes benutzte gemeinsame Modul stellt die Seite bereit
+    const gem = fs.readFileSync(path.join(ROOT, "src", "verwaltung", "gemeinsam.js"), "utf8");
+    for (const m of q.matchAll(/DSM_GEMEINSAM\[`([^`]+)`\]/g)) assert.ok(gem.includes(`"${m[1]}":`), m[1]);
   });
   test("falsches Passwort: Entschlüsselung schlägt fehl", async () => {
     await assert.rejects(entschluesseln(a, "Test-passwort"));
@@ -56,7 +70,7 @@ describe("admin-verschluesseln.js", () => {
   });
   test("Klartext steht nicht in der verschlüsselten Datei", () => {
     const s = fs.readFileSync(out1, "utf8");
-    for (const m of ["PERSONAL_TABLES", "dsm-empf-entwurf", "renderEditor", "verliehenan"]) assert.ok(!s.includes(m), m);
+    for (const m of ["PERSONAL_TABLES", "dsm-empf-entwurf", "showDirectoryPicker", "verliehenan"]) assert.ok(!s.includes(m), m);
   });
   test("ohne Passwort: Abbruch mit Fehlercode", () => {
     assert.throws(() => execFileSync(process.execPath, [TOOL], { stdio: "pipe" }));
@@ -72,6 +86,6 @@ describe("veröffentlichte admin.enc.js", () => {
   });
   test("ist aktuell (gleich werkzeuge/quelle/*) – nur mit DSM_ADMIN_PW", { skip: !process.env.DSM_ADMIN_PW && "DSM_ADMIN_PW nicht gesetzt" }, async () => {
     const plain = await entschluesseln(enc, process.env.DSM_ADMIN_PW);
-    assert.ok(plain === quelle(), "admin.enc.js ist veraltet: node werkzeuge/admin-verschluesseln.js \"<Passwort>\"");
+    assert.ok(plain === await quelle(), "admin.enc.js ist veraltet: node werkzeuge/admin-verschluesseln.js");
   });
 });

@@ -8,10 +8,13 @@ Inhalt
   empfehlungen.js   Buchempfehlungen (wird von admin.html erzeugt)
   info.js           Öffnungszeiten, Ferien, Abwesenheiten (wird von admin.html erzeugt)
   assets/           Stil, Skripte, Logos, Schrift Fira Sans (lokal), sql.js,
-                    admin.enc.js (verschlüsselte Verwaltung), admin-lock.js (Sperre)
+                    bibliothek.js (Bücherliste), verwaltung.js (Sperre),
+                    admin.enc.js (verschlüsselte Verwaltung)
 
-  Der Ordner „werkzeuge“ gehört NICHT auf den Webspace. Er enthält den Klartext der
-  Verwaltung und das Werkzeug zum Verschlüsseln (siehe werkzeuge/LIESMICH.txt).
+  index.html, admin.html, assets/bibliothek.js, verwaltung.js, style.css und kopf.js werden
+  aus dem Ordner „src“ erzeugt (npm run build) – dort ändern, nicht hier.
+  Die Ordner „src“ und „werkzeuge“ gehören NICHT auf den Webspace. „werkzeuge“ enthält den
+  Klartext der Verwaltung und das Werkzeug zum Verschlüsseln (siehe werkzeuge/LIESMICH.txt).
 
 Veröffentlichen
   Den ganzen Ordner auf den Webspace laden (z. B. DSM-Server oder GitHub Pages).

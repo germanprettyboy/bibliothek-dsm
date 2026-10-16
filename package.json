@@ -3,10 +3,12 @@
   "private": true,
   "description": "Bücherliste der Bibliothek der Deutschen Schule Mailand (statische Website) und Werkzeuge",
   "scripts": {
+    "build": "node werkzeuge/bauen.mjs",
     "books": "node werkzeuge/books-erzeugen.js daten/BIBLIOTHEK_DSM_2024.winbook",
     "verschluesseln": "node werkzeuge/admin-verschluesseln.js",
     "serve": "python3 -m http.server 8765 -d website",
-    "dev": "npx --yes browser-sync@3 start --server website --files website --port 8765 --no-open --no-notify --no-ui",
+    "dev": "node werkzeuge/bauen.mjs --watch & npx --yes browser-sync@3 start --server website --files website --port 8765 --no-open --no-notify --no-ui",
+    "ui:add": "npx --yes shadcn@4.22.0 add",
     "test": "node --test tests/unit/*.test.js",
     "test:e2e": "playwright test",
     "test:alle": "npm test && npm run test:e2e",
@@ -15,6 +17,20 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
-    "sql.js": "1.10.3"
+    "@tailwindcss/vite": "4.3.3",
+    "@vitejs/plugin-react": "6.1.2",
+    "sql.js": "1.10.3",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.4"
+  },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.58.0",
+    "radix-ui": "1.8.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "sonner": "2.0.8",
+    "tailwind-merge": "3.7.0"
   }
 }

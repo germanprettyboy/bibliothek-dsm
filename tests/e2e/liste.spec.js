@@ -24,6 +24,8 @@ test.describe("Liste", () => {
 
   test("Liste in Abschnitten zu höchstens 40 Büchern, alle Bücher vorhanden, geschätzte Höhe", async ({ page }) => {
     await oeffnen(page);
+    // Die Liste baut sich in Schritten auf (erst zwei Abschnitte, dann je 20)
+    await expect(page.locator("#list .row")).toHaveCount(B.buecher.length);
     const r = await page.evaluate(() => {
       const uls = [...document.querySelectorAll("#list .rows > ul")];
       return {

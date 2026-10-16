@@ -119,7 +119,7 @@
   const ORTE = [["header", "Kopf"], [".bar", "Suchleiste"], ["#recs", "Empfehlungen"], ["#info", "Öffnungszeiten"],
     ["main.books", "Liste"], ["footer", "Fuß"]];
   function ort(el) {
-    const d = el.closest("dialog");
+    const d = el.closest("dialog, [role=dialog]");
     if (d) return "Fenster „" + fensterName(d) + "“";
     for (const [sel, n] of ORTE) if (el.closest(sel)) return n;
     // sonst der nächste Abschnitt mit Überschrift (Verwaltung), ersatzweise dessen id
@@ -139,6 +139,8 @@
     const t = e.target;
     if (!(t instanceof Element)) return;
     if (t.tagName === "DIALOG") { log("Klick", `neben das Fenster „${fensterName(t)}“`); return; }
+    // Schleier der shadcn-Fenster (Radix Dialog); Öffnen/Schließen meldet die Seite selbst (src/components/fenster.jsx)
+    if (t.matches("[data-slot=dialog-overlay]")) { log("Klick", "neben das Fenster"); return; }
     const el = t.closest(KLICKBAR);
     if (!el) return;
     if (el.tagName === "LABEL" && el.control) return;                                  // folgt als Klick/Änderung am Feld

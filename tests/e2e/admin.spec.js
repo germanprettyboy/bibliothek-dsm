@@ -128,7 +128,9 @@ test.describe("Sperre", () => {
 
   test("Passwort steht nach dem Entsperren nicht mehr im Feld und nirgends im Speicher", async ({ page }) => {
     await entsperren(page);
-    await expect(page.locator("#pw")).toHaveValue("");
+    // Sperre samt Passwortfeld ist nach dem Entsperren nicht mehr auf der Seite
+    await expect(page.locator("#pw")).toHaveCount(0);
+    expect(await page.content()).not.toContain(PW);
     const alles = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
     expect(alles).not.toContain(PW);
   });
