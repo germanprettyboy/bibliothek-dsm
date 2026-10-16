@@ -85,6 +85,9 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
   (OL „M“ ≈180 px, Google „thumbnail“ ≈128 px). Open Library NICHT über `/b/isbn/` laden
   (100 Abrufe / 5 min / IP, Schulnetz = eine IP) – immer `/api/books?jscmd=viewapi` (Sammelabfrage) → Cover-ID.
+- Echtes Cover im Detail antippen → eigenes `<dialog id="zoom">` (Top-Layer, Glas-Schleier), Bild fliegt per FLIP
+  (Web Animations, nur transform, `--snap`, 240/180 ms) in die Mitte, max. 27rem breit. Nur dann OL-Größe „L“ nachladen;
+  Google-Bilder ohne größere Fassung höchstens 2,5-fach. Platzhalter nicht vergrößerbar.
 - A–Z-Leiste nur ab 768 px (48rem). Darunter nur Suche + Buchstaben-Floater rechts (nur beim Scrollen sichtbar).
 - Theme: Standard = Gerät; in den Einstellungen Automatisch/Hell/Dunkel. Dazu größere Schrift, hoher Kontrast.
 - Italienischer Text bleibt Anthrazit (kein Rot für Italienisch auf der Website).
