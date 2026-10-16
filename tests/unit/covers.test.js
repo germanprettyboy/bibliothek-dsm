@@ -1,5 +1,5 @@
 /*
- * covers.js in einer Sandbox: fetch, Image, localStorage und der Takt der Hintergrund-Worker (setTimeout „loop“) sind ersetzt.
+ * covers.js in einer Sandbox: fetch, Image, localStorage und die Takt-Timer (setTimeout 350/1500/1800 ms) sind ersetzt.
  * Kein Netz. Prüft Sammelabfrage, Rückfall auf Google, Drosselung, Cache, Hintergrund-Warteschlange und Messung.
  */
 "use strict";
@@ -14,6 +14,7 @@ const CODE = fs.readFileSync(path.join(WEB, "assets", "covers.js"), "utf8");
 const OL = "https://openlibrary.org/api/books?format=json&jscmd=viewapi&bibkeys=";
 const GB = "https://www.googleapis.com/books/v1/volumes?";
 const warte = ms => new Promise(r => setTimeout(r, ms));
+const TAKTE = [350, 1500, 1800];
 const antwort = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
 
 /*
@@ -21,7 +22,7 @@ const antwort = (body, status = 200) => ({ ok: status >= 200 && status < 300, st
  * bildOk(src) → lädt das Bild?
  */
 function sandbox({ ol = () => ({}), gb = () => ({}), bildOk = () => true, cache = null, conn = {}, hidden = false } = {}) {
-  const calls = [], takte = [], hoerer = {}, ls = new Map();
+  const calls = [], intervals = [], ls = new Map();
   if (cache) ls.set("dsm-cover-v2", JSON.stringify(cache));
   class Img {
     constructor() { this.naturalWidth = 0; this.naturalHeight = 0; }
@@ -52,25 +53,27 @@ function sandbox({ ol = () => ({}), gb = () => ({}), bildOk = () => true, cache 
       removeItem: k => ls.delete(k),
     },
     navigator: { connection: conn },
-    document: { hidden, addEventListener: (typ, fn) => (hoerer[typ] = hoerer[typ] || []).push(fn) },
-    // Takt der Hintergrund-Worker (Funktion „loop“) läuft nur über tick(); alle anderen Timer echt
-    setTimeout: (fn, ms) => (fn.name === "loop" ? (takte.push({ fn, ms }), { takt: true }) : setTimeout(fn, ms)),
-    clearTimeout: t => (t && t.takt ? undefined : clearTimeout(t)),
-    setImmediate, AbortController,
+    document: { hidden },
+    // Takt der Hintergrund-Warteschlangen (350/1500/1800 ms) per tick() auslösen, übrige Timer echt
+    setTimeout: (fn, ms, ...a) => {
+      if (!TAKTE.includes(ms)) return setTimeout(fn, ms, ...a);
+      intervals.push({ fn, ms }); return -intervals.length;
+    },
+    clearTimeout: id => (id < 0 ? undefined : clearTimeout(id)), setImmediate, AbortController,
     console,
   };
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(CODE, ctx, { filename: "covers.js" });
-  // führt die anstehenden Worker aus, deren Verzögerung zum Takt ms passt (nach einem Lauf etwas kürzer)
+  // nur die beim Aufruf anstehenden Timer dieses Takts, jeder genau einmal
   const tick = async ms => {
-    const dran = takte.filter(t => t.ms > ms - 200 && t.ms <= ms);
-    for (const t of dran) { takte.splice(takte.indexOf(t), 1); await t.fn(); }
+    const due = intervals.filter(i => i.ms === ms);
+    for (const i of due) intervals.splice(intervals.indexOf(i), 1);
+    for (const i of due) await i.fn();
     await warte(5);
   };
-  const ereignis = async typ => { (hoerer[typ] || []).forEach(f => f()); await warte(5); };
   const gespeichert = () => JSON.parse(ls.get("dsm-cover-v2") || "{}");
-  return { C: ctx.DSMCovers, calls, tick, ereignis, takte, gespeichert, ctx, ol: () => calls.filter(c => c.url.startsWith(OL)), gb: () => calls.filter(c => c.url.startsWith(GB)) };
+  return { C: ctx.DSMCovers, calls, tick, gespeichert, takte: () => intervals.length, ctx, ol: () => calls.filter(c => c.url.startsWith(OL)), gb: () => calls.filter(c => c.url.startsWith(GB)) };
 }
 
 const buch = (i, t = "Buch " + i) => ({ t, i: [i] });
@@ -253,11 +256,35 @@ describe("Hintergrund: want/unwant, gestaffelt", () => {
     s.C.want(buch(K1));
     await s.tick(1500);
     assert.equal(s.calls.length, 0);
-    assert.equal(s.takte.length, 0, "versteckt: kein Takt mehr geplant");
     s.ctx.document.hidden = false;
-    await s.ereignis("visibilitychange");
     await s.tick(1500);
     assert.equal(s.calls.length, 1);
+  });
+
+  test("ohne Arbeit läuft kein Takt-Timer (Gerät wird nicht geweckt)", async () => {
+    const s = sandbox({ ol: OLHIT(3) });
+    assert.equal(s.takte(), 0, "nach dem Laden");
+    s.C.want(buch(K1));
+    assert.equal(s.takte(), 1);
+    await s.tick(1500);
+    await s.tick(350);
+    assert.equal(s.takte(), 0, "Warteschlangen leer");
+  });
+
+  test("Google-Bild defekt: „kein Cover“ gemerkt, keine Endlosschleife", async () => {
+    const s = sandbox({
+      ol: () => ({}),
+      gb: () => ({ items: [{ volumeInfo: { imageLinks: { thumbnail: "https://books.google.com/x" } } }] }),
+      bildOk: () => false,
+    });
+    s.C.want(buch(K2));
+    await s.tick(1500);
+    await s.tick(1800);
+    await s.tick(350);
+    assert.equal(s.takte(), 0);
+    await warte(450);
+    assert.equal(s.gespeichert()[K2].u, "");
+    assert.equal(s.gb().length, 1);
   });
 
   test("Datensparen / 2G: Hintergrund aus", async () => {

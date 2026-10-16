@@ -22,6 +22,23 @@ test.describe("Liste", () => {
     expect(n).toBeGreaterThan(20);
   });
 
+  test("Liste in Abschnitten zu höchstens 40 Büchern, alle Bücher vorhanden, geschätzte Höhe", async ({ page }) => {
+    await oeffnen(page);
+    const r = await page.evaluate(() => {
+      const uls = [...document.querySelectorAll("#list .rows > ul")];
+      return {
+        max: Math.max(...uls.map(u => u.children.length)),
+        rows: document.querySelectorAll("#list .row").length,
+        mitHoehe: uls.every(u => /contain-intrinsic-size/.test(u.getAttribute("style") || "")),
+        cv: getComputedStyle(uls[0]).contentVisibility,
+      };
+    });
+    expect(r.max).toBeLessThanOrEqual(40);
+    expect(r.rows).toBe(B.buecher.length);
+    expect(r.mitHoehe).toBe(true);
+    expect(r.cv).toBe("auto");
+  });
+
   test("keine Ausleihinformation sichtbar", async ({ page }) => {
     await oeffnen(page);
     await expect(page.locator("body")).not.toContainText(/verliehen|ausgeliehen|verfügbar|vorgemerkt/i);
