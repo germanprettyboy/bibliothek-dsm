@@ -37,6 +37,9 @@
   };
   const enc = window.DSM_ADMIN_ENC;
   const form = $("#lock-form"), pw = $("#pw"), msg = $("#lock-msg"), btn = $("#unlock");
+  // Knopf steht in admin.html gesperrt mit Spinner da, bis dieses Skript (nach books.js) geladen ist
+  const busy = on => { btn.disabled = on; btn.classList.toggle("busy", on); form.setAttribute("aria-busy", String(on)); };
+  busy(false);
 
   async function keyFromPassword(p) {
     const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(p), "PBKDF2", false, ["deriveKey"]);
@@ -72,7 +75,7 @@
     if (!window.crypto || !crypto.subtle) { msg.textContent = D.t("lockInsecure"); return; }
     const left = Math.ceil((waitUntil - Date.now()) / 1000);
     if (left > 0) { msg.textContent = D.t("lockWait", { s: left }); D.log("Sperre", `zu früh, noch ${left} s warten`); return; }
-    btn.disabled = true; msg.textContent = D.t("lockBusy");
+    busy(true); msg.textContent = D.t("lockBusy");
     try {
       const key = await keyFromPassword(pw.value);
       const src = await decrypt(key);
@@ -87,7 +90,7 @@
       D.log("Sperre", `Passwort falsch (Versuch ${n}, nächster Versuch in ${Math.min(30, 2 ** Math.max(0, n - 2))} s)`);
       form.classList.remove("shake"); void form.offsetWidth; form.classList.add("shake");
       pw.select();
-    } finally { btn.disabled = false; }
+    } finally { busy(false); }
   });
 
   // Innerhalb derselben Browser-Sitzung entsperrt bleiben

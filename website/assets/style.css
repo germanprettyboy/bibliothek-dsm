@@ -723,7 +723,7 @@ button.arc-item:active { opacity: .6; }
    Erscheinen erst nach kurzer Verzögerung, damit sie bei schneller Verbindung nicht aufblitzen.
    Ein Lichtband pro Block wandert per transform (wie beim Cover). */
 .skel { position: relative; overflow: hidden; animation: ld-in var(--t-slow) ease-out .15s both; }
-.skel::after {
+.skel::after, .ld-bild:not(.da)::after {
   content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background: linear-gradient(100deg, transparent 35%, var(--skel-hi) 50%, transparent 65%);
   transform: translateX(-100%); animation: shimmer 1.6s ease-in-out infinite;
@@ -760,3 +760,18 @@ button.arc-item:active { opacity: .6; }
 .rec .skel-row > span:first-child { width: 85%; }
 .rec .skel-row > span + span { width: 55%; }
 @media (min-width: 40rem) { .rec .skel-row { margin-top: 9px; } }
+/* Info-Karte: Platzhalter nur, wenn beim letzten Besuch eine Karte da war (data-info aus common.js) */
+:root[data-info] .info.laedt[hidden] { display: block !important; }
+.info-card.skel { cursor: default; animation: ld-in var(--t-slow) ease-out .15s both; }
+.info-line > .skel-row { flex: 1; }
+.info-line > .skel-row > span:first-child { width: 9rem; max-width: 70%; margin-block: .375em; }
+.info-line > .skel-row > span + span { width: 6rem; max-width: 50%; margin-top: .375em; }
+/* Bilder mit Platzhalter (Logo): Fläche mit Lichtband, Bild blendet ein, sobald es da ist (.da aus common.js) */
+.ld-bild { position: relative; overflow: hidden; border-radius: 6px; }
+.ld-bild img { transition: opacity var(--t-base) ease-out; }
+.ld-bild:not(.da) img { opacity: 0; }
+.ld-bild:not(.da)::before { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--skel); animation: ld-in var(--t-slow) ease-out .15s both; }
+/* Knopf, der noch nicht bereit ist oder gerade arbeitet (Entsperren in admin.html) */
+.btn .spin { display: none; width: 16px; height: 16px; border-color: color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; }
+.btn.busy { cursor: progress; opacity: .75; }
+.btn.busy .spin { display: block; }

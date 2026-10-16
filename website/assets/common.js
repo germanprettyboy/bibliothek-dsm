@@ -20,6 +20,16 @@
   applyPrefs();
   // Empfehlungen gewählt? Dann zeigt index.html beim Laden einen Platzhalter an ihrer Stelle (app.js ersetzt ihn)
   try { const e = JSON.parse(store.get("dsm-empf") || "null"); if (e && e.want && e.gruppe) root.dataset.empf = ""; } catch (e) { /* */ }
+  // Info-Karte beim letzten Besuch gezeigt? Dann Platzhalter, bis info-panel.js sie zeichnet
+  if (store.get("dsm-info-karte") === "1") root.dataset.info = "";
+  // Bilder in .ld-bild (Logo): Lichtband, bis das sichtbare Bild geladen ist (oder scheitert).
+  // Lauscht ab dem <head>, daher entgeht kein Ereignis. Unsichtbare Bilder (Logo der anderen Farbwelt) zählen nicht.
+  const bildDa = e => {
+    const img = e.target, box = img.tagName === "IMG" && img.closest(".ld-bild");
+    if (box && img.getClientRects().length) box.classList.add("da");
+  };
+  document.addEventListener("load", bildDa, true);
+  document.addEventListener("error", bildDa, true);
 
   // Sprache: gespeicherte Wahl, sonst Browsersprache
   const savedLang = store.get("dsm-lang");
