@@ -1,5 +1,5 @@
 /*
- * covers.js in einer Sandbox: fetch, Image, localStorage und setInterval sind ersetzt.
+ * covers.js in einer Sandbox: fetch, Image, localStorage und der Takt der Hintergrund-Worker (setTimeout „loop“) sind ersetzt.
  * Kein Netz. Prüft Sammelabfrage, Rückfall auf Google, Drosselung, Cache, Hintergrund-Warteschlange und Messung.
  */
 "use strict";
@@ -21,7 +21,7 @@ const antwort = (body, status = 200) => ({ ok: status >= 200 && status < 300, st
  * bildOk(src) → lädt das Bild?
  */
 function sandbox({ ol = () => ({}), gb = () => ({}), bildOk = () => true, cache = null, conn = {}, hidden = false } = {}) {
-  const calls = [], intervals = [], ls = new Map();
+  const calls = [], takte = [], hoerer = {}, ls = new Map();
   if (cache) ls.set("dsm-cover-v2", JSON.stringify(cache));
   class Img {
     constructor() { this.naturalWidth = 0; this.naturalHeight = 0; }
@@ -52,17 +52,25 @@ function sandbox({ ol = () => ({}), gb = () => ({}), bildOk = () => true, cache 
       removeItem: k => ls.delete(k),
     },
     navigator: { connection: conn },
-    document: { hidden },
-    setTimeout, clearTimeout, setImmediate, AbortController,
-    setInterval: (fn, ms) => { intervals.push({ fn, ms }); return intervals.length; },
+    document: { hidden, addEventListener: (typ, fn) => (hoerer[typ] = hoerer[typ] || []).push(fn) },
+    // Takt der Hintergrund-Worker (Funktion „loop“) läuft nur über tick(); alle anderen Timer echt
+    setTimeout: (fn, ms) => (fn.name === "loop" ? (takte.push({ fn, ms }), { takt: true }) : setTimeout(fn, ms)),
+    clearTimeout: t => (t && t.takt ? undefined : clearTimeout(t)),
+    setImmediate, AbortController,
     console,
   };
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(CODE, ctx, { filename: "covers.js" });
-  const tick = async ms => { for (const i of intervals) if (i.ms === ms) await i.fn(); await warte(5); };
+  // führt die anstehenden Worker aus, deren Verzögerung zum Takt ms passt (nach einem Lauf etwas kürzer)
+  const tick = async ms => {
+    const dran = takte.filter(t => t.ms > ms - 200 && t.ms <= ms);
+    for (const t of dran) { takte.splice(takte.indexOf(t), 1); await t.fn(); }
+    await warte(5);
+  };
+  const ereignis = async typ => { (hoerer[typ] || []).forEach(f => f()); await warte(5); };
   const gespeichert = () => JSON.parse(ls.get("dsm-cover-v2") || "{}");
-  return { C: ctx.DSMCovers, calls, tick, gespeichert, ctx, ol: () => calls.filter(c => c.url.startsWith(OL)), gb: () => calls.filter(c => c.url.startsWith(GB)) };
+  return { C: ctx.DSMCovers, calls, tick, ereignis, takte, gespeichert, ctx, ol: () => calls.filter(c => c.url.startsWith(OL)), gb: () => calls.filter(c => c.url.startsWith(GB)) };
 }
 
 const buch = (i, t = "Buch " + i) => ({ t, i: [i] });
@@ -245,7 +253,9 @@ describe("Hintergrund: want/unwant, gestaffelt", () => {
     s.C.want(buch(K1));
     await s.tick(1500);
     assert.equal(s.calls.length, 0);
+    assert.equal(s.takte.length, 0, "versteckt: kein Takt mehr geplant");
     s.ctx.document.hidden = false;
+    await s.ereignis("visibilitychange");
     await s.tick(1500);
     assert.equal(s.calls.length, 1);
   });

@@ -33,6 +33,8 @@
       askT1: "Buchempfehlungen", askP1: "Möchten Sie Buchempfehlungen sehen?", yes: "Ja, gerne", no: "Nein, danke",
       askT2: "Für wen?", askP2: "Wählen Sie die passende Stufe.", askT3: "Welcher Bereich?", askP3: "Erwachsenenliteratur in drei Kernbereichen.", back: "Zurück",
       sRecs: "Buchempfehlungen", sRecsShow: "Empfehlungen anzeigen", sRecsShowH: "Drei bis vier ausgewählte Bücher über der Liste.",
+      sRecsFor: "Empfehlungen für",
+      arcT: "Bisherige Empfehlungen", arcOpen: "Alle bisherigen Empfehlungen", arcNow: "Aktuell", arcGone: "Nicht mehr im Bestand",
     },
     it: {
       pageTitle: "Biblioteca – Scuola Germanica di Milano",
@@ -63,6 +65,8 @@
       askT1: "Consigli di lettura", askP1: "Desidera vedere dei consigli di lettura?", yes: "Sì, volentieri", no: "No, grazie",
       askT2: "Per chi?", askP2: "Scelga il livello adatto.", askT3: "Quale area?", askP3: "Letteratura per adulti in tre aree principali.", back: "Indietro",
       sRecs: "Consigli di lettura", sRecsShow: "Mostra i consigli", sRecsShowH: "Da tre a quattro libri scelti sopra l'elenco.",
+      sRecsFor: "Consigli per",
+      arcT: "Consigli precedenti", arcOpen: "Tutti i consigli precedenti", arcNow: "Attuali", arcGone: "Non più in catalogo",
     },
   });
 
@@ -101,20 +105,23 @@
     if (!a) return;
     e.preventDefault();
     const el = document.getElementById(lid(a.dataset.l));
-    if (el) glide(el.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0));
+    if (el) glide(el);
   });
-  // Schneller animierter Sprung: feste kurze Dauer statt Browser-Smooth-Scroll (der bei langen Strecken trödelt)
+  // Schneller animierter Sprung: feste kurze Dauer statt Browser-Smooth-Scroll (der bei langen Strecken trödelt).
+  // Das Ziel wird in jedem Schritt neu gemessen: Abschnitte, die unterwegs zum ersten Mal gezeichnet
+  // werden (content-visibility), weichen von ihrer geschätzten Höhe ab.
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   let glideId = 0;
-  function glide(y) {
+  function glide(el) {
     cancelAnimationFrame(glideId);
-    y = Math.max(0, Math.min(y, document.documentElement.scrollHeight - innerHeight));
-    const from = scrollY, d = y - from;
-    if (still.matches || Math.abs(d) < 2) { scrollTo({ top: y, behavior: "instant" }); return; }
+    const target = () => Math.max(0, Math.min(el.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0),
+      document.documentElement.scrollHeight - innerHeight));
+    const from = scrollY, d = target() - from;
+    if (still.matches || Math.abs(d) < 2) { scrollTo({ top: target(), behavior: "instant" }); return; }
     const dur = Math.min(420, 200 + Math.abs(d) / 50), t0 = performance.now();
     const step = now => {
       const p = Math.min(1, (now - t0) / dur);
-      scrollTo({ top: from + d * (1 - Math.pow(1 - p, 3)), behavior: "instant" });
+      scrollTo({ top: from + (target() - from) * (1 - Math.pow(1 - p, 3)), behavior: "instant" });
       if (p < 1) glideId = requestAnimationFrame(step);
     };
     glideId = requestAnimationFrame(step);
@@ -122,28 +129,43 @@
   ["wheel", "touchstart", "keydown"].forEach(t => addEventListener(t, () => cancelAnimationFrame(glideId), { passive: true }));
 
   // Liste
-  let current = [], terms = [], marks = [];
+  // Die Liste besteht aus Abschnitten zu höchstens CHUNK Büchern; jeder Buchstabe beginnt einen neuen.
+  // Per CSS (content-visibility) zeichnet der Browser nur Abschnitte in Sichtweite. Für die übrigen
+  // steht eine aus der Textlänge geschätzte Höhe im Stil, bis sie einmal gezeichnet wurden.
+  const CHUNK = 40;
+  let current = [], terms = [], marks = [], hlRe = null;
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   function hl(text) {
-    let s = esc(text);
-    for (const term of terms) {
-      if (term.length < 2) continue;
-      const re = new RegExp("(" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig");
-      s = s.replace(/(^|>)([^<]*)/g, (m, p, txt) => p + txt.replace(re, "<mark>$1</mark>"));
-    }
-    return s;
+    if (!hlRe) return esc(text);
+    // split mit Klammer im Ausdruck: ungerade Teile sind Treffer
+    return String(text).split(hlRe).map((p, n) => n % 2 ? `<mark>${esc(p)}</mark>` : esc(p)).join("");
+  }
+  function sizer() {
+    // Zeichen je Zeile für Titel (fs-m) und Autor (fs-s), grob über die mittlere Zeichenbreite
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const w = Math.max(160, list.clientWidth - 40);
+    const cT = w / (rem * .5), cA = w / (rem * .875 * .5);
+    return (t, a) => 25 + rem * 1.35 * Math.ceil((t.length || 1) / cT) + (a ? 2 + rem * .875 * 1.5 * Math.ceil(a.length / cA) : 0);
   }
   function render(animate) {
-    let html = "", last = null;
+    const est = sizer();
+    let html = "", rows = "", h = 0, n = 0, head = null, last = null;
+    const flush = () => {
+      if (!n) return;
+      html += `<ul${head ? ` data-l="${head}" id="${lid(head)}"` : ""} style="contain-intrinsic-size:auto ${Math.round(h)}px">${rows}</ul>`;
+      rows = ""; h = 0; n = 0; head = null;
+    };
     for (const b of current) {
-      const a = (b.a || []).join(", ");
-      const start = b._l !== last; last = b._l;
-      html += `<li${start ? ` data-l="${b._l}" id="${lid(b._l)}"` : ""}><button class="row" type="button" data-i="${b._i}"><span class="tx"><span class="t">${hl(b.t)}</span>${a ? `<span class="a">${hl(a)}</span>` : ""}</span>` +
-        `<svg class="go" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button></li>`;
+      if (b._l !== last) { flush(); head = last = b._l; } else if (n === CHUNK) flush();
+      const a = b.a ? b.a.join(", ") : "";
+      rows += `<li><button class="row" type="button" data-i="${b._i}"><span class="t">${hl(b.t)}</span>${a ? `<span class="a">${hl(a)}</span>` : ""}</button></li>`;
+      h += est(b.t, a); n++;
     }
-    list.innerHTML = current.length ? `<ul>${html}</ul>` :
+    flush();
+    list.innerHTML = current.length ? `<div class="rows">${html}</div>` :
       (books.length ? `<div class="empty"><strong>${esc(D.t("emptyT"))}</strong><span>${esc(D.t("emptyP"))}</span></div>` :
         `<div class="empty"><strong>${esc(D.t("noData"))}</strong></div>`);
-    marks = [...list.querySelectorAll("li[data-l]")];
+    marks = [...list.querySelectorAll("ul[data-l]")];
     const present = new Set(marks.map(m => m.dataset.l));
     idx.querySelectorAll("a").forEach(a => a.setAttribute("aria-disabled", String(!present.has(a.dataset.l))));
     if (animate) { list.classList.add("enter"); setTimeout(() => list.classList.remove("enter"), 600); }
@@ -160,6 +182,8 @@
   function filter() {
     clr.hidden = !q.value;
     terms = norm(q.value).split(" ").filter(Boolean);
+    const long = terms.filter(t => t.length > 1).sort((a, b) => b.length - a.length);
+    hlRe = long.length ? new RegExp("(" + long.map(reEsc).join("|") + ")", "i") : null;
     current = terms.length ? books.filter(b => terms.every(t => b._s.includes(t))) : books;
     list.classList.add("live");
     render(false);
@@ -246,16 +270,27 @@
     [["https://openlibrary.org", true], ["https://covers.openlibrary.org", false], ["https://www.googleapis.com", true]]
       .forEach(([href, cors]) => { const l = document.createElement("link"); l.rel = "preconnect"; l.href = href; if (cors) l.crossOrigin = ""; document.head.appendChild(l); });
   }
-  const seen = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
+  const IO = "IntersectionObserver" in window;
+  const seen = IO ? new IntersectionObserver(entries => {
     for (const e of entries) {
       const b = books[+e.target.dataset.i];
       if (e.isIntersecting) { warm(); C.want(b); } else C.unwant(b);
     }
   }, { rootMargin: "150px 0px" }) : null;
+  // Zeilen nur in Abschnitten nahe der Sicht einzeln beobachten (statt aller 4000+ Zeilen)
+  const near = IO ? new IntersectionObserver(entries => {
+    for (const e of entries) {
+      for (const r of e.target.querySelectorAll(".row")) {
+        const b = books[+r.dataset.i];
+        if (!b.i) continue;
+        if (e.isIntersecting) seen.observe(r); else { seen.unobserve(r); C.unwant(b); }
+      }
+    }
+  }, { rootMargin: "300px 0px" }) : null;
   function observeRows() {
-    if (!seen || !C.enabled) return;
-    seen.disconnect();
-    list.querySelectorAll(".row").forEach(r => { if (books[+r.dataset.i].i) seen.observe(r); });
+    if (!IO || !C.enabled) return;
+    seen.disconnect(); near.disconnect();
+    list.querySelectorAll(".rows > ul").forEach(u => near.observe(u));
   }
   const prefetch = b => { if (b && b.i) { warm(); C.get(b); } };
   list.addEventListener("pointerdown", e => { const r = e.target.closest(".row"); if (r) prefetch(books[+r.dataset.i]); });
@@ -334,9 +369,9 @@
   function pref() { try { return JSON.parse(D.store.get("dsm-empf") || "null"); } catch (e) { return null; } }
   function setPref(p) { D.store.set("dsm-empf", JSON.stringify(p)); }
   const gLabel = g => g.startsWith("erw-") ? D.t("g_erw") + " · " + D.t("g_" + g) : D.t("g_" + g);
-  const gChip = g => g.startsWith("erw-") ? D.t("g_erwShort") + " · " + D.t("g_" + g) : D.t("g_" + g);
   function recsFor(g) { return ((R.gruppen && R.gruppen[g]) || []).map(r => ({ r, b: byKey.get(r.k) })).filter(x => x.b).slice(0, 4); }
   const recsEl = $("#recs");
+  const CHEV = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
   let shownRecs = [], loggedRecs = null;
   function renderRecs(animate) {
     const p = pref();
@@ -344,7 +379,7 @@
     if (!shownRecs.length) { recsEl.hidden = true; recsEl.innerHTML = ""; loggedRecs = null; return; }
     if (p.gruppe !== loggedRecs) { loggedRecs = p.gruppe; D.log("Empfehlung", `${gLabel(p.gruppe)}: ${shownRecs.length} Bücher`, { Bücher: shownRecs.map(x => x.b.t).join(" · ") }); }
     recsEl.innerHTML = `<div class="recs-card"${animate ? "" : ' style="animation:none"'}>
-      <div class="recs-head"><div><h2 id="recs-title">${esc(D.t("recsT"))}</h2><p>${esc(gLabel(p.gruppe))}</p></div>
+      <div class="recs-head"><h2 id="recs-title"><button type="button" class="recs-open" id="recs-open" aria-haspopup="dialog" title="${esc(D.t("arcOpen"))}"><span>${esc(D.t("recsT"))}${CHEV}</span><small>${esc(gLabel(p.gruppe))}</small></button></h2>
       <button type="button" class="icon-btn" id="recs-x" aria-label="${esc(D.t("recsClose"))}">${D.ICON_X}</button></div>
       <div class="recs-row">${shownRecs.map((x, n) => `<button type="button" class="rec" data-n="${n}"><div class="cover small"></div><span class="rt"><b>${esc(x.b.t)}</b><span>${esc((x.b.a || [])[0] || "")}</span></span></button>`).join("")}</div></div>`;
     recsEl.hidden = false;
@@ -363,23 +398,82 @@
       D.toast(D.t("recsOff"));
       return;
     }
+    if (e.target.closest("#recs-open")) { openArchiv(); return; }
     const r = e.target.closest(".rec");
     if (r) { const x = shownRecs[+r.dataset.n]; openDetail(x.b, x.r); }
   });
 
+  // Bisherige Empfehlungen: aktuelle Runde und Archiv, neueste zuerst, nur die gewählte Gruppe
+  let arc = null, arcItems = [], arcSeen = null;
+  function rounds(g) {
+    const all = [{ stand: R.stand, thema: R.thema, gruppen: R.gruppen, now: true }].concat(Array.isArray(R.archiv) ? R.archiv : []);
+    return all.map(x => ({ ...x, recs: ((x.gruppen && x.gruppen[g]) || []).map(r => ({ r, b: byKey.get(r.k) })) })).filter(x => x.recs.length);
+  }
+  function arcRender() {
+    const p = pref() || {}, g = p.gruppe;
+    arcItems = [];
+    const html = rounds(g).map((x, n) => {
+      const thema = x.thema && (x.thema[D.lang] || x.thema.de);
+      const items = x.recs.map(it => {
+        const i = arcItems.push(it) - 1, txt = it.r[D.lang] || it.r.de || "";
+        const inner = `<div class="cover small"></div><span class="rt"><b>${esc(it.b ? it.b.t : it.r.t)}</b><span>${esc(it.b ? (it.b.a || [])[0] || "" : it.r.a || "")}</span>${it.b ? "" : `<small>${esc(D.t("arcGone"))}</small>`}${txt ? `<p>${esc(txt)}</p>` : ""}</span>`;
+        return it.b ? `<button type="button" class="arc-item" data-i="${i}">${inner}</button>` : `<div class="arc-item gone" data-i="${i}">${inner}</div>`;
+      }).join("");
+      return `<li class="arc-round${x.now ? " now" : ""}" style="--i:${Math.min(n, 8)}"><div class="arc-hd"><time datetime="${esc(x.stand || "")}">${esc(D.df(x.stand))}</time>${x.now ? `<span class="arc-now">${esc(D.t("arcNow"))}</span>` : ""}${thema ? `<b>${esc(thema)}</b>` : ""}</div>${items}</li>`;
+    }).join("");
+    arc.querySelector(".pane").innerHTML = `<div><h3 id="arc-t">${esc(D.t("arcT"))}</h3><p class="sub">${esc(g ? gLabel(g) : "")}</p></div><ol class="arc">${html}</ol>`;
+    // Cover erst laden, wenn die Runde in Sichtweite kommt
+    if (arcSeen) arcSeen.disconnect();
+    arcSeen = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return;
+      arcSeen.unobserve(e.target);
+      const els = [...e.target.querySelectorAll(".arc-item")], its = els.map(el => arcItems[+el.dataset.i]);
+      const boxes = els.map(el => el.querySelector(".cover"));
+      its.forEach((it, n) => placeholder(boxes[n], it.b || { t: it.r.t }));
+      const have = its.map((it, n) => [it.b, boxes[n]]).filter(x => x[0]);
+      C.prime(have.map(x => x[0])).then(res => res.forEach((f, n) => { if (f && have[n][1].isConnected) showImg(have[n][1], f); }));
+    }), { root: arc, rootMargin: "200px 0px" });
+    arc.querySelectorAll(".arc-round").forEach(li => arcSeen.observe(li));
+  }
+  function openArchiv() {
+    if (!arc) {
+      arc = document.createElement("dialog");
+      arc.className = "sheet glass archiv";
+      arc.id = "archiv";
+      arc.setAttribute("aria-labelledby", "arc-t");
+      arc.innerHTML = `<div class="grab" aria-hidden="true"></div><button type="button" class="icon-btn close" data-close aria-label="${esc(D.t("close"))}">${D.ICON_X}</button><div class="pane"></div>`;
+      document.body.appendChild(arc);
+      D.wireSheet(arc);
+      arc.addEventListener("click", e => {
+        const el = e.target.closest("button.arc-item");
+        if (el) { const it = arcItems[+el.dataset.i]; openDetail(it.b, it.r); }
+      });
+    }
+    arcRender();
+    arc.scrollTop = 0;
+    D.openSheet(arc);
+  }
+
   // Einstellungen: Abschnitt Buchempfehlungen
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
   D.addSettingsSection(box => {
     const p = pref() || {};
+    const opt = (g, c) => `<button type="button" role="radio" data-g="${g}" aria-checked="${p.gruppe === g}"><i class="bar-c" style="background:var(${c})"></i><span><b>${esc(D.t("g_" + g))}</b><small>${esc(D.t("d_" + g))}</small></span>${CHECK}</button>`;
     const sec = document.createElement("section");
     sec.innerHTML = `<h4>${esc(D.t("sRecs"))}</h4>
       <label class="opt"><span><b>${esc(D.t("sRecsShow"))}</b><small>${esc(D.t("sRecsShowH"))}</small></span><input type="checkbox" role="switch" class="switch" id="s-recs"${p.want ? " checked" : ""}></label>
-      <div class="chips" role="radiogroup"${p.want ? "" : " hidden"}>${GROUPS.map(g => `<button type="button" role="radio" data-g="${g}" aria-checked="${p.gruppe === g}">${esc(gChip(g))}</button>`).join("")}</div>`;
+      <div class="gpick" role="radiogroup" aria-label="${esc(D.t("sRecsFor"))}"${p.want ? "" : " hidden"}>
+        <div class="gp-box">${opt("mittelstufe", "--gelb")}</div>
+        <div class="gp-box">${opt("oberstufe", "--orange")}</div>
+        <div><span class="gp-h">${esc(D.t("g_erw"))}</span>
+        <div class="gp-box">${opt("erw-roman", "--rot")}${opt("erw-sach", "--gruen")}${opt("erw-bio", "--blau")}</div></div>
+      </div>`;
     box.appendChild(sec);
     sec.querySelector("#s-recs").addEventListener("change", e => {
       setPref({ want: e.target.checked, gruppe: p.gruppe || "mittelstufe" });
       D.refreshSettings(); renderRecs(true);
     });
-    sec.querySelector(".chips").addEventListener("click", e => {
+    sec.querySelector(".gpick").addEventListener("click", e => {
       const b = e.target.closest("[data-g]"); if (!b) return;
       setPref({ want: true, gruppe: b.dataset.g });
       D.refreshSettings(); renderRecs(true);
@@ -439,6 +533,7 @@
     if (list.firstChild) { updateMeta(); if (!current.length) render(false); }
     if (open) { fill(open, openRec); const src = $("#d-src"); if (src.dataset.i18n) src.textContent = D.t(src.dataset.i18n); }
     if (!recsEl.hidden) renderRecs(false);
+    if (arc && arc.open) arcRender();
     if (ask && ask.open) askRender();
   });
 
