@@ -31,6 +31,8 @@
   --gb-top: rgba(255, 255, 255, .78); --gb-bot: rgba(255, 255, 255, .34);
   --shadow: 0 24px 60px rgba(40, 30, 28, .2);
   --ph-bg: #f1ede9;
+  /* Lade-Platzhalter: Balkenfarbe und wanderndes Lichtband */
+  --skel: #ece8e5; --skel-hi: rgba(255, 255, 255, .75);
   --mauve: #ba8ea7; --gelb: #ddd300; --orange: #db9f00; --blau: #b5c9d0; --rot: #a93a39; --gruen: #b3cea1;
   --font: "Fira Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   /* Genau drei Schriftgrößen auf allen Seiten: klein (Zusatzangaben), normal (Text), groß (Überschriften) */
@@ -51,6 +53,7 @@
     --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
     --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
     --shadow: 0 24px 60px rgba(0, 0, 0, .55);
+    --skel: #2c2a28; --skel-hi: rgba(255, 255, 255, .06);
     color-scheme: dark;
   }
 }
@@ -60,6 +63,7 @@
   --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
   --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
   --shadow: 0 24px 60px rgba(0, 0, 0, .55);
+  --skel: #2c2a28; --skel-hi: rgba(255, 255, 255, .06);
   color-scheme: dark;
 }
 /* Hoher Kontrast: reine Schwarz/Weiß-Flächen, kräftige Linien, deckende Fenster */
@@ -67,16 +71,19 @@
   --fg: #000000; --muted: #1f1f1f; --line: #6a6a6a; --surface: #ffffff; --bg: #ffffff; --focus: #000000;
   --glass: #ffffff; --glass-brd: #000000; --glass-edge: #000000; --glass-hi: transparent;
   --gb-top: #ffffff; --gb-bot: #ffffff; --veil: rgba(0, 0, 0, .55);
+  --skel: #d4d4d4; --skel-hi: transparent;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-contrast="high"]:not([data-theme="light"]) {
     --fg: #ffffff; --muted: #e6e6e6; --line: #a0a0a0; --surface: #000000; --bg: #000000; --focus: #ffffff;
     --glass: #000000; --glass-brd: #ffffff; --glass-edge: #ffffff; --gb-top: #000000; --gb-bot: #000000;
+    --skel: #4a4a4a;
   }
 }
 :root[data-contrast="high"][data-theme="dark"] {
   --fg: #ffffff; --muted: #e6e6e6; --line: #a0a0a0; --surface: #000000; --bg: #000000; --focus: #ffffff;
   --glass: #000000; --glass-brd: #ffffff; --glass-edge: #ffffff; --gb-top: #000000; --gb-bot: #000000;
+  --skel: #4a4a4a;
 }
 :root[data-font="large"] { font-size: 118.75%; }
 
@@ -194,7 +201,7 @@ main.books { min-height: calc(100dvh - var(--bar-h)); }
 
 
 /* Liste */
-.meta { padding-block: 14px 0; color: var(--muted); font-size: var(--fs-s); font-variant-numeric: tabular-nums; min-height: 1.5em; }
+.meta { display: grid; padding-block: 14px 0; color: var(--muted); font-size: var(--fs-s); font-variant-numeric: tabular-nums; min-height: 1.5em; }
 .list { padding-bottom: 40px; }
 
 .list ul { list-style: none; margin: 0; padding: 0; }
@@ -642,3 +649,47 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
 .find .full { position: absolute; left: 0; right: 0; top: 0; height: 44px; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
 .find input:disabled { opacity: .45; background: var(--surface); cursor: not-allowed; }
 .find li.drin { opacity: .45; }
+
+
+/* ---------- Lade-Platzhalter ----------
+   Stehen fest in index.html und sind sichtbar, solange books.js (groß) noch lädt; app.js ersetzt sie.
+   Erscheinen erst nach kurzer Verzögerung, damit sie bei schneller Verbindung nicht aufblitzen.
+   Ein Lichtband pro Block wandert per transform (wie beim Cover). */
+.skel { position: relative; overflow: hidden; animation: ld-in var(--t-slow) ease-out .15s both; }
+.skel::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(100deg, transparent 35%, var(--skel-hi) 50%, transparent 65%);
+  transform: translateX(-100%); animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes ld-in { from { opacity: 0; } }
+.skel-row { display: block; }
+.skel-row > span { display: block; height: .75em; border-radius: 4px; background: var(--skel); }
+.skel-row > span:first-child { font-size: var(--fs-m); margin-block: .3em; }
+.skel-row > span + span { font-size: var(--fs-s); margin-block: calc(2px + .375em) .375em; }
+/* Liste: gleiche Zeilenhöhe wie .row, Längen wechseln wie bei echten Titeln */
+.list .skel-row { padding-block: 12px; }
+.list .skel-row + .skel-row { border-top: 1px solid var(--line); }
+.list .skel-row > span:first-child { width: 58%; }
+.list .skel-row:nth-child(3n+2) > span:first-child { width: 76%; }
+.list .skel-row:nth-child(3n) > span:first-child { width: 44%; }
+.list .skel-row > span + span { width: 30%; }
+.list .skel-row:nth-child(4n+2) > span + span { width: 22%; }
+.list .skel-row:nth-child(4n+3) > span + span { width: 38%; }
+/* Ladehinweis über der Liste; nach 6 s Hinweis auf langsame Verbindung. Nur die aktuelle Sprache. */
+.meta .ld { grid-area: 1 / 1; }
+:root[lang="it"] .meta .ld[lang="de"], :root:not([lang="it"]) .meta .ld[lang="it"] { display: none; }
+.meta .ld:not(.slow) { animation: ld-out var(--t-slow) ease-out 6s both; }
+.meta .ld.slow { visibility: hidden; animation: ld-slow var(--t-slow) ease-out 6s both; }
+@keyframes ld-out { to { opacity: 0; visibility: hidden; } }
+@keyframes ld-slow { from { opacity: 0; } to { opacity: 1; visibility: visible; } }
+/* Empfehlungen: Platzhalter nur, wenn eine Gruppe gewählt ist (data-empf aus common.js) */
+:root[data-empf] .recs.laedt[hidden] { display: block !important; }
+.recs-card.skel { animation: ld-in var(--t-slow) ease-out .15s both; }
+.recs-card.skel .rec { cursor: default; pointer-events: none; }
+.skel .cover { background: var(--skel); box-shadow: none; }
+.recs-head > .skel-row { flex: 1; min-height: 34px; }
+.recs-head > .skel-row > span:first-child { width: 8rem; max-width: 60%; margin-top: .225em; }
+.recs-head > .skel-row > span + span { width: 12rem; max-width: 80%; }
+.rec .skel-row > span:first-child { width: 85%; }
+.rec .skel-row > span + span { width: 55%; }
+@media (min-width: 40rem) { .rec .skel-row { margin-top: 9px; } }

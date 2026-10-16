@@ -18,6 +18,8 @@
     if (prefs.contrast) root.dataset.contrast = "high"; else delete root.dataset.contrast;
   }
   applyPrefs();
+  // Empfehlungen gewählt? Dann zeigt index.html beim Laden einen Platzhalter an ihrer Stelle (app.js ersetzt ihn)
+  try { const e = JSON.parse(store.get("dsm-empf") || "null"); if (e && e.want && e.gruppe) root.dataset.empf = ""; } catch (e) { /* */ }
 
   // Sprache: gespeicherte Wahl, sonst Browsersprache
   const savedLang = store.get("dsm-lang");
