@@ -52,9 +52,12 @@
   }
   function apply() {
     root.lang = lang;
-    document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
-    document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
-    document.querySelectorAll("[data-i18n-label]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.i18nLabel)); });
+    // Unbekannte Schlüssel überspringen: info-panel.js läuft vor app.js (während books.js lädt),
+    // bis dahin bleibt der Text aus dem HTML stehen
+    const known = k => strings.de[k] != null;
+    document.querySelectorAll("[data-i18n]").forEach(el => { if (known(el.dataset.i18n)) el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => { if (known(el.dataset.i18nPh)) el.placeholder = t(el.dataset.i18nPh); });
+    document.querySelectorAll("[data-i18n-label]").forEach(el => { if (known(el.dataset.i18nLabel)) el.setAttribute("aria-label", t(el.dataset.i18nLabel)); });
     document.querySelectorAll(".seg [data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
     if (strings[lang].pageTitle) document.title = t("pageTitle");
     listeners.forEach(fn => fn(lang));

@@ -4,7 +4,7 @@
  */
 const { test, expect, AUS, daten } = require("./hilfen.js");
 
-const { E } = daten;
+const { E } = daten();
 const AN = JSON.stringify({ want: true, gruppe: "mittelstufe" });
 
 // books.js erst nach freigeben() ausliefern
@@ -26,10 +26,13 @@ test.describe("Laden bei langsamer Verbindung", () => {
     await expect(page.locator("main.books")).toHaveAttribute("aria-busy", "true");
     await expect(page.locator("#meta .ld:visible")).toHaveText("Bücherliste wird geladen …");
     await expect(page.locator("#recs")).toBeHidden();
-    // Suchleiste steht schon bereit
+    // Suchleiste steht schon bereit; Texte aus dem HTML bleiben stehen, obwohl info-panel.js schon lief
     await expect(page.locator("#q")).toBeVisible();
+    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titel, Autor oder ISBN suchen");
+    await expect(page.locator("h1")).toHaveText("Bibliothek");
 
     freigeben();
+    await page.waitForLoadState("load");
     await expect(page.locator("#list .row").first()).toBeVisible();
     await expect(page.locator("#list .skel")).toHaveCount(0);
     await expect(page.locator("main.books")).not.toHaveAttribute("aria-busy");
@@ -44,6 +47,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
     await page.evaluate(() => document.querySelectorAll("#meta .ld").forEach(el => el.getAnimations().forEach(a => { a.currentTime = 7000; })));
     await expect(page.locator("#meta .ld:visible")).toHaveText("Langsame Verbindung – die Liste lädt noch …");
     freigeben();
+    await page.waitForLoadState("load");
     await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
   });
 
@@ -54,6 +58,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
       await page.goto("index.html", { waitUntil: "commit" });
       await expect(page.locator("#meta .ld:visible")).toHaveText("Caricamento dell'elenco …");
       freigeben();
+      await page.waitForLoadState("load");
       await expect(page.locator("#meta")).toHaveText("In ordine alfabetico per titolo");
     });
   });
@@ -66,6 +71,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
       await expect(page.locator("#recs .skel")).toBeVisible();
       await expect(page.locator("#recs .rec")).toHaveCount(4);
       freigeben();
+      await page.waitForLoadState("load");
       await expect(page.locator("#recs .skel")).toHaveCount(0);
       await expect(page.locator("#recs .rec .rt b")).toHaveText(E.gruppen.mittelstufe.map(r => r.t));
     });
@@ -80,6 +86,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
     await expect(page.locator("#info .info-card")).toContainText("Jetzt geöffnet");
     await expect(page.locator("#list .skel")).toBeVisible();
     freigeben();
+    await page.waitForLoadState("load");
     await expect(page.locator("#list .row").first()).toBeVisible();
   });
 });
