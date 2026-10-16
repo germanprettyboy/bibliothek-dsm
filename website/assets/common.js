@@ -3,6 +3,7 @@
 (function () {
   "use strict";
   const root = document.documentElement;
+  const log = window.DSM_LOG || function () {}; // assets/protokoll.js
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* privat/gesperrt */ } },
@@ -81,6 +82,7 @@
   // ---------- Hinweis unten ----------
   let toastEl = null, toastT = 0;
   function toast(msg) {
+    log("Hinweis", msg);
     if (!toastEl) { toastEl = document.createElement("div"); toastEl.className = "toast"; toastEl.setAttribute("role", "status"); document.body.appendChild(toastEl); }
     toastEl.textContent = msg;
     requestAnimationFrame(() => toastEl.classList.add("show"));
@@ -137,12 +139,15 @@
     extras.forEach(fn => fn(box));
   }
   function openSettings() { syncSettings(); openSheet(sDlg); }
+  // Zahlenformat je Sprache nur einmal anlegen (Intl-Objekte sind teuer)
+  const NF = {};
+  const nf = n => (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE"))).format(n);
 
   window.DSM = {
-    store,
+    store, log,
     get lang() { return lang; },
     t,
-    nf: n => new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE").format(n),
+    nf,
     df: iso => {
       const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
       if (!m) return iso || "";

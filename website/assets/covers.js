@@ -16,6 +16,7 @@
  */
 (function (root) {
   "use strict";
+  const log = root.DSM_LOG || function () {}; // assets/protokoll.js
 
   const OL_API = "https://openlibrary.org/api/books?format=json&jscmd=viewapi&bibkeys=";
   const GB_API = "https://www.googleapis.com/books/v1/volumes?fields=items(volumeInfo/imageLinks)&q=isbn:";
@@ -157,19 +158,17 @@
   const paused = () => document.hidden;
 
   // Taktgeber, der nur läuft, solange Arbeit ansteht (statt Dauer-Intervallen, die das Gerät
-  // auch ohne Arbeit mehrmals pro Sekunde wecken). Abstand zwischen zwei Starts mindestens „tick“.
+  // auch ohne Arbeit mehrmals pro Sekunde wecken). Pause von „tick“ ms vor jedem Schritt.
   function worker(tick, hasWork, run) {
-    let t = 0, busy = false, last = 0;
+    let t = 0, busy = false;
     const loop = async () => {
       t = 0;
-      if (busy || paused() || !hasWork()) return; // versteckter Tab: weiter bei visibilitychange
-      busy = true; last = Date.now();
+      if (busy || !hasWork()) return;
+      if (paused()) { kick(); return; } // versteckter Tab: nur warten (Browser drosselt Timer dort ohnehin)
+      busy = true;
       try { await run(); } finally { busy = false; kick(); }
     };
-    const kick = () => {
-      if (t || busy || !hasWork()) return;
-      t = setTimeout(loop, last ? Math.max(0, tick - (Date.now() - last)) : tick);
-    };
+    const kick = () => { if (!t && !busy && hasWork()) t = setTimeout(loop, tick); };
     return kick;
   }
   const kickOl = worker(BG_TICK, () => queue.size > 0, async () => {
@@ -177,10 +176,12 @@
     batch.forEach(b => queue.delete(keyOf(b)));
     const m = await olLookup(batch);
     if (m) {
+      let hits = 0;
       for (const b of batch) {
         const h = m.get(keyOf(b));
-        if (h) imgQueue.push({ key: keyOf(b), hit: h, book: b }); else gbQueue.push(b);
+        if (h) { hits++; imgQueue.push({ key: keyOf(b), hit: h, book: b }); } else gbQueue.push(b);
       }
+      log("Cover", `Hintergrund: ${batch.length} Bücher in Sichtweite bei Open Library abgefragt, ${hits} mit Cover`);
       kickImg(); kickGb();
     }
   });
@@ -196,8 +197,6 @@
     else if (hit.by === "coverGB") store(key, null); // auch Google-Bild defekt: kein Cover (sonst Endlosschleife)
     else { gbQueue.push(book); kickGb(); } // Open-Library-Bild defekt: Google versuchen
   });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) { kickOl(); kickGb(); kickImg(); } });
-
   // ---------- Messung für die Admin-Seite ----------
   // Prüft alle Bücher mit ISBN gestaffelt. onProgress({done,total,ol,gb,none,err}); stop() bricht ab.
   function survey(books, onProgress) {
