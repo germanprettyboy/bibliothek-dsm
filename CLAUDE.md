@@ -170,6 +170,16 @@ Kein `dark:` in Klassen – Farben wechseln über die Tokens. shadcn-Komponenten
   `memo`. KEINE `startTransition` dafür – Transitions blieben bei laufenden Updates liegen (Tests hingen zufällig).
   Zeilen bleiben knappe CSS-Klassen (`.row`, `.t`, `.a`) statt Tailwind-Ketten. Ein Klick-Hörer für alle Zeilen.
 - covers.js: keine Dauer-Intervalle; Takt-Timer (setTimeout 300/350/600/1500 ms) nur, solange Arbeit ansteht.
+- Die Seite hat ~17.000 Elemente (Liste). Jede Änderung einer vererbten Eigenschaft an `<html>`/`<body>` trifft alle:
+  KEINE Übergänge auf `body` (color/background), nichts Vererbtes animieren. `.list { pointer-events: auto }` fängt
+  Radix' `body { pointer-events: none }` beim Öffnen jedes Fensters ab (29 → 4 ms, 4-fach gedrosselt).
+- Theme/Kontrast (`lib/darstellung.js`): Schalter sofort (React), Umfärben per `document.startViewTransition` als ein
+  Überblenden (`--t-base`); `.seg3` hat `view-transition-name: dsm-wahl` und gleitet live obenauf. Ohne API / reduzierte
+  Bewegung: sofort. Keine Klasse an `<html>` zum Abschalten von Übergängen (`:root.x *` = zweimal alles neu berechnen).
+- Sprache (`components/kopf.jsx`): Markierung zuerst (`.seg[data-an]`, `will-change: transform`), `setLang` erst nach dem
+  nächsten Frame (rAF + setTimeout). Sonner-Toaster mit festem `dir="ltr"` (sonst `getComputedStyle(html)` je Render).
+- Dauer: hinein `--t-base` 200 / `--t-slow` 250 ms, hinaus `--t-out` 160 ms. Messskripte zum Wiederholen nicht eingecheckt
+  (Muster: Playwright + CDP `setCPUThrottlingRate` 4, PerformanceObserver `long-animation-frame`).
 - Logos als WebP 360 px; dunkles Logo `loading="lazy"` (im hellen Modus nicht geladen). PNGs bleiben für die Anleitung.
 - Messen: 390 px, CPU 4-fach gedrosselt: DOMContentLoaded ≈0,5 s, Long Tasks ≈0,2 s (vorher 17,9 s / 9,4 s).
   Vergleich alt/React am 16.10.2026 (gleiche Maschine, headless, 4-fach): DOMContentLoaded 2,1 → 2,0 s, Liste komplett

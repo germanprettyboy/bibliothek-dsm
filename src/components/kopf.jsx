@@ -12,6 +12,17 @@ const ALT = "Deutsche Schule Mailand – Scuola Germanica di Milano";
 export function Kopf({ onEinstellungen }) {
   const { lang, t, setLang } = useSprache();
   const [da, setDa] = React.useState(false);
+  // Sprachwechsel in zwei Schritten: Markierung sofort (nur der Kopf zeichnet neu, .seg[data-an]), alle Texte erst
+  // nach dem nächsten Frame. So gleitet die Markierung schon, während die Seite neu berechnet wird.
+  const [ziel, setZiel] = React.useState(null);
+  const letzte = React.useRef(null);
+  const an = ziel ?? lang;
+  const waehlen = l => {
+    if (l === an) return;
+    setZiel(l);
+    letzte.current = l;
+    requestAnimationFrame(() => setTimeout(() => { setLang(letzte.current); setZiel(null); }, 0));
+  };
   // Nur das sichtbare Logo zählt (das der anderen Farbwelt ist ausgeblendet und lädt ggf. nie)
   const bild = e => { if (e.currentTarget.getClientRects().length) setDa(true); };
   return (
@@ -21,9 +32,9 @@ export function Kopf({ onEinstellungen }) {
         <img className="logo-d" src="assets/logo-dunkel.webp" width="360" height="200" loading="lazy" decoding="async" alt={ALT} onLoad={bild} onError={bild} />
       </a>
       <div className="flex items-center gap-2">
-        <div className="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" role="group" aria-label="Sprache · Lingua">
+        <div className="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" data-an={an} role="group" aria-label="Sprache · Lingua">
           {["de", "it"].map(l => (
-            <Toggle key={l} size="sm" lang={l} data-lang={l} pressed={lang === l} onPressedChange={() => setLang(l)} className="h-8">
+            <Toggle key={l} size="sm" lang={l} data-lang={l} pressed={an === l} onPressedChange={() => waehlen(l)} className="h-8">
               {l.toUpperCase()}
             </Toggle>
           ))}
