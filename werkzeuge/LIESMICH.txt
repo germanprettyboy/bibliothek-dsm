@@ -7,7 +7,7 @@ admin-verschluesseln.js
                     Verschlüsselt beide Dateien nach ../website/assets/admin.enc.js
 
 Nach jeder Änderung an quelle/ oder um das Passwort zu ändern (Node.js 18+):
-  node admin-verschluesseln.js "<Passwort>"
+  node admin-verschluesseln.js            (fragt das Passwort verdeckt ab, landet nicht in der Shell-History)
 Danach assets/admin.enc.js auf den Webspace laden. Wer das alte Passwort kennt, kommt mit der
 neuen Datei nicht mehr hinein; in offenen Browser-Sitzungen muss neu entsperrt werden.
 

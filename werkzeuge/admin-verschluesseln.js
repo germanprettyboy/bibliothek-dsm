@@ -13,10 +13,23 @@ const fs = require("fs");
 const path = require("path");
 const { webcrypto: crypto } = require("crypto");
 
+// Passwort verdeckt im Terminal abfragen (landet so nicht in der Shell-History)
+function frage(text) {
+  return new Promise(res => {
+    const rl = require("readline").createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    rl._writeToOutput = s => { if (s.startsWith(text)) process.stdout.write(s); };
+    rl.question(text, a => { rl.close(); process.stdout.write("\n"); res(a); });
+  });
+}
+
 (async () => {
-  const pw = process.argv[2];
+  let pw = process.argv[2];
   const out = process.argv[3] || path.join(__dirname, "..", "website", "assets", "admin.enc.js");
-  if (!pw) { console.error('Aufruf: node admin-verschluesseln.js "<Passwort>" [Zieldatei]'); process.exit(1); }
+  if (!pw && process.stdin.isTTY) {
+    pw = await frage("Passwort: ");
+    if (pw && (await frage("Passwort wiederholen: ")) !== pw) { console.error("Die Passwörter stimmen nicht überein."); process.exit(1); }
+  }
+  if (!pw) { console.error('Aufruf: node admin-verschluesseln.js "<Passwort>" [Zieldatei]  (ohne Passwort: verdeckte Abfrage im Terminal)'); process.exit(1); }
   const src = ["extract.js", "admin.js"].map(f => fs.readFileSync(path.join(__dirname, "quelle", f), "utf8")).join("\n;\n");
   const iter = 310000;
   const salt = crypto.getRandomValues(new Uint8Array(16));

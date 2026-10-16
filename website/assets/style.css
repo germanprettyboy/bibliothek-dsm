@@ -430,6 +430,9 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
 .gbtn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
 .textbtn { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 8px 4px; font-size: var(--fs-m); }
 .textbtn:hover { color: var(--fg); }
+/* Admin: Rückmeldung und Ordnerzeile unter „Veröffentlichen“ */
+.pub:not(:empty) { display: grid; gap: 10px; margin-top: 12px; }
+.pub .note .textbtn { font-size: inherit; padding: 4px 0; color: var(--fg); }
 
 /* ---------- Einstellungen ---------- */
 .pane { position: relative; padding: 18px max(20px, env(safe-area-inset-right, 0px)) calc(26px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); display: grid; gap: 22px; }
