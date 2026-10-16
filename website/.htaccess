@@ -1,0 +1,18 @@
+# Nur für Apache-Webspace; andere Server (z. B. GitHub Pages) ignorieren diese Datei.
+# Falls die Seite nach dem Hochladen „500 Internal Server Error“ zeigt: diese Datei löschen.
+
+# Komprimierung: books.js schrumpft von gut 700 KB auf unter 200 KB
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript text/javascript image/svg+xml
+</IfModule>
+
+# Zwischenspeicher: Seiten, Skripte und Daten bei jedem Besuch kurz prüfen (neue Bücherliste sofort sichtbar),
+# Schriften und Bilder ändern sich praktisch nie.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css|txt)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(woff2|webp|png)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>

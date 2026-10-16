@@ -16,6 +16,10 @@ Inhalt
 Veröffentlichen
   Den ganzen Ordner auf den Webspace laden (z. B. DSM-Server oder GitHub Pages).
   Kein Server-Programm nötig. Funktioniert auch lokal per Doppelklick auf index.html.
+  Die versteckte Datei .htaccess mit hochladen (im FTP-Programm ggf. „versteckte Dateien
+  anzeigen“ einschalten): Auf Apache-Servern komprimiert sie die Bücherliste, die Seite lädt
+  dadurch deutlich schneller. Zeigt die Seite danach „500 Internal Server Error“, die
+  .htaccess auf dem Server wieder löschen – die Seite funktioniert auch ohne sie.
 
 Verwaltung entsperren
   admin.html fragt nach dem Passwort. Die Verwaltungslogik liegt nur verschlüsselt vor
