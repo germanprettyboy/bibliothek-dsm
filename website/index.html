@@ -41,7 +41,18 @@
 
 <section class="wrap info" id="info" hidden></section>
 
-<section class="wrap recs" id="recs" hidden aria-labelledby="recs-title"></section>
+<section class="wrap recs laedt" id="recs" hidden aria-labelledby="recs-title">
+  <!-- Platzhalter während des Ladens, nur wenn Empfehlungen gewählt sind (data-empf, common.js); app.js ersetzt ihn -->
+  <div class="recs-card skel" aria-hidden="true">
+    <div class="recs-head"><div class="skel-row"><span></span><span></span></div></div>
+    <div class="recs-row">
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+    </div>
+  </div>
+</section>
 
 <div id="bar-anchor"></div>
 <div class="bar" id="bar">
@@ -60,9 +71,27 @@
 
 <div class="floater" id="floater" aria-hidden="true"></div>
 
-<main class="wrap books">
-  <p class="meta ui" id="meta" aria-live="polite"></p>
-  <div class="list" id="list"></div>
+<main class="wrap books" aria-busy="true">
+  <p class="meta ui" id="meta" aria-live="polite"><span class="ld" lang="de">Bücherliste wird geladen …</span><span class="ld" lang="it">Caricamento dell'elenco …</span><span class="ld slow" lang="de">Langsame Verbindung – die Liste lädt noch …</span><span class="ld slow" lang="it">Connessione lenta – l'elenco si sta ancora caricando …</span></p>
+  <div class="list" id="list">
+    <!-- Platzhalter bis books.js da ist; app.js ersetzt ihn durch die Liste -->
+    <div class="skel" aria-hidden="true">
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+    </div>
+  </div>
 </main>
 
 <footer class="foot">
@@ -87,12 +116,13 @@
   </div>
 </dialog>
 
+<!-- Öffnungszeiten zuerst: klein, erscheinen sofort, während books.js (groß) noch lädt -->
+<script src="info.js"></script>
+<script src="assets/info-panel.js"></script>
 <script src="books.js"></script>
 <script src="assets/kategorien-it.js"></script>
 <script src="empfehlungen.js"></script>
-<script src="info.js"></script>
 <script src="assets/covers.js"></script>
 <script src="assets/app.js"></script>
-<script src="assets/info-panel.js"></script>
 </body>
 </html>

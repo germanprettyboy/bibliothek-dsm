@@ -323,12 +323,16 @@
     box.innerHTML = `<div class="ph"><b></b><div class="rule"></div></div>`;
     box.querySelector("b").textContent = b.t;
   }
+  // Lichtband (.loading) läuft, bis das Bild wirklich geladen ist – bei langsamer Verbindung
+  // dauert das nach der Abfrage noch. Scheitert das Bild, bleibt der Platzhalter.
   function showImg(box, found) {
     const img = new Image();
     img.alt = ""; img.referrerPolicy = "no-referrer"; img.src = found.src;
     box.appendChild(img);
-    const show = () => requestAnimationFrame(() => img.classList.add("in"));
-    if (img.complete) show(); else img.onload = show;
+    const show = () => { box.classList.remove("loading"); requestAnimationFrame(() => img.classList.add("in")); };
+    const fail = () => { box.classList.remove("loading"); img.remove(); };
+    if (img.complete) (img.naturalWidth ? show : fail)();
+    else { img.onload = show; img.onerror = fail; }
   }
   async function cover(b) {
     const my = ++token;
@@ -339,7 +343,7 @@
     const t0 = performance.now();
     const found = b.i ? await C.get(b) : null;
     if (my !== token) return;
-    box.classList.remove("loading");
+    if (!found) box.classList.remove("loading");
     D.log("Cover", `„${b.t}“: ` + (!b.i ? "keine ISBN, Platzhalter" : found ? `${D.t(found.by).replace(/^[^:]*:\s*/, "")} · ${Math.round(performance.now() - t0)} ms` : "kein Cover gefunden, Platzhalter"));
     if (!found) return;
     showImg(box, found);
@@ -374,6 +378,7 @@
   const CHEV = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
   let shownRecs = [], loggedRecs = null;
   function renderRecs(animate) {
+    recsEl.classList.remove("laedt"); // Lade-Platzhalter aus index.html
     const p = pref();
     shownRecs = p && p.want && p.gruppe ? recsFor(p.gruppe) : [];
     if (!shownRecs.length) { recsEl.hidden = true; recsEl.innerHTML = ""; loggedRecs = null; return; }
@@ -384,8 +389,11 @@
       <div class="recs-row">${shownRecs.map((x, n) => `<button type="button" class="rec" data-n="${n}"><div class="cover small"></div><span class="rt"><b>${esc(x.b.t)}</b><span>${esc((x.b.a || [])[0] || "")}</span></span></button>`).join("")}</div></div>`;
     recsEl.hidden = false;
     const boxes = [...recsEl.querySelectorAll(".rec .cover")];
-    shownRecs.forEach((x, n) => placeholder(boxes[n], x.b));
-    C.prime(shownRecs.map(x => x.b)).then(res => res.forEach((f, n) => { if (f && boxes[n].isConnected) showImg(boxes[n], f); }));
+    shownRecs.forEach((x, n) => { placeholder(boxes[n], x.b); boxes[n].classList.toggle("loading", !!x.b.i); });
+    C.prime(shownRecs.map(x => x.b)).then(res => res.forEach((f, n) => {
+      if (!boxes[n].isConnected) return;
+      if (f) showImg(boxes[n], f); else boxes[n].classList.remove("loading");
+    }));
   }
   recsEl.addEventListener("click", e => {
     if (e.target.closest("#recs-x")) {
@@ -539,6 +547,7 @@
 
   current = books;
   render(true);
+  list.closest("main").removeAttribute("aria-busy");
   renderRecs(false);
   if (!pref() && books.length) setTimeout(startAsk, 450);
 })();

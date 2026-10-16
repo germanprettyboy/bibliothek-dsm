@@ -84,6 +84,9 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - Italienischer Text bleibt Anthrazit (kein Rot für Italienisch auf der Website).
 - Keine Farbstreifen-Leiste unter dem Titel. Keine Datenschutzhinweise auf der Admin-Seite.
 - Fenster (Detail, Einstellungen, Fragen): Glas-Effekt, Hintergrund unscharf + leicht abgedunkelt.
+- Langsame Verbindung: Lade-Platzhalter (Balken mit Lichtband, `.skel` in index.html) für Liste und – wenn gewählt
+  (`data-empf` aus common.js) – Empfehlungen, bis books.js (≈700 KB) da ist; nach 6 s Hinweis „Langsame Verbindung“.
+  info.js/info-panel.js laden VOR books.js (Öffnungszeiten sofort). Cover: Lichtband bis das Bild wirklich geladen ist.
 - Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ → Mittelstufe / Oberstufe /
   Erwachsenenliteratur → (Erw.) Romane / Sachbücher / Biografien & Geschichte. Wahl in localStorage `dsm-empf`.
   In den Einstellungen dieselbe Wahl als Liste: Blöcke Mittelstufe / Oberstufe / Erwachsenenliteratur mit Abstand
@@ -139,7 +142,7 @@ Nach jeder Änderung `npm run test:alle`. Tests in `tests/`:
 - `unit/daten.test.js` – Format von books.js, empfehlungen.js (Schlüssel im Bestand), info.js, Kategorien-Übersetzung.
 - `unit/regeln.test.js` – harte Regeln am Quelltext (keine externen Hosts außer OL/Google, keine Google Fonts, Design-Verbote, Klartext nicht in website/).
 - `unit/echte-db.test.js` – nur wenn `daten/*.winbook` da ist: books.js aktuell, keine Leser-Namen. Meldungen nennen nur Anzahlen.
-- `e2e/*.spec.js` – Liste/Suche/A–Z/Floater (390/768/1280 px), Detail+Cover (APIs gemockt, echtes Netz gesperrt), DE/IT,
+- `e2e/*.spec.js` – Liste/Suche/A–Z/Floater (390/768/1280 px), Ladezustand (books.js zurückgehalten), Detail+Cover (APIs gemockt, echtes Netz gesperrt), DE/IT,
   Einstellungen, Fragen-Ablauf, Empfehlungen, Info-Karte (feste Uhrzeit), Admin. Admin-Tests ersetzen `admin.enc.js` per Route durch
   eine mit „test-passwort“ verschlüsselte Fassung der aktuellen Quellen – das echte Passwort wird nicht gebraucht.
   Admin-Import muss byte-gleich zu `npm run books` sein (synthetische DB immer, Original-DB wenn vorhanden).
