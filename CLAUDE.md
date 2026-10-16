@@ -48,7 +48,7 @@ npm run serve                                 # http://localhost:8765
 npm run dev                                   # dasselbe mit Live-Reload (browser-sync über npx)
 node werkzeuge/admin-verschluesseln.js "<Passwort>"   # nach JEDER Änderung an werkzeuge/quelle/*
 npm test                                      # Unit-Tests (node:test, ~5 s)
-npm run test:e2e                              # Browser-Tests (Playwright/Chromium, eigener Server auf :8766, ~1 min)
+npm run test:e2e                              # Browser-Tests (Playwright/Chromium, eigener Server, Port je Checkout, ~1 min)
 npm run test:alle                             # beides
 npm run branches                              # was ist noch nicht in main?
 npm run integrieren -- <branch>               # fertigen Branch in main mergen (siehe unten)
@@ -67,8 +67,10 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - **Keine ISBN-Ergänzung.** Cover nur über vorhandene ISBN; ohne ISBN → gestalteter Platzhalter.
 - Liste bleibt reiner Text (Titel + Autor). Cover nur in Detailansicht und Empfehlungen.
 - Keine Buchanzahl und kein Stand auf der öffentlichen Seite (nur im Admin).
-- Platzhalter-Cover ohne Autor (Autor steht schon daneben). Empfehlungen auf dem Handy: Band über die
-  ganze Breite mit kleinen Karten (Cover links, Text rechts) zum Wischen; ab 40rem vier große Cover.
+- Platzhalter-Cover ohne Autor (Autor steht schon daneben). Empfehlungen auf dem Handy: senkrechte
+  Liste (kleines Cover links, Titel/Autor rechts, Trennlinien), KEIN Wisch-Band/Karussell; ab 40rem vier große Cover.
+- Kopf der Empfehlungs-Karte (Titel + Pfeil) öffnet Fenster „Bisherige Empfehlungen“: Zeitleiste neueste Runde
+  zuerst, je Datum, „Aktuell“, Thema, darunter die Bücher der gewählten Gruppe mit Text; Klick → Detail darüber.
 - Suchleiste klebt deckend oben; beim Suchen springt die Seite so, dass die Treffer direkt unter der
   Leiste beginnen (`main.books` mindestens bildschirmhoch).
 - Empfehlungs-Editor: Gruppe voll (4) → Suchfeld gesperrt mit Hinweis mittig; Bücher schon in der
@@ -84,6 +86,8 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - Fenster (Detail, Einstellungen, Fragen): Glas-Effekt, Hintergrund unscharf + leicht abgedunkelt.
 - Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ → Mittelstufe / Oberstufe /
   Erwachsenenliteratur → (Erw.) Romane / Sachbücher / Biografien & Geschichte. Wahl in localStorage `dsm-empf`.
+  In den Einstellungen dieselbe Wahl als Liste: Blöcke Mittelstufe / Oberstufe / Erwachsenenliteratur mit Abstand
+  dazwischen, die drei Erwachsenen-Bereiche untereinander in einem Block.
 - Admin-Sperre nur „schülersicher“, kein Server: PBKDF2-SHA-256 (310.000) + AES-GCM 256, Logik nur verschlüsselt.
 
 ## Design
@@ -110,7 +114,9 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
 
 - `books.js`: `{stand, anzahl, abdeckung?, verlauf?, buecher:[{t,u?,a?[],v?,j?,i?[],k?,s?[]}]}`
   (i = ISBN-13, geprüft; s = Standorte). `abdeckung`/`verlauf` = Cover-Abdeckung aus admin.html.
-- `empfehlungen.js`: `{stand, gruppen:{mittelstufe|oberstufe|erw-roman|erw-sach|erw-bio:[{k,t,a,de,it}]}}`,
+- `empfehlungen.js`: `{stand, thema?:{de,it}, gruppen:{mittelstufe|oberstufe|erw-roman|erw-sach|erw-bio:[{k,t,a,de,it}]},
+  archiv?:[{stand, thema?, gruppen}]}` (archiv neueste zuerst, max. 40). Admin: andere Bücher als veröffentlicht =
+  neue Runde → veröffentlichte Runde wandert vorne ins archiv, stand = heute; nur Texte/Thema geändert → stand bleibt.
   `k` = norm(Titel) + "|" + norm(Erstautor) (norm: klein, ohne Akzente, ß→ss, nur a–z0–9 und Leerzeichen).
 - `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).

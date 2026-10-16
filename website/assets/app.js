@@ -33,6 +33,8 @@
       askT1: "Buchempfehlungen", askP1: "Möchten Sie Buchempfehlungen sehen?", yes: "Ja, gerne", no: "Nein, danke",
       askT2: "Für wen?", askP2: "Wählen Sie die passende Stufe.", askT3: "Welcher Bereich?", askP3: "Erwachsenenliteratur in drei Kernbereichen.", back: "Zurück",
       sRecs: "Buchempfehlungen", sRecsShow: "Empfehlungen anzeigen", sRecsShowH: "Drei bis vier ausgewählte Bücher über der Liste.",
+      sRecsFor: "Empfehlungen für",
+      arcT: "Bisherige Empfehlungen", arcOpen: "Alle bisherigen Empfehlungen", arcNow: "Aktuell", arcGone: "Nicht mehr im Bestand",
     },
     it: {
       pageTitle: "Biblioteca – Scuola Germanica di Milano",
@@ -63,6 +65,8 @@
       askT1: "Consigli di lettura", askP1: "Desidera vedere dei consigli di lettura?", yes: "Sì, volentieri", no: "No, grazie",
       askT2: "Per chi?", askP2: "Scelga il livello adatto.", askT3: "Quale area?", askP3: "Letteratura per adulti in tre aree principali.", back: "Indietro",
       sRecs: "Consigli di lettura", sRecsShow: "Mostra i consigli", sRecsShowH: "Da tre a quattro libri scelti sopra l'elenco.",
+      sRecsFor: "Consigli per",
+      arcT: "Consigli precedenti", arcOpen: "Tutti i consigli precedenti", arcNow: "Attuali", arcGone: "Non più in catalogo",
     },
   });
 
@@ -365,9 +369,9 @@
   function pref() { try { return JSON.parse(D.store.get("dsm-empf") || "null"); } catch (e) { return null; } }
   function setPref(p) { D.store.set("dsm-empf", JSON.stringify(p)); }
   const gLabel = g => g.startsWith("erw-") ? D.t("g_erw") + " · " + D.t("g_" + g) : D.t("g_" + g);
-  const gChip = g => g.startsWith("erw-") ? D.t("g_erwShort") + " · " + D.t("g_" + g) : D.t("g_" + g);
   function recsFor(g) { return ((R.gruppen && R.gruppen[g]) || []).map(r => ({ r, b: byKey.get(r.k) })).filter(x => x.b).slice(0, 4); }
   const recsEl = $("#recs");
+  const CHEV = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg>';
   let shownRecs = [], loggedRecs = null;
   function renderRecs(animate) {
     const p = pref();
@@ -375,7 +379,7 @@
     if (!shownRecs.length) { recsEl.hidden = true; recsEl.innerHTML = ""; loggedRecs = null; return; }
     if (p.gruppe !== loggedRecs) { loggedRecs = p.gruppe; D.log("Empfehlung", `${gLabel(p.gruppe)}: ${shownRecs.length} Bücher`, { Bücher: shownRecs.map(x => x.b.t).join(" · ") }); }
     recsEl.innerHTML = `<div class="recs-card"${animate ? "" : ' style="animation:none"'}>
-      <div class="recs-head"><div><h2 id="recs-title">${esc(D.t("recsT"))}</h2><p>${esc(gLabel(p.gruppe))}</p></div>
+      <div class="recs-head"><h2 id="recs-title"><button type="button" class="recs-open" id="recs-open" aria-haspopup="dialog" title="${esc(D.t("arcOpen"))}"><span>${esc(D.t("recsT"))}${CHEV}</span><small>${esc(gLabel(p.gruppe))}</small></button></h2>
       <button type="button" class="icon-btn" id="recs-x" aria-label="${esc(D.t("recsClose"))}">${D.ICON_X}</button></div>
       <div class="recs-row">${shownRecs.map((x, n) => `<button type="button" class="rec" data-n="${n}"><div class="cover small"></div><span class="rt"><b>${esc(x.b.t)}</b><span>${esc((x.b.a || [])[0] || "")}</span></span></button>`).join("")}</div></div>`;
     recsEl.hidden = false;
@@ -394,23 +398,82 @@
       D.toast(D.t("recsOff"));
       return;
     }
+    if (e.target.closest("#recs-open")) { openArchiv(); return; }
     const r = e.target.closest(".rec");
     if (r) { const x = shownRecs[+r.dataset.n]; openDetail(x.b, x.r); }
   });
 
+  // Bisherige Empfehlungen: aktuelle Runde und Archiv, neueste zuerst, nur die gewählte Gruppe
+  let arc = null, arcItems = [], arcSeen = null;
+  function rounds(g) {
+    const all = [{ stand: R.stand, thema: R.thema, gruppen: R.gruppen, now: true }].concat(Array.isArray(R.archiv) ? R.archiv : []);
+    return all.map(x => ({ ...x, recs: ((x.gruppen && x.gruppen[g]) || []).map(r => ({ r, b: byKey.get(r.k) })) })).filter(x => x.recs.length);
+  }
+  function arcRender() {
+    const p = pref() || {}, g = p.gruppe;
+    arcItems = [];
+    const html = rounds(g).map((x, n) => {
+      const thema = x.thema && (x.thema[D.lang] || x.thema.de);
+      const items = x.recs.map(it => {
+        const i = arcItems.push(it) - 1, txt = it.r[D.lang] || it.r.de || "";
+        const inner = `<div class="cover small"></div><span class="rt"><b>${esc(it.b ? it.b.t : it.r.t)}</b><span>${esc(it.b ? (it.b.a || [])[0] || "" : it.r.a || "")}</span>${it.b ? "" : `<small>${esc(D.t("arcGone"))}</small>`}${txt ? `<p>${esc(txt)}</p>` : ""}</span>`;
+        return it.b ? `<button type="button" class="arc-item" data-i="${i}">${inner}</button>` : `<div class="arc-item gone" data-i="${i}">${inner}</div>`;
+      }).join("");
+      return `<li class="arc-round${x.now ? " now" : ""}" style="--i:${Math.min(n, 8)}"><div class="arc-hd"><time datetime="${esc(x.stand || "")}">${esc(D.df(x.stand))}</time>${x.now ? `<span class="arc-now">${esc(D.t("arcNow"))}</span>` : ""}${thema ? `<b>${esc(thema)}</b>` : ""}</div>${items}</li>`;
+    }).join("");
+    arc.querySelector(".pane").innerHTML = `<div><h3 id="arc-t">${esc(D.t("arcT"))}</h3><p class="sub">${esc(g ? gLabel(g) : "")}</p></div><ol class="arc">${html}</ol>`;
+    // Cover erst laden, wenn die Runde in Sichtweite kommt
+    if (arcSeen) arcSeen.disconnect();
+    arcSeen = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return;
+      arcSeen.unobserve(e.target);
+      const els = [...e.target.querySelectorAll(".arc-item")], its = els.map(el => arcItems[+el.dataset.i]);
+      const boxes = els.map(el => el.querySelector(".cover"));
+      its.forEach((it, n) => placeholder(boxes[n], it.b || { t: it.r.t }));
+      const have = its.map((it, n) => [it.b, boxes[n]]).filter(x => x[0]);
+      C.prime(have.map(x => x[0])).then(res => res.forEach((f, n) => { if (f && have[n][1].isConnected) showImg(have[n][1], f); }));
+    }), { root: arc, rootMargin: "200px 0px" });
+    arc.querySelectorAll(".arc-round").forEach(li => arcSeen.observe(li));
+  }
+  function openArchiv() {
+    if (!arc) {
+      arc = document.createElement("dialog");
+      arc.className = "sheet glass archiv";
+      arc.id = "archiv";
+      arc.setAttribute("aria-labelledby", "arc-t");
+      arc.innerHTML = `<div class="grab" aria-hidden="true"></div><button type="button" class="icon-btn close" data-close aria-label="${esc(D.t("close"))}">${D.ICON_X}</button><div class="pane"></div>`;
+      document.body.appendChild(arc);
+      D.wireSheet(arc);
+      arc.addEventListener("click", e => {
+        const el = e.target.closest("button.arc-item");
+        if (el) { const it = arcItems[+el.dataset.i]; openDetail(it.b, it.r); }
+      });
+    }
+    arcRender();
+    arc.scrollTop = 0;
+    D.openSheet(arc);
+  }
+
   // Einstellungen: Abschnitt Buchempfehlungen
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
   D.addSettingsSection(box => {
     const p = pref() || {};
+    const opt = (g, c) => `<button type="button" role="radio" data-g="${g}" aria-checked="${p.gruppe === g}"><i class="bar-c" style="background:var(${c})"></i><span><b>${esc(D.t("g_" + g))}</b><small>${esc(D.t("d_" + g))}</small></span>${CHECK}</button>`;
     const sec = document.createElement("section");
     sec.innerHTML = `<h4>${esc(D.t("sRecs"))}</h4>
       <label class="opt"><span><b>${esc(D.t("sRecsShow"))}</b><small>${esc(D.t("sRecsShowH"))}</small></span><input type="checkbox" role="switch" class="switch" id="s-recs"${p.want ? " checked" : ""}></label>
-      <div class="chips" role="radiogroup"${p.want ? "" : " hidden"}>${GROUPS.map(g => `<button type="button" role="radio" data-g="${g}" aria-checked="${p.gruppe === g}">${esc(gChip(g))}</button>`).join("")}</div>`;
+      <div class="gpick" role="radiogroup" aria-label="${esc(D.t("sRecsFor"))}"${p.want ? "" : " hidden"}>
+        <div class="gp-box">${opt("mittelstufe", "--gelb")}</div>
+        <div class="gp-box">${opt("oberstufe", "--orange")}</div>
+        <div><span class="gp-h">${esc(D.t("g_erw"))}</span>
+        <div class="gp-box">${opt("erw-roman", "--rot")}${opt("erw-sach", "--gruen")}${opt("erw-bio", "--blau")}</div></div>
+      </div>`;
     box.appendChild(sec);
     sec.querySelector("#s-recs").addEventListener("change", e => {
       setPref({ want: e.target.checked, gruppe: p.gruppe || "mittelstufe" });
       D.refreshSettings(); renderRecs(true);
     });
-    sec.querySelector(".chips").addEventListener("click", e => {
+    sec.querySelector(".gpick").addEventListener("click", e => {
       const b = e.target.closest("[data-g]"); if (!b) return;
       setPref({ want: true, gruppe: b.dataset.g });
       D.refreshSettings(); renderRecs(true);
@@ -470,6 +533,7 @@
     if (list.firstChild) { updateMeta(); if (!current.length) render(false); }
     if (open) { fill(open, openRec); const src = $("#d-src"); if (src.dataset.i18n) src.textContent = D.t(src.dataset.i18n); }
     if (!recsEl.hidden) renderRecs(false);
+    if (arc && arc.open) arcRender();
     if (ask && ask.open) askRender();
   });
 

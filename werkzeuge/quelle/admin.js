@@ -57,6 +57,7 @@
       tabBestand: "Bestand", tabEmpf: "Empfehlungen", lockAgain: "Sperren",
       eT: "Buchempfehlungen", eP: "Pro Gruppe bis zu vier Bücher aus dem Bestand, jeweils mit einem kurzen Text auf Deutsch und Italienisch.",
       eFind: "Buch aus dem Bestand suchen", eAdd: "Hinzufügen", eFull: "Gruppe voll (4)", eIn: "Schon dabei",
+      eThemaDe: "Thema dieser Runde (Deutsch, optional)", eThemaIt: "Thema dieser Runde (Italienisch, optional)",
       eTeaserDe: "Text Deutsch", eTeaserIt: "Text Italienisch", eUp: "Nach oben", eDown: "Nach unten", eRemove: "Entfernen",
       eMissing: "Nicht im aktuellen Bestand – wird nicht angezeigt.", eEmpty: "Noch keine Bücher in dieser Gruppe. Über die Suche hinzufügen.",
       eHow: "Die heruntergeladene Datei empfehlungen.js im Website-Ordner ersetzen (neben index.html).",
@@ -134,6 +135,7 @@
       tabBestand: "Catalogo", tabEmpf: "Consigli", lockAgain: "Blocca",
       eT: "Consigli di lettura", eP: "Per ogni gruppo fino a quattro libri del catalogo, ciascuno con un breve testo in tedesco e in italiano.",
       eFind: "Cerca un libro nel catalogo", eAdd: "Aggiungi", eFull: "Gruppo completo (4)", eIn: "Già presente",
+      eThemaDe: "Tema di questa selezione (tedesco, facoltativo)", eThemaIt: "Tema di questa selezione (italiano, facoltativo)",
       eTeaserDe: "Testo tedesco", eTeaserIt: "Testo italiano", eUp: "Su", eDown: "Giù", eRemove: "Rimuovi",
       eMissing: "Non presente nel catalogo attuale – non verrà mostrato.", eEmpty: "Nessun libro in questo gruppo. Aggiungilo con la ricerca.",
       eHow: "Sostituisci il file empfehlungen.js nella cartella del sito (accanto a index.html) con quello scaricato.",
@@ -349,6 +351,7 @@
   try { draft = JSON.parse(localStorage.getItem(DRAFT) || "null"); } catch (e) { draft = null; }
   if (!draft || !draft.gruppen) draft = clone(window.DSM_EMPFEHLUNGEN || { gruppen: {} });
   GROUPS.forEach(g => { if (!Array.isArray(draft.gruppen[g])) draft.gruppen[g] = []; });
+  if (!draft.thema) draft.thema = { de: "", it: "" };
   let eGroup = "mittelstufe", resetArmed = false;
   const catalog = () => (result ? result.books : (cur && cur.buecher) || []);
   const ICON = {
@@ -370,6 +373,7 @@
     $("#e-state").textContent = D.t("eSaved", { n: D.nf(n), g: D.nf(g) });
   }
   function renderEditor() {
+    $("#e-thema").querySelectorAll("input").forEach(i => { i.value = draft.thema[i.dataset.f] || ""; });
     $("#e-groups").innerHTML = GROUPS.map(g => `<button type="button" role="radio" data-g="${g}" aria-checked="${g === eGroup}">${escE(D.t("g_" + g))} (${draft.gruppen[g].length})</button>`).join("");
     const keys = new Set(catalog().map(keyB));
     const list = draft.gruppen[eGroup];
@@ -428,9 +432,23 @@
     draft.gruppen[eGroup][+ta.closest(".rec-ed").dataset.n][ta.dataset.f] = ta.value;
     saveDraft();
   });
+  $("#e-thema").addEventListener("input", e => { const i = e.target.closest("input"); if (i) { draft.thema[i.dataset.f] = i.value; saveDraft(); } });
+  // Neue Runde (andere Bücher als veröffentlicht): die veröffentlichte Runde wandert vorne ins Archiv.
+  // Nur Texte oder Thema geändert: gleiche Runde, Datum und Archiv bleiben.
   function recsOut() {
-    const out = { stand: new Date().toLocaleDateString("sv-SE"), gruppen: {} };
-    GROUPS.forEach(g => { out.gruppen[g] = draft.gruppen[g].map(r => ({ k: r.k, t: r.t, a: r.a, de: (r.de || "").trim(), it: (r.it || "").trim() })); });
+    const pub = window.DSM_EMPFEHLUNGEN || { gruppen: {} };
+    const gruppen = {};
+    GROUPS.forEach(g => { gruppen[g] = draft.gruppen[g].map(r => ({ k: r.k, t: r.t, a: r.a, de: (r.de || "").trim(), it: (r.it || "").trim() })); });
+    const sig = gr => GROUPS.map(g => ((gr && gr[g]) || []).map(r => r.k).join(",")).join(";");
+    const pubHas = !!pub.stand && GROUPS.some(g => ((pub.gruppen && pub.gruppen[g]) || []).length);
+    const neu = !pubHas || sig(pub.gruppen) !== sig(gruppen);
+    const archiv = Array.isArray(pub.archiv) ? pub.archiv.slice() : [];
+    if (neu && pubHas) archiv.unshift(Object.assign({ stand: pub.stand }, pub.thema ? { thema: pub.thema } : {}, { gruppen: pub.gruppen }));
+    const out = { stand: neu ? new Date().toLocaleDateString("sv-SE") : pub.stand };
+    const thema = { de: (draft.thema.de || "").trim(), it: (draft.thema.it || "").trim() };
+    if (thema.de || thema.it) out.thema = thema;
+    out.gruppen = gruppen;
+    if (archiv.length) out.archiv = archiv.slice(0, 40);
     return out;
   }
   $("#e-dl").addEventListener("click", () => {
@@ -449,6 +467,7 @@
     try { localStorage.removeItem(DRAFT); } catch (e) { /* */ }
     draft = clone(window.DSM_EMPFEHLUNGEN || { gruppen: {} });
     GROUPS.forEach(g => { if (!Array.isArray(draft.gruppen[g])) draft.gruppen[g] = []; });
+    if (!draft.thema) draft.thema = { de: "", it: "" };
     renderEditor();
   });
 
