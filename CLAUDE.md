@@ -263,8 +263,5 @@ Regeln:
   komplett laufen lassen. Nutzungsbedingungen von cover.ekz.de (Hotlinking ohne ekz-Vertrag) mit Johann/Schule klären.
 - Safari: Unschärfe der Glas-Fenster (`.schleier`/`.glass`, backdrop-filter) ungetestet.
 - Browser-Untergrenze durch Tailwind v4: Safari 16.4+, Chrome 111+, Firefox 128+ (u. a. `color-mix`, `@property`).
-  Schul-PC mit Windows 7 (Chrome ≤109) zeigt die Seite ggf. mit Stilfehlern – bei Bedarf prüfen.
-- Nach der Umstellung auf React: admin.enc.js muss mit dem echten Passwort neu verschlüsselt sein, sonst startet die
-  alte Verwaltung in der neuen Hülle nicht (`npm test` mit `DSM_ADMIN_PW` prüft es).
-- Die 20 Start-Empfehlungstexte (DE/IT) hat Claude geschrieben – Johann soll sie gegenlesen.
+  Schul-PC mit Windows 7 (Chrome ≤109) zeigt die Seite ggf. mit Stilfehlern – bei Bedarf prüfen.- Die 20 Start-Empfehlungstexte (DE/IT) hat Claude geschrieben – Johann soll sie gegenlesen.
 - Git-Repo lokal angelegt (Branch main), noch kein Remote. Falls Remote: nur privat – werkzeuge/quelle/ liegt im Klartext.
