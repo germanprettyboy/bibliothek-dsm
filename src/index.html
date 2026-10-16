@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bibliothek – Deutsche Schule Mailand</title>
+<meta name="description" content="Bücherliste der Bibliothek der Deutschen Schule Mailand · Elenco dei libri della biblioteca della Scuola Germanica di Milano">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1a19" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/favicon.png">
+<link rel="preload" href="assets/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/protokoll.js"></script>
+<script src="assets/kopf.js"></script>
+</head>
+<body>
+<!-- Erzeugt aus src/index.html (npm run build) – hier nicht bearbeiten.
+     Inhalt von #seite: festes Gerüst im Ladezustand, bis assets/bibliothek.js (React) übernimmt. -->
+<div id="seite">
+<header class="wrap flex items-center justify-between gap-3 pt-[18px] pb-1.5 sm:pt-6 sm:pb-2">
+  <a class="logo ld-bild" href="./">
+    <img class="logo-l" src="assets/logo-hell.webp" width="360" height="200" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+    <img class="logo-d" src="assets/logo-dunkel.webp" width="360" height="200" loading="lazy" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+  </a>
+  <div class="flex items-center gap-2">
+    <div class="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" role="group" aria-label="Sprache · Lingua">
+      <button type="button" class="relative z-[1] inline-flex h-8 min-w-10 items-center justify-center rounded-full px-2.5 text-s font-medium text-muted-foreground" lang="de">DE</button>
+      <button type="button" class="relative z-[1] inline-flex h-8 min-w-10 items-center justify-center rounded-full px-2.5 text-s font-medium text-muted-foreground" lang="it">IT</button>
+    </div>
+    <button type="button" class="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background text-foreground" aria-label="Einstellungen · Impostazioni" disabled><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></button>
+  </div>
+</header>
+
+<section class="wrap intro pt-[18px] pb-3">
+  <h1 class="m-0 text-l font-semibold leading-[1.1]">Bibliothek</h1>
+</section>
+
+<!-- Platzhalter nur, wenn beim letzten Besuch eine Info-Karte da war bzw. Empfehlungen gewählt sind (kopf.js) -->
+<section class="wrap info laedt pb-3.5" id="info" aria-hidden="true">
+  <div class="info-card skel grid rounded-2xl bg-surface shadow-[inset_0_0_0_1px_var(--line)]"><span class="info-line flex min-w-0 items-center gap-3 px-3.5 py-3"><span class="skel-row"><span></span><span></span></span></span></div>
+</section>
+<section class="wrap recs laedt pb-4" id="recs" aria-hidden="true">
+  <div class="recs-card skel relative overflow-hidden bg-surface pt-3.5 pb-4 sm:rounded-[20px] sm:p-4">
+    <div class="recs-head flex items-center gap-3 pr-2.5 pl-[max(16px,env(safe-area-inset-left,0px))] sm:p-0"><span class="skel-row"><span></span><span></span></span></div>
+    <div class="mt-2 grid px-[max(16px,env(safe-area-inset-left,0px))] sm:mt-3.5 sm:grid-cols-4 sm:gap-3.5 sm:px-0">
+      <div class="rec grid grid-cols-[40px_1fr] items-center gap-3.5 py-2.5 sm:block sm:p-0"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec grid grid-cols-[40px_1fr] items-center gap-3.5 border-t border-border py-2.5 sm:block sm:border-0 sm:p-0"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec grid grid-cols-[40px_1fr] items-center gap-3.5 border-t border-border py-2.5 sm:block sm:border-0 sm:p-0"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec grid grid-cols-[40px_1fr] items-center gap-3.5 border-t border-border py-2.5 sm:block sm:border-0 sm:p-0"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+    </div>
+  </div>
+</section>
+
+<div class="bar">
+  <div class="wrap grid gap-2 py-2.5">
+    <label class="search relative">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+      <input type="search" disabled placeholder="Titel, Autor oder ISBN suchen" aria-label="Bücher durchsuchen"
+        class="h-[46px] w-full appearance-none rounded-lg border border-border bg-surface pr-11 pl-[42px] text-m outline-none">
+    </label>
+  </div>
+</div>
+
+<main class="wrap books" aria-busy="true">
+  <p class="meta" id="meta" aria-live="polite"><span class="ld" lang="de">Bücherliste wird geladen …</span><span class="ld" lang="it">Caricamento dell'elenco …</span><span class="ld slow" lang="de">Langsame Verbindung – die Liste lädt noch …</span><span class="ld slow" lang="it">Connessione lenta – l'elenco si sta ancora caricando …</span></p>
+  <div class="list" id="list">
+    <div class="skel" aria-hidden="true">
+      <span class="skel-row"><span></span><span></span></span><span class="skel-row"><span></span><span></span></span>
+      <span class="skel-row"><span></span><span></span></span><span class="skel-row"><span></span><span></span></span>
+      <span class="skel-row"><span></span><span></span></span><span class="skel-row"><span></span><span></span></span>
+      <span class="skel-row"><span></span><span></span></span><span class="skel-row"><span></span><span></span></span>
+      <span class="skel-row"><span></span><span></span></span><span class="skel-row"><span></span><span></span></span>
+      <span class="skel-row"><span></span><span></span></span><span class="skel-row"><span></span><span></span></span>
+      <span class="skel-row"><span></span><span></span></span><span class="skel-row"><span></span><span></span></span>
+    </div>
+  </div>
+</main>
+
+<footer class="foot border-t border-border text-s text-muted-foreground">
+  <div class="wrap flex flex-wrap justify-between gap-x-4 gap-y-1.5 pt-[18px] pb-7"><span>Bibliothek der Deutschen Schule Mailand</span></div>
+</footer>
+</div>
+
+<!-- Öffnungszeiten, Empfehlungen und Seite zuerst: klein, erscheinen sofort, während books.js (groß) noch lädt -->
+<script src="info.js"></script>
+<script src="empfehlungen.js"></script>
+<script src="assets/kategorien-it.js"></script>
+<script src="assets/covers.js"></script>
+<script src="assets/bibliothek.js"></script>
+<script src="books.js"></script>
+</body>
+</html>

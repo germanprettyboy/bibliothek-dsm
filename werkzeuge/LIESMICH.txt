@@ -1,13 +1,18 @@
 Werkzeuge – NICHT auf den Webspace laden
 =========================================
 
-quelle/extract.js   Klartext: Einlesen der WinBIAP-Datenbank, Entfernen der Personendaten
-quelle/admin.js     Klartext: Verwaltungsoberfläche (Bestand, Cover-Abdeckung, Empfehlungen)
-admin-verschluesseln.js
-                    Verschlüsselt beide Dateien nach ../website/assets/admin.enc.js
+bauen.mjs           Baut die Website aus ../src (React, Tailwind CSS, shadcn/ui) nach ../website:
+                    index.html, admin.html, assets/bibliothek.js, verwaltung.js, style.css, kopf.js.
+                    Aufruf im Projektordner: npm run build   (einmalig vorher: npm install)
 
-Nach jeder Änderung an quelle/ oder um das Passwort zu ändern (Node.js 18+):
-  node admin-verschluesseln.js            (fragt das Passwort verdeckt ab, landet nicht in der Shell-History)
+quelle/extract.js   Klartext: Einlesen der WinBIAP-Datenbank, Entfernen der Personendaten
+quelle/verwaltung/  Klartext: Verwaltungsoberfläche (React: Bestand, Cover-Abdeckung, Empfehlungen, Info)
+admin-verschluesseln.js
+                    Baut quelle/verwaltung/ und verschlüsselt sie zusammen mit extract.js
+                    nach ../website/assets/admin.enc.js
+
+Nach jeder Änderung an quelle/ oder um das Passwort zu ändern (Node.js 18+, im Projektordner):
+  node werkzeuge/admin-verschluesseln.js   (fragt das Passwort verdeckt ab, landet nicht in der Shell-History)
 Danach assets/admin.enc.js auf den Webspace laden. Wer das alte Passwort kennt, kommt mit der
 neuen Datei nicht mehr hinein; in offenen Browser-Sitzungen muss neu entsperrt werden.
 

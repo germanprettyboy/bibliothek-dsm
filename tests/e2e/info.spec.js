@@ -60,7 +60,7 @@ test.describe("Info-Karte", () => {
     await mitInfo(page, info({ schliessungen: s }), "10:00");
     await expect(karte(page)).not.toContainText("Vorbei");
     await karte(page).click();
-    await expect(page.locator("dialog.sheet[aria-labelledby=info-t]")).toContainText("Keine Schließtage geplant.");
+    await expect(page.locator("[role=dialog][aria-labelledby=info-t]")).toContainText("Keine Schließtage geplant.");
   });
 
   test("Fenster: Wochenübersicht, heute markiert, Schließtage, Hinweis", async ({ page }) => {
@@ -68,7 +68,7 @@ test.describe("Info-Karte", () => {
       { von: "2026-11-02", art: "abwesend", de: "" }];
     await mitInfo(page, info({ schliessungen: s, hinweis: { de: "Bitte Ausweis mitbringen.", it: "Portare la tessera." } }), "10:00");
     await karte(page).click();
-    const d = page.locator("dialog[aria-labelledby=info-t]");
+    const d = page.locator("[role=dialog][aria-labelledby=info-t]");
     await expect(d).toBeVisible();
     await expect(d.locator(".hint")).toHaveText("Bitte Ausweis mitbringen.");
     await expect(d.locator(".week dt")).toHaveText(["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"]);
@@ -89,7 +89,7 @@ test.describe("Info-Karte", () => {
     await mitInfo(page, info(), "10:00");
     await expect(karte(page)).toContainText("Aperta ora");
     await karte(page).click();
-    await expect(page.locator("dialog[aria-labelledby=info-t] .week dt").first()).toHaveText("lunedì");
+    await expect(page.locator("[role=dialog][aria-labelledby=info-t] .week dt").first()).toHaveText("lunedì");
   });
 
   test("ungültige Zeiten werden ignoriert", async ({ page }) => {

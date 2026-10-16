@@ -53,8 +53,10 @@ test.describe("Detail", () => {
   test("Glas-Effekt: Fenster und Hintergrund unscharf, Hintergrund abgedunkelt", async ({ page }) => {
     await oeffnen(page);
     await oeffneBuch(page, OHNE_ISBN);
+    // Fenster und Schleier (Overlay des shadcn-Dialogs) erst nach der Einblend-Animation messen
+    await page.waitForTimeout(300);
     const st = await page.locator("#detail").evaluate(d => {
-      const a = getComputedStyle(d), b = getComputedStyle(d, "::backdrop");
+      const a = getComputedStyle(d), b = getComputedStyle(document.querySelector(".schleier.detail"));
       return { fenster: a.backdropFilter, hinten: b.backdropFilter, farbe: b.backgroundColor };
     });
     expect(st.fenster).toContain("blur");

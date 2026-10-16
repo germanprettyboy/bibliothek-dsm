@@ -66,7 +66,7 @@ test.describe("Sprache", () => {
 });
 
 test.describe("Einstellungen", () => {
-  const oeffneEinst = async page => { await page.click(".settings-btn"); await expect(page.locator("dialog.settings")).toBeVisible(); };
+  const oeffneEinst = async page => { await page.click(".settings-btn"); await expect(page.locator(".settings[role=dialog]")).toBeVisible(); };
 
   test("Theme: Automatisch / Hell / Dunkel, gespeichert", async ({ page }) => {
     await oeffnen(page);
@@ -157,6 +157,7 @@ test.describe("reduzierte Bewegung", () => {
     await oeffnen(page);
     await page.click(".settings-btn");
     await page.keyboard.press("Escape");
-    expect(await page.locator("dialog.settings").evaluate(d => d.open)).toBe(false);
+    // ohne Ausblend-Animation ist das Fenster (Radix Dialog) sofort aus dem DOM
+    await expect(page.locator(".settings[role=dialog]")).toHaveCount(0, { timeout: 300 });
   });
 });

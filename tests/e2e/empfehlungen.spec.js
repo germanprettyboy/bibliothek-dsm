@@ -3,7 +3,7 @@ const { test, expect, oeffnen, daten, AUS } = require("./hilfen.js");
 
 const { E } = daten();
 const pref = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-empf")));
-const ask = page => page.locator("dialog.ask");
+const ask = page => page.locator(".ask[role=dialog]");
 
 test.describe("Erster Besuch", () => {
   test.use({ speicher: {} });
@@ -127,7 +127,7 @@ test.describe("Empfehlungen", () => {
   test("Einstellungen: Gruppe wechseln und ausschalten", async ({ page }) => {
     await oeffnen(page);
     await page.click(".settings-btn");
-    const s = page.locator("dialog.settings");
+    const s = page.locator(".settings[role=dialog]");
     await expect(s.locator("#s-recs")).toBeChecked();
     await expect(s.locator('.gpick [data-g="erw-roman"]')).toHaveAttribute("aria-checked", "true");
     await s.locator('.gpick [data-g="oberstufe"]').click();
