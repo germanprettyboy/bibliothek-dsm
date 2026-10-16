@@ -18,6 +18,18 @@
     if (prefs.contrast) root.dataset.contrast = "high"; else delete root.dataset.contrast;
   }
   applyPrefs();
+  // Empfehlungen gewählt? Dann zeigt index.html beim Laden einen Platzhalter an ihrer Stelle (app.js ersetzt ihn)
+  try { const e = JSON.parse(store.get("dsm-empf") || "null"); if (e && e.want && e.gruppe) root.dataset.empf = ""; } catch (e) { /* */ }
+  // Info-Karte beim letzten Besuch gezeigt? Dann Platzhalter, bis info-panel.js sie zeichnet
+  if (store.get("dsm-info-karte") === "1") root.dataset.info = "";
+  // Bilder in .ld-bild (Logo): Lichtband, bis das sichtbare Bild geladen ist (oder scheitert).
+  // Lauscht ab dem <head>, daher entgeht kein Ereignis. Unsichtbare Bilder (Logo der anderen Farbwelt) zählen nicht.
+  const bildDa = e => {
+    const img = e.target, box = img.tagName === "IMG" && img.closest(".ld-bild");
+    if (box && img.getClientRects().length) box.classList.add("da");
+  };
+  document.addEventListener("load", bildDa, true);
+  document.addEventListener("error", bildDa, true);
 
   // Sprache: gespeicherte Wahl, sonst Browsersprache
   const savedLang = store.get("dsm-lang");
@@ -50,9 +62,12 @@
   }
   function apply() {
     root.lang = lang;
-    document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
-    document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
-    document.querySelectorAll("[data-i18n-label]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.i18nLabel)); });
+    // Unbekannte Schlüssel überspringen: info-panel.js läuft vor app.js (während books.js lädt),
+    // bis dahin bleibt der Text aus dem HTML stehen
+    const known = k => strings.de[k] != null;
+    document.querySelectorAll("[data-i18n]").forEach(el => { if (known(el.dataset.i18n)) el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => { if (known(el.dataset.i18nPh)) el.placeholder = t(el.dataset.i18nPh); });
+    document.querySelectorAll("[data-i18n-label]").forEach(el => { if (known(el.dataset.i18nLabel)) el.setAttribute("aria-label", t(el.dataset.i18nLabel)); });
     document.querySelectorAll(".seg [data-lang]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
     if (strings[lang].pageTitle) document.title = t("pageTitle");
     listeners.forEach(fn => fn(lang));
@@ -139,12 +154,15 @@
     extras.forEach(fn => fn(box));
   }
   function openSettings() { syncSettings(); openSheet(sDlg); }
+  // Zahlenformat je Sprache nur einmal anlegen (Intl-Objekte sind teuer)
+  const NF = {};
+  const nf = n => (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE"))).format(n);
 
   window.DSM = {
     store, log,
     get lang() { return lang; },
     t,
-    nf: n => new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE").format(n),
+    nf,
     df: iso => {
       const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
       if (!m) return iso || "";

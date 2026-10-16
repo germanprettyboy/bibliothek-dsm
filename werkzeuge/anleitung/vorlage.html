@@ -245,8 +245,8 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
       <li><a href="#regeln" style="--teil:var(--rot)"><span><b>Die drei goldenen Regeln</b><small>Bitte immer beachten</small></span></a></li>
       <li><a href="#teil-a" style="--teil:var(--blau)"><span><b>A · WinBook-Datei kopieren</b><small>sicher, unter Windows 7</small></span></a></li>
       <li><a href="#teil-b" style="--teil:var(--mauve)"><span><b>B · Verwaltung öffnen</b><small>Adresse und Passwort</small></span></a></li>
-      <li><a href="#teil-c" style="--teil:var(--gruen)"><span><b>C · Bestand aktualisieren</b><small>Datei einlesen, prüfen, herunterladen</small></span></a></li>
-      <li><a href="#teil-d" style="--teil:var(--orange)"><span><b>D · Veröffentlichen</b><small>books.js auf der Website ersetzen</small></span></a></li>
+      <li><a href="#teil-c" style="--teil:var(--gruen)"><span><b>C · Bestand aktualisieren</b><small>Datei einlesen, prüfen, veröffentlichen</small></span></a></li>
+      <li><a href="#teil-d" style="--teil:var(--orange)"><span><b>D · Veröffentlichen</b><small>books.js auf den Webspace bringen</small></span></a></li>
       <li><a href="#teil-e" style="--teil:var(--gelb)"><span><b>E · Buchempfehlungen</b><small>Bücher auswählen, Texte schreiben</small></span></a></li>
       <li><a href="#teil-f" style="--teil:var(--blau)"><span><b>F · Öffnungszeiten und Ferien</b><small>Reiter „Info“</small></span></a></li>
       <li><a href="#teil-g" style="--teil:var(--mauve)"><span><b>G · Aufräumen</b><small>Kopie löschen, sperren</small></span></a></li>
@@ -264,8 +264,8 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
     <div class="ablauf" role="list">
       <div class="k" role="listitem" style="--teil:var(--blau)"><span class="n">Teil A</span><b>WinBook-PC</b><span>Datenbank-Datei auf einen USB-Stick kopieren</span></div>
       <div class="k" role="listitem" style="--teil:var(--mauve)"><span class="n">Teil B und C</span><b>Verwaltungsseite</b><span>Datei im Browser einlesen und Bericht prüfen</span></div>
-      <div class="k" role="listitem" style="--teil:var(--gruen)"><span class="n">Teil C</span><b>books.js</b><span>neue Bücherliste herunterladen</span></div>
-      <div class="k" role="listitem" style="--teil:var(--orange)"><span class="n">Teil D</span><b>Website</b><span>alte books.js durch die neue ersetzen</span></div>
+      <div class="k" role="listitem" style="--teil:var(--gruen)"><span class="n">Teil C</span><b>books.js</b><span>neue Bücherliste veröffentlichen</span></div>
+      <div class="k" role="listitem" style="--teil:var(--orange)"><span class="n">Teil D</span><b>Website</b><span>books.js auf den Webspace laden</span></div>
     </div>
     <div class="grenze">
       <div class="p">Hier sind <b>Schülerdaten</b> enthalten (Namen, Klassen, Ausleihen, Gebühren). Diese Datei bleibt in der Schule.</div>
@@ -535,7 +535,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
         <p>Achten Sie auf drei Dinge:</p>
         <ol>
           <li><b>Die große Zahl</b> (Bücher in der öffentlichen Liste) muss ungefähr so groß sein wie bisher. Zum Vergleich: im Oktober 2026 waren es 4.545.</li>
-          <li><b>Die Zeile „Gegenüber der aktuellen Liste“</b> zeigt, was neu ist und was wegfällt. Ein paar Dutzend sind normal. Steht dort bei „entfallen“ eine Zahl in die Hunderte oder Tausende, ist es wahrscheinlich die falsche Datei (Demo-Datenbank, leere Datenbank, alte Kopie). Dann <b>nicht</b> herunterladen, sondern Teil A wiederholen.</li>
+          <li><b>Die Zeile „Gegenüber der aktuellen Liste“</b> zeigt, was neu ist und was wegfällt. Ein paar Dutzend sind normal. Steht dort bei „entfallen“ eine Zahl in die Hunderte oder Tausende, ist es wahrscheinlich die falsche Datei (Demo-Datenbank, leere Datenbank, alte Kopie). Dann <b>nicht</b> veröffentlichen, sondern Teil A wiederholen.</li>
           <li><b>Der Kasten unten</b> sollte mit <span class="ui">Abgleich bestanden</span> beginnen. Steht dort stattdessen <span class="ui pfad">… Titel enthalten einen Namen, der auch in der Leserdatei vorkommt</span>, ist das meist harmlos: Eine Autorin oder ein Autor heißt zufällig so wie ein Schüler (zum Beispiel „Müller“). Schauen Sie über <span class="ui">Vorschau ansehen</span> kurz nach. Im Zweifel Johann Bucher fragen.</li>
         </ol>
         <p>Der Kasten <span class="ui pfad">Nicht übernommen: Personen- und Ausleihdaten</span> zeigt nur, wie viel weggeworfen wurde: Leser, Ausleihen, Gebühren, Passwörter der WinBook-Benutzer und so weiter. Hier ist nichts zu tun.</p>
@@ -547,12 +547,11 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
           <li>Auf <span class="ui">Cover-Abdeckung prüfen</span> klicken.</li>
           <li>Warten. Es erscheint <span class="ui">… von … geprüft</span>. Das dauert einige Minuten bis etwa eine Viertelstunde.</li>
           <li>Währenddessen den Tab offen lassen und den Computer nicht in den Ruhezustand schicken.</li>
-          <li>Die Meldung <span class="ui pfad">Google Books bremst gerade die Abfragen. Es geht automatisch weiter.</span> ist normal. Einfach weiter warten.</li>
         </ol>
-        <p>Am Ende sehen Sie einen Prozentwert und einen farbigen Balken: grün = Bild von Open Library, blau = Bild von Google Books, rot = kein Bild gefunden. Darunter steht der <span class="ui">Verlauf</span> der letzten Aktualisierungen.</p>
+        <p>Am Ende sehen Sie einen Prozentwert und einen farbigen Balken: mauve = Bild der Deutschen Nationalbibliothek, grün = Bild von Open Library, blau = Bild von Google Books, rot = kein Bild gefunden. Darunter steht der <span class="ui">Verlauf</span> der letzten Aktualisierungen.</p>
         <div class="box achtung">
           <strong>Reihenfolge beachten</strong>
-          <p>Erst prüfen, <b>dann</b> herunterladen. Nur dann wird das Ergebnis in der neuen books.js mitgespeichert. <span class="ui">Abbrechen</span> ist erlaubt, die Werte gelten dann als vorläufig (im Verlauf mit Sternchen *).</p>
+          <p>Erst prüfen, <b>dann</b> veröffentlichen. Nur dann wird das Ergebnis in der neuen books.js mitgespeichert. <span class="ui">Abbrechen</span> ist erlaubt, die Werte gelten dann als vorläufig (im Verlauf mit Sternchen *).</p>
         </div>
       </li>
       <li>
@@ -560,10 +559,11 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
         <p>Auf <span class="ui">Vorschau ansehen</span> klicken. In einem neuen Tab öffnet sich die Bücherliste mit dem <b>neuen</b> Bestand, aber nur auf Ihrem Computer. Suchen Sie zur Probe ein Buch, das neu angeschafft wurde. Danach den Vorschau-Tab schließen.</p>
       </li>
       <li>
-        <b>books.js herunterladen</b>
-        <p>Auf <span class="ui">books.js herunterladen</span> klicken. Die Datei landet im Ordner <b>Downloads</b>. Chrome zeigt sie unten am Fensterrand, Firefox fragt eventuell nach: dann <span class="ui">Datei speichern</span> und <span class="ui">OK</span>.</p>
+        <b>Veröffentlichen</b>
+        <p>Auf <span class="ui">Veröffentlichen</span> klicken. Liegt der Website-Ordner auf diesem Computer (der Ordner mit <code>index.html</code> und <code>admin.html</code>), fragt Chrome bzw. Edge beim ersten Mal nach ihm: Ordner auswählen und den Zugriff erlauben. Die neue <code>books.js</code> ersetzt die alte dort sofort – nichts herunterladen, nichts verschieben. Ab dem zweiten Mal genügt der Klick. Darunter erscheint <span class="ui">books.js im Ordner „…“ gespeichert</span>.</p>
+        <p><b>Kein Website-Ordner auf diesem Computer</b> (z. B. am Schul-PC): stattdessen auf <span class="ui">Stattdessen herunterladen</span> klicken. Die Datei landet im Ordner <b>Downloads</b>. In Firefox heißt schon der Knopf <span class="ui">books.js herunterladen</span>.</p>
         <div class="box achtung">
-          <strong>Der Name muss genau books.js lauten</strong>
+          <strong>Beim Herunterladen: Der Name muss genau books.js lauten</strong>
           <p>Liegt im Ordner Downloads schon eine alte books.js, nennt der Browser die neue <code>books (1).js</code>. So funktioniert sie auf der Website nicht. Lösung: siehe <a href="#qa-name">Fragen und Antworten</a>.</p>
         </div>
       </li>
@@ -575,7 +575,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
   <section id="teil-d" style="--teil:var(--orange)">
     <h2><span class="buchst">D</span>Die neue Liste veröffentlichen</h2>
     <p class="zeit">etwa 5 Minuten</p>
-    <p>Die Verwaltungsseite kann selbst nichts ins Internet stellen, denn es gibt bewusst keinen Server dahinter. Deshalb muss die neue <code>books.js</code> von Hand auf der Website die alte ersetzen. Genauso geht es mit <code>empfehlungen.js</code> (Teil E) und <code>info.js</code> (Teil F).</p>
+    <p>Die Verwaltungsseite kann selbst nichts ins Internet stellen, denn es gibt bewusst keinen Server dahinter. <span class="ui">Veröffentlichen</span> legt die neue <code>books.js</code> in den Website-Ordner auf dem Computer; von dort kommt sie mit dem Upload-Programm auf den Webspace. Genauso geht es mit <code>empfehlungen.js</code> (Teil E) und <code>info.js</code> (Teil F).</p>
     <ol class="schritte" style="--p:'D'">
       <li>
         <b>Wer hat Zugang zur Website?</b>
@@ -583,8 +583,8 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
         <p>Wenn <b>Sie</b> Zugang haben: weiter mit Schritt 2.</p>
       </li>
       <li>
-        <b>Datei ersetzen</b>
-        <p>Im Upload-Programm des Webspace den Ordner öffnen, in dem <code>index.html</code> und <code>admin.html</code> liegen. Dort die neue <code>books.js</code> hochladen und die Frage nach dem Ersetzen bzw. Überschreiben bestätigen. Nur diese eine Datei, sonst nichts.</p>
+        <b>Datei hochladen</b>
+        <p>Im Upload-Programm des Webspace den Ordner öffnen, in dem <code>index.html</code> und <code>admin.html</code> liegen. Dort die neue <code>books.js</code> (aus dem Website-Ordner bzw. aus Downloads) hochladen und die Frage nach dem Ersetzen bzw. Überschreiben bestätigen. Nur diese eine Datei, sonst nichts.</p>
         <div class="box achtung">
           <strong>Niemals die .winbook-Datei hochladen</strong>
           <p>Die WinBook-Datei mit den Schülerdaten gehört nie auf den Webspace, nie in eine Cloud und nie in eine E-Mail.</p>
@@ -646,7 +646,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
       </li>
       <li>
         <b>Veröffentlichen</b>
-        <p>Auf <span class="ui">empfehlungen.js herunterladen</span> klicken. Die Datei <code>empfehlungen.js</code> wird genau wie books.js veröffentlicht (Teil D): im Ordner neben <code>index.html</code> ersetzen. Auch sie enthält keine Schülerdaten.</p>
+        <p>Auf <span class="ui">Veröffentlichen</span> klicken (wie in Teil C: ohne Website-Ordner <span class="ui">Stattdessen herunterladen</span>). Danach kommt <code>empfehlungen.js</code> genau wie books.js auf den Webspace (Teil D). Auch sie enthält keine Schülerdaten.</p>
       </li>
     </ol>
     <div class="box info">
@@ -704,7 +704,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
       </li>
       <li>
         <b>Vorschau ansehen und veröffentlichen</b>
-        <p><span class="ui">Vorschau ansehen</span> zeigt die Bücherliste mit den neuen Zeiten, nur auf Ihrem Computer. Danach <span class="ui">info.js herunterladen</span> und die Datei <code>info.js</code> wie in Teil D im Ordner neben <code>index.html</code> ersetzen.</p>
+        <p><span class="ui">Vorschau ansehen</span> zeigt die Bücherliste mit den neuen Zeiten, nur auf Ihrem Computer. Danach <span class="ui">Veröffentlichen</span> (ohne Website-Ordner <span class="ui">Stattdessen herunterladen</span>) und <code>info.js</code> wie in Teil D auf den Webspace laden.</p>
         <p>Auch hier gilt: Alles wird automatisch als Entwurf in diesem Browser gespeichert. <span class="ui">Entwurf verwerfen</span> (zweimal klicken) holt den veröffentlichten Stand zurück.</p>
       </li>
     </ol>
@@ -763,13 +763,13 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
       <li><input type="checkbox" id="c13"><label for="c13"><span class="ui">Abgleich bestanden</span></label></li>
       <li><input type="checkbox" id="c14"><label for="c14">Optional: Cover-Abdeckung geprüft</label></li>
       <li><input type="checkbox" id="c15"><label for="c15">Vorschau angesehen</label></li>
-      <li><input type="checkbox" id="c16"><label for="c16"><span class="ui">books.js herunterladen</span>, Name genau books.js</label></li>
+      <li><input type="checkbox" id="c16"><label for="c16"><span class="ui">Veröffentlichen</span> (oder heruntergeladen, Name genau books.js)</label></li>
       <li class="gr">D · Veröffentlichen</li>
-      <li><input type="checkbox" id="c17"><label for="c17">books.js auf der Website ersetzt oder weitergegeben</label></li>
+      <li><input type="checkbox" id="c17"><label for="c17">books.js auf den Webspace geladen oder weitergegeben</label></li>
       <li><input type="checkbox" id="c18"><label for="c18">Kontrolle: Stand von heute (<kbd>Strg</kbd> + <kbd>F5</kbd>)</label></li>
       <li class="gr">E und F · bei Bedarf</li>
-      <li><input type="checkbox" id="c22"><label for="c22">Empfehlungen: <span class="ui">empfehlungen.js herunterladen</span>, ersetzt</label></li>
-      <li><input type="checkbox" id="c23"><label for="c23">Info: Zeiten und Ferien geprüft, <span class="ui">info.js herunterladen</span>, ersetzt</label></li>
+      <li><input type="checkbox" id="c22"><label for="c22">Empfehlungen: <span class="ui">Veröffentlichen</span>, hochgeladen</label></li>
+      <li><input type="checkbox" id="c23"><label for="c23">Info: Zeiten und Ferien geprüft, <span class="ui">Veröffentlichen</span>, hochgeladen</label></li>
       <li class="gr">G · Aufräumen</li>
       <li><input type="checkbox" id="c19"><label for="c19"><span class="ui">Sperren</span>, Tab geschlossen</label></li>
       <li><input type="checkbox" id="c20"><label for="c20">.winbook-Kopie gelöscht, Papierkorb geleert</label></li>
@@ -814,7 +814,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
         <ul>
           <li>Titelbilder werden nur über die <b>ISBN</b> gesucht, die in WinBook eingetragen ist. Ohne ISBN gibt es einen gestalteten Platzhalter.</li>
           <li>Das System sucht oder ergänzt bewusst <b>keine</b> ISBN von selbst. Fehlt sie, bitte in WinBook nachtragen.</li>
-          <li>Auch mit ISBN haben die kostenlosen Dienste Open Library und Google Books nicht jedes Bild, besonders bei italienischen, älteren oder kleinen Ausgaben. Daran lässt sich nichts ändern.</li>
+          <li>Auch mit ISBN haben die kostenlosen Dienste (Deutsche Nationalbibliothek, Open Library, Google Books) nicht jedes Bild, besonders bei italienischen, älteren oder kleinen Ausgaben. Daran lässt sich nichts ändern.</li>
         </ul>
       </div></div>
 
@@ -988,7 +988,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
       </div></div>
 
       <div class="qa"><h4>Bei der Cover-Prüfung steht oft „Nicht prüfbar (Netzfehler)“.</h4><div>
-        <p>Das Schulnetz hat die Abfragen an Open Library oder Google Books unterbrochen oder blockiert. Später nochmal auf <span class="ui">Erneut prüfen</span> klicken oder in einem anderen Netz prüfen. Die Bücherliste selbst funktioniert trotzdem.</p>
+        <p>Das Schulnetz hat die Abfragen an die Deutsche Nationalbibliothek, Open Library oder Google Books unterbrochen oder blockiert. Später nochmal auf <span class="ui">Erneut prüfen</span> klicken oder in einem anderen Netz prüfen. Die Bücherliste selbst funktioniert trotzdem.</p>
       </div></div>
 
       <div class="qa"><h4>Die Vorschau zeigt den alten Bestand.</h4><div>

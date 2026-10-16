@@ -20,9 +20,9 @@
 </div>
 
 <header class="wrap top">
-  <a class="logo" href="./">
-    <img class="logo-l" src="assets/logo-hell.png" width="720" height="401" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
-    <img class="logo-d" src="assets/logo-dunkel.png" width="720" height="401" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+  <a class="logo ld-bild" href="./">
+    <img class="logo-l" src="assets/logo-hell.webp" width="360" height="200" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+    <img class="logo-d" src="assets/logo-dunkel.webp" width="360" height="200" loading="lazy" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
   </a>
   <div class="controls">
     <div class="seg" role="group" aria-label="Sprache · Lingua">
@@ -39,9 +39,23 @@
   <h1 class="ui" data-i18n="title">Bibliothek</h1>
 </section>
 
-<section class="wrap info" id="info" hidden></section>
+<section class="wrap info laedt" id="info" hidden>
+  <!-- Platzhalter, wenn beim letzten Besuch eine Info-Karte da war (data-info, common.js); info-panel.js ersetzt ihn -->
+  <div class="info-card skel" aria-hidden="true"><span class="info-line"><span class="skel-row"><span></span><span></span></span></span></div>
+</section>
 
-<section class="wrap recs" id="recs" hidden aria-labelledby="recs-title"></section>
+<section class="wrap recs laedt" id="recs" hidden aria-labelledby="recs-title">
+  <!-- Platzhalter während des Ladens, nur wenn Empfehlungen gewählt sind (data-empf, common.js); app.js ersetzt ihn -->
+  <div class="recs-card skel" aria-hidden="true">
+    <div class="recs-head"><div class="skel-row"><span></span><span></span></div></div>
+    <div class="recs-row">
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+      <div class="rec"><div class="cover small"></div><span class="skel-row"><span></span><span></span></span></div>
+    </div>
+  </div>
+</section>
 
 <div id="bar-anchor"></div>
 <div class="bar" id="bar">
@@ -60,9 +74,27 @@
 
 <div class="floater" id="floater" aria-hidden="true"></div>
 
-<main class="wrap books">
-  <p class="meta ui" id="meta" aria-live="polite"></p>
-  <div class="list" id="list"></div>
+<main class="wrap books" aria-busy="true">
+  <p class="meta ui" id="meta" aria-live="polite"><span class="ld" lang="de">Bücherliste wird geladen …</span><span class="ld" lang="it">Caricamento dell'elenco …</span><span class="ld slow" lang="de">Langsame Verbindung – die Liste lädt noch …</span><span class="ld slow" lang="it">Connessione lenta – l'elenco si sta ancora caricando …</span></p>
+  <div class="list" id="list">
+    <!-- Platzhalter bis books.js da ist; app.js ersetzt ihn durch die Liste -->
+    <div class="skel" aria-hidden="true">
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+      <div class="skel-row"><span></span><span></span></div>
+    </div>
+  </div>
 </main>
 
 <footer class="foot">
@@ -87,12 +119,13 @@
   </div>
 </dialog>
 
+<!-- Öffnungszeiten zuerst: klein, erscheinen sofort, während books.js (groß) noch lädt -->
+<script src="info.js"></script>
+<script src="assets/info-panel.js"></script>
 <script src="books.js"></script>
 <script src="assets/kategorien-it.js"></script>
 <script src="empfehlungen.js"></script>
-<script src="info.js"></script>
 <script src="assets/covers.js"></script>
 <script src="assets/app.js"></script>
-<script src="assets/info-panel.js"></script>
 </body>
 </html>

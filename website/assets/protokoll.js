@@ -15,12 +15,13 @@
   "use strict";
   const SP = Storage.prototype, origSet = SP.setItem, origGet = SP.getItem, origDel = SP.removeItem;
   const KEY = "dsm-protokoll", HIST = "dsm-protokoll-verlauf", MAX = 500;
-  const STILL = new Set([KEY, HIST, "dsm-cover-v2"]); // eigene Schlüssel und Cover-Cache (zu häufig)
+  const STILL = new Set([KEY, HIST, "dsm-cover-v3"]); // eigene Schlüssel und Cover-Cache (zu häufig)
   const GEHEIM = /key|pass|pw|token/i;
-  const read = (s, k) => { try { return origGet.call(s, k); } catch (e) { return null; } };
-  const write = (s, k, v) => { try { origSet.call(s, k, v); } catch (e) { /* privat/gesperrt */ } };
+  // s = Speicher oder sein Name ("localStorage"); schon der Zugriff auf window.localStorage kann im privaten Modus werfen
+  const read = (s, k) => { try { return origGet.call(typeof s === "string" ? window[s] : s, k); } catch (e) { return null; } };
+  const write = (s, k, v) => { try { origSet.call(typeof s === "string" ? window[s] : s, k, v); } catch (e) { /* privat/gesperrt */ } };
 
-  let on = read(localStorage, KEY) !== "aus";
+  let on = read("localStorage", KEY) !== "aus";
 
   // ---------- Ausgabe ----------
   const MONO = "font-family:ui-monospace,Menlo,Consolas,monospace";
@@ -51,7 +52,7 @@
 
   const seite = location.pathname.split("/").pop() || "index.html";
   let hist = [];
-  try { hist = JSON.parse(read(sessionStorage, HIST) || "[]") || []; } catch (e) { hist = []; }
+  try { hist = JSON.parse(read("sessionStorage", HIST) || "[]") || []; } catch (e) { hist = []; }
   const frueher = hist.length;
   let saveT = 0, last = performance.now();
 
@@ -68,7 +69,7 @@
     const e = { zeit: uhr(d), seite, bereich, text: String(text) };
     hist.push(e); if (hist.length > MAX) hist.splice(0, hist.length - MAX);
     clearTimeout(saveT);
-    saveT = setTimeout(() => write(sessionStorage, HIST, JSON.stringify(hist)), 800);
+    saveT = setTimeout(() => write("sessionStorage", HIST, JSON.stringify(hist)), 800);
     const abstand = "+" + dauer(now - last);
     last = now;
     if (!on) return;
@@ -80,11 +81,11 @@
     else console.log(...kopf);
   }
 
-  log.an = () => { on = true; write(localStorage, KEY, "an"); log("Seite", "Protokoll eingeschaltet"); };
-  log.aus = () => { log("Seite", "Protokoll abgeschaltet – DSM_LOG.an() schaltet es wieder ein"); on = false; write(localStorage, KEY, "aus"); };
+  log.an = () => { on = true; write("localStorage", KEY, "an"); log("Seite", "Protokoll eingeschaltet"); };
+  log.aus = () => { log("Seite", "Protokoll abgeschaltet – DSM_LOG.an() schaltet es wieder ein"); on = false; write("localStorage", KEY, "aus"); };
   log.verlauf = () => { console.table(hist.map(e => ({ Zeit: e.zeit, Seite: e.seite, Bereich: e.bereich, Text: e.text }))); return hist.length + " Einträge"; };
   log.alsText = () => hist.map(e => `${e.zeit}  ${e.seite.padEnd(10)}  ${e.bereich.padEnd(BREITE)}  ${e.text}`).join("\n");
-  log.leeren = () => { hist = []; write(sessionStorage, HIST, "[]"); return "Verlauf geleert"; };
+  log.leeren = () => { hist = []; write("sessionStorage", HIST, "[]"); return "Verlauf geleert"; };
   window.DSM_LOG = log;
 
   // ---------- Elemente beschreiben ----------
@@ -238,7 +239,7 @@
   addEventListener("hashchange", () => log("Seite", `Sprungmarke ${location.hash || "(keine)"}`));
   addEventListener("online", () => log("Netz", "Verbindung wieder da"));
   addEventListener("offline", () => log("Netz", "Verbindung verloren"));
-  addEventListener("pagehide", () => { log("Seite", `verlassen nach ${dauer(performance.now())}`); write(sessionStorage, HIST, JSON.stringify(hist)); });
+  addEventListener("pagehide", () => { log("Seite", `verlassen nach ${dauer(performance.now())}`); write("sessionStorage", HIST, JSON.stringify(hist)); });
   const dunkel = matchMedia("(prefers-color-scheme: dark)");
   if (dunkel.addEventListener) dunkel.addEventListener("change", m => log("Seite", `Gerät auf ${m.matches ? "dunkel" : "hell"} umgestellt`));
 
@@ -286,7 +287,7 @@
   }
 
   // ---------- Browser-Speicher ----------
-  const speicherName = s => s === sessionStorage ? "Sitzung" : "Browser";
+  const speicherName = s => { try { return s === sessionStorage ? "Sitzung" : "Browser"; } catch (e) { return "Browser"; } };
   function wert(k, v) {
     if (GEHEIM.test(k)) return "(verdeckt)";
     v = String(v);
@@ -314,7 +315,7 @@
   }
   {
     // Sofort, vor allen anderen Einträgen; Einstellungen direkt aus dem Speicher (common.js läuft erst danach)
-    const L = k => read(localStorage, k), coarse = matchMedia("(pointer: coarse)").matches;
+    const L = k => read("localStorage", k), coarse = matchMedia("(pointer: coarse)").matches;
     const conn = navigator.connection, lang = L("dsm-lang");
     log("Seite", `${seite} geöffnet` + (frueher ? ` · ${frueher} frühere Einträge dieser Sitzung (DSM_LOG.verlauf())` : ""), {
       Adresse: location.href,

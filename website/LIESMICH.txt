@@ -16,6 +16,20 @@ Inhalt
 Veröffentlichen
   Den ganzen Ordner auf den Webspace laden (z. B. DSM-Server oder GitHub Pages).
   Kein Server-Programm nötig. Funktioniert auch lokal per Doppelklick auf index.html.
+  Die versteckte Datei .htaccess mit hochladen (im FTP-Programm ggf. „versteckte Dateien
+  anzeigen“ einschalten): Auf Apache-Servern komprimiert sie die Bücherliste, die Seite lädt
+  dadurch deutlich schneller. Zeigt die Seite danach „500 Internal Server Error“, die
+  .htaccess auf dem Server wieder löschen – die Seite funktioniert auch ohne sie.
+
+Veröffentlichen aus der Verwaltung
+  Jeder Reiter hat einen Knopf „Veröffentlichen“. In Chrome oder Edge am Computer schreibt er die Datei
+  (books.js, empfehlungen.js oder info.js) direkt in den Website-Ordner – nichts herunterladen, nichts verschieben.
+  Beim ersten Mal fragt der Browser nach dem Ordner: den Ordner mit index.html und admin.html wählen und den
+  Zugriff erlauben. Die Verwaltung merkt sich den Ordner; danach genügt ein Klick. Ein falscher Ordner (ohne
+  index.html) wird abgelehnt. „Anderen Ordner wählen“ wechselt ihn.
+  Ohne Website-Ordner (z. B. Schul-PC): „Stattdessen herunterladen“ und die Datei weitergeben.
+  Safari und Firefox können nicht in Ordner schreiben; dort lädt der Knopf die Datei herunter wie früher.
+  Danach wie gewohnt den Website-Ordner (bzw. die geänderte Datei) auf den Webspace laden.
 
 Verwaltung entsperren
   admin.html fragt nach dem Passwort. Die Verwaltungslogik liegt nur verschlüsselt vor
@@ -33,16 +47,19 @@ Bestand aktualisieren
      ISBN, Kategorie und Standort. Leser-, Ausleih-, Gebühren-, Benutzer- und
      Sitzungsdaten sowie der Ausleihstatus werden verworfen.
   4. Optional „Vorschau ansehen“.
-  5. „books.js herunterladen“ und die alte books.js im Website-Ordner ersetzen.
+  5. „Veröffentlichen“ (siehe oben): books.js wird im Website-Ordner ersetzt.
 
 Cover
   Nur über die vorhandene ISBN; ohne ISBN gibt es kein Cover (gestalteter Platzhalter).
   Die Liste bleibt reiner Text. Für Bücher in Sichtweite lädt der Browser die Cover im
-  Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–180 px Breite):
-    - Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s). Bilder kommen über
-      die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN wären auf
-      100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
-    - Google Books als Rückfall, einzeln, höchstens alle 1,8 s.
+  Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–200 px Breite):
+    - Deutsche Nationalbibliothek (Verlagscover): Bild direkt über die ISBN, alle 0,3 s ein Buch.
+      Trifft rund 9 von 10 Büchern des Bestands.
+    - Für die übrigen Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s).
+      Bilder kommen über die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN
+      wären auf 100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
+    - Danach das Google-Books-Bild direkt über die ISBN (nicht die Google-API: ohne Schlüssel
+      ist deren Kontingent immer erschöpft).
     - Pause bei verstecktem Tab und bei aktivem Datensparmodus.
   Beim Antippen wird ein noch fehlendes Cover sofort mit Vorrang geholt.
   Ergebnisse (auch „kein Cover“) merkt sich der Browser: Treffer 60 Tage, Fehlanzeigen 14 Tage.
@@ -50,7 +67,7 @@ Cover
 
 Cover-Abdeckung
   admin.html zeigt nach dem Einlesen den Anteil mit ISBN und prüft auf Knopfdruck alle ISBN
-  (Open Library in Sammelabfragen, danach Google Books gedrosselt; einige Minuten).
+  (DNB-Cover, für die übrigen Open Library in Sammelabfragen, danach Google-Bild; einige Minuten).
   Ergebnis und Verlauf (letzte 24 Aktualisierungen) werden in books.js gespeichert und beim
   nächsten Einlesen fortgeführt. Abgebrochene Prüfungen gelten als vorläufig (* im Verlauf).
 
@@ -64,8 +81,8 @@ Buchempfehlungen
   Browser gespeichert. Empfehlungen erscheinen über der Liste (3–4 Bücher mit Cover); ein Klick
   öffnet die Vorschau mit dem Text „Warum dieses Buch?“. Das X blendet sie aus.
   Pflege: admin.html, Reiter „Empfehlungen“ – Bücher aus dem Bestand suchen, Texte auf Deutsch
-  und Italienisch schreiben, Reihenfolge ändern, „empfehlungen.js herunterladen“ und die Datei
-  im Website-Ordner ersetzen. Der Entwurf bleibt im Browser gespeichert, bis er verworfen wird.
+  und Italienisch schreiben, Reihenfolge ändern, „Veröffentlichen“ (siehe oben).
+  Der Entwurf bleibt im Browser gespeichert, bis er verworfen wird.
   Bücher, die nach einem Bestands-Update fehlen, werden nicht angezeigt (Hinweis im Editor).
   Pro Gruppe höchstens vier Bücher: Ist die Gruppe voll, ist die Suche gesperrt. Bücher, die schon
   in der Gruppe sind, erscheinen in den Suchtreffern ausgegraut.
@@ -81,7 +98,7 @@ Buchempfehlungen
     2. Optional ein Hinweis (Deutsch/Italienisch), erscheint im Fenster.
     3. „+ Ferien“ oder „+ Abwesenheit“: ersten und letzten Tag wählen (letzter leer = ein Tag),
        Text optional (sonst „Ferien“ bzw. „Bibliothek geschlossen“).
-    4. „Vorschau ansehen“, dann „info.js herunterladen“ und die Datei im Website-Ordner ersetzen.
+    4. „Vorschau ansehen“, dann „Veröffentlichen“ (siehe oben).
   Vergangene Einträge verschwinden auf der Website von selbst; im Editor räumt
   „Vergangene entfernen“ sie weg. Der Entwurf bleibt im Browser gespeichert.
   Die Uhrzeit für „geöffnet/geschlossen“ kommt vom Gerät des Besuchers.

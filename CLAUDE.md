@@ -14,6 +14,7 @@ website/            ← NUR dieser Ordner kommt auf den Webspace (https!)
   empfehlungen.js     window.DSM_EMPFEHLUNGEN – erzeugt, nicht von Hand bearbeiten
   info.js             window.DSM_INFO – Öffnungszeiten/Ferien/Abwesenheiten, erzeugt
   LIESMICH.txt        Anleitung für Johann / die Bibliothek
+  .htaccess           nur Apache: gzip + Cache-Header (per IfModule abgesichert; bei Error 500 löschen)
   assets/
     style.css         gesamtes CSS (Tokens oben, Komponenten unten)
     protokoll.js      DSM_LOG: jede Interaktion formatiert in die Browser-Konsole (vor common.js geladen)
@@ -32,6 +33,9 @@ werkzeuge/          ← NICHT hochladen
   admin-verschluesseln.js   quelle/* → website/assets/admin.enc.js
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
+tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
+doku/               ← NICHT hochladen. Hintergrund-Analysen
+  dsmailand-techstack.md   Techstack der Schul-Website www.dsmailand.it (vollständig, mit Prüfbefehlen)
 daten/              ← NIEMALS einchecken/hochladen (in .gitignore)
   BIBLIOTHEK_DSM_2024.winbook   Original-DB mit Schülerdaten (Leser, Ausleihen, Gebühren)
   Schullogo_original.png
@@ -40,11 +44,14 @@ daten/              ← NIEMALS einchecken/hochladen (in .gitignore)
 ## Befehle
 
 ```bash
-npm install                                   # sql.js für books-erzeugen.js
+npm install                                   # sql.js, Playwright
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
 npm run dev                                   # dasselbe mit Live-Reload (browser-sync über npx)
-node werkzeuge/admin-verschluesseln.js "<Passwort>"   # nach JEDER Änderung an werkzeuge/quelle/*
+node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
+npm test                                      # Unit-Tests (node:test, ~5 s)
+npm run test:e2e                              # Browser-Tests (Playwright/Chromium, eigener Server, Port je Checkout, ~1 min)
+npm run test:alle                             # beides
 npm run branches                              # was ist noch nicht in main?
 npm run integrieren -- <branch>               # fertigen Branch in main mergen (siehe unten)
 ```
@@ -62,13 +69,19 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - **Keine ISBN-Ergänzung.** Cover nur über vorhandene ISBN; ohne ISBN → gestalteter Platzhalter.
 - Liste bleibt reiner Text (Titel + Autor). Cover nur in Detailansicht und Empfehlungen.
 - Keine Buchanzahl und kein Stand auf der öffentlichen Seite (nur im Admin).
-- Platzhalter-Cover ohne Autor (Autor steht schon daneben). Empfehlungen auf dem Handy: Band über die
-  ganze Breite mit kleinen Karten (Cover links, Text rechts) zum Wischen; ab 40rem vier große Cover.
+- Platzhalter-Cover ohne Autor (Autor steht schon daneben). Empfehlungen auf dem Handy: senkrechte
+  Liste (kleines Cover links, Titel/Autor rechts, Trennlinien), KEIN Wisch-Band/Karussell; ab 40rem vier große Cover.
+- Kopf der Empfehlungs-Karte (Titel + Pfeil) öffnet Fenster „Bisherige Empfehlungen“: Zeitleiste neueste Runde
+  zuerst, je Datum, „Aktuell“, Thema, darunter die Bücher der gewählten Gruppe mit Text; Klick → Detail darüber.
 - Suchleiste klebt deckend oben; beim Suchen springt die Seite so, dass die Treffer direkt unter der
   Leiste beginnen (`main.books` mindestens bildschirmhoch).
 - Empfehlungs-Editor: Gruppe voll (4) → Suchfeld gesperrt mit Hinweis mittig; Bücher schon in der
   Gruppe → Treffer ausgegraut, ohne Knopf.
-- Änderungen im Admin werden als Datei heruntergeladen und per FTP hochgeladen (vom Auftraggeber so gewollt).
+- Nur HTML/CSS/JS: kein PHP, kein Server, keine Push-/Deploy-Dienste (vom Auftraggeber so gewollt).
+- Admin „Veröffentlichen“ schreibt books.js/empfehlungen.js/info.js direkt in den Website-Ordner (File System Access API,
+  Chrome/Edge): Ordner einmal wählen (muss index.html enthalten), Handle in IndexedDB, danach ein Klick ohne Rückfrage.
+  Andere Browser: Download wie früher. Immer da: „Stattdessen herunterladen“ (Schul-PC ohne Website-Ordner).
+  Hochladen auf den Webspace per FTP bleibt Handarbeit.
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
   (OL „M“ ≈180 px, Google „thumbnail“ ≈128 px). Open Library NICHT über `/b/isbn/` laden
   (100 Abrufe / 5 min / IP, Schulnetz = eine IP) – immer `/api/books?jscmd=viewapi` (Sammelabfrage) → Cover-ID.
@@ -77,8 +90,16 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - Italienischer Text bleibt Anthrazit (kein Rot für Italienisch auf der Website).
 - Keine Farbstreifen-Leiste unter dem Titel. Keine Datenschutzhinweise auf der Admin-Seite.
 - Fenster (Detail, Einstellungen, Fragen): Glas-Effekt, Hintergrund unscharf + leicht abgedunkelt.
+- Langsame Verbindung: Lade-Platzhalter (Balken mit Lichtband, `.skel` in index.html) für Liste und – wenn gewählt
+  (`data-empf` aus common.js) – Empfehlungen, bis books.js (≈700 KB) da ist; nach 6 s Hinweis „Langsame Verbindung“.
+  info.js/info-panel.js laden VOR books.js (Öffnungszeiten sofort). Cover: Lichtband bis das Bild wirklich geladen ist.
+  Jedes nachladende Element hat einen Platzhalter: Logo (`.ld-bild`, common.js setzt `.da` bei load/error),
+  Info-Karte (nur wenn beim letzten Besuch gezeigt, `dsm-info-karte`), Entsperren-Knopf im Admin (gesperrt mit
+  Spinner, bis admin-lock.js nach books.js geladen ist; Spinner auch beim Prüfen). Schriften: `font-display: swap`.
 - Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ → Mittelstufe / Oberstufe /
   Erwachsenenliteratur → (Erw.) Romane / Sachbücher / Biografien & Geschichte. Wahl in localStorage `dsm-empf`.
+  In den Einstellungen dieselbe Wahl als Liste: Blöcke Mittelstufe / Oberstufe / Erwachsenenliteratur mit Abstand
+  dazwischen, die drei Erwachsenen-Bereiche untereinander in einem Block.
 - Admin-Sperre nur „schülersicher“, kein Server: PBKDF2-SHA-256 (310.000) + AES-GCM 256, Logik nur verschlüsselt.
 
 ## Design
@@ -91,16 +112,28 @@ Alle Farben als Tokens in `style.css` (`:root`, Dark per `prefers-color-scheme` 
 Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minimalistische Animationen,
 `prefers-reduced-motion` respektieren.
 
+## Performance
+
+- Liste: `#list > .rows > ul` Abschnitte zu höchstens 40 Büchern (jeder Buchstabe beginnt einen neuen, Anker
+  `ul[data-l] id="L-X"`). `content-visibility: auto` + geschätzte `contain-intrinsic-size` im Stil – nur mit
+  `@supports (overflow-anchor: auto)` (Safari ohne Scroll-Verankerung rendert alles). Pfeil per CSS-Maske, kein SVG
+  je Zeile. A–Z-Sprung misst das Ziel in jedem Frame neu. Cover-Beobachtung: erst Abschnitte, dann deren Zeilen.
+- covers.js: keine Dauer-Intervalle; Takt-Timer (setTimeout 350/1500/1800 ms) nur, solange Arbeit ansteht.
+- Logos als WebP 360 px; dunkles Logo `loading="lazy"` (im hellen Modus nicht geladen). PNGs bleiben für die Anleitung.
+- Messen: 390 px, CPU 4-fach gedrosselt: DOMContentLoaded ≈0,5 s, Long Tasks ≈0,2 s (vorher 17,9 s / 9,4 s).
+
 ## Datenformate
 
 - `books.js`: `{stand, anzahl, abdeckung?, verlauf?, buecher:[{t,u?,a?[],v?,j?,i?[],k?,s?[]}]}`
   (i = ISBN-13, geprüft; s = Standorte). `abdeckung`/`verlauf` = Cover-Abdeckung aus admin.html.
-- `empfehlungen.js`: `{stand, gruppen:{mittelstufe|oberstufe|erw-roman|erw-sach|erw-bio:[{k,t,a,de,it}]}}`,
+- `empfehlungen.js`: `{stand, thema?:{de,it}, gruppen:{mittelstufe|oberstufe|erw-roman|erw-sach|erw-bio:[{k,t,a,de,it}]},
+  archiv?:[{stand, thema?, gruppen}]}` (archiv neueste zuerst, max. 40). Admin: andere Bücher als veröffentlicht =
+  neue Runde → veröffentlichte Runde wandert vorne ins archiv, stand = heute; nur Texte/Thema geändert → stand bleibt.
   `k` = norm(Titel) + "|" + norm(Erstautor) (norm: klein, ohne Akzente, ß→ss, nur a–z0–9 und Leerzeichen).
 - `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
-- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache),
-  Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
+- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache), `dsm-info-karte` ("1"/"0", Platzhalter),
+  Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, IndexedDB `dsm-admin` (Store `kv`, Schlüssel `website` = Ordner-Handle), Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
   Protokoll: `dsm-protokoll` (localStorage, "aus" = abgeschaltet), `dsm-protokoll-verlauf` (sessionStorage, letzte 500 Einträge).
 - Konsolen-Protokoll (`assets/protokoll.js`): erfasst automatisch Klicks, Eingaben (600 ms entprellt), Schalter, Dateien,
   Tasten (Escape/Enter/Kombinationen), Formulare, `<dialog>` auf/zu mit Grund, Scrollen, Netz (fetch, fremde Bilder),
@@ -109,10 +142,19 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
 
 ## Prüfen
 
-Bisher mit Playwright (Chromium) gegen `npm run serve` getestet: 390 px und 1280 px, hell/dunkel/Kontrast,
-Fragen-Ablauf, Empfehlungen, Einstellungen, Admin-Sperre (falsch/richtig/Sitzung/Sperren), DB-Import,
-Empfehlungs-Editor, Cover-Logik mit simulierten API-Antworten. Admin-Import muss byte-gleich zu
-`npm run books` sein.
+Nach jeder Änderung `npm run test:alle`. Tests in `tests/`:
+
+- `unit/extract.test.js` – Whitelist-Extraktion gegen synthetische DB (`helfer/testdb.js`, erfundene Leser):
+  SQL-Spion prüft, dass Ausleihspalten/Personentabellen nur gezählt werden; Namensabgleich, Zusammenfassen, ISBN, Sortierung, `toScript`.
+- `unit/covers.test.js` – covers.js in VM-Sandbox (fetch/Image gestubbt): Sammelabfrage, nie `/b/isbn/`, Google-Rückfall, 429-Sperre, Cache-TTL, Warteschlange, Messung.
+- `unit/verschluesseln.test.js` – Roundtrip, falsches Passwort. Mit `DSM_ADMIN_PW=… npm test` zusätzlich: ist `admin.enc.js` aktuell?
+- `unit/daten.test.js` – Format von books.js, empfehlungen.js (Schlüssel im Bestand), info.js, Kategorien-Übersetzung.
+- `unit/regeln.test.js` – harte Regeln am Quelltext (keine externen Hosts außer OL/Google, keine Google Fonts, Design-Verbote, Klartext nicht in website/).
+- `unit/echte-db.test.js` – nur wenn `daten/*.winbook` da ist: books.js aktuell, keine Leser-Namen. Meldungen nennen nur Anzahlen.
+- `e2e/*.spec.js` – Liste/Suche/A–Z/Floater (390/768/1280 px), Ladezustand (books.js zurückgehalten), Detail+Cover (APIs gemockt, echtes Netz gesperrt), DE/IT,
+  Einstellungen, Fragen-Ablauf, Empfehlungen, Info-Karte (feste Uhrzeit), Admin. Admin-Tests ersetzen `admin.enc.js` per Route durch
+  eine mit „test-passwort“ verschlüsselte Fassung der aktuellen Quellen – das echte Passwort wird nicht gebraucht.
+  Admin-Import muss byte-gleich zu `npm run books` sein (synthetische DB immer, Original-DB wenn vorhanden).
 
 ## Branches integrieren (Pflicht am Ende jeder Aufgabe)
 
@@ -127,7 +169,7 @@ Ablauf:
    - `CLAUDE.md`, `LIESMICH.txt`, Quelltext: beide Seiten inhaltlich zusammenführen.
    - `admin.enc.js`: nicht mischen, nach dem Merge neu verschlüsseln.
    - `books.js`: neu erzeugen (`npm run books`); `empfehlungen.js`/`info.js`: Inhalt fachlich zusammenführen.
-3. Prüfen: Seite mit `npm run serve` laden (Konsole fehlerfrei), vorhandene Tests laufen lassen.
+3. Prüfen: `npm run test:alle` muss grün sein; bei sichtbaren Änderungen zusätzlich Seite mit `npm run serve` ansehen.
    `werkzeuge/quelle/*` geändert → neu verschlüsseln (Passwort bei Johann erfragen). Committen.
 4. Worktree verlassen (ExitWorktree, `keep`), im Haupt-Checkout `npm run integrieren -- worktree-<name>`.
    Das Skript ändert `main` nicht, wenn: Haupt-Checkout nicht sauber / nicht auf `main`, Branch hat
@@ -144,15 +186,18 @@ Regeln:
   sonst Johann fragen.
 - Branches mit uncommitteten Dateien gehören einer laufenden Session: nicht anfassen. In fremden
   Worktrees nie committen, stashen, resetten oder mergen.
+- Fremder fertiger Branch mit Konflikt: eigenen Worktree von `main` anlegen, den fremden Branch dort
+  hineinmergen, Konflikte lösen, testen, dann den eigenen Branch integrieren.
 - `main` nur per Merge-Commit ändern. Kein Rebase von `main`, kein `--force`, kein `reset --hard` auf `main`.
 - Worktree-Sessions dürfen nur ihren Worktree mit Git anfassen; einfache Befehle ggf. als
   `git -C <worktree-pfad> …`. Der Merge in `main` passiert erst nach ExitWorktree.
 
-## Offen
+## Schul-Website www.dsmailand.it (Stand 16.10.2026)
 
-- `website/assets/admin.enc.js` ist älter als `werkzeuge/quelle/admin.js` (Öffnungszeiten-Editor aus b7ed4bd
-  fehlt in der verschlüsselten Fassung). Mit Johanns Passwort neu verschlüsseln und integrieren.
-  `npm run branches` meldet das, solange es besteht.
+- Für dieses Projekt: nichts davon übernehmen (kein GTM, kein Lato/Google Fonts – Fira Sans lokal bleibt).
+  Webspace bei Aruba: `.htaccess`-Auswertung unklar, daher `IfModule`-Absicherung beibehalten.
+
+## Offen
 
 - Echte Cover-Abfragen (Open Library/Google) nie live getestet – in der Cloud-Umgebung gab es kein Internet.
   Erste Aufgabe: lokal `npm run serve`, Seite öffnen, Netzwerk-Tab prüfen; dann in admin.html

@@ -8,6 +8,9 @@ node_modules/
 .pruefung/
 *.bak
 
+# Testläufe (Playwright-Ergebnisse, Test-Datenbanken, Test-Verschlüsselung)
+tests/.tmp/
+
 # Claude-Worktrees und lokale Einstellungen (.claude/settings.json mit dem Hook wird eingecheckt)
 .claude/worktrees/
 .claude/settings.local.json

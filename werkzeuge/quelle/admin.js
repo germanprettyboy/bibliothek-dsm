@@ -46,17 +46,17 @@
       covRerun: "Erneut prüfen",
       covStop: "Abbrechen",
       covIsbn: "{p} der Bücher haben eine ISBN. Nur sie können ein Cover bekommen; wie viele davon tatsächlich eines haben, zeigt die Prüfung.",
-      covHint: "Prüft alle ISBN: zuerst Open Library in Sammelabfragen, danach Google Books einzeln und gedrosselt. Dauert je nach Bestand einige Minuten. Das Ergebnis wird mit books.js gespeichert.",
+      covHint: "Prüft alle ISBN: zuerst das Cover der Deutschen Nationalbibliothek, für die übrigen Open Library in Sammelabfragen, danach das Google-Books-Bild. Dauert je nach Bestand einige Minuten. Das Ergebnis wird mit books.js gespeichert.",
       covProgress: "{d} von {n} geprüft",
-      covPaused: "Google Books bremst gerade die Abfragen. Es geht automatisch weiter.",
       covSub: "{c} von {n} Büchern mit ISBN haben ein Cover · {a} aller Bücher",
       covSubPart: "Bisher {c} von {n} Büchern mit ISBN mit Cover gefunden · {a} aller Bücher",
       covPartial: "Abgebrochen nach {d} von {n} – Werte vorläufig.",
-      lOl: "Open Library", lGb: "Google Books", lNone: "Kein Cover gefunden", lErr: "Nicht prüfbar (Netzfehler)", lOpen: "Noch offen",
+      lDnb: "Deutsche Nationalbibliothek", lOl: "Open Library", lGb: "Google Books", lNone: "Kein Cover gefunden", lErr: "Nicht prüfbar (Netzfehler)", lOpen: "Noch offen",
       histT: "Verlauf", hDate: "Stand", hBooks: "Bücher", hIsbn: "mit ISBN", hCover: "mit Cover", hNot: "nicht geprüft",
       tabBestand: "Bestand", tabEmpf: "Empfehlungen", lockAgain: "Sperren",
       eT: "Buchempfehlungen", eP: "Pro Gruppe bis zu vier Bücher aus dem Bestand, jeweils mit einem kurzen Text auf Deutsch und Italienisch.",
       eFind: "Buch aus dem Bestand suchen", eAdd: "Hinzufügen", eFull: "Gruppe voll (4)", eIn: "Schon dabei",
+      eThemaDe: "Thema dieser Runde (Deutsch, optional)", eThemaIt: "Thema dieser Runde (Italienisch, optional)",
       eTeaserDe: "Text Deutsch", eTeaserIt: "Text Italienisch", eUp: "Nach oben", eDown: "Nach unten", eRemove: "Entfernen",
       eMissing: "Nicht im aktuellen Bestand – wird nicht angezeigt.", eEmpty: "Noch keine Bücher in dieser Gruppe. Über die Suche hinzufügen.",
       eHow: "Die heruntergeladene Datei empfehlungen.js im Website-Ordner ersetzen (neben index.html).",
@@ -74,6 +74,15 @@
       iNoDate: "Erster Tag fehlt – wird nicht veröffentlicht.", iBadRange: "Letzter Tag liegt vor dem ersten.", iPast: "Vorbei – wird nicht mehr angezeigt.",
       iNone: "Keine Einträge.", iHow: "Die heruntergeladene Datei info.js im Website-Ordner ersetzen (neben index.html).",
       iDl: "info.js herunterladen", iSaved: "Entwurf im Browser gespeichert", iIncomplete: "{n} unvollständige Angaben werden nicht veröffentlicht",
+      pubBtn: "Veröffentlichen",
+      pubHow: "Ein Klick schreibt {f} direkt in den Website-Ordner – nichts herunterladen, nichts verschieben. Beim ersten Mal fragt der Browser nach dem Website-Ordner (dem Ordner mit index.html).",
+      pubHowOn: "Ein Klick schreibt {f} direkt in den Website-Ordner „{o}“.",
+      pubOk: "{f} im Ordner „{o}“ gespeichert, {z} Uhr.",
+      pubWrong: "Im Ordner „{o}“ liegt keine index.html. Bitte den Website-Ordner wählen – den Ordner mit index.html und admin.html. Ohne Website-Ordner: „Stattdessen herunterladen“.",
+      pubDenied: "Der Browser hat das Speichern nicht erlaubt. Bitte noch einmal klicken und den Zugriff erlauben.",
+      pubErr: "Speichern hat nicht geklappt: {m}",
+      pubChange: "Anderen Ordner wählen", pubOrdner: "Website-Ordner: {o}", pubLaden: "Stattdessen herunterladen",
+      pubNoFs: "Direkt speichern geht in Chrome oder Edge am Computer.",
       wd_mo: "Montag", wd_di: "Dienstag", wd_mi: "Mittwoch", wd_do: "Donnerstag", wd_fr: "Freitag", wd_sa: "Samstag",
       g_mittelstufe: "Mittelstufe", g_oberstufe: "Oberstufe", "g_erw-roman": "Erwachsene · Romane", "g_erw-sach": "Erwachsene · Sachbücher", "g_erw-bio": "Erwachsene · Biografien & Geschichte",
       t_leser: "Leserinnen und Leser", t_lesergruppen: "Gruppenzuordnungen", t_ausleihen: "Laufende Ausleihen",
@@ -123,17 +132,17 @@
       covRerun: "Verifica di nuovo",
       covStop: "Annulla",
       covIsbn: "Il {p} dei libri ha un ISBN. Solo questi possono avere una copertina; quanti la abbiano davvero lo mostra la verifica.",
-      covHint: "Verifica tutti gli ISBN: prima Open Library con richieste raggruppate, poi Google Books uno per uno e con pause. Richiede alcuni minuti. Il risultato viene salvato in books.js.",
+      covHint: "Verifica tutti gli ISBN: prima la copertina della Deutsche Nationalbibliothek, per gli altri Open Library con richieste raggruppate, poi l'immagine di Google Books. Richiede alcuni minuti. Il risultato viene salvato in books.js.",
       covProgress: "{d} di {n} verificati",
-      covPaused: "Google Books sta rallentando le richieste. Si riprende automaticamente.",
       covSub: "{c} di {n} libri con ISBN hanno una copertina · {a} di tutti i libri",
       covSubPart: "Finora trovata la copertina per {c} di {n} libri con ISBN · {a} di tutti i libri",
       covPartial: "Interrotto dopo {d} di {n} – valori provvisori.",
-      lOl: "Open Library", lGb: "Google Books", lNone: "Nessuna copertina trovata", lErr: "Non verificabile (errore di rete)", lOpen: "Ancora da verificare",
+      lDnb: "Deutsche Nationalbibliothek", lOl: "Open Library", lGb: "Google Books", lNone: "Nessuna copertina trovata", lErr: "Non verificabile (errore di rete)", lOpen: "Ancora da verificare",
       histT: "Andamento", hDate: "Data", hBooks: "Libri", hIsbn: "con ISBN", hCover: "con copertina", hNot: "non verificato",
       tabBestand: "Catalogo", tabEmpf: "Consigli", lockAgain: "Blocca",
       eT: "Consigli di lettura", eP: "Per ogni gruppo fino a quattro libri del catalogo, ciascuno con un breve testo in tedesco e in italiano.",
       eFind: "Cerca un libro nel catalogo", eAdd: "Aggiungi", eFull: "Gruppo completo (4)", eIn: "Già presente",
+      eThemaDe: "Tema di questa selezione (tedesco, facoltativo)", eThemaIt: "Tema di questa selezione (italiano, facoltativo)",
       eTeaserDe: "Testo tedesco", eTeaserIt: "Testo italiano", eUp: "Su", eDown: "Giù", eRemove: "Rimuovi",
       eMissing: "Non presente nel catalogo attuale – non verrà mostrato.", eEmpty: "Nessun libro in questo gruppo. Aggiungilo con la ricerca.",
       eHow: "Sostituisci il file empfehlungen.js nella cartella del sito (accanto a index.html) con quello scaricato.",
@@ -151,6 +160,15 @@
       iNoDate: "Manca il primo giorno – non verrà pubblicato.", iBadRange: "L'ultimo giorno precede il primo.", iPast: "Passato – non viene più mostrato.",
       iNone: "Nessuna voce.", iHow: "Sostituisci il file info.js nella cartella del sito (accanto a index.html) con quello scaricato.",
       iDl: "Scarica info.js", iSaved: "Bozza salvata nel browser", iIncomplete: "{n} dati incompleti non verranno pubblicati",
+      pubBtn: "Pubblica",
+      pubHow: "Un clic scrive {f} direttamente nella cartella del sito – niente da scaricare né da spostare. La prima volta il browser chiede la cartella del sito (quella con index.html).",
+      pubHowOn: "Un clic scrive {f} direttamente nella cartella del sito «{o}».",
+      pubOk: "{f} salvato nella cartella «{o}» alle {z}.",
+      pubWrong: "Nella cartella «{o}» non c'è index.html. Scegli la cartella del sito, quella con index.html e admin.html. Senza cartella del sito: «Scarica invece il file».",
+      pubDenied: "Il browser non ha consentito il salvataggio. Clicca di nuovo e consenti l'accesso.",
+      pubErr: "Salvataggio non riuscito: {m}",
+      pubChange: "Scegli un'altra cartella", pubOrdner: "Cartella del sito: {o}", pubLaden: "Scarica invece il file",
+      pubNoFs: "Il salvataggio diretto funziona con Chrome o Edge su computer.",
       wd_mo: "lunedì", wd_di: "martedì", wd_mi: "mercoledì", wd_do: "giovedì", wd_fr: "venerdì", wd_sa: "sabato",
       g_mittelstufe: "Livello intermedio", g_oberstufe: "Livello superiore", "g_erw-roman": "Adulti · Romanzi", "g_erw-sach": "Adulti · Saggistica", "g_erw-bio": "Adulti · Biografie e storia",
       t_leser: "Lettrici e lettori", t_lesergruppen: "Assegnazioni ai gruppi", t_ausleihen: "Prestiti in corso",
@@ -161,7 +179,7 @@
     },
   });
 
-  const cur = window.DSM_BIBLIOTHEK;
+  let cur = window.DSM_BIBLIOTHEK;
   // Alte Vorschauen verwerfen, damit index.html#vorschau nur zeigt, was in dieser Sitzung entsteht
   try { ["dsm-vorschau", "dsm-vorschau-empf", "dsm-vorschau-info"].forEach(k => localStorage.removeItem(k)); } catch (e) { /* */ }
 
@@ -258,7 +276,7 @@
     if (r.nameRemoved) msg += " " + D.t("checkRemoved", { n: D.nf(r.nameRemoved) });
     chk.textContent = msg;
     chk.className = "flag ui" + (r.nameHits ? " mid" : "");
-    $("#r-howto").textContent = D.t("howto");
+    renderPub();
     report.hidden = false;
     showCov();
   }
@@ -268,7 +286,7 @@
   function entry() {
     const isbn = result.books.filter(b => b.i).length;
     const e = { stand, buecher: result.books.length, isbn };
-    if (cov && cov.done) Object.assign(e, { cover: cov.ol + cov.gb, ol: cov.ol, gb: cov.gb, ohne: cov.none, geprueft: cov.done, vollstaendig: !!cov.complete });
+    if (cov && cov.done) Object.assign(e, { cover: (cov.dnb || 0) + cov.ol + cov.gb, dnb: cov.dnb || 0, ol: cov.ol, gb: cov.gb, ohne: cov.none, geprueft: cov.done, vollstaendig: !!cov.complete });
     return e;
   }
   function history() {
@@ -279,24 +297,25 @@
   function showCov() {
     if (!result) return;
     const n = result.books.length, e = entry();
-    const segs = { ol: 0, gb: 0, none: 0 };
+    const segs = { dnb: 0, ol: 0, gb: 0, none: 0 };
     let lines = "";
     const li = (sw, label, v) => `<li><span>${sw ? `<span class="sw" style="background:var(${sw})"></span>` : ""}${label}</span><span>${v}</span></li>`;
     if (cov) {
-      const tot = cov.total || 1, c = cov.ol + cov.gb;
+      const tot = cov.total || 1, c = (cov.dnb || 0) + cov.ol + cov.gb;
       $("#c-big").textContent = (cov.complete ? "" : "≥ ") + pct(c / tot);
       $("#c-sub").textContent = D.t(cov.complete ? "covSub" : "covSubPart", { c: D.nf(c), n: D.nf(cov.total), a: pct(c / n) }) +
         (cov.complete ? "" : " · " + (survey ? D.t("covProgress", { d: D.nf(cov.done), n: D.nf(cov.total) }) : D.t("covPartial", { d: D.nf(cov.done), n: D.nf(cov.total) })));
-      segs.ol = cov.ol / tot; segs.gb = cov.gb / tot; segs.none = cov.none / tot;
-      lines = li("--gruen", D.t("lOl"), D.nf(cov.ol)) + li("--blau", D.t("lGb"), D.nf(cov.gb)) + li("--rot", D.t("lNone"), D.nf(cov.none));
+      segs.dnb = (cov.dnb || 0) / tot; segs.ol = cov.ol / tot; segs.gb = cov.gb / tot; segs.none = cov.none / tot;
+      lines = li("--mauve", D.t("lDnb"), D.nf(cov.dnb || 0)) + li("--gruen", D.t("lOl"), D.nf(cov.ol)) + li("--blau", D.t("lGb"), D.nf(cov.gb)) + li("--rot", D.t("lNone"), D.nf(cov.none));
       if (cov.err) lines += li(null, D.t("lErr"), D.nf(cov.err));
       if (cov.total - cov.done > 0) lines += li(null, D.t("lOpen"), D.nf(cov.total - cov.done));
-      $("#c-hint").textContent = cov.paused ? D.t("covPaused") : D.t("covHint");
+      $("#c-hint").textContent = D.t("covHint");
     } else {
       $("#c-big").textContent = pct(e.isbn / n);
       $("#c-sub").textContent = D.t("covIsbn", { p: pct(e.isbn / n) });
       $("#c-hint").textContent = D.t("covHint");
     }
+    $("#c-meter").querySelector(".m-dnb").style.width = segs.dnb * 100 + "%";
     $("#c-meter").querySelector(".m-ol").style.width = segs.ol * 100 + "%";
     $("#c-meter").querySelector(".m-gb").style.width = segs.gb * 100 + "%";
     $("#c-meter").querySelector(".m-none").style.width = segs.none * 100 + "%";
@@ -318,16 +337,17 @@
   });
   $("#c-stop").addEventListener("click", () => { if (survey) { survey.stop(); } });
 
-  $("#dl").addEventListener("click", () => {
-    if (!result) return;
-    const e = entry();
-    const script = window.DSMExtract.toScript(result, { stand, abdeckung: e, verlauf: history() });
-    const url = URL.createObjectURL(new Blob([script], { type: "text/javascript;charset=utf-8" }));
-    const a = document.createElement("a");
-    a.href = url; a.download = "books.js";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  });
+  function booksDatei() {
+    const meta = { stand, abdeckung: entry(), verlauf: history() };
+    return {
+      text: window.DSMExtract.toScript(result, meta),
+      fertig: () => {
+        cur = window.DSM_BIBLIOTHEK = { stand, anzahl: result.books.length, abdeckung: meta.abdeckung, verlauf: meta.verlauf, buecher: result.books };
+        showCurrent(); show();
+      },
+    };
+  }
+  $("#dl").addEventListener("click", () => { if (result) veroeffentlichen("books.js"); });
   $("#again").addEventListener("click", () => { report.hidden = true; drop.hidden = false; err.hidden = true; input.click(); });
 
   input.addEventListener("change", () => handle(input.files[0]));
@@ -349,6 +369,7 @@
   try { draft = JSON.parse(localStorage.getItem(DRAFT) || "null"); } catch (e) { draft = null; }
   if (!draft || !draft.gruppen) draft = clone(window.DSM_EMPFEHLUNGEN || { gruppen: {} });
   GROUPS.forEach(g => { if (!Array.isArray(draft.gruppen[g])) draft.gruppen[g] = []; });
+  if (!draft.thema) draft.thema = { de: "", it: "" };
   let eGroup = "mittelstufe", resetArmed = false;
   const catalog = () => (result ? result.books : (cur && cur.buecher) || []);
   const ICON = {
@@ -370,6 +391,7 @@
     $("#e-state").textContent = D.t("eSaved", { n: D.nf(n), g: D.nf(g) });
   }
   function renderEditor() {
+    $("#e-thema").querySelectorAll("input").forEach(i => { i.value = draft.thema[i.dataset.f] || ""; });
     $("#e-groups").innerHTML = GROUPS.map(g => `<button type="button" role="radio" data-g="${g}" aria-checked="${g === eGroup}">${escE(D.t("g_" + g))} (${draft.gruppen[g].length})</button>`).join("");
     const keys = new Set(catalog().map(keyB));
     const list = draft.gruppen[eGroup];
@@ -428,19 +450,35 @@
     draft.gruppen[eGroup][+ta.closest(".rec-ed").dataset.n][ta.dataset.f] = ta.value;
     saveDraft();
   });
+  $("#e-thema").addEventListener("input", e => { const i = e.target.closest("input"); if (i) { draft.thema[i.dataset.f] = i.value; saveDraft(); } });
+  // Neue Runde (andere Bücher als veröffentlicht): die veröffentlichte Runde wandert vorne ins Archiv.
+  // Nur Texte oder Thema geändert: gleiche Runde, Datum und Archiv bleiben.
   function recsOut() {
-    const out = { stand: new Date().toLocaleDateString("sv-SE"), gruppen: {} };
-    GROUPS.forEach(g => { out.gruppen[g] = draft.gruppen[g].map(r => ({ k: r.k, t: r.t, a: r.a, de: (r.de || "").trim(), it: (r.it || "").trim() })); });
+    const pub = window.DSM_EMPFEHLUNGEN || { gruppen: {} };
+    const gruppen = {};
+    GROUPS.forEach(g => { gruppen[g] = draft.gruppen[g].map(r => ({ k: r.k, t: r.t, a: r.a, de: (r.de || "").trim(), it: (r.it || "").trim() })); });
+    const sig = gr => GROUPS.map(g => ((gr && gr[g]) || []).map(r => r.k).join(",")).join(";");
+    const pubHas = !!pub.stand && GROUPS.some(g => ((pub.gruppen && pub.gruppen[g]) || []).length);
+    const neu = !pubHas || sig(pub.gruppen) !== sig(gruppen);
+    const archiv = Array.isArray(pub.archiv) ? pub.archiv.slice() : [];
+    if (neu && pubHas) archiv.unshift(Object.assign({ stand: pub.stand }, pub.thema ? { thema: pub.thema } : {}, { gruppen: pub.gruppen }));
+    const out = { stand: neu ? new Date().toLocaleDateString("sv-SE") : pub.stand };
+    const thema = { de: (draft.thema.de || "").trim(), it: (draft.thema.it || "").trim() };
+    if (thema.de || thema.it) out.thema = thema;
+    out.gruppen = gruppen;
+    if (archiv.length) out.archiv = archiv.slice(0, 40);
     return out;
   }
-  $("#e-dl").addEventListener("click", () => {
-    const text = "/* Buchempfehlungen der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */\n" +
-      "window.DSM_EMPFEHLUNGEN = " + JSON.stringify(recsOut(), null, 1).replace(/</g, "\\u003c") + ";\n";
-    const url = URL.createObjectURL(new Blob([text], { type: "text/javascript;charset=utf-8" }));
-    const a = document.createElement("a"); a.href = url; a.download = "empfehlungen.js";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  });
+  function empfDatei() {
+    const out = recsOut();
+    return {
+      text: "/* Buchempfehlungen der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */\n" +
+        "window.DSM_EMPFEHLUNGEN = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n",
+      // Danach gilt der neue Stand als veröffentlicht (sonst wanderte die Runde beim nächsten Mal doppelt ins Archiv)
+      fertig: () => { window.DSM_EMPFEHLUNGEN = out; },
+    };
+  }
+  $("#e-dl").addEventListener("click", () => veroeffentlichen("empfehlungen.js"));
   $("#e-prev").addEventListener("click", () => { try { localStorage.setItem("dsm-vorschau-empf", JSON.stringify(recsOut())); } catch (e) { /* */ } });
   $("#e-reset").addEventListener("click", () => {
     const lbl = $("#e-reset span");
@@ -449,6 +487,7 @@
     try { localStorage.removeItem(DRAFT); } catch (e) { /* */ }
     draft = clone(window.DSM_EMPFEHLUNGEN || { gruppen: {} });
     GROUPS.forEach(g => { if (!Array.isArray(draft.gruppen[g])) draft.gruppen[g] = []; });
+    if (!draft.thema) draft.thema = { de: "", it: "" };
     renderEditor();
   });
 
@@ -586,14 +625,15 @@
       .sort((a, b) => (a.von < b.von ? -1 : a.von > b.von ? 1 : 0));
     return { stand: today(), zeiten, hinweis: { de: info.hinweis.de.trim(), it: info.hinweis.it.trim() }, schliessungen };
   }
-  $("#i-dl").addEventListener("click", () => {
-    const text = "/* Öffnungszeiten, Ferien und Abwesenheiten der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */\n" +
-      "window.DSM_INFO = " + JSON.stringify(infoOut(), null, 1).replace(/</g, "\\u003c") + ";\n";
-    const url = URL.createObjectURL(new Blob([text], { type: "text/javascript;charset=utf-8" }));
-    const a = document.createElement("a"); a.href = url; a.download = "info.js";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  });
+  function infoDatei() {
+    const out = infoOut();
+    return {
+      text: "/* Öffnungszeiten, Ferien und Abwesenheiten der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */\n" +
+        "window.DSM_INFO = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n",
+      fertig: () => { window.DSM_INFO = out; },
+    };
+  }
+  $("#i-dl").addEventListener("click", () => veroeffentlichen("info.js"));
   $("#i-prev").addEventListener("click", () => { try { localStorage.setItem("dsm-vorschau-info", JSON.stringify(infoOut())); } catch (e) { /* */ } });
   $("#i-reset").addEventListener("click", () => {
     const lbl = $("#i-reset span");
@@ -604,7 +644,108 @@
     renderInfo();
   });
 
+  // ---------- Veröffentlichen ----------
+  // Chrome/Edge (File System Access API): direkt in den Website-Ordner schreiben. Der Ordner wird beim ersten Mal
+  // gewählt und in IndexedDB gemerkt; geprüft wird, dass index.html darin liegt. Andere Browser: Download wie bisher.
+  const FS = typeof window.showDirectoryPicker === "function";
+  const PUB = {
+    "books.js": { knopf: "#dl", alt: "download", how: "#r-howto", howKey: "howto", bau: booksDatei },
+    "empfehlungen.js": { knopf: "#e-dl", alt: "eDl", how: "#e-how", howKey: "eHow", bau: empfDatei },
+    "info.js": { knopf: "#i-dl", alt: "iDl", how: "#i-how", howKey: "iHow", bau: infoDatei },
+  };
+  const pubMsg = {};
+  let ordner = null;
+  function kv(mode, op) {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open("dsm-admin", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("kv");
+      r.onerror = () => rej(r.error);
+      r.onsuccess = () => {
+        const db = r.result, tx = db.transaction("kv", mode), q = op(tx.objectStore("kv"));
+        tx.oncomplete = () => { db.close(); res(q.result); };
+        tx.onerror = tx.onabort = () => { db.close(); rej(tx.error); };
+      };
+    });
+  }
+  function herunterladen(datei, text) {
+    const url = URL.createObjectURL(new Blob([text], { type: "text/javascript;charset=utf-8" }));
+    const a = document.createElement("a"); a.href = url; a.download = datei;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  async function pruefen(dir) {
+    try { await dir.getFileHandle("index.html"); } catch (e) { throw Object.assign(new Error("index.html fehlt"), { code: "pubWrong", o: dir.name }); }
+  }
+  async function ordnerWaehlen() {
+    const dir = await window.showDirectoryPicker({ id: "dsm-website", mode: "readwrite" });
+    await pruefen(dir);
+    ordner = dir;
+    try { await kv("readwrite", st => st.put(dir, "website")); } catch (e) { /* gilt dann nur in dieser Sitzung */ }
+    D.log("Veröffentlichen", `Website-Ordner gewählt: ${dir.name}`);
+    return dir;
+  }
+  async function erlauben(dir) {
+    const o = { mode: "readwrite" };
+    if (!dir.queryPermission || (await dir.queryPermission(o)) === "granted") return;
+    if ((await dir.requestPermission(o)) !== "granted") throw Object.assign(new Error("nicht erlaubt"), { code: "pubDenied" });
+  }
+  const fehler = e => ({ art: "warn", key: (e && e.code) || "pubErr", vars: { o: (e && e.o) || "", m: (e && e.message) || String(e) } });
+  async function veroeffentlichen(datei) {
+    const { text, fertig } = PUB[datei].bau();
+    if (!FS) { herunterladen(datei, text); return; }
+    const knopf = $(PUB[datei].knopf);
+    knopf.disabled = true;
+    try {
+      let dir = ordner;
+      if (dir) await erlauben(dir); else dir = await ordnerWaehlen();
+      await pruefen(dir);
+      const w = await (await dir.getFileHandle(datei, { create: true })).createWritable();
+      await w.write(text);
+      await w.close();
+      const z = new Date().toLocaleTimeString(D.lang === "it" ? "it-IT" : "de-DE", { hour: "2-digit", minute: "2-digit" });
+      pubMsg[datei] = { key: "pubOk", vars: { f: datei, o: dir.name, z } };
+      D.log("Veröffentlichen", `${datei} in „${dir.name}“ geschrieben (${text.length} Zeichen)`);
+      fertig();
+    } catch (e) {
+      if (!e || e.name !== "AbortError") { pubMsg[datei] = fehler(e); D.log("Veröffentlichen", `${datei} nicht gespeichert: ${(e && e.message) || e}`); }
+    } finally {
+      knopf.disabled = false;
+      renderPub();
+    }
+  }
+  function renderPub() {
+    Object.keys(PUB).forEach(datei => {
+      const p = PUB[datei], span = $(p.knopf + " span");
+      span.dataset.i18n = FS ? "pubBtn" : p.alt;
+      span.textContent = D.t(span.dataset.i18n);
+      // Häkchen statt Download-Pfeil, wenn direkt gespeichert wird
+      $(p.knopf + " svg path").setAttribute("d", FS ? "M5 12.5l4.5 4.5L19 7" : "M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14");
+      $(p.how).textContent = FS ? D.t(ordner ? "pubHowOn" : "pubHow", { f: datei, o: ordner ? ordner.name : "" }) : D.t("pubNoFs") + " " + D.t(p.howKey);
+      const m = pubMsg[datei];
+      document.querySelector(`.pub[data-datei="${datei}"]`).innerHTML =
+        (m ? `<p class="flag ui${m.art ? " " + m.art : ""}" role="status">${escE(D.t(m.key, m.vars))}</p>` : "") +
+        // Ausweg ohne Website-Ordner (z. B. Schul-PC): Datei herunterladen und weitergeben
+        (FS ? `<p class="note">${ordner ? `${escE(D.t("pubOrdner", { o: ordner.name }))} · <button type="button" class="textbtn" data-pub-wechseln>${escE(D.t("pubChange"))}</button> · ` : ""}` +
+          `<button type="button" class="textbtn" data-pub-laden>${escE(D.t("pubLaden"))}</button></p>` : "");
+    });
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-pub-laden]"); if (!b) return;
+    const datei = b.closest(".pub").dataset.datei;
+    herunterladen(datei, PUB[datei].bau().text);
+    D.log("Veröffentlichen", `${datei} stattdessen heruntergeladen`);
+  });
+  document.addEventListener("click", async e => {
+    const b = e.target.closest("[data-pub-wechseln]"); if (!b) return;
+    const datei = b.closest(".pub").dataset.datei;
+    try { await ordnerWaehlen(); delete pubMsg[datei]; } catch (err) { if (!err || err.name !== "AbortError") pubMsg[datei] = fehler(err); }
+    renderPub();
+  });
+  if (FS) kv("readonly", st => st.get("website")).then(h => { if (h && !ordner) { ordner = h; renderPub(); } }).catch(() => { /* ohne IndexedDB: Ordner in jeder Sitzung neu wählen */ });
+  renderPub();
+
   D.onLang(() => {
+    renderPub();
     showCurrent();
     if (!$("#tab-empf").hidden) renderEditor();
     if (!$("#tab-info").hidden) renderInfo();
