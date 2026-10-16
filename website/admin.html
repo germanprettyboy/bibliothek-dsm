@@ -15,7 +15,7 @@
 </head>
 <body>
 <header class="wrap top">
-  <a class="logo" href="./">
+  <a class="logo ld-bild" href="./">
     <img class="logo-l" src="assets/logo-hell.webp" width="360" height="200" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
     <img class="logo-d" src="assets/logo-dunkel.webp" width="360" height="200" loading="lazy" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
   </a>
@@ -41,7 +41,7 @@
       <h2 data-i18n="lockT">Geschützter Bereich</h2>
       <p data-i18n="lockP">Bitte das Passwort der Bibliothek eingeben.</p>
       <input type="password" id="pw" autocomplete="current-password" data-i18n-label="lockPw" aria-label="Passwort" required>
-      <button type="submit" class="btn" id="unlock"><span data-i18n="lockBtn">Entsperren</span></button>
+      <button type="submit" class="btn busy" id="unlock" disabled><span class="spin" aria-hidden="true"></span><span data-i18n="lockBtn">Entsperren</span></button>
       <p class="msg" id="lock-msg" role="alert"></p>
     </form>
   </div>

@@ -87,6 +87,9 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
 - Langsame Verbindung: Lade-Platzhalter (Balken mit Lichtband, `.skel` in index.html) für Liste und – wenn gewählt
   (`data-empf` aus common.js) – Empfehlungen, bis books.js (≈700 KB) da ist; nach 6 s Hinweis „Langsame Verbindung“.
   info.js/info-panel.js laden VOR books.js (Öffnungszeiten sofort). Cover: Lichtband bis das Bild wirklich geladen ist.
+  Jedes nachladende Element hat einen Platzhalter: Logo (`.ld-bild`, common.js setzt `.da` bei load/error),
+  Info-Karte (nur wenn beim letzten Besuch gezeigt, `dsm-info-karte`), Entsperren-Knopf im Admin (gesperrt mit
+  Spinner, bis admin-lock.js nach books.js geladen ist; Spinner auch beim Prüfen). Schriften: `font-display: swap`.
 - Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ → Mittelstufe / Oberstufe /
   Erwachsenenliteratur → (Erw.) Romane / Sachbücher / Biografien & Geschichte. Wahl in localStorage `dsm-empf`.
   In den Einstellungen dieselbe Wahl als Liste: Blöcke Mittelstufe / Oberstufe / Erwachsenenliteratur mit Abstand
@@ -123,7 +126,7 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
   `k` = norm(Titel) + "|" + norm(Erstautor) (norm: klein, ohne Akzente, ß→ss, nur a–z0–9 und Leerzeichen).
 - `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
-- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache),
+- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache), `dsm-info-karte` ("1"/"0", Platzhalter),
   Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
   Protokoll: `dsm-protokoll` (localStorage, "aus" = abgeschaltet), `dsm-protokoll-verlauf` (sessionStorage, letzte 500 Einträge).
 - Konsolen-Protokoll (`assets/protokoll.js`): erfasst automatisch Klicks, Eingaben (600 ms entprellt), Schalter, Dateien,

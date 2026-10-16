@@ -39,7 +39,10 @@
     } catch (e) { /* keine Vorschau */ }
   }
   const box = $("#info");
+  if (box) box.classList.remove("laedt"); // Lade-Platzhalter aus index.html
   if (!I || !box) return;
+  // Für den nächsten Besuch merken, ob eine Karte kommt (Platzhalter, common.js); Vorschau zählt nicht
+  const merke = an => { if (location.hash !== "#vorschau" && D.store.get("dsm-info-karte") !== (an ? "1" : "0")) D.store.set("dsm-info-karte", an ? "1" : "0"); };
 
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const DAYS = ["mo", "di", "mi", "do", "fr", "sa", "so"];
@@ -114,7 +117,8 @@
     const soonLimit = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 21, 12));
     const soon = closures.find(c => c !== active && c.bis >= today && c.von <= soonLimit);
     const future = closures.some(c => c.bis >= today);
-    if (!st && !soon && !future && !hinweis()) { box.hidden = true; box.innerHTML = ""; return; }
+    if (!st && !soon && !future && !hinweis()) { box.hidden = true; box.innerHTML = ""; merke(false); return; }
+    merke(true);
     let lines = "";
     if (st) lines += `<span class="info-line"><i class="dot ${st.k === "auf" ? "" : st.k}"></i><span class="tx"><b>${esc(st.t)}</b>${st.sub ? `<small>${esc(st.sub)}</small>` : ""}</span>${CHEV}</span>`;
     else lines += `<span class="info-line"><span class="tx"><b>${esc(D.t(hasHours ? "infoT" : "closuresT"))}</b></span>${CHEV}</span>`;

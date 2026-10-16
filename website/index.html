@@ -20,7 +20,7 @@
 </div>
 
 <header class="wrap top">
-  <a class="logo" href="./">
+  <a class="logo ld-bild" href="./">
     <img class="logo-l" src="assets/logo-hell.webp" width="360" height="200" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
     <img class="logo-d" src="assets/logo-dunkel.webp" width="360" height="200" loading="lazy" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
   </a>
@@ -39,7 +39,10 @@
   <h1 class="ui" data-i18n="title">Bibliothek</h1>
 </section>
 
-<section class="wrap info" id="info" hidden></section>
+<section class="wrap info laedt" id="info" hidden>
+  <!-- Platzhalter, wenn beim letzten Besuch eine Info-Karte da war (data-info, common.js); info-panel.js ersetzt ihn -->
+  <div class="info-card skel" aria-hidden="true"><span class="info-line"><span class="skel-row"><span></span><span></span></span></span></div>
+</section>
 
 <section class="wrap recs laedt" id="recs" hidden aria-labelledby="recs-title">
   <!-- Platzhalter während des Ladens, nur wenn Empfehlungen gewählt sind (data-empf, common.js); app.js ersetzt ihn -->
