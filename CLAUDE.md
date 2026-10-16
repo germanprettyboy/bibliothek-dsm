@@ -75,7 +75,11 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
   Leiste beginnen (`main.books` mindestens bildschirmhoch).
 - Empfehlungs-Editor: Gruppe voll (4) → Suchfeld gesperrt mit Hinweis mittig; Bücher schon in der
   Gruppe → Treffer ausgegraut, ohne Knopf.
-- Änderungen im Admin werden als Datei heruntergeladen und per FTP hochgeladen (vom Auftraggeber so gewollt).
+- Nur HTML/CSS/JS: kein PHP, kein Server, keine Push-/Deploy-Dienste (vom Auftraggeber so gewollt).
+- Admin „Veröffentlichen“ schreibt books.js/empfehlungen.js/info.js direkt in den Website-Ordner (File System Access API,
+  Chrome/Edge): Ordner einmal wählen (muss index.html enthalten), Handle in IndexedDB, danach ein Klick ohne Rückfrage.
+  Andere Browser: Download wie früher. Immer da: „Stattdessen herunterladen“ (Schul-PC ohne Website-Ordner).
+  Hochladen auf den Webspace per FTP bleibt Handarbeit.
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
   (OL „M“ ≈180 px, Google „thumbnail“ ≈128 px). Open Library NICHT über `/b/isbn/` laden
   (100 Abrufe / 5 min / IP, Schulnetz = eine IP) – immer `/api/books?jscmd=viewapi` (Sammelabfrage) → Cover-ID.
@@ -127,7 +131,7 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
 - `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
 - localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache), `dsm-info-karte` ("1"/"0", Platzhalter),
-  Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
+  Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, IndexedDB `dsm-admin` (Store `kv`, Schlüssel `website` = Ordner-Handle), Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
   Protokoll: `dsm-protokoll` (localStorage, "aus" = abgeschaltet), `dsm-protokoll-verlauf` (sessionStorage, letzte 500 Einträge).
 - Konsolen-Protokoll (`assets/protokoll.js`): erfasst automatisch Klicks, Eingaben (600 ms entprellt), Schalter, Dateien,
   Tasten (Escape/Enter/Kombinationen), Formulare, `<dialog>` auf/zu mit Grund, Scrollen, Netz (fetch, fremde Bilder),

@@ -15,6 +15,19 @@ const { B, E } = daten();
 
 test.beforeEach(async ({ context }) => {
   await context.route("**/assets/admin.enc.js", r => r.fulfill({ path: path.join(TMP, "admin.enc.js"), contentType: "text/javascript" }));
+  // Ordnerdialog des Browsers (nativ, nicht steuerbar) ersetzt durch einen Ordner im privaten Browser-Speicher (OPFS).
+  // localStorage „__test-ordner“: Name des gewählten Ordners; nur „website“ enthält index.html; „abbrechen“ = Dialog abgebrochen.
+  await context.addInitScript(() => {
+    window.__picks = 0;
+    window.showDirectoryPicker = async () => {
+      window.__picks++;
+      const name = localStorage.getItem("__test-ordner") || "website";
+      if (name === "abbrechen") throw new DOMException("Auswahl abgebrochen", "AbortError");
+      const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(name, { create: true });
+      if (name === "website") await (await (await dir.getFileHandle("index.html", { create: true })).createWritable()).close();
+      return dir;
+    };
+  });
 });
 
 async function entsperren(page) {
@@ -26,10 +39,28 @@ async function entsperren(page) {
 async function laden(page, datei) {
   await page.setInputFiles("#file", datei);
 }
-// Download als Text
+// Download als Text (Browser ohne Ordnerzugriff)
 async function herunterladen(page, knopf) {
   const [dl] = await Promise.all([page.waitForEvent("download"), page.click(knopf)]);
   return fs.readFileSync(await dl.path(), "utf8");
+}
+// Datei im (Test-)Website-Ordner lesen, null = nicht vorhanden
+const ordnerDatei = (page, datei, ordner = "website") => page.evaluate(async ([d, o]) => {
+  try {
+    const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(o);
+    return await (await (await dir.getFileHandle(d)).getFile()).text();
+  } catch (e) { return null; }
+}, [datei, ordner]);
+// Inhalt als Daten; null, solange die Datei fehlt oder gerade geschrieben wird
+const ordnerDaten = async (page, datei, name) => { try { return auswerten(await ordnerDatei(page, datei), name) || null; } catch (e) { return null; } };
+const DATEI = { "#dl": "books.js", "#e-dl": "empfehlungen.js", "#i-dl": "info.js" };
+const okText = datei => new RegExp(`^${datei.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
+// Veröffentlichen: Klick, Erfolgsmeldung, geschriebene Datei als Text
+async function speichern(page, knopf) {
+  const datei = DATEI[knopf];
+  await page.click(knopf);
+  await expect(page.locator(`.pub[data-datei="${datei}"] .flag`)).toHaveText(okText(datei));
+  return ordnerDatei(page, datei);
 }
 const auswerten = (s, name) => { const w = {}; new Function("window", s)(w); return w[name]; };
 // Gleiche Erzeugung wie npm run books / books-erzeugen.js
@@ -166,17 +197,20 @@ test.describe("Datenbank einlesen", () => {
     await expect(page.locator("#report")).not.toContainText("Musterfrau");
   });
 
-  test("books.js herunterladen: byte-gleich zur Node-Erzeugung (npm run books)", async ({ page }) => {
+  test("books.js veröffentlichen: byte-gleich zur Node-Erzeugung (npm run books)", async ({ page }) => {
     await entsperren(page);
     await laden(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
-    const s = await herunterladen(page, "#dl");
+    const s = await speichern(page, "#dl");
     const d = auswerten(s, "DSM_BIBLIOTHEK");
     expect(d.anzahl).toBe(8);
     expect(d.abdeckung).toMatchObject({ stand: d.stand, buecher: 8, isbn: 3 });
     expect(d.verlauf.at(-1)).toEqual(d.abdeckung);
     const node = await nodeSkript(fs.readFileSync(path.join(TMP, "test.winbook")), { stand: d.stand, abdeckung: d.abdeckung, verlauf: d.verlauf });
-    expect(s === node, "Download weicht von Node-Erzeugung ab").toBe(true);
+    expect(s === node, "books.js weicht von Node-Erzeugung ab").toBe(true);
+    // danach gilt der neue Bestand als veröffentlicht
+    await expect(page.locator("#current")).toHaveText(/^Aktuell veröffentlicht: 8 Bücher, Stand /);
+    await expect(page.locator("#r-taken")).toContainText("Gegenüber der aktuellen Liste+0 neu · −0 entfallen");
   });
 
   test("Vorschau: index.html#vorschau zeigt die eingelesene Liste", async ({ page, context }) => {
@@ -231,11 +265,11 @@ test.describe("Datenbank einlesen", () => {
     await expect(page.locator("#c-lines")).toContainText("Google Books1");
     await expect(page.locator("#c-lines")).toContainText("Kein Cover gefunden1");
     expect(netz.anfragen.filter(u => u.includes("/b/isbn/"))).toEqual([]);
-    const d = auswerten(await herunterladen(page, "#dl"), "DSM_BIBLIOTHEK");
+    const d = auswerten(await speichern(page, "#dl"), "DSM_BIBLIOTHEK");
     expect(d.abdeckung).toMatchObject({ cover: 2, ol: 1, gb: 1, ohne: 1, geprueft: 3, vollstaendig: true });
   });
 
-  test("Original-Datenbank: Download byte-gleich zur Node-Erzeugung", async ({ page }) => {
+  test("Original-Datenbank: books.js byte-gleich zur Node-Erzeugung", async ({ page }) => {
     const db = echteDb();
     test.skip(!db, "daten/BIBLIOTHEK_DSM_2024.winbook fehlt");
     test.setTimeout(120000);
@@ -243,10 +277,10 @@ test.describe("Datenbank einlesen", () => {
     await laden(page, db);
     await expect(page.locator("#report")).toBeVisible({ timeout: 90000 });
     await expect(page.locator("#r-books")).toHaveText(B.buecher.length.toLocaleString("de-DE"));
-    const s = await herunterladen(page, "#dl");
+    const s = await speichern(page, "#dl");
     const d = auswerten(s, "DSM_BIBLIOTHEK");
     const node = await nodeSkript(fs.readFileSync(db), { stand: d.stand, abdeckung: d.abdeckung, verlauf: d.verlauf });
-    expect(s === node, "Download weicht von npm run books ab").toBe(true);
+    expect(s === node, "books.js weicht von npm run books ab").toBe(true);
     expect(JSON.stringify(d.buecher)).toBe(JSON.stringify(B.buecher));
   });
 });
@@ -303,11 +337,11 @@ test.describe("Empfehlungen bearbeiten", () => {
     await expect(page.locator("#e-list .rec-ed b").nth(2)).toHaveText(titel);
   });
 
-  test("empfehlungen.js herunterladen: Format, Schlüssel, getrimmte Texte", async ({ page }) => {
+  test("empfehlungen.js veröffentlichen: Format, Schlüssel, getrimmte Texte", async ({ page }) => {
     await entsperren(page);
     await tab(page);
     await page.locator('#e-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("  Neuer Text mit Leerzeichen.  ");
-    const s = await herunterladen(page, "#e-dl");
+    const s = await speichern(page, "#e-dl");
     expect(s).toMatch(/^\/\*.*\*\/\nwindow\.DSM_EMPFEHLUNGEN = \{/);
     expect(s).not.toContain("<");
     const d = auswerten(s, "DSM_EMPFEHLUNGEN");
@@ -363,5 +397,135 @@ test.describe("Verwaltung auf dem Handy", () => {
     await laden(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  });
+});
+
+test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
+  const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
+  const picks = page => page.evaluate(() => window.__picks);
+  const ordnerZeile = "Website-Ordner: website · Anderen Ordner wählen · Stattdessen herunterladen";
+
+  test("erster Klick fragt nach dem Ordner und schreibt info.js; danach ohne Rückfrage, auch nach Neuladen", async ({ page }) => {
+    await entsperren(page);
+    await info(page);
+    await expect(page.locator("#i-dl")).toHaveText("Veröffentlichen");
+    await expect(page.locator("#i-how")).toContainText("nichts herunterladen, nichts verschieben");
+    await page.fill("#i-note-de", "Erster Hinweis");
+    const d = auswerten(await speichern(page, "#i-dl"), "DSM_INFO");
+    expect(d.hinweis.de).toBe("Erster Hinweis");
+    expect(await picks(page)).toBe(1);
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText(ordnerZeile);
+    await expect(page.locator("#i-how")).toHaveText("Ein Klick schreibt info.js direkt in den Website-Ordner „website“.");
+    // zweites Mal: kein Dialog
+    await page.fill("#i-note-de", "Zweiter Hinweis");
+    await page.click("#i-dl");
+    await expect.poll(async () => (await ordnerDaten(page, "info.js", "DSM_INFO"))?.hinweis.de).toBe("Zweiter Hinweis");
+    expect(await picks(page)).toBe(1);
+    // Ordner bleibt nach Neuladen gemerkt (IndexedDB)
+    await page.reload();
+    await expect(page.locator("#app")).toBeVisible({ timeout: 10000 });
+    await info(page);
+    await expect(page.locator("#i-how")).toHaveText("Ein Klick schreibt info.js direkt in den Website-Ordner „website“.");
+    await page.fill("#i-note-de", "Dritter Hinweis");
+    await page.click("#i-dl");
+    await expect.poll(async () => (await ordnerDaten(page, "info.js", "DSM_INFO"))?.hinweis.de).toBe("Dritter Hinweis");
+    expect(await picks(page)).toBe(0);
+  });
+
+  test("falscher Ordner (ohne index.html): Meldung, nichts geschrieben; danach richtiger Ordner", async ({ page }) => {
+    await entsperren(page);
+    await info(page);
+    await page.evaluate(() => localStorage.setItem("__test-ordner", "Downloads"));
+    await page.click("#i-dl");
+    const flag = page.locator('.pub[data-datei="info.js"] .flag');
+    await expect(flag).toHaveText("Im Ordner „Downloads“ liegt keine index.html. Bitte den Website-Ordner wählen – den Ordner mit index.html und admin.html. Ohne Website-Ordner: „Stattdessen herunterladen“.");
+    await expect(flag).toHaveClass(/warn/);
+    expect(await ordnerDatei(page, "info.js", "Downloads")).toBeNull();
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Stattdessen herunterladen");
+    await page.evaluate(() => localStorage.setItem("__test-ordner", "website"));
+    await speichern(page, "#i-dl");
+    expect(await picks(page)).toBe(2);
+  });
+
+  test("Dialog abgebrochen: keine Meldung, nichts geschrieben", async ({ page }) => {
+    await entsperren(page);
+    await info(page);
+    await page.evaluate(() => localStorage.setItem("__test-ordner", "abbrechen"));
+    await page.click("#i-dl");
+    await expect.poll(() => picks(page)).toBe(1);
+    await expect(page.locator("#i-dl")).toBeEnabled();
+    await expect(page.locator('.pub[data-datei="info.js"]')).toHaveText("Stattdessen herunterladen");
+  });
+
+  test("ohne Website-Ordner (Schul-PC): „Stattdessen herunterladen“ liefert die Datei, ohne Dialog", async ({ page }) => {
+    await entsperren(page);
+    await info(page);
+    await page.fill("#i-note-de", "Für die Weitergabe");
+    const d = auswerten(await herunterladen(page, '.pub[data-datei="info.js"] [data-pub-laden]'), "DSM_INFO");
+    expect(d.hinweis.de).toBe("Für die Weitergabe");
+    expect(await picks(page)).toBe(0);
+  });
+
+  test("anderen Ordner wählen", async ({ page }) => {
+    await entsperren(page);
+    await info(page);
+    await speichern(page, "#i-dl");
+    await page.evaluate(() => localStorage.setItem("__test-ordner", "Downloads"));
+    await page.click('.pub[data-datei="info.js"] [data-pub-wechseln]');
+    await expect(page.locator('.pub[data-datei="info.js"] .flag')).toHaveText(/^Im Ordner „Downloads“ liegt keine index\.html/);
+    // bisheriger Ordner bleibt
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText(ordnerZeile);
+  });
+
+  test("Empfehlungen zweimal veröffentlichen: neue Runde nur einmal im Archiv", async ({ page }) => {
+    await entsperren(page);
+    await page.click('.tabs [data-tab="empf"]');
+    await page.locator('#e-list .rec-ed[data-n="0"] [data-op="del"]').click();
+    const a = auswerten(await speichern(page, "#e-dl"), "DSM_EMPFEHLUNGEN");
+    const vorher = (E.archiv || []).length;
+    expect(a.archiv.length).toBe(vorher + 1);
+    expect(a.stand).toBe(new Date().toLocaleDateString("sv-SE"));
+    await page.locator('#e-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("Nur der Text ist neu.");
+    await page.click("#e-dl");
+    await expect.poll(async () => (await ordnerDaten(page, "empfehlungen.js", "DSM_EMPFEHLUNGEN"))?.gruppen.mittelstufe[0].de).toBe("Nur der Text ist neu.");
+    const b = auswerten(await ordnerDatei(page, "empfehlungen.js"), "DSM_EMPFEHLUNGEN");
+    expect(b.archiv.length).toBe(vorher + 1);
+    expect(b.stand).toBe(a.stand);
+  });
+
+  test("Italienisch", async ({ page }) => {
+    await entsperren(page);
+    await info(page);
+    await page.click('.seg [data-lang="it"]');
+    await expect(page.locator("#i-dl")).toHaveText("Pubblica");
+    await page.click("#i-dl");
+    await expect(page.locator('.pub[data-datei="info.js"] .flag')).toHaveText(/^info\.js salvato nella cartella «website» alle \d\d:\d\d\.$/);
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Cartella del sito: website · Scegli un'altra cartella · Scarica invece il file");
+  });
+});
+
+test.describe("Browser ohne Ordnerzugriff (Safari, Firefox, Handy)", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => { delete window.showDirectoryPicker; delete Window.prototype.showDirectoryPicker; });
+  });
+
+  test("info.js wird wie bisher heruntergeladen, Hinweis nennt Chrome/Edge", async ({ page }) => {
+    await entsperren(page);
+    expect(await page.evaluate(() => typeof window.showDirectoryPicker)).toBe("undefined");
+    await page.click('.tabs [data-tab="info"]');
+    await expect(page.locator("#i-dl")).toHaveText("info.js herunterladen");
+    await expect(page.locator("#i-how")).toHaveText("Direkt speichern geht in Chrome oder Edge am Computer. Die heruntergeladene Datei info.js im Website-Ordner ersetzen (neben index.html).");
+    await page.fill("#i-note-de", "Per Download");
+    const d = auswerten(await herunterladen(page, "#i-dl"), "DSM_INFO");
+    expect(d.hinweis.de).toBe("Per Download");
+    await expect(page.locator('.pub[data-datei="info.js"]')).toHaveText("");
+  });
+
+  test("books.js wird heruntergeladen", async ({ page }) => {
+    await entsperren(page);
+    await laden(page, path.join(TMP, "test.winbook"));
+    await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator("#dl")).toHaveText("books.js herunterladen");
+    expect(auswerten(await herunterladen(page, "#dl"), "DSM_BIBLIOTHEK").anzahl).toBe(8);
   });
 });
