@@ -101,20 +101,23 @@
     if (!a) return;
     e.preventDefault();
     const el = document.getElementById(lid(a.dataset.l));
-    if (el) glide(el.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0));
+    if (el) glide(el);
   });
-  // Schneller animierter Sprung: feste kurze Dauer statt Browser-Smooth-Scroll (der bei langen Strecken trödelt)
+  // Schneller animierter Sprung: feste kurze Dauer statt Browser-Smooth-Scroll (der bei langen Strecken trödelt).
+  // Das Ziel wird in jedem Schritt neu gemessen: Abschnitte, die unterwegs zum ersten Mal gezeichnet
+  // werden (content-visibility), weichen von ihrer geschätzten Höhe ab.
   const still = matchMedia("(prefers-reduced-motion: reduce)");
   let glideId = 0;
-  function glide(y) {
+  function glide(el) {
     cancelAnimationFrame(glideId);
-    y = Math.max(0, Math.min(y, document.documentElement.scrollHeight - innerHeight));
-    const from = scrollY, d = y - from;
-    if (still.matches || Math.abs(d) < 2) { scrollTo({ top: y, behavior: "instant" }); return; }
+    const target = () => Math.max(0, Math.min(el.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0),
+      document.documentElement.scrollHeight - innerHeight));
+    const from = scrollY, d = target() - from;
+    if (still.matches || Math.abs(d) < 2) { scrollTo({ top: target(), behavior: "instant" }); return; }
     const dur = Math.min(420, 200 + Math.abs(d) / 50), t0 = performance.now();
     const step = now => {
       const p = Math.min(1, (now - t0) / dur);
-      scrollTo({ top: from + d * (1 - Math.pow(1 - p, 3)), behavior: "instant" });
+      scrollTo({ top: from + (target() - from) * (1 - Math.pow(1 - p, 3)), behavior: "instant" });
       if (p < 1) glideId = requestAnimationFrame(step);
     };
     glideId = requestAnimationFrame(step);
@@ -122,28 +125,43 @@
   ["wheel", "touchstart", "keydown"].forEach(t => addEventListener(t, () => cancelAnimationFrame(glideId), { passive: true }));
 
   // Liste
-  let current = [], terms = [], marks = [];
+  // Die Liste besteht aus Abschnitten zu höchstens CHUNK Büchern; jeder Buchstabe beginnt einen neuen.
+  // Per CSS (content-visibility) zeichnet der Browser nur Abschnitte in Sichtweite. Für die übrigen
+  // steht eine aus der Textlänge geschätzte Höhe im Stil, bis sie einmal gezeichnet wurden.
+  const CHUNK = 40;
+  let current = [], terms = [], marks = [], hlRe = null;
+  const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   function hl(text) {
-    let s = esc(text);
-    for (const term of terms) {
-      if (term.length < 2) continue;
-      const re = new RegExp("(" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "ig");
-      s = s.replace(/(^|>)([^<]*)/g, (m, p, txt) => p + txt.replace(re, "<mark>$1</mark>"));
-    }
-    return s;
+    if (!hlRe) return esc(text);
+    // split mit Klammer im Ausdruck: ungerade Teile sind Treffer
+    return String(text).split(hlRe).map((p, n) => n % 2 ? `<mark>${esc(p)}</mark>` : esc(p)).join("");
+  }
+  function sizer() {
+    // Zeichen je Zeile für Titel (fs-m) und Autor (fs-s), grob über die mittlere Zeichenbreite
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const w = Math.max(160, list.clientWidth - 40);
+    const cT = w / (rem * .5), cA = w / (rem * .875 * .5);
+    return (t, a) => 25 + rem * 1.35 * Math.ceil((t.length || 1) / cT) + (a ? 2 + rem * .875 * 1.5 * Math.ceil(a.length / cA) : 0);
   }
   function render(animate) {
-    let html = "", last = null;
+    const est = sizer();
+    let html = "", rows = "", h = 0, n = 0, head = null, last = null;
+    const flush = () => {
+      if (!n) return;
+      html += `<ul${head ? ` data-l="${head}" id="${lid(head)}"` : ""} style="contain-intrinsic-size:auto ${Math.round(h)}px">${rows}</ul>`;
+      rows = ""; h = 0; n = 0; head = null;
+    };
     for (const b of current) {
-      const a = (b.a || []).join(", ");
-      const start = b._l !== last; last = b._l;
-      html += `<li${start ? ` data-l="${b._l}" id="${lid(b._l)}"` : ""}><button class="row" type="button" data-i="${b._i}"><span class="tx"><span class="t">${hl(b.t)}</span>${a ? `<span class="a">${hl(a)}</span>` : ""}</span>` +
-        `<svg class="go" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button></li>`;
+      if (b._l !== last) { flush(); head = last = b._l; } else if (n === CHUNK) flush();
+      const a = b.a ? b.a.join(", ") : "";
+      rows += `<li><button class="row" type="button" data-i="${b._i}"><span class="t">${hl(b.t)}</span>${a ? `<span class="a">${hl(a)}</span>` : ""}</button></li>`;
+      h += est(b.t, a); n++;
     }
-    list.innerHTML = current.length ? `<ul>${html}</ul>` :
+    flush();
+    list.innerHTML = current.length ? `<div class="rows">${html}</div>` :
       (books.length ? `<div class="empty"><strong>${esc(D.t("emptyT"))}</strong><span>${esc(D.t("emptyP"))}</span></div>` :
         `<div class="empty"><strong>${esc(D.t("noData"))}</strong></div>`);
-    marks = [...list.querySelectorAll("li[data-l]")];
+    marks = [...list.querySelectorAll("ul[data-l]")];
     const present = new Set(marks.map(m => m.dataset.l));
     idx.querySelectorAll("a").forEach(a => a.setAttribute("aria-disabled", String(!present.has(a.dataset.l))));
     if (animate) { list.classList.add("enter"); setTimeout(() => list.classList.remove("enter"), 600); }
@@ -160,6 +178,8 @@
   function filter() {
     clr.hidden = !q.value;
     terms = norm(q.value).split(" ").filter(Boolean);
+    const long = terms.filter(t => t.length > 1).sort((a, b) => b.length - a.length);
+    hlRe = long.length ? new RegExp("(" + long.map(reEsc).join("|") + ")", "i") : null;
     current = terms.length ? books.filter(b => terms.every(t => b._s.includes(t))) : books;
     list.classList.add("live");
     render(false);
@@ -246,16 +266,27 @@
     [["https://openlibrary.org", true], ["https://covers.openlibrary.org", false], ["https://www.googleapis.com", true]]
       .forEach(([href, cors]) => { const l = document.createElement("link"); l.rel = "preconnect"; l.href = href; if (cors) l.crossOrigin = ""; document.head.appendChild(l); });
   }
-  const seen = "IntersectionObserver" in window ? new IntersectionObserver(entries => {
+  const IO = "IntersectionObserver" in window;
+  const seen = IO ? new IntersectionObserver(entries => {
     for (const e of entries) {
       const b = books[+e.target.dataset.i];
       if (e.isIntersecting) { warm(); C.want(b); } else C.unwant(b);
     }
   }, { rootMargin: "150px 0px" }) : null;
+  // Zeilen nur in Abschnitten nahe der Sicht einzeln beobachten (statt aller 4000+ Zeilen)
+  const near = IO ? new IntersectionObserver(entries => {
+    for (const e of entries) {
+      for (const r of e.target.querySelectorAll(".row")) {
+        const b = books[+r.dataset.i];
+        if (!b.i) continue;
+        if (e.isIntersecting) seen.observe(r); else { seen.unobserve(r); C.unwant(b); }
+      }
+    }
+  }, { rootMargin: "300px 0px" }) : null;
   function observeRows() {
-    if (!seen || !C.enabled) return;
-    seen.disconnect();
-    list.querySelectorAll(".row").forEach(r => { if (books[+r.dataset.i].i) seen.observe(r); });
+    if (!IO || !C.enabled) return;
+    seen.disconnect(); near.disconnect();
+    list.querySelectorAll(".rows > ul").forEach(u => near.observe(u));
   }
   const prefetch = b => { if (b && b.i) { warm(); C.get(b); } };
   list.addEventListener("pointerdown", e => { const r = e.target.closest(".row"); if (r) prefetch(books[+r.dataset.i]); });
