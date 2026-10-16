@@ -46,7 +46,7 @@ npm install                                   # sql.js, Playwright
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
 npm run dev                                   # dasselbe mit Live-Reload (browser-sync über npx)
-node werkzeuge/admin-verschluesseln.js "<Passwort>"   # nach JEDER Änderung an werkzeuge/quelle/*
+node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
 npm test                                      # Unit-Tests (node:test, ~5 s)
 npm run test:e2e                              # Browser-Tests (Playwright/Chromium, eigener Server, Port je Checkout, ~1 min)
 npm run test:alle                             # beides
