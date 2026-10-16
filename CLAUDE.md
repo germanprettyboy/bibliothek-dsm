@@ -34,6 +34,8 @@ werkzeuge/          ← NICHT hochladen
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
 tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
+doku/               ← NICHT hochladen. Hintergrund-Analysen
+  dsmailand-techstack.md   Techstack der Schul-Website www.dsmailand.it (vollständig, mit Prüfbefehlen)
 daten/              ← NIEMALS einchecken/hochladen (in .gitignore)
   BIBLIOTHEK_DSM_2024.winbook   Original-DB mit Schülerdaten (Leser, Ausleihen, Gebühren)
   Schullogo_original.png
@@ -189,6 +191,11 @@ Regeln:
 - `main` nur per Merge-Commit ändern. Kein Rebase von `main`, kein `--force`, kein `reset --hard` auf `main`.
 - Worktree-Sessions dürfen nur ihren Worktree mit Git anfassen; einfache Befehle ggf. als
   `git -C <worktree-pfad> …`. Der Merge in `main` passiert erst nach ExitWorktree.
+
+## Schul-Website www.dsmailand.it (Stand 16.10.2026)
+
+- Für dieses Projekt: nichts davon übernehmen (kein GTM, kein Lato/Google Fonts – Fira Sans lokal bleibt).
+  Webspace bei Aruba: `.htaccess`-Auswertung unklar, daher `IfModule`-Absicherung beibehalten.
 
 ## Offen
 
