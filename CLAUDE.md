@@ -14,6 +14,7 @@ website/            ← NUR dieser Ordner kommt auf den Webspace (https!)
   empfehlungen.js     window.DSM_EMPFEHLUNGEN – erzeugt, nicht von Hand bearbeiten
   info.js             window.DSM_INFO – Öffnungszeiten/Ferien/Abwesenheiten, erzeugt
   LIESMICH.txt        Anleitung für Johann / die Bibliothek
+  .htaccess           nur Apache: gzip + Cache-Header (per IfModule abgesichert; bei Error 500 löschen)
   assets/
     style.css         gesamtes CSS (Tokens oben, Komponenten unten)
     protokoll.js      DSM_LOG: jede Interaktion formatiert in die Browser-Konsole (vor common.js geladen)
@@ -101,6 +102,16 @@ Blau #B5C9D0, Rot #A93A39, Grün #B3CEA1). Keine Versalien, kein Kursiv, kein Un
 Alle Farben als Tokens in `style.css` (`:root`, Dark per `prefers-color-scheme` + `[data-theme]`,
 Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minimalistische Animationen,
 `prefers-reduced-motion` respektieren.
+
+## Performance
+
+- Liste: `#list > .rows > ul` Abschnitte zu höchstens 40 Büchern (jeder Buchstabe beginnt einen neuen, Anker
+  `ul[data-l] id="L-X"`). `content-visibility: auto` + geschätzte `contain-intrinsic-size` im Stil – nur mit
+  `@supports (overflow-anchor: auto)` (Safari ohne Scroll-Verankerung rendert alles). Pfeil per CSS-Maske, kein SVG
+  je Zeile. A–Z-Sprung misst das Ziel in jedem Frame neu. Cover-Beobachtung: erst Abschnitte, dann deren Zeilen.
+- covers.js: keine Dauer-Intervalle; Takt-Timer (setTimeout 350/1500/1800 ms) nur, solange Arbeit ansteht.
+- Logos als WebP 360 px; dunkles Logo `loading="lazy"` (im hellen Modus nicht geladen). PNGs bleiben für die Anleitung.
+- Messen: 390 px, CPU 4-fach gedrosselt: DOMContentLoaded ≈0,5 s, Long Tasks ≈0,2 s (vorher 17,9 s / 9,4 s).
 
 ## Datenformate
 

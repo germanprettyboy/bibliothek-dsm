@@ -144,12 +144,15 @@
     extras.forEach(fn => fn(box));
   }
   function openSettings() { syncSettings(); openSheet(sDlg); }
+  // Zahlenformat je Sprache nur einmal anlegen (Intl-Objekte sind teuer)
+  const NF = {};
+  const nf = n => (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE"))).format(n);
 
   window.DSM = {
     store, log,
     get lang() { return lang; },
     t,
-    nf: n => new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE").format(n),
+    nf,
     df: iso => {
       const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
       if (!m) return iso || "";
