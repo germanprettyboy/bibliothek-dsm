@@ -72,9 +72,19 @@ test.describe("Detail", () => {
 });
 
 test.describe("Cover", () => {
+  test("ekz zuerst: Bild direkt über die ISBN, Quelle genannt", async ({ page, netz }) => {
+    netz.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
+    netz.bild = url => url.includes("cover.ekz.de");
+    await oeffnen(page);
+    await oeffneBuch(page, MIT_ISBN);
+    const img = page.locator("#d-cover img");
+    await expect(img).toHaveAttribute("src", "https://cover.ekz.de/" + MIT_ISBN.i[0] + ".jpg");
+    await expect(img).toHaveClass(/in/);
+    await expect(page.locator("#d-src")).toHaveText("Cover: ekz-Bibliotheksservice");
+  });
+
   test("Open Library: Sammelabfrage, Größe M, Quelle genannt, nie /b/isbn/", async ({ page, netz }) => {
     netz.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
-    netz.gb = () => ({});
     await oeffnen(page);
     await oeffneBuch(page, MIT_ISBN);
     const img = page.locator("#d-cover img");
@@ -88,7 +98,6 @@ test.describe("Cover", () => {
 
   test("Cover antippen: groß in eigenem Fenster, Größe L nachgeladen, zurück per Antippen/Escape", async ({ page, netz }) => {
     netz.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
-    netz.gb = () => ({});
     await oeffnen(page);
     await oeffneBuch(page, MIT_ISBN);
     const box = page.locator("#d-cover"), zoom = page.locator("#zoom");
@@ -121,12 +130,13 @@ test.describe("Cover", () => {
     await expect(page.locator("#zoom")).toBeHidden();
   });
 
-  test("Rückfall Google Books", async ({ page, netz }) => {
+  test("Rückfall Google: Bild direkt über die ISBN, keine Google-API", async ({ page, netz }) => {
     netz.ol = () => ({});
-    netz.gb = () => ({ items: [{ volumeInfo: { imageLinks: { thumbnail: "http://books.google.com/books/content?id=z&zoom=1&edge=curl" } } }] });
+    netz.bild = url => url.includes("books.google.com");
     await oeffnen(page);
     await oeffneBuch(page, MIT_ISBN);
-    await expect(page.locator("#d-cover img")).toHaveAttribute("src", "https://books.google.com/books/content?id=z&zoom=1");
+    await expect(page.locator("#d-cover img")).toHaveAttribute("src", "https://books.google.com/books/content?vid=ISBN" + MIT_ISBN.i[0] + "&printsec=frontcover&img=1&zoom=1");
+    expect(netz.anfragen.filter(u => u.includes("googleapis"))).toEqual([]);
     await expect(page.locator("#d-src")).toHaveText("Cover: Google Books");
   });
 
@@ -138,24 +148,25 @@ test.describe("Cover", () => {
     await expect(page.locator("#d-cover .ph b")).toHaveText(MIT_ISBN.t);
   });
 
-  test("Cover wird im Browser gemerkt (dsm-cover-v2)", async ({ page, netz }) => {
+  test("Cover wird im Browser gemerkt (dsm-cover-v3)", async ({ page, netz }) => {
     netz.ol = keys => ({ [keys[0]]: { thumbnail_url: "https://covers.openlibrary.org/b/id/9-S.jpg" } });
-    netz.gb = () => ({});
     await oeffnen(page);
     await oeffneBuch(page, MIT_ISBN);
     await expect(page.locator("#d-cover img")).toBeVisible();
-    await expect.poll(() => page.evaluate(() => localStorage.getItem("dsm-cover-v2"))).toContain("9-M.jpg");
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("dsm-cover-v3"))).toContain("9-M.jpg");
   });
 
   test("Hintergrund: Bücher in Sichtweite werden gesammelt abgefragt, nicht alle", async ({ page, netz }) => {
     netz.ol = () => ({});
-    netz.gb = () => ({});
     await oeffnen(page);
     await page.waitForTimeout(3500);
     const ol = netz.anfragen.filter(u => u.includes("api/books"));
     expect(ol.length).toBeGreaterThan(0);
     expect(ol.length).toBeLessThanOrEqual(3);
     for (const u of ol) expect(decodeURIComponent(u).match(/ISBN:\d{13}/g).length).toBeLessThanOrEqual(20);
+    const ekz = netz.anfragen.filter(u => u.includes("cover.ekz.de"));
+    expect(ekz.length).toBeGreaterThan(0); // ekz vor Open Library, nur für Bücher in Sichtweite
+    expect(ekz.length).toBeLessThan(40);
   });
 });
 

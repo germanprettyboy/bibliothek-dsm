@@ -251,7 +251,7 @@ test.describe("Datenbank einlesen", () => {
 
   test("Cover-Abdeckung prüfen (Dienste gemockt)", async ({ page, netz }) => {
     netz.ol = keys => (keys.includes("ISBN:9783522202107") ? { "ISBN:9783522202107": { thumbnail_url: "https://covers.openlibrary.org/b/id/3-S.jpg" } } : {});
-    netz.gb = i => (i === "9783871347108" ? { items: [{ volumeInfo: { imageLinks: { thumbnail: "https://books.google.com/books/content?id=t" } } }] } : {});
+    netz.bild = url => url.includes("covers.openlibrary.org/b/id/") || url.includes("cover.ekz.de/9783871347108");
     await entsperren(page);
     await laden(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
@@ -261,12 +261,14 @@ test.describe("Datenbank einlesen", () => {
     await expect(page.locator("#c-run")).toBeVisible({ timeout: 15000 });
     await expect(page.locator("#c-big")).toHaveText("66,7 %");
     await expect(page.locator("#c-sub")).toHaveText("2 von 3 Büchern mit ISBN haben ein Cover · 25 % aller Bücher");
+    await expect(page.locator("#c-lines")).toContainText("ekz-Bibliotheksservice1");
     await expect(page.locator("#c-lines")).toContainText("Open Library1");
-    await expect(page.locator("#c-lines")).toContainText("Google Books1");
+    await expect(page.locator("#c-lines")).toContainText("Google Books0");
     await expect(page.locator("#c-lines")).toContainText("Kein Cover gefunden1");
     expect(netz.anfragen.filter(u => u.includes("/b/isbn/"))).toEqual([]);
     const d = auswerten(await speichern(page, "#dl"), "DSM_BIBLIOTHEK");
-    expect(d.abdeckung).toMatchObject({ cover: 2, ol: 1, gb: 1, ohne: 1, geprueft: 3, vollstaendig: true });
+    expect(d.abdeckung).toMatchObject({ cover: 2, ekz: 1, ol: 1, gb: 0, ohne: 1, geprueft: 3, vollstaendig: true });
+    expect(netz.anfragen.filter(u => u.includes("api/books")).join()).not.toContain("9783871347108"); // ekz-Treffer nicht an Open Library
   });
 
   test("Original-Datenbank: books.js byte-gleich zur Node-Erzeugung", async ({ page }) => {

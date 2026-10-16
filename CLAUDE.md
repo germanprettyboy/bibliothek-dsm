@@ -21,7 +21,7 @@ website/            ← NUR dieser Ordner kommt auf den Webspace (https!)
     common.js         Sprache DE/IT, Einstellungen (Theme/Schrift/Kontrast), Glas-Fenster, Toast
     app.js            Liste, Suche, A–Z-Leiste, Floater, Detail, Empfehlungen, Fragen beim 1. Besuch
     info-panel.js     Info über der Liste (geöffnet/geschlossen, Schließtage) + Fenster mit Wochenzeiten
-    covers.js         Cover-Laden (Open Library Sammelabfrage + Google Books), Cache, Abdeckungsmessung
+    covers.js         Cover-Laden (ekz → Open Library Sammelabfrage → Google-Bild), Cache, Abdeckungsmessung
     kategorien-it.js  italienische Namen der Kategorien
     admin-lock.js     Passwortsperre: entschlüsselt admin.enc.js und startet es
     admin.enc.js      VERSCHLÜSSELT: quelle/extract.js + quelle/admin.js
@@ -82,8 +82,12 @@ Nach Änderungen an `quelle/admin.js` oder `quelle/extract.js` immer neu verschl
   Chrome/Edge): Ordner einmal wählen (muss index.html enthalten), Handle in IndexedDB, danach ein Klick ohne Rückfrage.
   Andere Browser: Download wie früher. Immer da: „Stattdessen herunterladen“ (Schul-PC ohne Website-Ordner).
   Hochladen auf den Webspace per FTP bleibt Handarbeit.
+- Cover-Quellen in dieser Reihenfolge: ekz-Bild direkt (`cover.ekz.de/<ISBN>.jpg`, 404 = keins, ≈80 % Treffer),
+  dann Open Library, dann Google-Bild direkt (`books.google.com/books/content?vid=ISBN…`, Ersatzbild 128×184 verwerfen).
+  NICHT: Google-Books-API (ohne Schlüssel immer 429, gemeinsames Tageskontingent), NICHT portal.dnb.de
+  (Anubis-Bot-Schutz, Browser bekommen HTML → ERR_BLOCKED_BY_ORB). Open Library nur für ekz-Fehltreffer.
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
-  (OL „M“ ≈180 px, Google „thumbnail“ ≈128 px). Open Library NICHT über `/b/isbn/` laden
+  (OL „M“ ≈180 px, Google ≈128 px; ekz fest 170–440 px). Open Library NICHT über `/b/isbn/` laden
   (100 Abrufe / 5 min / IP, Schulnetz = eine IP) – immer `/api/books?jscmd=viewapi` (Sammelabfrage) → Cover-ID.
 - Echtes Cover im Detail antippen → eigenes `<dialog id="zoom">` (Top-Layer, Glas-Schleier), Bild fliegt per FLIP
   (Web Animations, nur transform, `--snap`, 240/180 ms) in die Mitte, max. 27rem breit. Nur dann OL-Größe „L“ nachladen;
@@ -121,7 +125,7 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
   `ul[data-l] id="L-X"`). `content-visibility: auto` + geschätzte `contain-intrinsic-size` im Stil – nur mit
   `@supports (overflow-anchor: auto)` (Safari ohne Scroll-Verankerung rendert alles). Pfeil per CSS-Maske, kein SVG
   je Zeile. A–Z-Sprung misst das Ziel in jedem Frame neu. Cover-Beobachtung: erst Abschnitte, dann deren Zeilen.
-- covers.js: keine Dauer-Intervalle; Takt-Timer (setTimeout 350/1500/1800 ms) nur, solange Arbeit ansteht.
+- covers.js: keine Dauer-Intervalle; Takt-Timer (setTimeout 300/350/600/1500 ms) nur, solange Arbeit ansteht.
 - Logos als WebP 360 px; dunkles Logo `loading="lazy"` (im hellen Modus nicht geladen). PNGs bleiben für die Anleitung.
 - Messen: 390 px, CPU 4-fach gedrosselt: DOMContentLoaded ≈0,5 s, Long Tasks ≈0,2 s (vorher 17,9 s / 9,4 s).
 
@@ -135,7 +139,7 @@ Kontrast per `[data-contrast="high"]`, Schrift per `[data-font="large"]`). Minim
   `k` = norm(Titel) + "|" + norm(Erstautor) (norm: klein, ohne Akzente, ß→ss, nur a–z0–9 und Leerzeichen).
 - `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
-- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v2` (Cover-Cache), `dsm-info-karte` ("1"/"0", Platzhalter),
+- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v3` (Cover-Cache; v2 wird gelöscht), `dsm-info-karte` ("1"/"0", Platzhalter),
   Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, IndexedDB `dsm-admin` (Store `kv`, Schlüssel `website` = Ordner-Handle), Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
   Protokoll: `dsm-protokoll` (localStorage, "aus" = abgeschaltet), `dsm-protokoll-verlauf` (sessionStorage, letzte 500 Einträge).
 - Konsolen-Protokoll (`assets/protokoll.js`): erfasst automatisch Klicks, Eingaben (600 ms entprellt), Schalter, Dateien,
@@ -149,10 +153,10 @@ Nach jeder Änderung `npm run test:alle`. Tests in `tests/`:
 
 - `unit/extract.test.js` – Whitelist-Extraktion gegen synthetische DB (`helfer/testdb.js`, erfundene Leser):
   SQL-Spion prüft, dass Ausleihspalten/Personentabellen nur gezählt werden; Namensabgleich, Zusammenfassen, ISBN, Sortierung, `toScript`.
-- `unit/covers.test.js` – covers.js in VM-Sandbox (fetch/Image gestubbt): Sammelabfrage, nie `/b/isbn/`, Google-Rückfall, 429-Sperre, Cache-TTL, Warteschlange, Messung.
+- `unit/covers.test.js` – covers.js in VM-Sandbox (fetch/Image gestubbt): Reihenfolge ekz → OL → Google-Bild, Ersatzbild-Erkennung, keine Google-API, nie `/b/isbn/`, Cache-TTL, Warteschlangen, Messung.
 - `unit/verschluesseln.test.js` – Roundtrip, falsches Passwort. Mit `DSM_ADMIN_PW=… npm test` zusätzlich: ist `admin.enc.js` aktuell?
 - `unit/daten.test.js` – Format von books.js, empfehlungen.js (Schlüssel im Bestand), info.js, Kategorien-Übersetzung.
-- `unit/regeln.test.js` – harte Regeln am Quelltext (keine externen Hosts außer OL/Google, keine Google Fonts, Design-Verbote, Klartext nicht in website/).
+- `unit/regeln.test.js` – harte Regeln am Quelltext (keine externen Hosts außer ekz/OL/Google-Bilder, keine Google Fonts, Design-Verbote, Klartext nicht in website/).
 - `unit/echte-db.test.js` – nur wenn `daten/*.winbook` da ist: books.js aktuell, keine Leser-Namen. Meldungen nennen nur Anzahlen.
 - `e2e/*.spec.js` – Liste/Suche/A–Z/Floater (390/768/1280 px), Ladezustand (books.js zurückgehalten), Detail+Cover (APIs gemockt, echtes Netz gesperrt), DE/IT,
   Einstellungen, Fragen-Ablauf, Empfehlungen, Info-Karte (feste Uhrzeit), Admin. Admin-Tests ersetzen `admin.enc.js` per Route durch
@@ -202,9 +206,8 @@ Regeln:
 
 ## Offen
 
-- Echte Cover-Abfragen (Open Library/Google) nie live getestet – in der Cloud-Umgebung gab es kein Internet.
-  Erste Aufgabe: lokal `npm run serve`, Seite öffnen, Netzwerk-Tab prüfen; dann in admin.html
-  „Cover-Abdeckung prüfen“ laufen lassen.
+- Cover live geprüft (16.10.2026, Chromium): ekz/OL/Google-Bild laden. In admin.html „Cover-Abdeckung prüfen“ einmal
+  komplett laufen lassen. Nutzungsbedingungen von cover.ekz.de (Hotlinking ohne ekz-Vertrag) mit Johann/Schule klären.
 - Safari: Unschärfe hinter `<dialog>` (`::backdrop` + backdrop-filter) ungetestet.
 - Die 20 Start-Empfehlungstexte (DE/IT) hat Claude geschrieben – Johann soll sie gegenlesen.
 - Git-Repo lokal angelegt (Branch main), noch kein Remote. Falls Remote: nur privat – werkzeuge/quelle/ liegt im Klartext.

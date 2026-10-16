@@ -110,7 +110,6 @@ test.describe("Empfehlungen", () => {
 
   test("Cover der Empfehlungen: eine Sammelabfrage", async ({ page, netz }) => {
     netz.ol = keys => Object.fromEntries(keys.map(k => [k, { thumbnail_url: "https://covers.openlibrary.org/b/id/1-S.jpg" }]));
-    netz.gb = () => ({});
     await oeffnen(page);
     await expect(page.locator("#recs .rec .cover img").first()).toBeVisible();
     const erste = netz.anfragen.find(u => u.includes("api/books"));

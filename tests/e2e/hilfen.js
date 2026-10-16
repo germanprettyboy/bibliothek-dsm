@@ -1,5 +1,6 @@
 /*
  * Gemeinsame Fixture: Cover-Dienste standardmäßig gesperrt (kein echtes Netz in Tests),
+ * Bilder laden nur, wenn netz.bild(url) zustimmt (Standard: nur Open-Library-Bilder über die Cover-ID),
  * jede Anfrage wird mitgeschrieben, Skriptfehler lassen den Test scheitern.
  */
 const base = require("@playwright/test");
@@ -15,18 +16,15 @@ const test = base.test.extend({
   // Startzustand im localStorage (vor jedem Laden gesetzt). Standard: Fragen beim ersten Besuch schon beantwortet.
   speicher: [{ "dsm-empf": AUS }, { option: true }],
   netz: async ({ context }, use) => {
-    const n = { anfragen: [], ol: null, gb: null, bildOk: true };
-    await context.route(/openlibrary\.org|googleapis\.com|books\.google\.com/, async route => {
+    const n = { anfragen: [], ol: null, bild: url => /covers\.openlibrary\.org\/b\/id\//.test(url) };
+    await context.route(/openlibrary\.org|books\.google\.com|cover\.ekz\.de/, async route => {
       const url = route.request().url();
       n.anfragen.push(url);
       if (url.startsWith("https://openlibrary.org/api/books") && n.ol) {
         const keys = decodeURIComponent(new URL(url).searchParams.get("bibkeys")).split(",");
         return route.fulfill({ json: n.ol(keys), headers: CORS });
       }
-      if (url.startsWith("https://www.googleapis.com/books/") && n.gb) {
-        return route.fulfill({ json: n.gb(url.split("q=isbn:")[1]), headers: CORS });
-      }
-      if (/covers\.openlibrary\.org\/b\/id\/|books\.google\.com\/books\/content/.test(url) && n.bildOk) {
+      if (!url.includes("/api/books") && n.bild(url)) {
         return route.fulfill({ body: BILD, contentType: "image/png" });
       }
       return route.abort();

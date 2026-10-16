@@ -46,13 +46,12 @@
       covRerun: "Erneut prüfen",
       covStop: "Abbrechen",
       covIsbn: "{p} der Bücher haben eine ISBN. Nur sie können ein Cover bekommen; wie viele davon tatsächlich eines haben, zeigt die Prüfung.",
-      covHint: "Prüft alle ISBN: zuerst Open Library in Sammelabfragen, danach Google Books einzeln und gedrosselt. Dauert je nach Bestand einige Minuten. Das Ergebnis wird mit books.js gespeichert.",
+      covHint: "Prüft alle ISBN: zuerst das Cover vom ekz-Bibliotheksservice, für die übrigen Open Library in Sammelabfragen, danach das Google-Books-Bild. Dauert je nach Bestand einige Minuten. Das Ergebnis wird mit books.js gespeichert.",
       covProgress: "{d} von {n} geprüft",
-      covPaused: "Google Books bremst gerade die Abfragen. Es geht automatisch weiter.",
       covSub: "{c} von {n} Büchern mit ISBN haben ein Cover · {a} aller Bücher",
       covSubPart: "Bisher {c} von {n} Büchern mit ISBN mit Cover gefunden · {a} aller Bücher",
       covPartial: "Abgebrochen nach {d} von {n} – Werte vorläufig.",
-      lOl: "Open Library", lGb: "Google Books", lNone: "Kein Cover gefunden", lErr: "Nicht prüfbar (Netzfehler)", lOpen: "Noch offen",
+      lEkz: "ekz-Bibliotheksservice", lOl: "Open Library", lGb: "Google Books", lNone: "Kein Cover gefunden", lErr: "Nicht prüfbar (Netzfehler)", lOpen: "Noch offen",
       histT: "Verlauf", hDate: "Stand", hBooks: "Bücher", hIsbn: "mit ISBN", hCover: "mit Cover", hNot: "nicht geprüft",
       tabBestand: "Bestand", tabEmpf: "Empfehlungen", lockAgain: "Sperren",
       eT: "Buchempfehlungen", eP: "Pro Gruppe bis zu vier Bücher aus dem Bestand, jeweils mit einem kurzen Text auf Deutsch und Italienisch.",
@@ -133,13 +132,12 @@
       covRerun: "Verifica di nuovo",
       covStop: "Annulla",
       covIsbn: "Il {p} dei libri ha un ISBN. Solo questi possono avere una copertina; quanti la abbiano davvero lo mostra la verifica.",
-      covHint: "Verifica tutti gli ISBN: prima Open Library con richieste raggruppate, poi Google Books uno per uno e con pause. Richiede alcuni minuti. Il risultato viene salvato in books.js.",
+      covHint: "Verifica tutti gli ISBN: prima la copertina di ekz-Bibliotheksservice, per gli altri Open Library con richieste raggruppate, poi l'immagine di Google Books. Richiede alcuni minuti. Il risultato viene salvato in books.js.",
       covProgress: "{d} di {n} verificati",
-      covPaused: "Google Books sta rallentando le richieste. Si riprende automaticamente.",
       covSub: "{c} di {n} libri con ISBN hanno una copertina · {a} di tutti i libri",
       covSubPart: "Finora trovata la copertina per {c} di {n} libri con ISBN · {a} di tutti i libri",
       covPartial: "Interrotto dopo {d} di {n} – valori provvisori.",
-      lOl: "Open Library", lGb: "Google Books", lNone: "Nessuna copertina trovata", lErr: "Non verificabile (errore di rete)", lOpen: "Ancora da verificare",
+      lEkz: "ekz-Bibliotheksservice", lOl: "Open Library", lGb: "Google Books", lNone: "Nessuna copertina trovata", lErr: "Non verificabile (errore di rete)", lOpen: "Ancora da verificare",
       histT: "Andamento", hDate: "Data", hBooks: "Libri", hIsbn: "con ISBN", hCover: "con copertina", hNot: "non verificato",
       tabBestand: "Catalogo", tabEmpf: "Consigli", lockAgain: "Blocca",
       eT: "Consigli di lettura", eP: "Per ogni gruppo fino a quattro libri del catalogo, ciascuno con un breve testo in tedesco e in italiano.",
@@ -288,7 +286,7 @@
   function entry() {
     const isbn = result.books.filter(b => b.i).length;
     const e = { stand, buecher: result.books.length, isbn };
-    if (cov && cov.done) Object.assign(e, { cover: cov.ol + cov.gb, ol: cov.ol, gb: cov.gb, ohne: cov.none, geprueft: cov.done, vollstaendig: !!cov.complete });
+    if (cov && cov.done) Object.assign(e, { cover: (cov.ekz || 0) + cov.ol + cov.gb, ekz: cov.ekz || 0, ol: cov.ol, gb: cov.gb, ohne: cov.none, geprueft: cov.done, vollstaendig: !!cov.complete });
     return e;
   }
   function history() {
@@ -299,24 +297,25 @@
   function showCov() {
     if (!result) return;
     const n = result.books.length, e = entry();
-    const segs = { ol: 0, gb: 0, none: 0 };
+    const segs = { ekz: 0, ol: 0, gb: 0, none: 0 };
     let lines = "";
     const li = (sw, label, v) => `<li><span>${sw ? `<span class="sw" style="background:var(${sw})"></span>` : ""}${label}</span><span>${v}</span></li>`;
     if (cov) {
-      const tot = cov.total || 1, c = cov.ol + cov.gb;
+      const tot = cov.total || 1, c = (cov.ekz || 0) + cov.ol + cov.gb;
       $("#c-big").textContent = (cov.complete ? "" : "≥ ") + pct(c / tot);
       $("#c-sub").textContent = D.t(cov.complete ? "covSub" : "covSubPart", { c: D.nf(c), n: D.nf(cov.total), a: pct(c / n) }) +
         (cov.complete ? "" : " · " + (survey ? D.t("covProgress", { d: D.nf(cov.done), n: D.nf(cov.total) }) : D.t("covPartial", { d: D.nf(cov.done), n: D.nf(cov.total) })));
-      segs.ol = cov.ol / tot; segs.gb = cov.gb / tot; segs.none = cov.none / tot;
-      lines = li("--gruen", D.t("lOl"), D.nf(cov.ol)) + li("--blau", D.t("lGb"), D.nf(cov.gb)) + li("--rot", D.t("lNone"), D.nf(cov.none));
+      segs.ekz = (cov.ekz || 0) / tot; segs.ol = cov.ol / tot; segs.gb = cov.gb / tot; segs.none = cov.none / tot;
+      lines = li("--mauve", D.t("lEkz"), D.nf(cov.ekz || 0)) + li("--gruen", D.t("lOl"), D.nf(cov.ol)) + li("--blau", D.t("lGb"), D.nf(cov.gb)) + li("--rot", D.t("lNone"), D.nf(cov.none));
       if (cov.err) lines += li(null, D.t("lErr"), D.nf(cov.err));
       if (cov.total - cov.done > 0) lines += li(null, D.t("lOpen"), D.nf(cov.total - cov.done));
-      $("#c-hint").textContent = cov.paused ? D.t("covPaused") : D.t("covHint");
+      $("#c-hint").textContent = D.t("covHint");
     } else {
       $("#c-big").textContent = pct(e.isbn / n);
       $("#c-sub").textContent = D.t("covIsbn", { p: pct(e.isbn / n) });
       $("#c-hint").textContent = D.t("covHint");
     }
+    $("#c-meter").querySelector(".m-ekz").style.width = segs.ekz * 100 + "%";
     $("#c-meter").querySelector(".m-ol").style.width = segs.ol * 100 + "%";
     $("#c-meter").querySelector(".m-gb").style.width = segs.gb * 100 + "%";
     $("#c-meter").querySelector(".m-none").style.width = segs.none * 100 + "%";

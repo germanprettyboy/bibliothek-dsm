@@ -64,8 +64,8 @@ describe("externe Verbindungen", () => {
       assert.ok(fs.existsSync(path.join(WEB, "assets", u)), u);
     }
   });
-  test("nur Open Library und Google Books als externe Ziele", () => {
-    const erlaubt = new Set(["openlibrary.org", "covers.openlibrary.org", "www.googleapis.com", "www.w3.org"]);
+  test("nur ekz, Open Library und Google Books als externe Ziele", () => {
+    const erlaubt = new Set(["cover.ekz.de", "openlibrary.org", "covers.openlibrary.org", "books.google.com", "www.w3.org"]);
     for (const p of text.filter(f => !f.endsWith(".txt"))) {
       for (const m of fs.readFileSync(p, "utf8").matchAll(/https?:\/\/([a-z0-9.-]+)/gi)) {
         assert.ok(erlaubt.has(m[1].toLowerCase()), path.relative(WEB, p) + ": " + m[1]);
@@ -88,7 +88,7 @@ describe("externe Verbindungen", () => {
     const c = lies("assets/covers.js"), a = lies("assets/app.js");
     assert.match(c, /img\.referrerPolicy = "no-referrer"/);
     assert.match(a, /img\.referrerPolicy = "no-referrer"/);
-    assert.ok((c.match(/referrerPolicy: "no-referrer"/g) || []).length >= 2, "fetch ohne Referrer");
+    assert.equal((c.match(/referrerPolicy: "no-referrer"/g) || []).length, (c.match(/\bfetch\(/g) || []).length, "jedes fetch ohne Referrer");
   });
 });
 

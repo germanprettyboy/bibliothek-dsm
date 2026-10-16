@@ -52,11 +52,14 @@ Bestand aktualisieren
 Cover
   Nur über die vorhandene ISBN; ohne ISBN gibt es kein Cover (gestalteter Platzhalter).
   Die Liste bleibt reiner Text. Für Bücher in Sichtweite lädt der Browser die Cover im
-  Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–180 px Breite):
-    - Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s). Bilder kommen über
-      die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN wären auf
-      100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
-    - Google Books als Rückfall, einzeln, höchstens alle 1,8 s.
+  Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–440 px Breite):
+    - ekz-Bibliotheksservice: Bild direkt über die ISBN, alle 0,3 s ein Buch. Trifft rund 8 von
+      10 Büchern des Bestands. (Deutsche Nationalbibliothek geht nicht: Bot-Schutz.)
+    - Für die übrigen Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s).
+      Bilder kommen über die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN
+      wären auf 100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
+    - Danach das Google-Books-Bild direkt über die ISBN (nicht die Google-API: ohne Schlüssel
+      ist deren Kontingent immer erschöpft).
     - Pause bei verstecktem Tab und bei aktivem Datensparmodus.
   Beim Antippen wird ein noch fehlendes Cover sofort mit Vorrang geholt.
   Ergebnisse (auch „kein Cover“) merkt sich der Browser: Treffer 60 Tage, Fehlanzeigen 14 Tage.
@@ -64,7 +67,7 @@ Cover
 
 Cover-Abdeckung
   admin.html zeigt nach dem Einlesen den Anteil mit ISBN und prüft auf Knopfdruck alle ISBN
-  (Open Library in Sammelabfragen, danach Google Books gedrosselt; einige Minuten).
+  (ekz-Cover, für die übrigen Open Library in Sammelabfragen, danach Google-Bild; einige Minuten).
   Ergebnis und Verlauf (letzte 24 Aktualisierungen) werden in books.js gespeichert und beim
   nächsten Einlesen fortgeführt. Abgebrochene Prüfungen gelten als vorläufig (* im Verlauf).
 

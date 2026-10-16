@@ -15,7 +15,7 @@
   "use strict";
   const SP = Storage.prototype, origSet = SP.setItem, origGet = SP.getItem, origDel = SP.removeItem;
   const KEY = "dsm-protokoll", HIST = "dsm-protokoll-verlauf", MAX = 500;
-  const STILL = new Set([KEY, HIST, "dsm-cover-v2"]); // eigene Schlüssel und Cover-Cache (zu häufig)
+  const STILL = new Set([KEY, HIST, "dsm-cover-v3"]); // eigene Schlüssel und Cover-Cache (zu häufig)
   const GEHEIM = /key|pass|pw|token/i;
   // s = Speicher oder sein Name ("localStorage"); schon der Zugriff auf window.localStorage kann im privaten Modus werfen
   const read = (s, k) => { try { return origGet.call(typeof s === "string" ? window[s] : s, k); } catch (e) { return null; } };
