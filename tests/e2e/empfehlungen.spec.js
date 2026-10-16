@@ -45,7 +45,7 @@ test.describe("Erster Besuch", () => {
       await expect(ask(page)).toBeHidden();
       expect(await pref(page)).toEqual({ want: true, gruppe: g });
       await expect(page.locator("#recs")).toBeVisible();
-      await expect(page.locator("#recs .recs-head p")).toHaveText(label);
+      await expect(page.locator("#recs-open small")).toHaveText(label);
       await expect(page.locator("#recs .rec .rt b")).toHaveText(E.gruppen[g].map(r => r.t));
     });
   }
@@ -64,7 +64,7 @@ test.describe("Erster Besuch", () => {
     await ask(page).locator('.choice[data-g="erw"]').click();
     await ask(page).locator('.choice[data-g="erw-bio"]').click();
     expect(await pref(page)).toEqual({ want: true, gruppe: "erw-bio" });
-    await expect(page.locator("#recs .recs-head p")).toHaveText("Erwachsenenliteratur · Biografien & Geschichte");
+    await expect(page.locator("#recs-open small")).toHaveText("Erwachsenenliteratur · Biografien & Geschichte");
   });
 
   test("Frage auf Italienisch", async ({ page }) => {
@@ -130,13 +130,13 @@ test.describe("Empfehlungen", () => {
     await page.click(".settings-btn");
     const s = page.locator("dialog.settings");
     await expect(s.locator("#s-recs")).toBeChecked();
-    await expect(s.locator('.chips [data-g="erw-roman"]')).toHaveAttribute("aria-checked", "true");
-    await s.locator('.chips [data-g="oberstufe"]').click();
-    await expect(s.locator('.chips [data-g="oberstufe"]')).toHaveAttribute("aria-checked", "true");
+    await expect(s.locator('.gpick [data-g="erw-roman"]')).toHaveAttribute("aria-checked", "true");
+    await s.locator('.gpick [data-g="oberstufe"]').click();
+    await expect(s.locator('.gpick [data-g="oberstufe"]')).toHaveAttribute("aria-checked", "true");
     expect(await pref(page)).toEqual({ want: true, gruppe: "oberstufe" });
     await expect(page.locator("#recs .rec .rt b").first()).toHaveText(E.gruppen.oberstufe[0].t);
     await s.locator("#s-recs").uncheck();
-    await expect(s.locator(".chips")).toBeHidden();
+    await expect(s.locator(".gpick")).toBeHidden();
     await expect(page.locator("#recs")).toBeHidden();
   });
 

@@ -462,6 +462,24 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
 }
 .chips button[aria-checked="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); font-weight: 500; }
 
+/* Empfehlungs-Auswahl: Mittelstufe, Oberstufe, Erwachsene als getrennte Blöcke, darin untereinander */
+.gpick { display: grid; gap: 10px; padding-top: 6px; }
+.gp-h { display: block; padding: 4px 2px 6px; color: var(--muted); font-size: var(--fs-s); }
+.gp-box { display: grid; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.gp-box button {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 0; border-top: 1px solid var(--line);
+  background: none; color: var(--fg); text-align: left; cursor: pointer; font: inherit; transition: background-color .15s;
+}
+.gp-box button:first-child { border-top: 0; }
+.gp-box .bar-c { width: 4px; align-self: stretch; border-radius: 2px; flex: none; }
+.gp-box span { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.gp-box b { font-weight: 500; }
+.gp-box small { color: var(--muted); font-size: var(--fs-s); }
+.gp-box svg { width: 18px; height: 18px; flex: none; opacity: 0; transition: opacity .15s; }
+.gp-box button[aria-checked="true"] { background: var(--bg); }
+.gp-box button[aria-checked="true"] b { font-weight: 600; }
+.gp-box button[aria-checked="true"] svg { opacity: 1; }
+
 /* ---------- Fragen beim ersten Besuch ---------- */
 .ask .pane { min-height: 15rem; }
 .step { display: grid; gap: 18px; animation: step-in var(--t-base) var(--ease); }
@@ -485,7 +503,7 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
 .choice > span { flex: 1; min-width: 0; }
 
 /* ---------- Empfehlungen ----------
-   Handy: Band über die ganze Breite, kleine Karten (Cover links, Text rechts) zum Wischen.
+   Handy: Band über die ganze Breite, darin eine senkrechte Liste (kleines Cover links, Text rechts).
    Ab 40rem: Karte mit vier großen Covern nebeneinander. */
 .recs { padding-bottom: 16px; }
 .recs-card {
@@ -498,24 +516,25 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
 .recs-card.hide { animation: recs-out var(--t-base) var(--ease-in) forwards; }
 @keyframes recs-out { to { opacity: 0; transform: translateY(-6px) scale(.98); } }
 .recs-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px 0 max(16px, env(safe-area-inset-left, 0px)); }
-.recs-head h2 { margin: 0; font-weight: 600; font-size: var(--fs-m); line-height: 1.2; }
-.recs-head p { margin: 2px 0 0; color: var(--muted); font-size: var(--fs-s); }
+.recs-head h2 { margin: 0; font-weight: 600; font-size: var(--fs-m); line-height: 1.2; min-width: 0; }
+/* Kopf öffnet die bisherigen Empfehlungen */
+.recs-open { display: grid; gap: 2px; margin: -6px -8px; padding: 6px 8px; border: 0; border-radius: 10px; background: none; color: var(--fg); text-align: left; cursor: pointer; font: inherit; transition: background-color .15s; }
+.recs-open > span { display: inline-flex; align-items: center; gap: 4px; }
+.recs-open svg { width: 14px; height: 14px; color: var(--muted); transition: transform .15s var(--ease); }
+.recs-open small { color: var(--muted); font-size: var(--fs-s); font-weight: 400; }
+.recs-open:active { background: var(--bg); }
+@media (hover: hover) { .recs-open:hover { background: var(--bg); } .recs-open:hover svg { transform: translateX(2px); } }
 .recs-head .icon-btn { width: 34px; height: 34px; background: var(--bg); }
 .recs-head .icon-btn svg { width: 15px; height: 15px; }
-.recs-row {
-  display: grid; grid-auto-flow: column; grid-auto-columns: min(66vw, 16rem); gap: 10px; margin-top: 12px;
-  align-items: start; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain;
-  padding: 2px max(16px, env(safe-area-inset-right, 0px)) 2px max(16px, env(safe-area-inset-left, 0px));
-  scroll-padding-inline: max(16px, env(safe-area-inset-left, 0px));
-}
-.recs-row::-webkit-scrollbar { display: none; }
+.recs-row { display: grid; margin-top: 8px; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
 .rec {
-  scroll-snap-align: start; display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center;
-  padding: 10px 12px 10px 10px; border: 0; border-radius: 14px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line);
+  display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: center;
+  padding: 10px 0; border: 0; border-top: 1px solid var(--line); background: none;
   text-align: left; cursor: pointer; color: var(--fg); min-width: 0;
-  transition: transform .15s var(--ease);
+  transition: opacity .15s var(--ease);
 }
-.rec:active { transform: scale(.98); }
+.rec:first-child { border-top: 0; }
+.rec:active { opacity: .6; }
 .rec .rt { min-width: 0; }
 .rec .cover { box-shadow: 0 3px 8px rgba(0, 0, 0, .14); transition: transform .25s var(--ease), box-shadow .25s; }
 .rec b { overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500; font-size: var(--fs-m); line-height: 1.3; }
@@ -526,9 +545,9 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
 @media (min-width: 40rem) {
   .recs-card { margin: 0; border-radius: 20px; padding: 16px; box-shadow: inset 0 0 0 1px var(--line); }
   .recs-head { padding: 0 0 0 0; }
-  .recs-row { grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); grid-auto-columns: auto; gap: 14px; margin-top: 14px; overflow: visible; padding: 2px 0 0; }
-  .rec { display: block; padding: 0; background: none; box-shadow: none; border-radius: 0; }
-  .rec:active { transform: none; }
+  .recs-row { grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; padding: 2px 0 0; }
+  .rec { display: block; padding: 0; border: 0; }
+  .rec:active { opacity: 1; }
   .rec .cover { box-shadow: 0 6px 16px rgba(0, 0, 0, .14); }
   @media (hover: hover) { .rec:hover .cover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0, 0, 0, .18); } }
   .rec b { margin-top: 9px; }
@@ -536,6 +555,38 @@ dialog.sheet.closing::backdrop { animation: fade var(--t-base) var(--ease-in) re
   .cover.small .ph::before { width: 9px; }
   .cover.small .ph b { display: -webkit-box; }
 }
+/* Bisherige Empfehlungen: Zeitleiste, neueste Runde oben */
+dialog.archiv { height: 92dvh; }
+.archiv .pane { gap: 18px; }
+.arc { list-style: none; margin: 0; padding: 0; display: grid; }
+.arc-round { position: relative; padding: 0 0 22px 22px; animation: rise var(--t-slow) var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
+.arc-round::before { content: ""; position: absolute; left: 3px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--blau); }
+.arc-round::after { content: ""; position: absolute; left: 7px; top: 22px; bottom: 2px; width: 1px; background: var(--line); }
+.arc-round:last-child { padding-bottom: 0; }
+.arc-round:last-child::after { display: none; }
+.arc-round.now::before { background: var(--orange); }
+.arc-hd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 4px; }
+.arc-hd time { font-weight: 600; font-variant-numeric: tabular-nums; }
+.arc-hd b { flex-basis: 100%; font-weight: 500; }
+.arc-now { font-size: var(--fs-s); color: var(--muted); }
+.arc-item {
+  display: grid; grid-template-columns: 40px 1fr; gap: 14px; align-items: start; width: 100%;
+  padding: 12px 0; border: 0; border-top: 1px solid var(--line); background: none; color: var(--fg); text-align: left; font: inherit;
+}
+.arc-hd + .arc-item { border-top: 0; }
+button.arc-item { cursor: pointer; transition: opacity .15s var(--ease); }
+button.arc-item:active { opacity: .6; }
+.arc-item .cover { box-shadow: 0 3px 8px rgba(0, 0, 0, .14); }
+.arc-item .rt { min-width: 0; display: grid; gap: 2px; }
+.arc-item .rt b { font-weight: 500; overflow-wrap: anywhere; }
+.arc-item .rt span, .arc-item .rt small { color: var(--muted); font-size: var(--fs-s); }
+.arc-item .rt p { margin: 4px 0 0; font-size: var(--fs-s); line-height: 1.5; }
+.arc-item.gone .cover { opacity: .5; }
+.arc-item .cover.small .ph { padding: 6px 4px 6px 12px; }
+.arc-item .cover.small .ph b { display: none; }
+.arc-item .cover.small .ph::before { width: 6px; }
+@media (min-width: 40rem) { dialog.archiv { height: auto; width: min(40rem, calc(100% - 48px)); } }
+
 .teaser { grid-column: 1 / -1; margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .teaser b { display: block; font-weight: 600; font-size: var(--fs-s); margin-bottom: 4px; }
 .teaser p { margin: 0; line-height: 1.5; }
