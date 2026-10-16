@@ -18,7 +18,7 @@ test.describe("Liste", () => {
   test("Buchstaben-Abschnitte mit Ankern", async ({ page }) => {
     await oeffnen(page);
     await expect(page.locator("#L-K")).toHaveAttribute("data-l", "K");
-    const n = await page.locator("#list li[data-l]").count();
+    const n = await page.locator("#list ul[data-l]").count();
     expect(n).toBeGreaterThan(20);
   });
 
