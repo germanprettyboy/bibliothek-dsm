@@ -6,6 +6,9 @@ function Toaster(props) {
   return (
     <Sonner
       position="bottom-center"
+      // Fest statt aus getComputedStyle(<html>): Sonner fragt sonst bei jedem Neuzeichnen, nach dem Sprachwechsel
+      // erzwingt das eine Stil-Neuberechnung der ganzen Seite mitten im Klick
+      dir="ltr"
       offset={{ bottom: "calc(18px + env(safe-area-inset-bottom, 0px))" }}
       mobileOffset={{ bottom: "calc(18px + env(safe-area-inset-bottom, 0px))" }}
       toastOptions={{

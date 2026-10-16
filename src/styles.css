@@ -45,8 +45,8 @@
   /* Genau drei Schriftgrößen auf allen Seiten: klein (Zusatzangaben), normal (Text), groß (Überschriften) */
   --fs-s: .875rem; --fs-m: 1rem; --fs-l: 1.5rem;
   --w: 46rem;
-  /* Bewegung: kurz (150–300 ms). Hinein mit --ease (ease-out), hinaus mit --ease-in. */
-  --t-fast: 150ms; --t-base: 220ms; --t-slow: 280ms;
+  /* Bewegung: kurz (150–250 ms). Hinein mit --ease (ease-out), hinaus schneller (--t-out) mit --ease-in. */
+  --t-fast: 150ms; --t-base: 200ms; --t-slow: 250ms; --t-out: 160ms;
   --ease: cubic-bezier(.2, .7, .2, 1);
   --ease-in: cubic-bezier(.4, 0, 1, 1);
   --snap: cubic-bezier(.25, 1, .35, 1);
@@ -154,7 +154,6 @@
     margin: 0; background: var(--bg); color: var(--fg);
     font: 400 var(--fs-m)/1.5 var(--font);
     -webkit-font-smoothing: antialiased;
-    transition: background-color .25s ease, color .25s ease;
   }
   b, strong { font-weight: 600; }
   button { cursor: pointer; }
@@ -175,19 +174,29 @@
   .logo .logo-d { display: none; }
   @media (min-width: 40rem) { .logo img { height: 64px; } }
 
-  /* Sprachwahl DE/IT: gleitende Markierung */
+  /* Sprachwahl DE/IT: gleitende Markierung. data-an setzt der Kopf sofort beim Klick, die Texte der Seite wechseln
+     einen Frame später (components/kopf.jsx). Eigene Ebene (will-change): Sie gleitet auf dem Compositor weiter,
+     während der Hauptthread die Seite neu berechnet. Vor React (festes Gerüst) gilt lang an <html>. */
   .seg::before {
     content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px);
     border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
-    transition: transform .28s var(--ease);
+    transition: transform var(--t-slow) var(--ease); will-change: transform;
   }
-  :root[lang="it"] .seg::before { transform: translateX(100%); }
+  :root[lang="it"] .seg:not([data-an])::before, .seg[data-an="it"]::before { transform: translateX(100%); }
   /* Gleitende Markierung in Segment-Wahlen (Theme): Position aus --i */
   .seg3::before {
     content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px;
     background: var(--bg); box-shadow: 0 2px 8px rgba(0, 0, 0, .1), inset 0 0 0 1px var(--line);
-    transform: translateX(calc(var(--i, 0) * 100%)); transition: transform var(--t-slow) var(--ease);
+    transform: translateX(calc(var(--i, 0) * 100%)); transition: transform var(--t-slow) var(--ease); will-change: transform;
   }
+
+  /* Farbwechsel (Theme, Kontrast, lib/darstellung.js): Die Seite wird einmal neu berechnet und als Bild überblendet
+     (View Transition), statt jede Fläche einzeln zu animieren. Die Theme-Wahl (.seg3, nur eine zur Zeit) liegt als
+     eigene, live gezeichnete Ebene obenauf: ihre Markierung gleitet, statt als altes Bild stehen zu bleiben. */
+  .seg3 { view-transition-name: dsm-wahl; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-base); animation-timing-function: ease-out; }
+  ::view-transition-old(dsm-wahl) { display: none; }
+  ::view-transition-group(dsm-wahl), ::view-transition-new(dsm-wahl) { animation: none; }
 
   /* Klebende Suchleiste: deckend; über ihr deckt ein fester Streifen die Statusleiste ab (iPhone, viewport-fit=cover) */
   .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid transparent; transition: border-color .2s, box-shadow .2s; }
@@ -219,7 +228,10 @@
      Hover-Fläche und Fokusrahmen innerhalb des Abschnitts, weil content-visibility dort abschneidet.
      Zeilen bewusst als knappe Klassen statt Tailwind-Ketten: 4500 Zeilen, kurze Attribute. */
   .meta { display: grid; padding-block: 14px 0; color: var(--muted); font-size: var(--fs-s); font-variant-numeric: tabular-nums; min-height: 1.5em; }
-  .list { padding-bottom: 40px; }
+  /* pointer-events ausdrücklich: Radix setzt beim Öffnen jedes Fensters pointer-events: none an <body>. Vererbt hieße das
+     eine Stil-Neuberechnung aller ~17.000 Listenelemente beim Öffnen und Schließen (4-fach gedrosselt 29 statt 6 ms).
+     Klicks auf die Liste fängt bei offenem Fenster ohnehin der Schleier ab. */
+  .list { padding-bottom: 40px; pointer-events: auto; }
   .list ul[data-l] { scroll-margin-top: calc(var(--bar-h) + 2px); }
   .list ul { list-style: none; margin: -6px -16px; padding: 6px 16px; }
   .list li { border-top: 1px solid var(--line); }
@@ -287,21 +299,21 @@
     -webkit-backdrop-filter: blur(12px) saturate(1.15); backdrop-filter: blur(12px) saturate(1.15);
   }
   .schleier[data-state="open"] { animation: fade var(--t-base) ease-out; }
-  .schleier[data-state="closed"] { animation: fade-out var(--t-base) var(--ease-in) forwards; }
-  .schleier.closing { animation: fade-out .18s var(--ease-in) forwards; }
+  .schleier[data-state="closed"] { animation: fade-out var(--t-out) var(--ease-in) forwards; }
+  .schleier.closing { animation: fade-out var(--t-out) var(--ease-in) forwards; }
   .sheet {
     position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; width: 100%; max-height: 92dvh;
     border-radius: 22px 22px 0 0; overflow: auto; overscroll-behavior: contain; outline: none;
   }
   .sheet[data-state="open"] { animation: sheet-in var(--t-slow) var(--ease); }
-  .sheet[data-state="closed"] { animation: sheet-out var(--t-base) var(--ease-in) forwards; }
+  .sheet[data-state="closed"] { animation: sheet-out var(--t-out) var(--ease-in) forwards; }
   .sheet .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 10px auto 0; }
   .sheet > .close { position: absolute; top: 12px; right: 12px; z-index: 2; background: var(--gb-bot); border-color: var(--glass-brd); }
   .sheet .inner, .sheet .pane { position: relative; z-index: 1; }
   @media (min-width: 40rem) {
     .sheet { left: 50%; right: auto; bottom: auto; top: 50%; translate: -50% -50%; width: min(36rem, calc(100% - 48px)); border-radius: 24px; max-height: 88dvh; }
     .sheet[data-state="open"] { animation: pop var(--t-slow) var(--ease); }
-    .sheet[data-state="closed"] { animation: pop-out 200ms var(--ease-in) forwards; }
+    .sheet[data-state="closed"] { animation: pop-out var(--t-out) var(--ease-in) forwards; }
     .sheet .grab { display: none; }
   }
   /* Buch-Detail: kürzer und knackiger als die übrigen Fenster */
