@@ -16,7 +16,7 @@
       sorted: "Alphabetisch nach Titel",
       emptyT: "Kein Buch gefunden",
       emptyP: "Eine andere Schreibweise oder nur einen Teil des Titels versuchen.",
-      close: "Schließen",
+      close: "Schließen", coverZoom: "Cover vergrößern", coverBig: "Cover",
       verlag: "Verlag", jahr: "Jahr", isbn: "ISBN", kategorie: "Kategorie", standort: "Standort",
       coverEKZ: "Cover: ekz-Bibliotheksservice", coverOL: "Cover: Open Library", coverGB: "Cover: Google Books",
       footer: "Bibliothek der Deutschen Schule Mailand",
@@ -48,7 +48,7 @@
       sorted: "In ordine alfabetico per titolo",
       emptyT: "Nessun libro trovato",
       emptyP: "Prova un'altra grafia o solo una parte del titolo.",
-      close: "Chiudi",
+      close: "Chiudi", coverZoom: "Ingrandisci copertina", coverBig: "Copertina",
       verlag: "Editore", jahr: "Anno", isbn: "ISBN", kategorie: "Categoria", standort: "Collocazione",
       coverEKZ: "Copertina: ekz-Bibliotheksservice", coverOL: "Copertina: Open Library", coverGB: "Copertina: Google Books",
       footer: "Biblioteca della Scuola Germanica di Milano",
@@ -296,7 +296,7 @@
   list.addEventListener("pointerdown", e => { const r = e.target.closest(".row"); if (r) prefetch(books[+r.dataset.i]); });
 
   // ---------- Detail ----------
-  const dlg = $("#detail");
+  const dlg = $("#detail"), dBox = $("#d-cover");
   D.wireSheet(dlg);
   let open = null, openRec = null, token = 0;
   const shelf = s => D.lang === "it" ? s.replace(/\s+Brett\s+(\d+)/i, ", ripiano $1").replace(/\s+Regal\s+(\d+)/i, " scaffale $1") : s;
@@ -329,15 +329,16 @@
     const img = C.img(found); // schon vorgeladenes Element, sonst neu
     img.alt = ""; img.referrerPolicy = "no-referrer";
     box.appendChild(img);
-    const show = () => { box.classList.remove("loading"); requestAnimationFrame(() => img.classList.add("in")); };
+    const show = () => { box.classList.remove("loading"); requestAnimationFrame(() => img.classList.add("in")); if (box === dBox) zoomable(true); };
     const fail = () => { box.classList.remove("loading"); img.remove(); };
     if (img.complete) (img.naturalWidth ? show : fail)();
     else { img.onload = show; img.onerror = fail; }
   }
   async function cover(b) {
     const my = ++token;
-    const box = $("#d-cover"), src = $("#d-src");
+    const box = dBox, src = $("#d-src");
     placeholder(box, b); // sofort sichtbar, echtes Cover blendet darüber ein
+    zoomable(false);
     src.textContent = ""; delete src.dataset.i18n;
     box.classList.toggle("loading", !!b.i);
     const t0 = performance.now();
@@ -361,6 +362,62 @@
     if (r) openDetail(books[+r.dataset.i]);
   });
   dlg.addEventListener("close", () => { token++; open = null; openRec = null; });
+
+  // ---------- Cover groß ----------
+  // Antippen hebt das Cover aus dem Detail und zieht es groß in die Mitte (FLIP, nur transform).
+  // Open-Library-Cover kommen dabei in Größe „L“ nach (ein Bild, nur auf Wunsch). Antippen/Escape legt es zurück.
+  const zoom = $("#zoom"), zImg = zoom.querySelector("img");
+  const snap = getComputedStyle(document.documentElement).getPropertyValue("--snap").trim() || "ease-out";
+  let zAnim = null, zMax = 432;
+  function zoomable(on) {
+    dBox.classList.toggle("zoomable", on);
+    if (on) { dBox.tabIndex = 0; dBox.setAttribute("role", "button"); dBox.dataset.i18nLabel = "coverZoom"; dBox.setAttribute("aria-label", D.t("coverZoom")); }
+    else { dBox.removeAttribute("tabindex"); dBox.removeAttribute("role"); delete dBox.dataset.i18nLabel; dBox.removeAttribute("aria-label"); }
+  }
+  // Ziel: so groß wie möglich, Seitenverhältnis wie .cover (2:3), höchstens 27rem breit
+  // (kleine Google-Bilder ohne größere Fassung nur gut doppelt so groß, sonst unscharf)
+  function place() {
+    const w = Math.min(innerWidth - 32, (innerHeight - 64) * 2 / 3, zMax), h = w * 1.5;
+    Object.assign(zImg.style, { left: (innerWidth - w) / 2 + "px", top: (innerHeight - h) / 2 + "px", width: w + "px", height: h + "px" });
+  }
+  // transform, der das große Bild genau auf das kleine Cover legt
+  function onCover() {
+    const a = dBox.getBoundingClientRect();
+    return `translate(${a.left - zImg.offsetLeft}px, ${a.top - zImg.offsetTop}px) scale(${a.width / zImg.offsetWidth})`;
+  }
+  function zoomOpen() {
+    const img = dBox.querySelector("img.in");
+    if (!img || zoom.open) return;
+    const big = img.src.replace(/-M\.jpg$/, "-L.jpg");
+    zMax = big !== img.src ? 432 : Math.min(432, Math.max(240, img.naturalWidth * 2.5));
+    zImg.src = img.src;
+    place();
+    zoom.classList.remove("closing");
+    zoom.showModal();
+    dBox.classList.add("lifted");
+    zAnim = still.matches ? null : zImg.animate([{ transform: onCover() }, { transform: "none" }], { duration: 240, easing: snap });
+    if (big === img.src) return;
+    const hi = new Image();
+    hi.referrerPolicy = "no-referrer"; hi.src = big;
+    hi.decode().then(() => { if (zoom.open && hi.naturalWidth > 1 && zImg.src === img.src) zImg.src = big; }, () => {});
+  }
+  function zoomClose(why) {
+    if (!zoom.open || zoom.classList.contains("closing")) return;
+    const done = () => { zoom.classList.remove("closing"); dBox.classList.remove("lifted"); zoom.close(why); zImg.getAnimations().forEach(a => a.cancel()); };
+    if (still.matches) return done();
+    zoom.classList.add("closing");
+    const from = getComputedStyle(zImg).transform; // mitten im Aufziehen: von dort zurück
+    if (zAnim) zAnim.cancel();
+    zAnim = zImg.animate([{ transform: from }, { transform: onCover() }], { duration: 180, easing: snap, fill: "forwards" });
+    zAnim.onfinish = done;
+  }
+  dBox.addEventListener("click", () => { if (dBox.classList.contains("zoomable")) zoomOpen(); });
+  dBox.addEventListener("keydown", e => {
+    if ((e.key === "Enter" || e.key === " ") && dBox.classList.contains("zoomable")) { e.preventDefault(); zoomOpen(); }
+  });
+  zoom.addEventListener("click", () => zoomClose("x"));
+  zoom.addEventListener("cancel", e => { e.preventDefault(); zoomClose("cancel"); });
+  addEventListener("resize", () => { if (zoom.open && !zoom.classList.contains("closing")) place(); });
 
   // ---------- Empfehlungen ----------
   const GROUPS = ["mittelstufe", "oberstufe", "erw-roman", "erw-sach", "erw-bio"];

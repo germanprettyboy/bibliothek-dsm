@@ -592,7 +592,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
       </li>
       <li>
         <b>Kontrolle</b>
-        <p>Die Bücherliste im Browser öffnen und <kbd>Strg</kbd> + <kbd>F5</kbd> drücken (neu laden ohne Zwischenspeicher). Oder <code>admin.html</code> neu laden: Oben muss jetzt <span class="ui">Aktuell veröffentlicht: … Bücher, Stand</span> mit dem heutigen Datum stehen.</p>
+        <p>Die Verwaltungsseite im Internet (<code>https://…/admin.html</code>) öffnen und <kbd>Strg</kbd> + <kbd>F5</kbd> drücken (neu laden ohne Zwischenspeicher). Oben muss jetzt <span class="ui">Aktuell veröffentlicht: … Bücher, Stand</span> mit dem heutigen Datum stehen. Die öffentliche Bücherliste zeigt absichtlich weder Anzahl noch Datum; dort suchen Sie zur Probe ein neues Buch.</p>
       </li>
     </ol>
     <a class="oben" href="#anfang">nach oben</a>
@@ -608,6 +608,11 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
       <li>
         <b>Reiter „Empfehlungen“ öffnen</b>
         <p>Oben stehen fünf Gruppen als Knöpfe, jeweils mit der Anzahl der Bücher in Klammern: <span class="ui">Mittelstufe</span>, <span class="ui">Oberstufe</span>, <span class="ui pfad">Erwachsene · Romane</span>, <span class="ui pfad">Erwachsene · Sachbücher</span>, <span class="ui pfad">Erwachsene · Biografien &amp; Geschichte</span>.</p>
+        <p>Darüber gibt es zwei freiwillige Felder <span class="ui pfad">Thema dieser Runde</span> (Deutsch und Italienisch), zum Beispiel „Sommerlektüre“. Das Thema erscheint auf der Website im Fenster <span class="ui">Bisherige Empfehlungen</span> beim Datum der Runde.</p>
+        <div class="box info">
+          <strong>Was mit den alten Empfehlungen passiert</strong>
+          <p>Wenn Sie andere Bücher auswählen und veröffentlichen, beginnt eine neue „Runde“. Die bisherige Auswahl geht nicht verloren: Sie erscheint auf der Website im Fenster <span class="ui">Bisherige Empfehlungen</span>, mit Datum und Thema. Ändern Sie nur Texte oder das Thema, bleibt es dieselbe Runde.</p>
+        </div>
       </li>
       <li>
         <b>Gruppe anklicken</b>
@@ -963,6 +968,21 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
         <p>Auf der Website fehlt eine Datei. Das kann nur die Website-Betreuung beheben: Johann Bucher Bescheid geben.</p>
       </div></div>
 
+      <div class="qa"><h4>Meldung beim Veröffentlichen: keine index.html im Ordner</h4><div>
+        <span class="meldung">Im Ordner „…“ liegt keine index.html. Bitte den Website-Ordner wählen – den Ordner mit index.html und admin.html.</span>
+        <p>Es wurde ein falscher Ordner gewählt, zum Beispiel Downloads oder Desktop. Auf <span class="ui">Anderen Ordner wählen</span> klicken und den Ordner nehmen, in dem <code>index.html</code> und <code>admin.html</code> liegen. Gibt es auf diesem Computer keinen solchen Ordner: <span class="ui">Stattdessen herunterladen</span>.</p>
+      </div></div>
+
+      <div class="qa"><h4>Meldung: Speichern nicht erlaubt</h4><div>
+        <span class="meldung">Der Browser hat das Speichern nicht erlaubt. Bitte noch einmal klicken und den Zugriff erlauben.</span>
+        <p>Bei der Frage des Browsers wurde „Nicht zulassen“ oder „Abbrechen“ gewählt. Nochmal auf <span class="ui">Veröffentlichen</span> klicken und diesmal erlauben. Der Browser fragt das nach dem Neustart gelegentlich erneut, das ist normal.</p>
+      </div></div>
+
+      <div class="qa"><h4>Meldung: Speichern hat nicht geklappt</h4><div>
+        <span class="meldung">Speichern hat nicht geklappt: …</span>
+        <p>Häufig ist der Website-Ordner auf einem abgezogenen USB-Stick oder Netzlaufwerk. Stick einstecken bzw. Netz prüfen und erneut klicken. Sonst <span class="ui">Stattdessen herunterladen</span> und den Text nach dem Doppelpunkt an Johann Bucher schicken.</p>
+      </div></div>
+
       <div class="qa"><h4>Das Passwort wird immer abgelehnt.</h4><div>
         <ul>
           <li>Ist die Feststelltaste (Großbuchstaben) an?</li>
@@ -980,7 +1000,7 @@ dl.glossar dt { font-weight: 600; padding-right: 16px; }
         <p>Dasselbe gilt für <code>empfehlungen (1).js</code> und <code>info (1).js</code>.</p>
       </div></div>
 
-      <div class="qa"><h4>Die Bücherliste zeigt nach dem Hochladen noch den alten Stand.</h4><div>
+      <div class="qa"><h4>Nach dem Hochladen fehlt ein neues Buch in der Bücherliste.</h4><div>
         <ol>
           <li><kbd>Strg</kbd> + <kbd>F5</kbd> drücken. Browser merken sich Dateien eine Weile.</li>
           <li>Immer noch alt? Dann liegt die Datei vermutlich im falschen Ordner oder hat den falschen Namen. Sie muss <code>books.js</code> heißen und neben <code>index.html</code> liegen.</li>

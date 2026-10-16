@@ -96,6 +96,40 @@ test.describe("Cover", () => {
     expect(netz.anfragen.filter(u => u.includes("/b/isbn/"))).toEqual([]);
   });
 
+  test("Cover antippen: groß in eigenem Fenster, Größe L nachgeladen, zurück per Antippen/Escape", async ({ page, netz }) => {
+    netz.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
+    await oeffnen(page);
+    await oeffneBuch(page, MIT_ISBN);
+    const box = page.locator("#d-cover"), zoom = page.locator("#zoom");
+    await expect(box).toHaveClass(/zoomable/);
+    await expect(box).toHaveAttribute("aria-label", "Cover vergrößern");
+    await box.click();
+    await expect(zoom).toBeVisible();
+    await expect(box).toHaveClass(/lifted/);
+    await expect(zoom.locator("img")).toHaveAttribute("src", "https://covers.openlibrary.org/b/id/123-L.jpg");
+    const klein = (await box.boundingBox()).width;
+    await expect.poll(async () => (await zoom.locator("img").boundingBox()).width).toBeGreaterThan(klein * 1.5);
+    expect(netz.anfragen.filter(u => u.includes("/b/isbn/"))).toEqual([]);
+    await page.keyboard.press("Escape");
+    await expect(zoom).toBeHidden();
+    await expect(box).not.toHaveClass(/lifted/);
+    await expect(page.locator("#detail")).toBeVisible(); // Detail bleibt offen
+    await box.focus();
+    await page.keyboard.press("Enter");
+    await expect(zoom).toBeVisible();
+    await zoom.click();
+    await expect(zoom).toBeHidden();
+  });
+
+  test("Platzhalter lässt sich nicht vergrößern", async ({ page }) => {
+    await oeffnen(page);
+    await oeffneBuch(page, OHNE_ISBN);
+    const box = page.locator("#d-cover");
+    await expect(box).not.toHaveClass(/zoomable/);
+    await box.click();
+    await expect(page.locator("#zoom")).toBeHidden();
+  });
+
   test("Rückfall Google: Bild direkt über die ISBN, keine Google-API", async ({ page, netz }) => {
     netz.ol = () => ({});
     netz.bild = url => url.includes("books.google.com");
