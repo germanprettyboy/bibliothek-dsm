@@ -2,13 +2,15 @@
  * Lokale Entwicklung mit Online-Veröffentlichen wie auf dem Webspace:  npm run lokal  → http://127.0.0.1:8765/
  *
  * - PHP-Webserver (php-wasm über npx, keine PHP-Installation, nicht in package.json) mit website/ als Wurzel
- *   und werkzeuge/lokal-router.php: speichern.php läuft echt und schreibt books.js/empfehlungen.js/info.js nach website/.
+ *   und werkzeuge/lokal-router.php: speichern.php läuft echt, schreibt books.js/empfehlungen.js/info.js aber nach
+ *   tests/.tmp/lokal/daten/ (beim Start frisch aus website/ kopiert, Sicherungen daneben in sicherung/). So bleiben die
+ *   eingecheckten Dateien in website/ beim Testen unberührt (vorher: main ständig mit geänderter info.js, Integration blockiert).
  * - Verwaltung: aktuelle werkzeuge/quelle/ mit dem lokalen Passwort verschlüsselt nach tests/.tmp/lokal/
  *   (Standard „lokal“, eigenes per DSM_LOKAL_PW). Echtes Passwort und echte admin.enc.js bleiben unberührt.
  *   Änderungen an werkzeuge/quelle/ → neu verschlüsseln (danach in der Verwaltung neu entsperren).
  * - npm run lokal -- --tunnel: zusätzlich öffentliche https-Adresse (Cloudflare Quick Tunnel, brew install cloudflared) davor,
  *   damit „Veröffentlichen“ auch vom Handy/Schul-PC aus echt schreibt. Weil die Adresse öffentlich ist, gilt dann ein
- *   zufälliges Passwort (wird angezeigt) statt „lokal“; Schreibziel bleibt website/ dieses Checkouts.
+ *   zufälliges Passwort (wird angezeigt) statt „lokal“; Schreibziel bleibt tests/.tmp/lokal/daten/.
  * - src/ → website/ im Watch-Modus (wie npm run dev, ohne Live-Reload: Seite neu laden).
  */
 import { spawn, execFileSync } from "node:child_process";
@@ -22,6 +24,8 @@ import { tunnel, dnsBereit, erreichbar, aufraeumen } from "./tunnel.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOKAL = path.join(ROOT, "tests", ".tmp", "lokal");
+const DATEN = path.join(LOKAL, "daten");
+const DATEIEN = ["books.js", "empfehlungen.js", "info.js"];
 const MIT_TUNNEL = process.argv.includes("--tunnel");
 const PW = process.env.DSM_LOKAL_PW || (MIT_TUNNEL ? randomBytes(9).toString("base64url") : "lokal");
 const PORT = process.env.PORT || "8765";
@@ -50,6 +54,10 @@ Welcher Prozess:  lsof -nP -iTCP:${PORT} -sTCP:LISTEN     Anderer Port:  PORT=${
 
 console.log("Verwaltung wird mit dem lokalen Passwort verschlüsselt …");
 verschluesseln();
+// jeder Start beginnt mit dem eingecheckten Stand; was beim letzten Mal veröffentlicht wurde, ist weg (nur Test)
+fs.rmSync(DATEN, { recursive: true, force: true });
+fs.mkdirSync(DATEN, { recursive: true });
+for (const d of DATEIEN) fs.copyFileSync(path.join(ROOT, "website", d), path.join(DATEN, d));
 
 // lokal-adresse.cjs: php-wasm lauscht sonst trotz „-S 127.0.0.1“ auf allen Schnittstellen (im WLAN erreichbar)
 const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "werkzeuge", "lokal-adresse.cjs"))}`.trim();
@@ -67,7 +75,7 @@ const kinder = [
 console.log(`
 Bücherliste:  http://127.0.0.1:${PORT}/
 Verwaltung:   http://127.0.0.1:${PORT}/admin.html   Passwort: ${PW}
-„Veröffentlichen“ schreibt direkt nach website/ (alte Fassung in website/sicherung/). Beenden: Strg+C
+„Veröffentlichen“ schreibt nach tests/.tmp/lokal/daten/ (nicht nach website/, beim nächsten Start zurückgesetzt). Beenden: Strg+C
 (Nur beim allerersten Start lädt npx PHP herunter (≈470 MB), danach aus dem Cache.)
 `);
 
