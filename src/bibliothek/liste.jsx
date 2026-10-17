@@ -36,10 +36,36 @@ const C = () => window.DSMCovers;
 const still = matchMedia("(prefers-reduced-motion: reduce)");
 const wide = matchMedia("(min-width: 48rem)");
 
-// Treffer markieren: split mit Klammer im Ausdruck, ungerade Teile sind Treffer
-function hl(text, re) {
-  if (!re) return text;
-  return String(text).split(re).map((p, n) => (n % 2 ? <mark key={n}>{p}</mark> : p));
+// Treffer markieren wie die Suche (norm): ohne Akzente, ß = ss – „kastner“ markiert „Kästner“.
+// Reiner ASCII-Text (die meisten Zeilen): split mit Klammer im Ausdruck, ungerade Teile sind Treffer.
+// Sonst jedes Zeichen einzeln falten und die Treffer im gefalteten Text auf die Originalzeichen zurückrechnen.
+const ASCII = /^[\x20-\x7e]*$/;
+const FOLD = new Map();
+const fold = c => {
+  let f = FOLD.get(c);
+  if (f === undefined) FOLD.set(c, f = c.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]/g, " "));
+  return f;
+};
+function hl(text, such) {
+  if (!such) return text;
+  const s = String(text);
+  if (ASCII.test(s)) return s.split(such.re).map((p, n) => (n % 2 ? <mark key={n}>{p}</mark> : p));
+  const zeichen = [...s], ab = [];
+  let f = "";
+  for (const c of zeichen) { ab.push(f.length); f += fold(c); }
+  ab.push(f.length);
+  const an = new Uint8Array(f.length);
+  for (const w of such.terms) for (let i = f.indexOf(w); i >= 0; i = f.indexOf(w, i + 1)) an.fill(1, i, i + w.length);
+  const out = [];
+  let teil = "", markiert = false;
+  zeichen.forEach((c, n) => {
+    // Zeichen ohne gefaltete Form (einzelnes Akzentzeichen) gehören zum vorigen
+    const m = ab[n] < ab[n + 1] ? an.subarray(ab[n], ab[n + 1]).includes(1) : markiert;
+    if (m !== markiert && teil) { out.push(markiert ? <mark key={out.length}>{teil}</mark> : teil); teil = ""; }
+    markiert = m; teil += c;
+  });
+  if (teil) out.push(markiert ? <mark key={out.length}>{teil}</mark> : teil);
+  return out;
 }
 
 // Geschätzte Höhe eines Abschnitts: Zeichen je Zeile für Titel (fs-m) und Autor (fs-s), grob über die mittlere Zeichenbreite
@@ -66,7 +92,7 @@ function abschnitte(current) {
 }
 
 // Ein Abschnitt; zeichnet nur neu, wenn sich Bücher oder Markierung ändern
-const Abschnitt = React.memo(function Abschnitt({ head, items, h, re }) {
+const Abschnitt = React.memo(function Abschnitt({ head, items, h, such }) {
   return (
     <ul data-l={head || undefined} id={head ? lid(head) : undefined} style={{ containIntrinsicSize: `auto ${Math.round(h)}px` }}>
       {items.map(b => {
@@ -74,8 +100,8 @@ const Abschnitt = React.memo(function Abschnitt({ head, items, h, re }) {
         return (
           <li key={b._i}>
             <button className="row" type="button" data-i={b._i}>
-              <span className="t">{hl(b.t, re)}</span>
-              {a ? <span className="a">{hl(a, re)}</span> : null}
+              <span className="t">{hl(b.t, such)}</span>
+              {a ? <span className="a">{hl(a, such)}</span> : null}
             </button>
           </li>
         );
@@ -125,9 +151,9 @@ export function Liste({ books, geladen, onOpen }) {
   const marks = React.useRef([]);
 
   const terms = React.useMemo(() => norm(q).split(" ").filter(Boolean), [q]);
-  const re = React.useMemo(() => {
+  const such = React.useMemo(() => {
     const long = terms.filter(x => x.length > 1).sort((a, b) => b.length - a.length);
-    return long.length ? new RegExp("(" + long.map(reEsc).join("|") + ")", "i") : null;
+    return long.length ? { re: new RegExp("(" + long.map(reEsc).join("|") + ")", "i"), terms: long } : null;
   }, [terms]);
   const current = React.useMemo(() => (terms.length ? books.filter(b => terms.every(x => b._s.includes(x))) : books), [books, terms]);
   const teile = React.useMemo(() => abschnitte(current), [current]);
@@ -334,7 +360,7 @@ export function Liste({ books, geladen, onOpen }) {
           {!geladen ? (
             <div className="skel" aria-hidden="true">{Array.from({ length: 14 }, (_, n) => <Skeleton key={n} />)}</div>
           ) : current.length ? (
-            <div className="rows">{teile.slice(0, grenze).map(s => <Abschnitt key={s.items[0]._i} head={s.head} items={s.items} h={s.h} re={re} />)}</div>
+            <div className="rows">{teile.slice(0, grenze).map(s => <Abschnitt key={s.items[0]._i} head={s.head} items={s.items} h={s.h} such={such} />)}</div>
           ) : (
             <div className="empty">
               <strong>{t(books.length ? "emptyT" : "noData")}</strong>
