@@ -82,7 +82,8 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
 - Nur Bücher (Medientyp Buch/Graphic Novel), Mehrfachexemplare zusammengefasst (Titel + Erstautor).
 - **Keine ISBN-Ergänzung.** Cover nur über vorhandene ISBN; ohne ISBN → gestalteter Platzhalter.
 - Liste bleibt reiner Text (Titel + Autor). Cover nur in Detailansicht und Empfehlungen.
-- Keine Buchanzahl und kein Stand auf der öffentlichen Seite (nur im Admin).
+- Kein Stand auf der öffentlichen Seite (nur im Admin). Buchanzahl seit 17.10.2026 erlaubt (Auftraggeber): `#meta` über
+  der Liste zeigt „4.545 Bücher“ (statt „Alphabetisch nach Titel“), beim Suchen „n Treffer“. Kein Footer.
 - Platzhalter-Cover ohne Autor (Autor steht schon daneben). Empfehlungen auf dem Handy: senkrechte
   Liste (kleines Cover links, Titel/Autor rechts, Trennlinien), KEIN Wisch-Band/Karussell; ab 40rem vier große Cover.
 - Kopf der Empfehlungs-Karte (Titel + Pfeil) öffnet Fenster „Bisherige Empfehlungen“: Zeitleiste neueste Runde
@@ -122,7 +123,8 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   Jedes nachladende Element hat einen Platzhalter: Logo (`.ld-bild`, `.da` bei load/error),
   Info-Karte (nur wenn beim letzten Besuch gezeigt, `dsm-info-karte`), Entsperren-Knopf im Admin (gesperrt mit
   Spinner, bis verwaltung.js nach books.js geladen ist; Spinner auch beim Prüfen). Schriften: `font-display: swap`.
-- Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ → Mittelstufe / Oberstufe /
+- Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ (Kopf: Bücherregal `.regal` in Logofarben, Fortschritt
+  `.fortschritt` mit drei Strichen, ab Schritt 2 „Zurück“ oben; Ja/Nein auf dem Handy untereinander) → Mittelstufe / Oberstufe /
   Erwachsenenliteratur → (Erw.) Romane / Sachbücher / Biografien & Geschichte. Wahl in localStorage `dsm-empf`.
   In den Einstellungen dieselbe Wahl als Liste: Blöcke Mittelstufe / Oberstufe / Erwachsenenliteratur mit Abstand
   dazwischen, die drei Erwachsenen-Bereiche untereinander in einem Block.
@@ -142,7 +144,13 @@ Tailwind-Theme ist auf DSM beschränkt (`--text-*`, `--font-weight-*`, `--color-
 Schriftgrößen nur `text-s`/`text-m`/`text-l`, Gewichte `font-normal/medium/semibold`, Farben nur shadcn-Namen
 (`background`, `foreground`, `muted-foreground`, `border`, `primary`, `surface` …, alle auf DSM-Tokens) und
 Logofarben (`mauve`, `gelb`, `orange`, `blau`, `rot`, `gruen`). Abstände in px (`--spacing: 4px`, `p-3` = 12px).
-Kein `dark:` in Klassen – Farben wechseln über die Tokens. shadcn-Komponenten nach `ui:add` immer anpassen
+Kein `dark:` in Klassen – Farben wechseln über die Tokens.
+Einheitliches Raster: Karten (Info, Empfehlungen, Einstellungs-Blöcke, Detail-Text) = `.karte` (16 px Radius, `surface`,
+Linie innen), innen `p-4`; Blöcke über der Liste je `pb-4`; Suchfeld 48 px, Radius 12 px. Empfehlungen auch auf dem Handy
+als Karte (kein randloses Band). Zugänglich: Zielflächen ≥44 px (`Button size="icon"` = 44, `icon-sm` = 40), Fokusrahmen
+2 px in Textfarbe (`--focus`), Sprunglink „Zur Suche springen“ (`a[href="#q"]`), Info-Karte ohne `aria-label` (Status wird
+gelesen), Liste mit unsichtbarer Überschrift `#list-t`. Logo 44 px (Handy) / 60 px.
+shadcn-Komponenten nach `ui:add` immer anpassen
 (`cn` aus `@/lib/utils`, keine `text-sm`/`text-xs`, kein `underline`, keine `dark:`-Klassen); regeln.test prüft das.
 `cn()` kennt die eigenen Größen (tailwind-merge erweitert), sonst würde `text-s text-muted-foreground` verschluckt.
 

@@ -26,7 +26,7 @@ export function Kopf({ onEinstellungen }) {
   // Nur das sichtbare Logo zählt (das der anderen Farbwelt ist ausgeblendet und lädt ggf. nie)
   const bild = e => { if (e.currentTarget.getClientRects().length) setDa(true); };
   return (
-    <header className="wrap flex items-center justify-between gap-3 pt-[18px] pb-1.5 sm:pt-6 sm:pb-2">
+    <header className="wrap flex items-center justify-between gap-3 pt-4 pb-2 sm:pt-6 sm:pb-3">
       <a className={cn("logo ld-bild", da && "da")} href="./">
         <img className="logo-l" src="assets/logo-hell.webp" width="360" height="200" decoding="async" alt={ALT} onLoad={bild} onError={bild} />
         <img className="logo-d" src="assets/logo-dunkel.webp" width="360" height="200" loading="lazy" decoding="async" alt={ALT} onLoad={bild} onError={bild} />
@@ -34,7 +34,7 @@ export function Kopf({ onEinstellungen }) {
       <div className="flex items-center gap-2">
         <div className="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" data-an={an} role="group" aria-label="Sprache · Lingua">
           {["de", "it"].map(l => (
-            <Toggle key={l} size="sm" lang={l} data-lang={l} pressed={an === l} onPressedChange={() => waehlen(l)} className="h-8">
+            <Toggle key={l} size="sm" lang={l} data-lang={l} pressed={an === l} onPressedChange={() => waehlen(l)} className="h-9">
               {l.toUpperCase()}
             </Toggle>
           ))}

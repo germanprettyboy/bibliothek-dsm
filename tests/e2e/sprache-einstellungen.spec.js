@@ -11,7 +11,7 @@ test.describe("Sprache", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "it");
     await expect(page.locator("h1")).toHaveText("Biblioteca");
     await expect(page.locator("#q")).toHaveAttribute("placeholder", "Cerca titolo, autore o ISBN");
-    await expect(page.locator("#meta")).toHaveText("In ordine alfabetico per titolo");
+    await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("it-IT")} libri`);
     await expect(page.locator('.seg [data-lang="it"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page).toHaveTitle("Biblioteca – Scuola Germanica di Milano");
     await page.reload();
@@ -58,7 +58,7 @@ test.describe("Sprache", () => {
   test("italienischer Text bleibt Anthrazit (kein Rot)", async ({ page }) => {
     await oeffnen(page);
     await page.click('.seg [data-lang="it"]');
-    const farben = await page.evaluate(() => [...document.querySelectorAll("h1, #meta, #list .t, #list .a, .foot span")]
+    const farben = await page.evaluate(() => [...document.querySelectorAll("h1, #meta, #list .t, #list .a")]
       .slice(0, 50).map(e => getComputedStyle(e).color));
     for (const c of new Set(farben)) expect(c).not.toBe("rgb(169, 58, 57)");
     expect(farben).toContain("rgb(51, 51, 51)");
