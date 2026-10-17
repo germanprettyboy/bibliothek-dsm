@@ -7,6 +7,7 @@ import { Fenster } from "@/components/fenster";
 import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/speicher";
+import { C, still } from "@/lib/umwelt";
 import { woerter, useSprache, t as tx } from "@/lib/sprache";
 import { Cover } from "@/bibliothek/cover";
 
@@ -25,8 +26,6 @@ woerter({
   },
 });
 
-const C = () => window.DSMCovers;
-const still = matchMedia("(prefers-reduced-motion: reduce)");
 const shelf = (s, lang) => (lang === "it" ? s.replace(/\s+Brett\s+(\d+)/i, ", ripiano $1").replace(/\s+Regal\s+(\d+)/i, " scaffale $1") : s);
 const cat = (k, lang) => (lang === "it" && window.DSM_KATEGORIEN_IT && window.DSM_KATEGORIEN_IT[k]) || k;
 const zeilen = a => a.map((x, n) => <React.Fragment key={n}>{n ? <br /> : null}{x}</React.Fragment>);
