@@ -16,6 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
+import readline from "node:readline";
 import { tunnel, dnsBereit, erreichbar, aufraeumen } from "./tunnel.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,9 +35,16 @@ function verschluesseln() {
 console.log("Verwaltung wird mit dem lokalen Passwort verschlüsselt …");
 verschluesseln();
 
+const php = spawn("npx", ["--yes", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("werkzeuge", "lokal-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"] });
+// php-wasm meldet, solange eine Verbindung offen ist, dutzendfach „Failed to accept a client (reason: Invalid argument)“
+// und „Failed to poll event“ (accept() im WASM-Socket; harmlos, Anfragen gehen durch, auch in 3.1.58 noch so).
+// Ausgeblendet samt Accepted/Closing je Verbindung; Anfragen, PHP-Fehler und alles andere bleiben sichtbar.
+const RAUSCHEN = /\] (Failed to accept a client \(reason: Invalid argument\)|Failed to poll event|\S+ (Accepted|Closing|Closed without sending a request\b.*))$/;
+readline.createInterface({ input: php.stderr }).on("line", z => { if (!RAUSCHEN.test(z)) console.error(z); });
+
 const kinder = [
   spawn(process.execPath, [path.join(ROOT, "werkzeuge", "bauen.mjs"), "--watch"], { cwd: ROOT, stdio: "inherit" }),
-  spawn("npx", ["--yes", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("werkzeuge", "lokal-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "inherit"] }),
+  php,
 ];
 console.log(`
 Bücherliste:  http://127.0.0.1:${PORT}/
