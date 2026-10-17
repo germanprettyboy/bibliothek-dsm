@@ -87,7 +87,7 @@ describe("externe Verbindungen", () => {
   test("lokale Verweise in index.html und admin.html existieren", () => {
     for (const f of ["index.html", "admin.html"]) {
       for (const m of lies(f).matchAll(/(?:src|href)="([^"#:]+)"/g)) {
-        if (m[1] === "./") continue;
+        if (m[1] === "./" || m[1] === "info.js") continue; // info.js liegt nur auf dem Webspace (nicht eingecheckt)
         assert.ok(fs.existsSync(path.join(WEB, m[1])), f + ": " + m[1]);
       }
     }

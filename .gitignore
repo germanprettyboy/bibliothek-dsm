@@ -11,6 +11,10 @@ node_modules/
 # Testläufe (Playwright-Ergebnisse, Test-Datenbanken, Test-Verschlüsselung, npm run lokal)
 tests/.tmp/
 
+# Öffnungszeiten/Ferien: Original liegt auf dem Webspace (Verwaltung speichert per speichern.php), nicht im Repo.
+# Lokal veröffentlichte Fassungen (Ordnerzugriff, Tests) sollen main nicht verändern. Fehlt die Datei, zeigt die Seite keine Info-Karte.
+website/info.js
+
 # von speichern.php (npm run lokal): Sicherungen und halb geschriebene Dateien
 website/sicherung/
 website/.*.neu
