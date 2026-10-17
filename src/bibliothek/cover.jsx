@@ -4,8 +4,8 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { C } from "@/lib/umwelt";
 
-const C = () => window.DSMCovers;
 const COLORS = ["--mauve", "--gelb", "--orange", "--blau", "--rot", "--gruen"];
 const hash = s => { let h = 0; for (const c of s) h = (h * 31 + c.codePointAt(0)) >>> 0; return h; };
 
