@@ -1,54 +1,54 @@
 /*
- * Gemeinsame Fixture: Cover-Dienste standardmäßig gesperrt (kein echtes Netz in Tests),
- * Bilder laden nur, wenn netz.bild(url) zustimmt (Standard: nur Open-Library-Bilder über die Cover-ID),
- * jede Anfrage wird mitgeschrieben, Skriptfehler lassen den Test scheitern.
+ * Shared fixture: cover services blocked by default (no real network in tests),
+ * images only load if net.image(url) agrees (default: only Open Library images via the cover ID),
+ * every request is recorded, script errors make the test fail.
  */
 const base = require("@playwright/test");
 const fs = require("fs");
 const path = require("path");
-const { WEB, TMP, daten, treffer, schluessel } = require("../helfer/laden.js");
+const { WEB, TMP, data, hits, keyOf } = require("../helpers/load.js");
 
-const BILD = fs.readFileSync(path.join(WEB, "assets", "logo-hell.png")); // 720×401 px, reicht als „Cover“
+const IMAGE = fs.readFileSync(path.join(WEB, "assets", "logo-light.png")); // 720×401 px, good enough as a "cover"
 const CORS = { "access-control-allow-origin": "*" };
-const AUS = JSON.stringify({ want: false, gruppe: null });
+const OFF = JSON.stringify({ want: false, group: null });
 
 const test = base.test.extend({
-  // Startzustand im localStorage (vor jedem Laden gesetzt). Standard: Fragen beim ersten Besuch schon beantwortet.
-  speicher: [{ "dsm-empf": AUS }, { option: true }],
-  netz: async ({ context }, use) => {
-    const n = { anfragen: [], ol: null, bild: url => /covers\.openlibrary\.org\/b\/id\//.test(url) };
+  // Initial state in localStorage (set before every load). Default: questions on the first visit already answered.
+  storage: [{ "dsm-recs": OFF }, { option: true }],
+  net: async ({ context }, use) => {
+    const n = { requests: [], ol: null, image: url => /covers\.openlibrary\.org\/b\/id\//.test(url) };
     await context.route(/openlibrary\.org|books\.google\.com|cover\.ekz\.de/, async route => {
       const url = route.request().url();
-      n.anfragen.push(url);
+      n.requests.push(url);
       if (url.startsWith("https://openlibrary.org/api/books") && n.ol) {
         const keys = decodeURIComponent(new URL(url).searchParams.get("bibkeys")).split(",");
         return route.fulfill({ json: n.ol(keys), headers: CORS });
       }
-      if (!url.includes("/api/books") && n.bild(url)) {
-        return route.fulfill({ body: BILD, contentType: "image/png" });
+      if (!url.includes("/api/books") && n.image(url)) {
+        return route.fulfill({ body: IMAGE, contentType: "image/png" });
       }
       return route.abort();
     });
     await use(n);
   },
-  page: async ({ page, speicher, netz }, use) => { // eslint-disable-line no-unused-vars
-    const fehler = [];
-    page.on("pageerror", e => fehler.push(e.message));
-    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource/.test(m.text())) fehler.push(m.text()); });
+  page: async ({ page, storage, net }, use) => { // eslint-disable-line no-unused-vars
+    const errors = [];
+    page.on("pageerror", e => errors.push(e.message));
+    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
     await page.addInitScript(s => {
-      if (sessionStorage.getItem("__test-init")) return; // nur beim ersten Laden, Reload behält den Zustand
+      if (sessionStorage.getItem("__test-init")) return; // only on the first load, a reload keeps the state
       sessionStorage.setItem("__test-init", "1");
       for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v);
-    }, speicher);
+    }, storage);
     await use(page);
-    base.expect(fehler, "Skriptfehler auf der Seite").toEqual([]);
+    base.expect(errors, "script errors on the page").toEqual([]);
   },
 });
 
-// Liste geladen und Fragen-Overlay ggf. erschienen
-async function oeffnen(page, url = "index.html") {
+// List loaded and questions overlay appeared, if any
+async function open(page, url = "index.html") {
   await page.goto(url);
   await page.locator("#list .row").first().or(page.locator("#list .empty")).waitFor();
 }
 
-module.exports = { test, expect: base.expect, oeffnen, daten, treffer, schluessel, TMP, BILD, AUS };
+module.exports = { test, expect: base.expect, open, data, hits, keyOf, TMP, IMAGE, OFF };

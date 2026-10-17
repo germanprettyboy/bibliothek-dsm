@@ -1,10 +1,10 @@
-/* Sprache DE/IT: gespeicherte Wahl, sonst Browsersprache. Jede Komponente meldet ihre Texte mit woerter() an
-   (beim Laden des Moduls), useSprache() liefert t() und zeichnet bei einem Wechsel neu. */
+/* Language DE/IT: saved choice, otherwise the browser language. Every component registers its texts with addStrings()
+   (when the module loads); useLanguage() returns t() and re-renders on a switch. */
 import { useSyncExternalStore } from "react";
 
-import { store, log } from "@/lib/speicher";
+import { store, log } from "@/lib/storage";
 
-const WOERTER = {
+const STRINGS = {
   de: {
     settings: "Einstellungen", close: "Schließen",
     sTitle: "Einstellungen", sLook: "Darstellung", sAuto: "Automatisch", sLight: "Hell", sDark: "Dunkel",
@@ -21,35 +21,35 @@ const WOERTER = {
   },
 };
 
-export function woerter(dict) {
-  Object.assign(WOERTER.de, dict.de);
-  Object.assign(WOERTER.it, dict.it);
+export function addStrings(dict) {
+  Object.assign(STRINGS.de, dict.de);
+  Object.assign(STRINGS.it, dict.it);
 }
 
-const gespeichert = store.get("dsm-lang");
-let lang = gespeichert === "it" || gespeichert === "de" ? gespeichert : (/^it\b/i.test(navigator.language || "") ? "it" : "de");
-const hoerer = new Set();
+const saved = store.get("dsm-lang");
+let lang = saved === "it" || saved === "de" ? saved : (/^it\b/i.test(navigator.language || "") ? "it" : "de");
+const listeners = new Set();
 
 export function t(key, vars) {
-  let s = WOERTER[lang][key] ?? WOERTER.de[key] ?? key;
+  let s = STRINGS[lang][key] ?? STRINGS.de[key] ?? key;
   if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
   return s;
 }
-export function titelSetzen() {
+export function setTitle() {
   document.documentElement.lang = lang;
-  if (WOERTER.de.pageTitle) document.title = t("pageTitle");
+  if (STRINGS.de.pageTitle) document.title = t("pageTitle");
 }
 export function setLang(l) {
   if (l === lang) return;
   lang = l;
   store.set("dsm-lang", l);
-  log("Sprache", l === "it" ? "Italienisch" : "Deutsch");
-  titelSetzen();
-  hoerer.forEach(fn => fn());
+  log("Language", l === "it" ? "Italian" : "German");
+  setTitle();
+  listeners.forEach(fn => fn());
 }
 export const getLang = () => lang;
 
-// Zahlen- und Datumsformat je Sprache (Intl-Objekte nur einmal anlegen)
+// Number and date format per language (create the Intl objects only once)
 const NF = {};
 export const nf = n => (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE"))).format(n);
 export function df(iso) {
@@ -58,9 +58,9 @@ export function df(iso) {
   return lang === "it" ? `${m[3]}/${m[2]}/${m[1]}` : `${m[3]}.${m[2]}.${m[1]}`;
 }
 
-const abo = fn => { hoerer.add(fn); return () => hoerer.delete(fn); };
+const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 
-export function useSprache() {
-  const l = useSyncExternalStore(abo, getLang);
+export function useLanguage() {
+  const l = useSyncExternalStore(subscribe, getLang);
   return { lang: l, t, setLang, nf, df };
 }

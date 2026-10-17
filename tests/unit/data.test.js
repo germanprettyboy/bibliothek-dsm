@@ -1,100 +1,100 @@
-/* Veröffentlichte Datendateien: books.js, empfehlungen.js, info.js, kategorien-it.js */
+/* Published data files: books.js, recommendations.js, info.js, categories-it.js */
 "use strict";
 const { test, describe } = require("node:test");
 const assert = require("node:assert/strict");
-const X = require("../../werkzeuge/quelle/extract.js");
-const { daten, norm, schluessel } = require("../helfer/laden.js");
+const X = require("../../tools/source/extract.js");
+const { data, norm, keyOf } = require("../helpers/load.js");
 
-const { B, E, I, K } = daten();
+const { B, R, I, C } = data();
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 describe("books.js", () => {
-  test("Grundform", () => {
-    assert.match(B.stand, ISO);
-    assert.ok(Array.isArray(B.buecher) && B.buecher.length > 0);
-    assert.equal(B.anzahl, B.buecher.length);
+  test("basic shape", () => {
+    assert.match(B.updated, ISO);
+    assert.ok(Array.isArray(B.books) && B.books.length > 0);
+    assert.equal(B.count, B.books.length);
   });
-  test("nur Whitelist-Felder mit richtigen Typen", () => {
-    const str = ["t", "u", "v", "j", "k"], arr = ["a", "i", "s"];
-    for (const b of B.buecher) {
+  test("only whitelist fields with the right types", () => {
+    const str = ["t", "s", "p", "y", "c"], arr = ["a", "i", "l"];
+    for (const b of B.books) {
       for (const [k, v] of Object.entries(b)) {
         if (str.includes(k)) assert.ok(typeof v === "string" && v.trim() === v && v, k + " in " + b.t);
         else if (arr.includes(k)) assert.ok(Array.isArray(v) && v.length && v.every(x => typeof x === "string" && x), k + " in " + b.t);
-        else assert.fail("unerlaubtes Feld " + k);
+        else assert.fail("forbidden field " + k);
       }
-      assert.ok(b.t, "Titel fehlt");
+      assert.ok(b.t, "title missing");
     }
   });
-  test("ISBN: immer 13-stellig mit gültiger Prüfziffer", () => {
-    for (const b of B.buecher) for (const i of b.i || []) assert.equal(X.isbn13(i), i, b.t);
+  test("ISBN: always 13 digits with a valid check digit", () => {
+    for (const b of B.books) for (const i of b.i || []) assert.equal(X.isbn13(i), i, b.t);
   });
-  test("Jahr: vierstellig", () => {
-    for (const b of B.buecher) if (b.j) assert.match(b.j, /^(1[5-9]|20)\d\d$/, b.t);
+  test("year: four digits", () => {
+    for (const b of B.books) if (b.y) assert.match(b.y, /^(1[5-9]|20)\d\d$/, b.t);
   });
-  test("keine doppelten Einträge (Titel + Erstautor)", () => {
+  test("no duplicate entries (title + first author)", () => {
     const seen = new Set();
-    for (const b of B.buecher) { const k = schluessel(b); assert.ok(!seen.has(k), b.t); seen.add(k); }
+    for (const b of B.books) { const k = keyOf(b); assert.ok(!seen.has(k), b.t); seen.add(k); }
   });
-  test("alphabetisch nach Titel sortiert", () => {
+  test("sorted alphabetically by title", () => {
     const coll = new Intl.Collator("de", { sensitivity: "base", numeric: true });
     const key = s => s.replace(/^[^\p{L}\p{N}]+/u, "");
-    for (let n = 1; n < B.buecher.length; n++) {
-      assert.ok(coll.compare(key(B.buecher[n - 1].t), key(B.buecher[n].t)) <= 0, B.buecher[n - 1].t + " / " + B.buecher[n].t);
+    for (let n = 1; n < B.books.length; n++) {
+      assert.ok(coll.compare(key(B.books[n - 1].t), key(B.books[n].t)) <= 0, B.books[n - 1].t + " / " + B.books[n].t);
     }
   });
-  test("Abdeckung/Verlauf (falls vorhanden) gültig", () => {
-    if (B.abdeckung) { assert.match(B.abdeckung.stand, ISO); assert.ok(B.abdeckung.isbn <= B.abdeckung.buecher); }
-    if (B.verlauf) { assert.ok(Array.isArray(B.verlauf) && B.verlauf.length <= 24); for (const e of B.verlauf) assert.match(e.stand, ISO); }
+  test("coverage/history (if present) valid", () => {
+    if (B.coverage) { assert.match(B.coverage.updated, ISO); assert.ok(B.coverage.isbn <= B.coverage.books); }
+    if (B.history) { assert.ok(Array.isArray(B.history) && B.history.length <= 24); for (const e of B.history) assert.match(e.updated, ISO); }
   });
 });
 
-describe("kategorien-it.js", () => {
-  test("jede Kategorie aus books.js hat eine italienische Übersetzung", () => {
-    const fehlt = [...new Set(B.buecher.map(b => b.k).filter(Boolean))].filter(k => !K[k]);
-    assert.deepEqual(fehlt, []);
+describe("categories-it.js", () => {
+  test("every category from books.js has an Italian translation", () => {
+    const missing = [...new Set(B.books.map(b => b.c).filter(Boolean))].filter(k => !C[k]);
+    assert.deepEqual(missing, []);
   });
 });
 
-describe("empfehlungen.js", () => {
-  const GRUPPEN = ["mittelstufe", "oberstufe", "erw-roman", "erw-sach", "erw-bio"];
-  const katalog = new Map(B.buecher.map(b => [schluessel(b), b]));
-  test("Grundform, nur bekannte Gruppen", () => {
-    assert.match(E.stand, ISO);
-    for (const g of Object.keys(E.gruppen)) assert.ok(GRUPPEN.includes(g), g);
+describe("recommendations.js", () => {
+  const GROUPS = ["middle", "upper", "adult-fiction", "adult-nonfiction", "adult-bio"];
+  const catalog = new Map(B.books.map(b => [keyOf(b), b]));
+  test("basic shape, only known groups", () => {
+    assert.match(R.updated, ISO);
+    for (const g of Object.keys(R.groups)) assert.ok(GROUPS.includes(g), g);
   });
-  for (const g of GRUPPEN) {
-    test("Gruppe " + g + ": höchstens 4, Texte DE/IT, Schlüssel im Bestand", () => {
-      const l = E.gruppen[g] || [];
+  for (const g of GROUPS) {
+    test("group " + g + ": at most 4, texts DE/IT, key in the catalog", () => {
+      const l = R.groups[g] || [];
       assert.ok(l.length <= 4);
-      assert.equal(new Set(l.map(r => r.k)).size, l.length, "doppelt");
+      assert.equal(new Set(l.map(r => r.k)).size, l.length, "duplicate");
       for (const r of l) {
         assert.match(r.k, /^[a-z0-9 ]+\|[a-z0-9 ]*$/, r.k);
-        assert.equal(r.k, norm(r.t) + "|" + norm(String(r.a || "").split(",")[0]), "Schlüssel passt nicht zu Titel/Autor: " + r.k);
-        assert.ok(katalog.has(r.k), "nicht im Bestand (wird nicht angezeigt): " + r.k);
-        assert.ok(r.de && r.de.trim().length > 40, "DE-Text fehlt: " + r.k);
-        assert.ok(r.it && r.it.trim().length > 40, "IT-Text fehlt: " + r.k);
+        assert.equal(r.k, norm(r.t) + "|" + norm(String(r.a || "").split(",")[0]), "key doesn't match title/author: " + r.k);
+        assert.ok(catalog.has(r.k), "not in the catalog (won't be shown): " + r.k);
+        assert.ok(r.de && r.de.trim().length > 40, "DE text missing: " + r.k);
+        assert.ok(r.it && r.it.trim().length > 40, "IT text missing: " + r.k);
       }
     });
   }
 });
 
 describe("info.js", () => {
-  const TAGE = ["mo", "di", "mi", "do", "fr", "sa", "so"];
-  test("Öffnungszeiten: nur Wochentage, Bereiche HH:MM, von < bis", () => {
-    assert.match(I.stand, ISO);
-    for (const [k, rs] of Object.entries(I.zeiten || {})) {
-      assert.ok(TAGE.includes(k), k);
+  const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+  test("opening hours: only weekdays, ranges HH:MM, from < to", () => {
+    assert.match(I.updated, ISO);
+    for (const [k, rs] of Object.entries(I.hours || {})) {
+      assert.ok(DAYS.includes(k), k);
       for (const r of rs) { assert.match(r[0], /^\d{2}:\d{2}$/); assert.match(r[1], /^\d{2}:\d{2}$/); assert.ok(r[0] < r[1], k + " " + r); }
     }
   });
-  test("Schließtage: ISO-Datum, bis ≥ von, Art bekannt", () => {
-    for (const c of I.schliessungen || []) {
-      assert.match(c.von, ISO);
-      if (c.bis) { assert.match(c.bis, ISO); assert.ok(c.bis >= c.von); }
-      if (c.art) assert.ok(["ferien", "abwesend"].includes(c.art), c.art);
+  test("closing days: ISO date, to ≥ from, known type", () => {
+    for (const c of I.closures || []) {
+      assert.match(c.from, ISO);
+      if (c.to) { assert.match(c.to, ISO); assert.ok(c.to >= c.from); }
+      if (c.type) assert.ok(["holiday", "absent"].includes(c.type), c.type);
     }
   });
-  test("Hinweis DE/IT als Text", () => {
-    if (I.hinweis) for (const l of ["de", "it"]) assert.equal(typeof (I.hinweis[l] ?? ""), "string");
+  test("notice DE/IT as text", () => {
+    if (I.notice) for (const l of ["de", "it"]) assert.equal(typeof (I.notice[l] ?? ""), "string");
   });
 });

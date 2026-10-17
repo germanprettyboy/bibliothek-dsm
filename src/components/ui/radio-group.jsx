@@ -8,7 +8,7 @@ function RadioGroup({ className, ...props }) {
   return <RadioGroupPrimitive.Root data-slot="radio-group" className={cn("grid gap-2.5", className)} {...props} />;
 }
 
-// Auswahl als ganze Zeile: Farbbalken, Text, Häkchen bei der gewählten Option
+// choice as a full row: color bar, text, check mark on the selected option
 function RadioGroupItem({ className, children, ...props }) {
   return (
     <RadioGroupPrimitive.Item

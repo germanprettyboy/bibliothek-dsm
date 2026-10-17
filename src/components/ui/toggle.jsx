@@ -9,10 +9,10 @@ const toggleVariants = cva(
   {
     variants: {
       variant: {
-        // Teil einer Segment-Wahl: die Markierung gleitet per CSS (.seg, .seg3) unter den gewählten Knopf
+        // part of a segmented choice: the marker glides under the chosen button via CSS (.seg, .seg3)
         segment: "rounded-full bg-transparent",
-        // Segment mit eigener Fläche je Knopf (Reiter, Ferien/Abwesenheit)
-        flaeche: "rounded-md bg-transparent data-[state=on]:bg-background data-[state=on]:shadow-[0_1px_4px_rgba(0,0,0,.08),inset_0_0_0_1px_var(--line)]",
+        // segment with its own surface per button (tabs, holiday/absence)
+        surface: "rounded-md bg-transparent data-[state=on]:bg-background data-[state=on]:shadow-[0_1px_4px_rgba(0,0,0,.08),inset_0_0_0_1px_var(--line)]",
       },
       size: {
         default: "h-10 px-3",

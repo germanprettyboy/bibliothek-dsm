@@ -1,44 +1,44 @@
-/* Cover mit gestaltetem Platzhalter (Titel, Farbbalken aus dem Titel abgeleitet). Das echte Bild (assets/covers.js)
-   blendet darüber ein; bis es wirklich geladen ist, läuft das Lichtband (.loading). Scheitert es, bleibt der Platzhalter.
-   found: undefined = wird noch gesucht, null = kein Cover, {src, by} = gefunden. */
+/* Cover with a designed placeholder (title, color bar derived from the title). The real image (assets/covers.js)
+   fades in on top; until it has really loaded, the shimmer runs (.loading). If it fails, the placeholder stays.
+   found: undefined = still searching, null = no cover, {src, by} = found. */
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
 const C = () => window.DSMCovers;
-const COLORS = ["--mauve", "--gelb", "--orange", "--blau", "--rot", "--gruen"];
+const COLORS = ["--mauve", "--yellow", "--orange", "--blue", "--red", "--green"];
 const hash = s => { let h = 0; for (const c of s) h = (h * 31 + c.codePointAt(0)) >>> 0; return h; };
 
-export const Cover = React.forwardRef(function Cover({ titel, isbn, found, small, className, style, onShown, ...props }, ref) {
+export const Cover = React.forwardRef(function Cover({ title, isbn, found, small, className, style, onShown, ...props }, ref) {
   const box = React.useRef(null);
-  const [zustand, setZustand] = React.useState("leer"); // leer | bild | fehler
+  const [state, setState] = React.useState("empty"); // empty | image | failed
   React.useImperativeHandle(ref, () => box.current);
 
   React.useEffect(() => {
-    setZustand("leer");
+    setState("empty");
     if (!found) return undefined;
-    // schon vorgeladenes Element aus covers.js, sonst neu
+    // element already preloaded by covers.js, otherwise a new one
     const img = C().img(found);
     img.alt = ""; img.referrerPolicy = "no-referrer";
     img.classList.remove("in");
     box.current.appendChild(img);
     let raf = 0;
-    const show = () => { setZustand("bild"); raf = requestAnimationFrame(() => img.classList.add("in")); if (onShown) onShown(img); };
-    const fail = () => { setZustand("fehler"); img.remove(); };
+    const show = () => { setState("image"); raf = requestAnimationFrame(() => img.classList.add("in")); if (onShown) onShown(img); };
+    const fail = () => { setState("failed"); img.remove(); };
     if (img.complete) (img.naturalWidth ? show : fail)();
     else { img.onload = show; img.onerror = fail; }
     return () => { cancelAnimationFrame(raf); img.onload = img.onerror = null; img.remove(); };
   }, [found]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loading = !!isbn && (found === undefined || (!!found && zustand === "leer"));
+  const loading = !!isbn && (found === undefined || (!!found && state === "empty"));
   return (
     <div
       ref={box}
       className={cn("cover", small && "small", loading && "loading", className)}
-      style={{ "--ph-c": `var(${COLORS[hash(titel) % COLORS.length]})`, ...style }}
+      style={{ "--ph-c": `var(${COLORS[hash(title) % COLORS.length]})`, ...style }}
       {...props}
     >
-      <div className="ph"><b>{titel}</b><div className="rule" /></div>
+      <div className="ph"><b>{title}</b><div className="rule" /></div>
     </div>
   );
 });

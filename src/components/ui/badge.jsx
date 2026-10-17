@@ -9,7 +9,7 @@ const badgeVariants = cva("inline-flex w-fit shrink-0 items-center gap-1 whitesp
     variant: {
       default: "bg-foreground text-background",
       outline: "border border-border text-foreground",
-      // nur Text, gedämpft (z. B. „Aktuell“ in der Zeitleiste)
+      // text only, muted (e.g. "current" in the timeline)
       ghost: "px-0 font-normal text-muted-foreground",
     },
   },

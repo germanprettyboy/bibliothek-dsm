@@ -1,6 +1,6 @@
-/* Was die verschlüsselte Verwaltung (werkzeuge/quelle/verwaltung/) von dieser Seite bekommt: React und die
-   gemeinsamen Bausteine. Die Verwaltung wird mit diesen Modulen als „extern“ gebaut (admin-verschluesseln.js) und
-   findet sie zur Laufzeit hier (window.DSM_GEMEINSAM[Modulname]). So gibt es nur ein React und eine Sprache. */
+/* What the encrypted admin app (tools/source/admin/) gets from this page: React and the shared
+   building blocks. The admin app is built with these modules as "external" (encrypt-admin.js) and
+   finds them here at runtime (window.DSM_SHARED[module name]). That way there is only one React and one language. */
 import * as React from "react";
 import * as jsxRuntime from "react/jsx-runtime";
 import * as ReactDOM from "react-dom";
@@ -20,13 +20,13 @@ import * as tabs from "@/components/ui/tabs";
 import * as textarea from "@/components/ui/textarea";
 import * as toggle from "@/components/ui/toggle";
 import * as toggleGroup from "@/components/ui/toggle-group";
-import * as fenster from "@/components/fenster";
-import * as hinweis from "@/lib/hinweis";
-import * as speicher from "@/lib/speicher";
-import * as sprache from "@/lib/sprache";
+import * as glassDialog from "@/components/glass-dialog";
+import * as notice from "@/lib/notice";
+import * as storage from "@/lib/storage";
+import * as language from "@/lib/language";
 import * as utils from "@/lib/utils";
 
-export const GEMEINSAM = {
+export const SHARED = {
   "react": React,
   "react/jsx-runtime": jsxRuntime,
   "react-dom": ReactDOM,
@@ -45,9 +45,9 @@ export const GEMEINSAM = {
   "@/components/ui/textarea": textarea,
   "@/components/ui/toggle": toggle,
   "@/components/ui/toggle-group": toggleGroup,
-  "@/components/fenster": fenster,
-  "@/lib/hinweis": hinweis,
-  "@/lib/speicher": speicher,
-  "@/lib/sprache": sprache,
+  "@/components/glass-dialog": glassDialog,
+  "@/lib/notice": notice,
+  "@/lib/storage": storage,
+  "@/lib/language": language,
   "@/lib/utils": utils,
 };

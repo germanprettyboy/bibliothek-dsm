@@ -1,8 +1,8 @@
-/* Buchempfehlungen der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */
-window.DSM_EMPFEHLUNGEN = {
- "stand": "2026-10-15",
- "gruppen": {
-  "mittelstufe": [
+/* Book recommendations of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */
+window.DSM_RECOMMENDATIONS = {
+ "updated": "2026-10-15",
+ "groups": {
+  "middle": [
    {
     "k": "tschick|wolfgang herrndorf",
     "t": "Tschick",
@@ -32,7 +32,7 @@ window.DSM_EMPFEHLUNGEN = {
     "it": "Stanley Yelnats finisce, innocente, in un campo di rieducazione nel deserto dove ogni giorno deve scavare una buca. Ma che cosa cercano davvero i sorveglianti? Un romanzo ingegnoso i cui fili si annodano in un finale sorprendente."
    }
   ],
-  "oberstufe": [
+  "upper": [
    {
     "k": "corpus delicti|juli zeh",
     "t": "Corpus Delicti",
@@ -62,7 +62,7 @@ window.DSM_EMPFEHLUNGEN = {
     "it": "Paul Bäumer parte entusiasta per la Prima guerra mondiale appena uscito da scuola e sul fronte occidentale vede distruggere la sua generazione. Uno dei romanzi contro la guerra più intensi di sempre."
    }
   ],
-  "erw-roman": [
+  "adult-fiction": [
    {
     "k": "atemschaukel|herta muller",
     "t": "Atemschaukel",
@@ -92,7 +92,7 @@ window.DSM_EMPFEHLUNGEN = {
     "it": "L'attore Hendrik Höfgen fa carriera sotto il nazionalsocialismo e per questo svende le proprie convinzioni. Il romanzo di Klaus Mann sull'opportunismo, ispirato a Gustaf Gründgens."
    }
   ],
-  "erw-sach": [
+  "adult-nonfiction": [
    {
     "k": "kein schweigen im walde|madlen ziege",
     "t": "Kein Schweigen im Walde",
@@ -122,7 +122,7 @@ window.DSM_EMPFEHLUNGEN = {
     "it": "Perché il maglione crepita e come si devia un getto d'acqua senza toccarlo? La fisica spiegata con le cose di tutti i giorni, in modo divertente e chiaro."
    }
   ],
-  "erw-bio": [
+  "adult-bio": [
    {
     "k": "geschichte eines deutschen|sebastian haffner",
     "t": "Geschichte eines Deutschen",

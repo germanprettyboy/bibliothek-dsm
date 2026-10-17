@@ -1,6 +1,6 @@
 /*
- * Gegen die Original-Datenbank (daten/BIBLIOTHEK_DSM_2024.winbook, nicht eingecheckt).
- * Wird übersprungen, wenn die Datei fehlt. Fehlermeldungen nennen nur Anzahlen, nie Namen.
+ * Against the original database (data/BIBLIOTHEK_DSM_2024.winbook, not committed).
+ * Skipped if the file is missing. Failure messages only state counts, never names.
  */
 "use strict";
 const { test, describe, before } = require("node:test");
@@ -8,12 +8,12 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
-const X = require("../../werkzeuge/quelle/extract.js");
-const { WEB, echteDb, browserDatei, norm } = require("../helfer/laden.js");
+const X = require("../../tools/source/extract.js");
+const { WEB, realDb, browserFile, norm } = require("../helpers/load.js");
 
-const DB = echteDb();
+const DB = realDb();
 
-describe("Original-Datenbank", { skip: !DB && "daten/BIBLIOTHEK_DSM_2024.winbook fehlt" }, () => {
+describe("original database", { skip: !DB && "data/BIBLIOTHEK_DSM_2024.winbook is missing" }, () => {
   let db, r;
   before(async () => {
     const SQL = await initSqlJs();
@@ -21,48 +21,48 @@ describe("Original-Datenbank", { skip: !DB && "daten/BIBLIOTHEK_DSM_2024.winbook
     r = X.extract(db);
   });
 
-  test("books.js entspricht der Datenbank (sonst: npm run books)", () => {
-    const B = browserDatei("books.js").DSM_BIBLIOTHEK;
-    const neu = X.toScript(r, { stand: B.stand, abdeckung: B.abdeckung, verlauf: B.verlauf });
-    const alt = fs.readFileSync(path.join(WEB, "books.js"), "utf8");
-    assert.ok(neu === alt, `books.js weicht ab (${B.buecher.length} veröffentlicht, ${r.books.length} aus der Datenbank)`);
+  test("books.js matches the database (otherwise: npm run books)", () => {
+    const B = browserFile("books.js").DSM_LIBRARY;
+    const fresh = X.toScript(r, { updated: B.updated, coverage: B.coverage, history: B.history });
+    const old = fs.readFileSync(path.join(WEB, "books.js"), "utf8");
+    assert.ok(fresh === old, `books.js differs (${B.books.length} published, ${r.books.length} from the database)`);
   });
 
-  test("Personendaten vorhanden und werden verworfen", () => {
-    assert.ok(r.report.removedTables.some(t => t.key === "leser"), "Lesertabelle erkannt");
+  test("personal data present and discarded", () => {
+    assert.ok(r.report.removedTables.some(t => t.key === "readers"), "readers table detected");
     assert.ok(r.report.records > r.report.books);
   });
 
-  test("kein vollständiger Leser-Name in Kategorie oder Standort", () => {
-    const namen = new Set();
+  test("no full reader name in category or location", () => {
+    const names = new Set();
     for (const [n, v] of db.exec("SELECT lname, lvorname FROM leiher")[0].values) {
       const a = norm(n), b = norm(v);
-      if (a.length >= 2 && b.length >= 2) { namen.add(b + " " + a); namen.add(a + " " + b); }
+      if (a.length >= 2 && b.length >= 2) { names.add(b + " " + a); names.add(a + " " + b); }
     }
-    let treffer = 0;
-    for (const b of r.books) for (const f of [b.k, ...(b.s || [])]) {
+    let hits = 0;
+    for (const b of r.books) for (const f of [b.c, ...(b.l || [])]) {
       if (!f) continue;
       const x = " " + norm(f) + " ";
-      for (const nm of namen) if (x.includes(" " + nm + " ")) treffer++;
+      for (const nm of names) if (x.includes(" " + nm + " ")) hits++;
     }
-    assert.equal(treffer, 0, treffer + " Felder mit Leser-Namen");
+    assert.equal(hits, 0, hits + " fields with reader names");
   });
 
-  test("Namen aus Ausleihspalten erscheinen nicht in Kategorie, Standort, Verlag", () => {
+  test("names from loan columns don't appear in category, location, publisher", () => {
     const cols = db.exec("PRAGMA table_info(books)")[0].values.map(v => v[1].toLowerCase());
     const nc = ["verliehenan", "vorgemerktan"].filter(c => cols.includes(c));
-    const namen = new Set();
+    const names = new Set();
     for (const c of nc) for (const [v] of (db.exec(`SELECT DISTINCT "${c}" FROM books WHERE TRIM(COALESCE("${c}",''))<>''`)[0] || { values: [] }).values) {
-      const n = norm(v); if (n.split(" ").length >= 2) namen.add(n);
+      const n = norm(v); if (n.split(" ").length >= 2) names.add(n);
     }
-    let treffer = 0;
-    for (const b of r.books) for (const f of [b.k, b.v, ...(b.s || [])]) {
-      if (f && [...namen].some(n => (" " + norm(f) + " ").includes(" " + n + " "))) treffer++;
+    let hits = 0;
+    for (const b of r.books) for (const f of [b.c, b.p, ...(b.l || [])]) {
+      if (f && [...names].some(n => (" " + norm(f) + " ").includes(" " + n + " "))) hits++;
     }
-    assert.equal(treffer, 0, treffer + " Treffer");
+    assert.equal(hits, 0, hits + " hits");
   });
 
-  test("Gesamtgröße plausibel (books.js < 2 MB)", () => {
+  test("total size plausible (books.js < 2 MB)", () => {
     assert.ok(fs.statSync(path.join(WEB, "books.js")).size < 2e6);
   });
 });

@@ -1,18 +1,18 @@
-/* Wahl der Buchempfehlungen (localStorage dsm-empf: {want, gruppe}). null = noch nie gefragt. */
+/* Choice of book recommendations (localStorage dsm-recs: {want, group}). null = never asked. */
 import { useSyncExternalStore } from "react";
 
-import { store } from "@/lib/speicher";
+import { store } from "@/lib/storage";
 
-export const GROUPS = ["mittelstufe", "oberstufe", "erw-roman", "erw-sach", "erw-bio"];
+export const GROUPS = ["middle", "upper", "adult-fiction", "adult-nonfiction", "adult-bio"];
 
-let wahl = store.json("dsm-empf");
-const hoerer = new Set();
+let choice = store.json("dsm-recs");
+const listeners = new Set();
 
-export const getWahl = () => wahl;
-export function setWahl(p) {
-  wahl = p;
-  store.set("dsm-empf", JSON.stringify(p));
-  hoerer.forEach(fn => fn());
+export const getChoice = () => choice;
+export function setChoice(p) {
+  choice = p;
+  store.set("dsm-recs", JSON.stringify(p));
+  listeners.forEach(fn => fn());
 }
-const abo = fn => { hoerer.add(fn); return () => hoerer.delete(fn); };
-export const useWahl = () => useSyncExternalStore(abo, getWahl);
+const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
+export const useChoice = () => useSyncExternalStore(subscribe, getChoice);

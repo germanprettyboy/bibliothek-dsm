@@ -1,27 +1,27 @@
 /*
- * Synthetische WinBIAP-Datenbank für Tests. Enthält absichtlich erfundene Leser,
- * Ausleihen, Benutzer und Ausleihspalten, damit die Whitelist-Extraktion geprüft werden kann.
- * Keine echten Daten.
+ * Synthetic WinBIAP database for tests. Deliberately contains invented readers,
+ * loans, users and loan columns so the whitelist extraction can be checked.
+ * No real data.
  */
 "use strict";
 const initSqlJs = require("sql.js");
 
-// Gültige ISBN (Prüfziffern von Hand nachgerechnet)
+// Valid ISBNs (check digits recomputed by hand)
 const ISBN = {
   krabat1: "9783522202107",
-  krabat2: "978-3-522-17650-7",       // mit Bindestrichen, gültig
+  krabat2: "978-3-522-17650-7",       // with hyphens, valid
   tschick: "978-3-87134-710-8",
-  falsch: "9783522202100",             // Prüfziffer falsch
-  isbn10x: "0-8044-2957-X",            // ISBN-10 mit X → 9780804429573
+  wrong: "9783522202100",              // wrong check digit
+  isbn10x: "0-8044-2957-X",            // ISBN-10 with X → 9780804429573
 };
 
-// Erfundene Leser. „Erika Musterfrau“ steht absichtlich in einem Standort- und Kategorienamen,
-// „Max Mustermann“ ist zugleich Autor (Namensgleichheit → Warnung, kein Entfernen).
-const LESER = [[1, "Musterfrau", "Erika"], [2, "Mustermann", "Max"], [3, "Li", "X"]];
+// Invented readers. "Erika Musterfrau" deliberately appears in a location and a category name,
+// "Max Mustermann" is also an author (same name → warning, no removal).
+const READERS = [[1, "Musterfrau", "Erika"], [2, "Mustermann", "Max"], [3, "Li", "X"]];
 
 async function sql() { return initSqlJs(); }
 
-async function bibliothek() {
+async function library() {
   const SQL = await sql();
   const db = new SQL.Database();
   db.run(`
@@ -52,7 +52,7 @@ async function bibliothek() {
     );
   `);
   const ins = db.prepare("INSERT INTO leiher VALUES (?,?,?,?,?,?)");
-  for (const [id, n, v] of LESER) ins.run([id, n, v, v.toLowerCase() + "@example.org", "2012-01-01", "pw"]);
+  for (const [id, n, v] of READERS) ins.run([id, n, v, v.toLowerCase() + "@example.org", "2012-01-01", "pw"]);
   ins.free();
   const B = db.prepare(`INSERT INTO books (bid,btitel,butitel,bautor,bautor2,bautor3,bverlag,bisbn,bisbn13,bjahr,bbereich,bstandort,bmedientyp,
     deleted,abgang,verlust,verkauft,bverliehen,verliehenan,verliehenanklasse,vorgemerktan,bdonatedby,bnotiz)
@@ -64,7 +64,7 @@ async function bibliothek() {
     ausg: true, an: "Erika Musterfrau", kl: "7a", notiz: "GEHEIME-NOTIZ" });
   book({ bid: 2, t: "  Krabat ", a1: 1, isbn13: ISBN.krabat2, s: 3, vm: "Max Mustermann" });
   book({ bid: 3, t: "Tschick", a1: 2, v: 2, isbn: ISBN.tschick, j: "2010 (1. Aufl.)", k: 2, s: 2, don: "Familie Musterfrau" });
-  book({ bid: 4, t: "Das doppelte Lottchen", a1: 3, isbn13: ISBN.falsch, j: "1949", k: 3, s: 1 });
+  book({ bid: 4, t: "Das doppelte Lottchen", a1: 3, isbn13: ISBN.wrong, j: "1949", k: 3, s: 1 });
   book({ bid: 5, t: "Tschick – Der Film", a1: 2, typ: 2, isbn13: ISBN.tschick });
   book({ bid: 6, t: "Gelöschtes Buch", a1: 3, del: 1 });
   book({ bid: 7, t: "Ausgeschiedenes Buch", a1: 3, abg: 1 });
@@ -81,21 +81,21 @@ async function bibliothek() {
   return db;
 }
 
-// Erwartete öffentliche Titel in Sortierreihenfolge
-const ERWARTET = ["Anonyme Gedichte", "Ätherische Tage", "Das doppelte Lottchen", "Émile und die Detektive",
+// Expected public titles in sort order
+const EXPECTED = ["Anonyme Gedichte", "Ätherische Tage", "Das doppelte Lottchen", "Émile und die Detektive",
   "Gemeinsames Buch", "Krabat", "Tschick", "„Zitat am Anfang“"];
 
-async function bytes(make = bibliothek) {
+async function bytes(make = library) {
   const db = await make();
   try { return Buffer.from(db.export()); } finally { db.close(); }
 }
 
-// SQLite ohne Büchertabelle
-async function keineBibliothek() {
+// SQLite without a books table
+async function noLibrary() {
   const SQL = await sql();
   const db = new SQL.Database();
   db.run("CREATE TABLE notizen (id INTEGER, text TEXT); INSERT INTO notizen VALUES (1,'x');");
   return db;
 }
 
-module.exports = { bibliothek, keineBibliothek, bytes, sql, ISBN, LESER, ERWARTET };
+module.exports = { library, noLibrary, bytes, sql, ISBN, READERS, EXPECTED };

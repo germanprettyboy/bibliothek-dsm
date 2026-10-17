@@ -1,12 +1,12 @@
-/* Bibliothek DSM – Stil für index.html und admin.html (Tailwind CSS v4, shadcn/ui).
-   Aufbau: Schrift → Farb-Tokens (hell/dunkel/Kontrast) → Tailwind-Theme (nur DSM-Werte) → Grundstil →
-   Bausteine, die als Klassen bleiben (Liste, Cover, Glas-Fenster, Platzhalter, Animationen).
-   Alles Übrige steht als Tailwind-Klassen in den Komponenten (src/**, werkzeuge/quelle/**). */
+/* Library DSM – styles for index.html and admin.html (Tailwind CSS v4, shadcn/ui).
+   Structure: font → color tokens (light/dark/contrast) → Tailwind theme (DSM values only) → base styles →
+   building blocks that stay as classes (list, cover, glass dialog, placeholders, animations).
+   Everything else is written as Tailwind classes in the components (src/**, tools/source/**). */
 
-/* Nur eigene Quellen nach Klassen durchsuchen, nicht website/ (books.js enthält tausende Titel) */
+/* Only scan our own sources for classes, not website/ (books.js contains thousands of titles) */
 @import "tailwindcss" source(none);
 @source "./";
-@source "../werkzeuge/quelle";
+@source "../tools/source";
 
 @font-face { font-family: "Fira Sans"; font-style: normal; font-weight: 400; font-display: swap;
   src: url(fonts/fira-sans-latin-400-normal.woff2) format("woff2");
@@ -27,30 +27,31 @@
   src: url(fonts/fira-sans-latin-ext-600-normal.woff2) format("woff2");
   unicode-range: U+0100-02AF,U+0304,U+0308,U+0329,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF; }
 
-/* Farben: Anthrazit für Text, Logofarben nur für Linien und Balken.
-   Theme: Gerät (Standard) oder in den Einstellungen fest hell/dunkel (data-theme).
-   Barrierefreiheit: data-font="large", data-contrast="high". */
+
+/* Colors: anthracite for text, logo colors only for lines and bars.
+   Theme: device (default) or fixed light/dark in the settings (data-theme).
+   Accessibility: data-font="large", data-contrast="high". */
 :root {
   --bg: #ffffff; --fg: #333333; --muted: #6e6967; --line: #e6e2df; --surface: #f6f4f2;
-  /* Fokusrahmen in Textfarbe: deutlich auf jeder Fläche (WCAG 2.4.11, mind. 3:1) */
+  /* Focus ring in the text color: clearly visible on every surface (WCAG 2.4.11, at least 3:1) */
   --focus: #333333;
   --veil: rgba(28, 24, 22, .26);
-  --veil-dicht: rgba(28, 24, 22, .4); --glass-dicht: rgba(250, 248, 246, .97); /* ohne Unschärfe (Transparenz reduzieren) */
+  --veil-solid: rgba(28, 24, 22, .4); --glass-solid: rgba(250, 248, 246, .97); /* without blur (reduce transparency) */
   --glass: rgba(255, 255, 255, .72); --glass-brd: rgba(255, 255, 255, .7); --glass-edge: rgba(40, 30, 28, .1); --glass-hi: rgba(255, 255, 255, .9);
   --gb-top: rgba(255, 255, 255, .78); --gb-bot: rgba(255, 255, 255, .34);
   --shadow: 0 24px 60px rgba(40, 30, 28, .2);
   --ph-bg: #f1ede9;
-  /* Lade-Platzhalter: Balkenfarbe und wanderndes Lichtband */
+  /* Loading placeholders: bar color and moving shimmer */
   --skel: #ece8e5; --skel-hi: rgba(255, 255, 255, .75);
-  --mauve: #ba8ea7; --gelb: #ddd300; --orange: #db9f00; --blau: #b5c9d0; --rot: #a93a39; --gruen: #b3cea1;
+  --mauve: #ba8ea7; --yellow: #ddd300; --orange: #db9f00; --blue: #b5c9d0; --red: #a93a39; --green: #b3cea1;
   --font: "Fira Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
-  /* Genau drei Schriftgrößen auf allen Seiten: klein (Zusatzangaben), normal (Text), groß (Überschriften) */
+  /* Exactly three font sizes on all pages: small (secondary details), normal (text), large (headings) */
   --fs-s: .875rem; --fs-m: 1rem; --fs-l: 1.5rem;
   --w: 46rem;
-  /* Bewegung: kurz (150–250 ms). Hinein mit --ease (ease-out), hinaus schneller (--t-out) mit --ease-in. */
+  /* Motion: short (150–250 ms). In with --ease (ease-out), out faster (--t-out) with --ease-in. */
   --t-fast: 150ms; --t-base: 200ms; --t-slow: 250ms; --t-out: 160ms;
-  /* Ausnahme: Farbwechsel der ganzen Seite (Theme/Kontrast) blendet ruhiger über */
-  --t-farbe: 350ms; --ease-farbe: cubic-bezier(.4, 0, .2, 1);
+  /* Exception: the color switch of the whole page (theme/contrast) cross-fades more calmly */
+  --t-color: 350ms; --ease-color: cubic-bezier(.4, 0, .2, 1);
   --ease: cubic-bezier(.2, .7, .2, 1);
   --ease-in: cubic-bezier(.4, 0, 1, 1);
   --snap: cubic-bezier(.25, 1, .35, 1);
@@ -62,7 +63,7 @@
   :root:not([data-theme="light"]) {
     --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #34312f; --surface: #252322;
     --focus: #ece9e6; --veil: rgba(0, 0, 0, .46);
-    --veil-dicht: rgba(0, 0, 0, .62); --glass-dicht: rgba(38, 36, 34, .97);
+    --veil-solid: rgba(0, 0, 0, .62); --glass-solid: rgba(38, 36, 34, .97);
     --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
     --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
     --shadow: 0 24px 60px rgba(0, 0, 0, .55);
@@ -73,39 +74,39 @@
 :root[data-theme="dark"] {
   --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #34312f; --surface: #252322;
   --focus: #ece9e6; --veil: rgba(0, 0, 0, .46);
-  --veil-dicht: rgba(0, 0, 0, .62); --glass-dicht: rgba(38, 36, 34, .97);
+  --veil-solid: rgba(0, 0, 0, .62); --glass-solid: rgba(38, 36, 34, .97);
   --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
   --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
   --shadow: 0 24px 60px rgba(0, 0, 0, .55);
   --skel: #2c2a28; --skel-hi: rgba(255, 255, 255, .06);
   color-scheme: dark;
 }
-/* Hoher Kontrast: reine Schwarz/Weiß-Flächen, kräftige Linien, deckende Fenster */
+/* High contrast: pure black/white surfaces, strong lines, opaque dialogs */
 :root[data-contrast="high"] {
   --fg: #000000; --muted: #1f1f1f; --line: #6a6a6a; --surface: #ffffff; --bg: #ffffff; --focus: #000000;
   --glass: #ffffff; --glass-brd: #000000; --glass-edge: #000000; --glass-hi: transparent;
   --gb-top: #ffffff; --gb-bot: #ffffff; --veil: rgba(0, 0, 0, .55);
-  --glass-dicht: #ffffff; --veil-dicht: rgba(0, 0, 0, .55);
+  --glass-solid: #ffffff; --veil-solid: rgba(0, 0, 0, .55);
   --skel: #d4d4d4; --skel-hi: transparent;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-contrast="high"]:not([data-theme="light"]) {
     --fg: #ffffff; --muted: #e6e6e6; --line: #a0a0a0; --surface: #000000; --bg: #000000; --focus: #ffffff;
     --glass: #000000; --glass-brd: #ffffff; --glass-edge: #ffffff; --gb-top: #000000; --gb-bot: #000000;
-    --glass-dicht: #000000;
+    --glass-solid: #000000;
     --skel: #4a4a4a;
   }
 }
 :root[data-contrast="high"][data-theme="dark"] {
   --fg: #ffffff; --muted: #e6e6e6; --line: #a0a0a0; --surface: #000000; --bg: #000000; --focus: #ffffff;
   --glass: #000000; --glass-brd: #ffffff; --glass-edge: #ffffff; --gb-top: #000000; --gb-bot: #000000;
-  --glass-dicht: #000000;
+  --glass-solid: #000000;
   --skel: #4a4a4a;
 }
 :root[data-font="large"] { font-size: 118.75%; }
 
-/* Tailwind-Theme: Standardskalen gelöscht, nur DSM-Werte. Damit gibt es keine Klasse für eine vierte Schriftgröße,
-   eine fremde Farbe oder Fett (700). Abstände in px wie im bisherigen Stil (p-3 = 12px). */
+/* Tailwind theme: default scales deleted, DSM values only. So there is no class for a fourth font size,
+   a foreign color or bold (700). Spacing in px as in the earlier styles (p-3 = 12px). */
 @theme {
   --text-*: initial;
   --text-s: .875rem; --text-s--line-height: 1.5;
@@ -120,12 +121,12 @@
   --radius-*: initial;
   --radius-xs: 4px; --radius-sm: 6px; --radius-md: 10px; --radius-lg: 12px; --radius-xl: 14px; --radius-2xl: 16px; --radius-3xl: 22px;
   --color-*: initial;
-  --color-white: #ffffff; --color-anthrazit: #333333;
+  --color-white: #ffffff; --color-anthracite: #333333;
   --animate-*: initial;
   --animate-spin: spin .8s linear infinite;
   --animate-rise: rise var(--t-slow) var(--ease) both;
 }
-/* shadcn/ui-Farbnamen auf die DSM-Tokens (wechseln mit Theme und Kontrast) */
+/* shadcn/ui color names mapped to the DSM tokens (switch with theme and contrast) */
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--fg);
@@ -145,12 +146,12 @@
   --color-card-foreground: var(--fg);
   --color-popover: var(--glass);
   --color-popover-foreground: var(--fg);
-  --color-destructive: var(--rot);
+  --color-destructive: var(--red);
   --color-skel: var(--skel);
   --color-glass: var(--glass);
   --color-glass-brd: var(--glass-brd);
-  --color-mauve: var(--mauve); --color-gelb: var(--gelb); --color-orange: var(--orange);
-  --color-blau: var(--blau); --color-rot: var(--rot); --color-gruen: var(--gruen);
+  --color-mauve: var(--mauve); --color-yellow: var(--yellow); --color-orange: var(--orange);
+  --color-blue: var(--blue); --color-red: var(--red); --color-green: var(--green);
   --shadow-glass: var(--shadow);
   --ease-dsm: var(--ease);
   --ease-dsm-in: var(--ease-in);
@@ -168,7 +169,7 @@
   button { cursor: pointer; }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
   ::placeholder { color: var(--muted); opacity: 1; }
-  mark { background: color-mix(in srgb, var(--gelb) 45%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+  mark { background: color-mix(in srgb, var(--yellow) 45%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
 }
 
 @layer components {
@@ -178,46 +179,46 @@
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
 
-  /* Logo: helles oder dunkles Bild je nach Farbwelt */
+  /* Logo: light or dark image depending on the color scheme */
   .logo { display: block; flex: none; }
   .logo img { height: 44px; width: auto; }
   .logo .logo-d { display: none; }
   @media (min-width: 40rem) { .logo img { height: 60px; } }
 
-  /* Sprachwahl DE/IT: gleitende Markierung. data-an setzt der Kopf sofort beim Klick, die Texte der Seite wechseln
-     einen Frame später (components/kopf.jsx). Eigene Ebene (will-change): Sie gleitet auf dem Compositor weiter,
-     während der Hauptthread die Seite neu berechnet. Vor React (festes Gerüst) gilt lang an <html>. */
+  /* Language choice DE/IT: gliding marker. The header sets data-on immediately on click, the page texts switch
+     one frame later (components/header.jsx). Own layer (will-change): it keeps gliding on the compositor
+     while the main thread recomputes the page. Before React (static skeleton) lang on <html> applies. */
   .seg::before {
     content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px);
     border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line);
     transition: transform var(--t-fast) var(--snap); will-change: transform;
   }
-  :root[lang="it"] .seg:not([data-an])::before, .seg[data-an="it"]::before { transform: translateX(100%); }
-  /* Gleitende Markierung in Segment-Wahlen (Theme): Position aus --i */
+  :root[lang="it"] .seg:not([data-on])::before, .seg[data-on="it"]::before { transform: translateX(100%); }
+  /* Gliding marker in segmented choices (theme): position from --i */
   .seg3::before {
     content: ""; position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3); border-radius: 10px;
     background: var(--bg); box-shadow: 0 2px 8px rgba(0, 0, 0, .1), inset 0 0 0 1px var(--line);
     transform: translateX(calc(var(--i, 0) * 100%)); transition: transform var(--t-fast) var(--snap); will-change: transform;
   }
 
-  /* Farbwechsel (Theme, Kontrast, lib/darstellung.js): Die Seite wird einmal neu berechnet und als Bild überblendet
-     (View Transition), statt jede Fläche einzeln zu animieren. Hell ↔ dunkel ist ein großer Helligkeitssprung: länger
-     (--t-farbe) und weich an beiden Enden, sonst wirkt es wie ein Aufblitzen. Altes und neues Bild mit derselben Kurve,
-     damit sie sich zu jedem Zeitpunkt zu voller Deckkraft ergänzen. */
-  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-farbe); animation-timing-function: var(--ease-farbe); }
+  /* Color switch (theme, contrast, lib/appearance.js): the page is recomputed once and cross-faded as a picture
+     (View Transition) instead of animating every surface on its own. Light ↔ dark is a big jump in brightness: longer
+     (--t-color) and soft at both ends, otherwise it looks like a flash. Old and new picture with the same curve,
+     so that together they add up to full opacity at every moment. */
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-color); animation-timing-function: var(--ease-color); }
 
-  /* Klebende Suchleiste: deckend; über ihr deckt ein fester Streifen die Statusleiste ab (iPhone, viewport-fit=cover) */
+  /* Sticky search bar: opaque; above it a fixed strip covers the status bar (iPhone, viewport-fit=cover) */
   .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid transparent; transition: border-color .2s, box-shadow .2s; }
   .bar.stuck { border-bottom-color: var(--line); box-shadow: 0 6px 16px -12px rgba(0, 0, 0, .35); }
   body::before {
     content: ""; position: fixed; z-index: 7; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px);
     background: var(--bg); pointer-events: none;
   }
-  /* Liste mindestens bildschirmhoch: Die Leiste bleibt oben, auch wenn die Suche wenig findet */
+  /* List at least as tall as the screen: the bar stays at the top even when the search finds little */
   main.books { min-height: calc(100dvh - var(--bar-h)); }
   .search input::-webkit-search-cancel-button { display: none; }
 
-  /* A–Z-Leiste: erst ab Tablet-Breite (iPad, 768 px) */
+  /* A–Z bar: only from tablet width (iPad, 768 px) */
   .index { display: none; }
   @media (min-width: 48rem) {
     .index { display: flex; justify-content: space-between; gap: 0; margin: 0 -4px; }
@@ -232,20 +233,20 @@
     .floater { display: none; }
   }
 
-  /* Liste: Abschnitte zu höchstens 40 Büchern. Der Puffer aus Innenabstand und negativem Rand hält
-     Hover-Fläche und Fokusrahmen innerhalb des Abschnitts, weil content-visibility dort abschneidet.
-     Zeilen bewusst als knappe Klassen statt Tailwind-Ketten: 4500 Zeilen, kurze Attribute. */
+  /* List: chunks of at most 40 books. The buffer of padding and negative margin keeps the
+     hover area and focus ring inside the chunk, because content-visibility clips there.
+     Rows deliberately as short classes instead of Tailwind chains: 4500 rows, short attributes. */
   .meta { display: grid; padding-block: 12px 0; color: var(--muted); font-size: var(--fs-s); font-variant-numeric: tabular-nums; min-height: 1.5em; }
-  /* pointer-events ausdrücklich: Radix setzt beim Öffnen jedes Fensters pointer-events: none an <body>. Vererbt hieße das
-     eine Stil-Neuberechnung aller ~17.000 Listenelemente beim Öffnen und Schließen (4-fach gedrosselt 29 statt 6 ms).
-     Klicks auf die Liste fängt bei offenem Fenster ohnehin der Schleier ab. */
+  /* pointer-events explicitly: Radix sets pointer-events: none on <body> when opening any dialog. Inherited, that would mean
+     a style recalculation of all ~17,000 list elements on opening and closing (4x throttled 29 instead of 6 ms).
+     Clicks on the list are caught by the scrim anyway while a dialog is open. */
   .list { padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px)); pointer-events: auto; }
   .list ul[data-l] { scroll-margin-top: calc(var(--bar-h) + 2px); }
   .list ul { list-style: none; margin: -6px -16px; padding: 6px 16px; }
   .list li { border-top: 1px solid var(--line); }
   .list .rows > ul:first-child > li:first-child { border-top: 0; }
-  /* Nur Abschnitte in Sichtweite zeichnen. Nur mit Scroll-Verankerung: sonst springt der Inhalt,
-     wenn ein Abschnitt oberhalb erstmals gezeichnet wird und von der geschätzten Höhe abweicht. */
+  /* Only render chunks in view. Only with scroll anchoring: otherwise the content jumps
+     when a chunk above is rendered for the first time and differs from its estimated height. */
   @supports (content-visibility: auto) and (overflow-anchor: auto) {
     .list ul { content-visibility: auto; }
   }
@@ -260,7 +261,7 @@
   .row .t, .row .a { grid-column: 1; min-width: 0; overflow-wrap: anywhere; }
   .row .t { display: block; font-size: var(--fs-m); line-height: 1.35; }
   .row .a { display: block; margin-top: 2px; font-size: var(--fs-s); color: var(--muted); }
-  /* Pfeil als Maske statt SVG je Zeile: zwei DOM-Knoten weniger pro Buch */
+  /* Arrow as a mask instead of an SVG per row: two DOM nodes fewer per book */
   .row::after {
     content: ""; grid-column: 2; grid-row: 1 / span 2; width: 16px; height: 16px;
     background: var(--muted); opacity: .55;
@@ -273,7 +274,7 @@
   .empty strong { display: block; color: var(--fg); font-weight: 600; font-size: var(--fs-m); margin-bottom: 4px; }
   .list.enter { animation: rise var(--t-slow) var(--ease) both; }
 
-  /* Buchstaben-Floater: erscheint nur beim Scrollen, markiert den Beginn eines neuen Buchstabens */
+  /* Letter floater: only appears while scrolling, marks the start of a new letter */
   .floater {
     position: fixed; z-index: 6; top: calc(var(--bar-h) + env(safe-area-inset-top, 0px) + 16px);
     right: max(12px, env(safe-area-inset-right, 0px));
@@ -284,15 +285,15 @@
     transition: opacity var(--t-base) ease-out, transform var(--t-slow) var(--ease);
   }
   .floater.show { opacity: 1; transform: none; }
-  /* Zwei gleiche Keyframes im Wechsel: Neustart ohne erzwungenes Layout im Scroll-Handler */
+  /* Two identical keyframes in alternation: restart without forced layout in the scroll handler */
   .floater.pop-a { animation: pop-a var(--t-slow) var(--ease); }
   .floater.pop-b { animation: pop-b var(--t-slow) var(--ease); }
 
-  /* ---------- Glas-Fenster (shadcn Dialog, src/components/ui/dialog.jsx) ----------
-     Handy: Bottom Sheet; ab 40rem mittig. Fenster halbtransparent mit Lichtkante,
-     Hintergrund (Overlay) unscharf und leicht abgedunkelt.
-     Unschärfe klein halten: Schleier und Glas stapeln sich, beide werden bei jedem Bild der Ein-/Ausblende-Animation
-     neu gerechnet. Vorher 12 + 30 px – auf schwacher GPU (Intel UHD 630, Software-GPU) ruckelte das Öffnen. */
+  /* ---------- Glass dialogs (shadcn Dialog, src/components/ui/dialog.jsx) ----------
+     Phone: bottom sheet; centered from 40rem. Dialog semi-transparent with a light edge,
+     background (overlay) blurred and slightly dimmed.
+     Keep the blur small: scrim and glass stack, both are recomputed in every frame of the fade-in/out animation.
+     Previously 12 + 30 px – on a weak GPU (Intel UHD 630, software GPU) opening stuttered. */
   .glass {
     border: 1px solid var(--glass-brd); background: var(--glass); color: var(--fg);
     -webkit-backdrop-filter: blur(18px) saturate(1.8); backdrop-filter: blur(18px) saturate(1.8);
@@ -304,20 +305,20 @@
     opacity: .55;
   }
   :root[data-contrast="high"] .glass::before { display: none; }
-  .schleier {
+  .scrim {
     background: var(--veil);
     -webkit-backdrop-filter: blur(8px) saturate(1.15); backdrop-filter: blur(8px) saturate(1.15);
   }
-  /* Keine Leistungsmessung mehr: Unschärfe bleibt immer an (Messung schaltete sie auch auf dem iPhone 15 ab, siehe CLAUDE.md).
-     Nur Systemwunsch „Transparenz reduzieren“ und hoher Kontrast (Glas ist deckend, Unschärfe wäre unsichtbar) schalten sie ab. */
+  /* No performance measurement any more: blur always stays on (the measurement turned it off even on the iPhone 15, see CLAUDE.md).
+     Only the system wish "reduce transparency" and high contrast (glass is opaque, blur would be invisible) turn it off. */
   @media (prefers-reduced-transparency: reduce) {
-    :root .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-dicht); }
-    :root .schleier { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--veil-dicht); }
+    :root .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-solid); }
+    :root .scrim { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--veil-solid); }
   }
   :root[data-contrast="high"] .glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .schleier[data-state="open"] { animation: fade var(--t-base) ease-out; }
-  .schleier[data-state="closed"] { animation: fade-out var(--t-out) var(--ease-in) forwards; }
-  .schleier.closing { animation: fade-out var(--t-out) var(--ease-in) forwards; }
+  .scrim[data-state="open"] { animation: fade var(--t-base) ease-out; }
+  .scrim[data-state="closed"] { animation: fade-out var(--t-out) var(--ease-in) forwards; }
+  .scrim.closing { animation: fade-out var(--t-out) var(--ease-in) forwards; }
   .sheet {
     position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; width: 100%; max-height: 92dvh;
     border-radius: 22px 22px 0 0; overflow: auto; overscroll-behavior: contain; outline: none;
@@ -333,44 +334,44 @@
     .sheet[data-state="closed"] { animation: pop-out var(--t-out) var(--ease-in) forwards; }
     .sheet .grab { display: none; }
   }
-  /* Buch-Detail: kürzer und knackiger als die übrigen Fenster */
+  /* Book detail: shorter and snappier than the other dialogs */
   #detail[data-state="open"] { animation: snap-up .2s var(--snap); }
   #detail[data-state="closed"] { animation: snap-down .14s var(--ease-in) forwards; }
-  .schleier.detail[data-state="open"] { animation: fade .16s ease-out; }
-  .schleier.detail[data-state="closed"] { animation: fade-out .14s var(--ease-in) forwards; }
+  .scrim.detail[data-state="open"] { animation: fade .16s ease-out; }
+  .scrim.detail[data-state="closed"] { animation: fade-out .14s var(--ease-in) forwards; }
   @media (min-width: 40rem) {
     #detail[data-state="open"] { animation: snap-pop .14s var(--snap); }
     #detail[data-state="closed"] { animation: pop-out .11s var(--ease-in) forwards; }
-    .schleier.detail[data-state="open"] { animation: fade .12s ease-out; }
-    .schleier.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
+    .scrim.detail[data-state="open"] { animation: fade .12s ease-out; }
+    .scrim.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
   }
-  /* Bisherige Empfehlungen: auf dem Handy fast bildschirmhoch */
-  .sheet.archiv { height: 92dvh; }
-  @media (min-width: 40rem) { .sheet.archiv { height: auto; width: min(40rem, calc(100% - 48px)); } }
+  /* Previous recommendations: almost as tall as the screen on phones */
+  .sheet.archive { height: 92dvh; }
+  @media (min-width: 40rem) { .sheet.archive { height: auto; width: min(40rem, calc(100% - 48px)); } }
   .pane {
     padding: 18px max(20px, env(safe-area-inset-right, 0px)) calc(26px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
     display: grid; gap: 20px;
   }
   @media (min-width: 40rem) { .pane { padding: 28px; } }
 
-  /* Fragen beim ersten Besuch: Schritte gleiten ein */
+  /* Questions on the first visit: steps glide in */
   .step { animation: step-in var(--t-base) var(--ease); }
-  /* Bücherregal als Kopf der ersten Frage: Buchrücken in den Logofarben stellen sich nacheinander auf */
-  .regal { display: flex; align-items: flex-end; gap: 4px; height: 64px; padding-inline: 2px; border-bottom: 2px solid var(--line); }
-  .regal i {
+  /* Bookshelf as the head of the first question: spines in the logo colors stand up one after another */
+  .shelf { display: flex; align-items: flex-end; gap: 4px; height: 64px; padding-inline: 2px; border-bottom: 2px solid var(--line); }
+  .shelf i {
     width: var(--b, 12px); height: var(--h, 48px); flex: none; border-radius: 3px 3px 1px 1px; background: var(--c);
     box-shadow: inset 2px 0 0 rgba(255, 255, 255, .28), inset -2px 0 0 rgba(0, 0, 0, .08);
     transform-origin: 50% 100%; animation: spine var(--t-slow) var(--snap) both; animation-delay: calc(var(--n, 0) * 35ms + 80ms);
   }
-  .regal i.lehnt { rotate: 12deg; translate: 4px 0; transform-origin: 0 100%; }
-  /* Fortschritt der Fragen: drei Striche, erledigte in Textfarbe */
-  .fortschritt { display: flex; gap: 6px; }
-  .fortschritt i { height: 4px; width: 24px; border-radius: 2px; background: var(--line); transition: background-color var(--t-base) var(--ease); }
-  .fortschritt i.an { background: var(--fg); }
+  .shelf i.leaning { rotate: 12deg; translate: 4px 0; transform-origin: 0 100%; }
+  /* Progress of the questions: three dashes, completed ones in the text color */
+  .progress { display: flex; gap: 6px; }
+  .progress i { height: 4px; width: 24px; border-radius: 2px; background: var(--line); transition: background-color var(--t-base) var(--ease); }
+  .progress i.on { background: var(--fg); }
 
   /* ---------- Cover ---------- */
   .cover { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 4px 8px 8px 4px; overflow: hidden; background: var(--surface); }
-  /* Ladezustand: Lichtband wandert per transform (kein Neuzeichnen), endet mit .loading */
+  /* Loading state: shimmer moves via transform (no repaint), ends with .loading */
   .cover.loading::after {
     z-index: 2; content: ""; position: absolute; inset: 0;
     background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--bg) 70%, transparent) 50%, transparent 70%);
@@ -382,10 +383,10 @@
     position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between;
     padding: 12px 10px 10px 18px; background: var(--ph-bg); color: #333333;
   }
-  .cover .ph::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; background: var(--ph-c, var(--rot)); box-shadow: 2px 0 0 rgba(0,0,0,.08); }
+  .cover .ph::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; background: var(--ph-c, var(--red)); box-shadow: 2px 0 0 rgba(0,0,0,.08); }
   .cover .ph::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.08), transparent 14%, transparent 86%, rgba(0,0,0,.05)); pointer-events: none; }
   .cover .ph b { font-weight: 600; font-size: var(--fs-s); line-height: 1.2; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
-  .cover .ph .rule { height: 2px; width: 26px; background: var(--ph-c, var(--rot)); }
+  .cover .ph .rule { height: 2px; width: 26px; background: var(--ph-c, var(--red)); }
   .cover.small .ph { padding: 6px 4px 6px 12px; }
   .cover.small .ph b { margin: 0; -webkit-line-clamp: 4; display: none; }
   .cover.small .ph::before { width: 6px; }
@@ -394,7 +395,7 @@
     .recs .cover.small .ph::before { width: 9px; }
     .recs .cover.small .ph b { display: -webkit-box; }
   }
-  /* Cover groß: Detail-Cover antippen, Bild fliegt per transform in ein eigenes Fenster */
+  /* Large cover: tap the detail cover, the image flies via transform into its own dialog */
   #d-cover.zoomable { cursor: zoom-in; transition: transform var(--t-fast) var(--ease); }
   @media (hover: hover) { #d-cover.zoomable:hover { transform: scale(1.02); } }
   #d-cover.zoomable:active { transform: scale(.98); }
@@ -408,37 +409,37 @@
     border-radius: 6px 12px 12px 6px; box-shadow: var(--shadow), inset 0 0 0 1px rgba(0,0,0,.06);
   }
 
-  /* ---------- Karten über der Liste (Info, Empfehlungen) ----------
-     Gleiche Fläche, Kante und Rundung wie alle Karten; Abstände in den Komponenten (p-4, Abschnitte pb-4).
-     Empfehlungen: Handy senkrechte Liste (kleines Cover links, Text rechts), ab 40rem vier große Cover. */
-  .karte { border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  /* ---------- Cards above the list (info, recommendations) ----------
+     Same surface, edge and rounding as all cards; spacing in the components (p-4, sections pb-4).
+     Recommendations: phone vertical list (small cover left, text right), from 40rem four large covers. */
+  .card { border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
   .recs-card { animation: rise var(--t-slow) var(--ease) both; }
   .recs-card.hide { animation: recs-out var(--t-base) var(--ease-in) forwards; }
   .rec b { overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-  /* Bisherige Empfehlungen: Zeitleiste, neueste Runde oben */
+  /* Previous recommendations: timeline, newest round on top */
   .arc-round { animation: rise var(--t-slow) var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
-  .arc-round::before { content: ""; position: absolute; left: 3px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--blau); }
+  .arc-round::before { content: ""; position: absolute; left: 3px; top: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--blue); }
   .arc-round::after { content: ""; position: absolute; left: 7px; top: 22px; bottom: 2px; width: 1px; background: var(--line); }
   .arc-round:last-child { padding-bottom: 0; }
   .arc-round:last-child::after { display: none; }
   .arc-round.now::before { background: var(--orange); }
   .arc-hd + .arc-item { border-top: 0; }
 
-  /* ---------- Info: geöffnet/geschlossen ---------- */
+  /* ---------- Info: open/closed ---------- */
   .info-card { animation: rise var(--t-slow) var(--ease) both; }
-  .dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--gruen); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gruen) 35%, transparent); }
-  .dot.zu { background: var(--rot); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rot) 20%, transparent); }
-  .dot.spaeter { background: var(--gelb); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gelb) 35%, transparent); }
-  .bar-c { width: 4px; align-self: stretch; flex: none; border-radius: 2px; background: var(--blau); }
-  .bar-c.abwesend { background: var(--orange); }
+  .dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 35%, transparent); }
+  .dot.closed { background: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 20%, transparent); }
+  .dot.later { background: var(--yellow); box-shadow: 0 0 0 3px color-mix(in srgb, var(--yellow) 35%, transparent); }
+  .bar-c { width: 4px; align-self: stretch; flex: none; border-radius: 2px; background: var(--blue); }
+  .bar-c.absent { background: var(--orange); }
 
-  /* ---------- Lade-Platzhalter ----------
-     Stehen fest in index.html (bis React startet) und in React, solange books.js (groß) noch lädt.
-     Erscheinen erst nach kurzer Verzögerung, damit sie bei schneller Verbindung nicht aufblitzen.
-     Ein Lichtband pro Block wandert per transform (wie beim Cover). */
+  /* ---------- Loading placeholders ----------
+     Fixed in index.html (until React starts) and in React while books.js (large) is still loading.
+     Appear only after a short delay so they don't flash on a fast connection.
+     One shimmer per block moves via transform (as on the cover). */
   .skel { position: relative; overflow: hidden; animation: ld-in var(--t-slow) ease-out .15s both; }
-  .skel::after, .ld-bild:not(.da)::after {
+  .skel::after, .ld-img:not(.loaded)::after {
     content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
     background: linear-gradient(100deg, transparent 35%, var(--skel-hi) 50%, transparent 65%);
     transform: translateX(-100%); animation: shimmer 1.6s ease-in-out infinite;
@@ -447,7 +448,7 @@
   .skel-row > span { display: block; height: .75em; border-radius: 4px; background: var(--skel); }
   .skel-row > span:first-child { font-size: var(--fs-m); margin-block: .3em; }
   .skel-row > span + span { font-size: var(--fs-s); margin-block: calc(2px + .375em) .375em; }
-  /* Liste: gleiche Zeilenhöhe wie .row, Längen wechseln wie bei echten Titeln */
+  /* List: same row height as .row, lengths vary like real titles */
   .list .skel-row { padding-block: 12px; }
   .list .skel-row + .skel-row { border-top: 1px solid var(--line); }
   .list .skel-row > span:first-child { width: 58%; }
@@ -456,14 +457,14 @@
   .list .skel-row > span + span { width: 30%; }
   .list .skel-row:nth-child(4n+2) > span + span { width: 22%; }
   .list .skel-row:nth-child(4n+3) > span + span { width: 38%; }
-  /* Ladehinweis über der Liste; nach 6 s Hinweis auf langsame Verbindung. Nur die aktuelle Sprache. */
+  /* Loading note above the list; after 6 s a note about the slow connection. Only the current language. */
   .meta .ld { grid-area: 1 / 1; }
   :root[lang="it"] .meta .ld[lang="de"], :root:not([lang="it"]) .meta .ld[lang="it"] { display: none; }
   .meta .ld:not(.slow) { animation: ld-out var(--t-slow) ease-out 6s both; }
   .meta .ld.slow { visibility: hidden; animation: ld-slow var(--t-slow) ease-out 6s both; }
-  /* Empfehlungen und Info-Karte: Platzhalter nur, wenn gewählt bzw. beim letzten Besuch gezeigt (kopf.js) */
-  .recs.laedt, .info.laedt { display: none; }
-  :root[data-empf] .recs.laedt, :root[data-info] .info.laedt { display: block; }
+  /* Recommendations and info card: placeholder only if chosen or shown on the last visit (head.js) */
+  .recs.pending, .info.pending { display: none; }
+  :root[data-recs] .recs.pending, :root[data-info] .info.pending { display: block; }
   .recs-card.skel, .info-card.skel { cursor: default; pointer-events: none; animation: ld-in var(--t-slow) ease-out .15s both; }
   .skel .cover { background: var(--skel); box-shadow: none; }
   .recs-head > .skel-row { flex: 1; min-height: 34px; }
@@ -475,29 +476,29 @@
   .info-line > .skel-row { flex: 1; }
   .info-line > .skel-row > span:first-child { width: 9rem; max-width: 70%; margin-block: .375em; }
   .info-line > .skel-row > span + span { width: 6rem; max-width: 50%; margin-top: .375em; }
-  /* Bilder mit Platzhalter (Logo): Fläche mit Lichtband, Bild blendet ein, sobald es da ist (.da) */
-  .ld-bild { position: relative; overflow: hidden; border-radius: 6px; }
-  .ld-bild img { transition: opacity var(--t-base) ease-out; }
-  .ld-bild:not(.da) img { opacity: 0; }
-  .ld-bild:not(.da)::before { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--skel); animation: ld-in var(--t-slow) ease-out .15s both; }
-  /* Knopf, der noch nicht bereit ist oder gerade arbeitet (Entsperren in admin.html) */
+  /* Images with a placeholder (logo): surface with shimmer, the image fades in as soon as it is there (.loaded) */
+  .ld-img { position: relative; overflow: hidden; border-radius: 6px; }
+  .ld-img img { transition: opacity var(--t-base) ease-out; }
+  .ld-img:not(.loaded) img { opacity: 0; }
+  .ld-img:not(.loaded)::before { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--skel); animation: ld-in var(--t-slow) ease-out .15s both; }
+  /* Button that is not ready yet or currently working (unlock in admin.html) */
   .spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--fg); animation: spin .8s linear infinite; }
   .busy .spin { display: block; }
   button .spin { display: none; width: 16px; height: 16px; border-color: color-mix(in srgb, currentColor 30%, transparent); border-top-color: currentColor; }
   button.busy { cursor: progress; opacity: .75; }
   .shake { animation: shake var(--t-slow) ease-out; }
 
-  /* Verwaltung: Hinweisbalken (grün = gut, gelb = prüfen, rot = Fehler) */
-  .flag { border-left: 4px solid var(--gruen); padding: 10px 14px; background: var(--surface); border-radius: 0 10px 10px 0; }
-  .flag.warn { border-left-color: var(--rot); }
-  .flag.mid { border-left-color: var(--gelb); }
+  /* Admin page: notice bars (green = good, yellow = check, red = error) */
+  .flag { border-left: 4px solid var(--green); padding: 10px 14px; background: var(--surface); border-radius: 0 10px 10px 0; }
+  .flag.warn { border-left-color: var(--red); }
+  .flag.mid { border-left-color: var(--yellow); }
   :root[data-contrast="high"] [data-slot="switch-thumb"] { background: var(--bg); box-shadow: 0 0 0 2px var(--fg); }
 
-  /* Vorschau-Hinweis (Website aus der Verwaltung) */
-  .banner { background: var(--gelb); color: #333333; }
+  /* Preview notice (website from the admin page) */
+  .banner { background: var(--yellow); color: #333333; }
 }
 
-/* Dunkles Logo: nach @layer, damit es gegen .logo .logo-d gewinnt */
+/* Dark logo: after @layer so it wins against .logo .logo-d */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .logo .logo-l { display: none; }
   :root:not([data-theme="light"]) .logo .logo-d { display: block; }

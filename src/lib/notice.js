@@ -1,9 +1,9 @@
 import { toast } from "sonner";
 
-import { log } from "@/lib/speicher";
+import { log } from "@/lib/storage";
 
-// Hinweis unten (shadcn Sonner, <Toaster> in der Seite); ein neuer Hinweis ersetzt den alten
-export function hinweis(msg) {
-  log("Hinweis", msg);
-  toast(msg, { id: "hinweis", duration: 3600 });
+// Notice at the bottom (shadcn Sonner, <Toaster> in the page); a new notice replaces the old one
+export function notify(msg) {
+  log("Notice", msg);
+  toast(msg, { id: "notice", duration: 3600 });
 }

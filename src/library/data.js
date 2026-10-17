@@ -1,13 +1,13 @@
-/* Daten der Bücherliste: books.js (window.DSM_BIBLIOTHEK), empfehlungen.js, info.js – oder deren Vorschau aus der
-   Verwaltung (index.html#vorschau, localStorage dsm-vorschau*). books.js lädt NACH diesem Skript (groß, ≈700 KB),
-   damit Kopf, Öffnungszeiten und Platzhalter vorher stehen. */
-import { store } from "@/lib/speicher";
+/* Data of the book list: books.js (window.DSM_LIBRARY), recommendations.js, info.js – or their preview from the
+   admin page (index.html#preview, localStorage dsm-preview*). books.js loads AFTER this script (large, ≈700 KB),
+   so the header, opening hours and placeholders stand before it. */
+import { store } from "@/lib/storage";
 
-export const VORSCHAU = location.hash === "#vorschau";
+export const PREVIEW = location.hash === "#preview";
 
 export const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
   .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
-// Schlüssel der Empfehlungen: Titel + Erstautor
+// Key of the recommendations: title + first author
 export const keyOf = b => norm(b.t) + "|" + norm((b.a && b.a[0]) || "");
 
 const letterOf = t => {
@@ -15,36 +15,36 @@ const letterOf = t => {
   return /[A-Z]/.test(c) ? c : "#";
 };
 
-// Vorschau aus der Verwaltung, falls vorhanden und gültig
-function vorschau(k, ok) {
-  if (!VORSCHAU) return null;
+// Preview from the admin page, if present and valid
+function preview(k, ok) {
+  if (!PREVIEW) return null;
   const p = store.json(k);
   return p && ok(p) ? p : null;
 }
-export const vorschauBuecher = () => vorschau("dsm-vorschau", p => Array.isArray(p.buecher));
-export const vorschauEmpf = () => vorschau("dsm-vorschau-empf", p => !!p.gruppen);
-export const vorschauInfo = () => vorschau("dsm-vorschau-info", p => !!p.zeiten);
+export const previewBooks = () => preview("dsm-preview", p => Array.isArray(p.books));
+export const previewRecs = () => preview("dsm-preview-recs", p => !!p.groups);
+export const previewInfo = () => preview("dsm-preview-info", p => !!p.hours);
 
-// Bücher für Liste und Suche vorbereiten: laufende Nummer, Anfangsbuchstabe, Suchtext
-export function vorbereiten(data) {
-  const books = (data && data.buecher) || [];
+// Prepare books for list and search: running number, initial letter, search text
+export function prepare(data) {
+  const books = (data && data.books) || [];
   books.forEach((b, i) => {
     b._i = i;
     b._l = letterOf(b.t);
-    b._s = norm([b.t, b.u, (b.a || []).join(" "), (b.i || []).join(" "), b.v].join(" "));
+    b._s = norm([b.t, b.s, (b.a || []).join(" "), (b.i || []).join(" "), b.p].join(" "));
   });
   return books;
 }
 
-// Wartet auf books.js (klassisches Skript nach diesem). books.js setzt window.DSM_BIBLIOTHEK = …; ein Setter meldet
-// das im selben Moment (DOMContentLoaded kann sich danach noch verzögern). Fehlt die Datei, bleibt die Liste leer.
-export function buecherLaden(fertig) {
-  const p = vorschauBuecher();
-  if (p) return fertig(p);
-  if (window.DSM_BIBLIOTHEK) return fertig(window.DSM_BIBLIOTHEK);
-  let wert, fertigGemeldet = false;
-  const los = () => { if (!fertigGemeldet) { fertigGemeldet = true; fertig(wert || null); } };
-  Object.defineProperty(window, "DSM_BIBLIOTHEK", { configurable: true, enumerable: true, get: () => wert, set: v => { wert = v; los(); } });
-  if (document.readyState !== "loading") los();
-  else document.addEventListener("DOMContentLoaded", los, { once: true });
+// Waits for books.js (classic script after this one). books.js sets window.DSM_LIBRARY = …; a setter reports
+// that at the same moment (DOMContentLoaded may be delayed after it). If the file is missing, the list stays empty.
+export function loadBooks(done) {
+  const p = previewBooks();
+  if (p) return done(p);
+  if (window.DSM_LIBRARY) return done(window.DSM_LIBRARY);
+  let value, reported = false;
+  const go = () => { if (!reported) { reported = true; done(value || null); } };
+  Object.defineProperty(window, "DSM_LIBRARY", { configurable: true, enumerable: true, get: () => value, set: v => { value = v; go(); } });
+  if (document.readyState !== "loading") go();
+  else document.addEventListener("DOMContentLoaded", go, { once: true });
 }

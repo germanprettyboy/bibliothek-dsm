@@ -1,10 +1,10 @@
-// localStorage mit Absicherung: im privaten Modus oder bei gesperrten Website-Daten wirft schon der Zugriff
+// localStorage with a safety net: in private mode or with blocked site data even the access throws
 export const store = {
   get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* privat/gesperrt */ } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private/blocked */ } },
   del(k) { try { localStorage.removeItem(k); } catch (e) { /* */ } },
   json(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } },
 };
 
-// Konsolen-Protokoll (assets/protokoll.js, vor allen Seiten-Skripten geladen)
+// Console log (assets/logger.js, loaded before all page scripts)
 export const log = (...a) => (window.DSM_LOG || function () {})(...a);

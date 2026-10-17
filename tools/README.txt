@@ -1,33 +1,32 @@
-Werkzeuge – NICHT auf den Webspace laden
-=========================================
+Tools – do NOT upload to the webspace
+=====================================
 
-bauen.mjs           Baut die Website aus ../src (React, Tailwind CSS, shadcn/ui) nach ../website:
-                    index.html, admin.html, assets/bibliothek.js, verwaltung.js, style.css, kopf.js.
-                    Aufruf im Projektordner: npm run build   (einmalig vorher: npm install)
+build.mjs           Builds the website from ../src (React, Tailwind CSS, shadcn/ui) into ../website:
+                    index.html, admin.html, assets/library.js, admin.js, style.css, head.js.
+                    Run in the project folder: npm run build   (once beforehand: npm install)
 
-quelle/extract.js   Klartext: Einlesen der WinBIAP-Datenbank, Entfernen der Personendaten
-quelle/verwaltung/  Klartext: Verwaltungsoberfläche (React: Bestand, Cover-Abdeckung, Empfehlungen, Info)
-admin-verschluesseln.js
-                    Baut quelle/verwaltung/ und verschlüsselt sie zusammen mit extract.js
-                    nach ../website/assets/admin.enc.js; schreibt dazu ../website/speichern-zugang.php
-                    (Zugang für speichern.php, aus dem Passwort abgeleitet)
+source/extract.js   Plaintext: reads the WinBIAP database, removes personal data
+source/admin/       Plaintext: admin user interface (React: catalog, cover coverage, recommendations, info)
+encrypt-admin.js    Builds source/admin/ and encrypts it together with extract.js
+                    into ../website/assets/admin.enc.js; also writes ../website/save-access.php
+                    (access for save.php, derived from the password)
 
-Nach jeder Änderung an quelle/ oder um das Passwort zu ändern (Node.js 18+, im Projektordner):
-  node werkzeuge/admin-verschluesseln.js   (fragt das Passwort verdeckt ab, landet nicht in der Shell-History)
-Danach assets/admin.enc.js auf den Webspace laden – bei neuem Passwort auch speichern-zugang.php
-(gleiches Passwort ergibt dieselbe Zugangsdatei). Wer das alte Passwort kennt, kommt mit der
-neuen Datei nicht mehr hinein; in offenen Browser-Sitzungen muss neu entsperrt werden.
+After every change to source/ or to change the password (Node.js 18+, in the project folder):
+  node tools/encrypt-admin.js   (asks for the password without echo, doesn't end up in the shell history)
+Then upload assets/admin.enc.js to the webspace – with a new password also save-access.php
+(the same password yields the same access file). Whoever knows the old password can no longer get in with the
+new file; open browser sessions have to unlock again.
 
-lokal.mjs + lokal-router.php + lokal-adresse.cjs
-                    Lokale Entwicklung wie auf dem Webspace: npm run lokal
-                    -> http://127.0.0.1:8765/admin.html, Passwort „lokal“ (anderes: DSM_LOKAL_PW=… npm run lokal).
-                    PHP kommt als php-wasm über npx (keine Installation). „Veröffentlichen“ schreibt direkt
-                    nach ../website (alte Fassung in ../website/sicherung/). Verwaltung wird beim Start und bei
-                    Änderungen an quelle/ neu verschlüsselt (nur für lokal, die echte admin.enc.js bleibt unberührt).
-                    src/ wird im Watch-Modus gebaut; nach Änderungen die Seite neu laden.
-                    Server nur unter 127.0.0.1 erreichbar (lokal-adresse.cjs), nicht aus dem WLAN.
+local.mjs + local-router.php + local-address.cjs
+                    Local development as on the webspace: npm run local
+                    -> http://127.0.0.1:8765/admin.html, password "local" (another one: DSM_LOCAL_PW=… npm run local).
+                    PHP comes as php-wasm via npx (no installation). "Publish" writes directly
+                    to ../website (old version in ../website/backup/). The admin app is encrypted again on start and on
+                    changes to source/ (only for local use, the real admin.enc.js stays untouched).
+                    src/ is built in watch mode; reload the page after changes.
+                    Server only reachable at 127.0.0.1 (local-address.cjs), not from the Wi-Fi.
 
-anleitung/vorlage.html + anleitung-bauen.js
-                    Anleitung für Kolleginnen und Kollegen (Verwaltung, WinBook-Datei kopieren).
-                    node werkzeuge/anleitung-bauen.js  ->  anleitung/Anleitung_Verwaltung.html
-                    (eigenständige Datei mit eingebetteter Schrift und Logo, offline und druckbar)
+guide/template.html + build-guide.js
+                    Guide for colleagues (admin page, copying the WinBook file), in German.
+                    node tools/build-guide.js  ->  anleitung/Anleitung_Verwaltung.html
+                    (standalone file with embedded font and logo, offline and printable)

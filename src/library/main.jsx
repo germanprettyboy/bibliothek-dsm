@@ -1,13 +1,13 @@
-/* Einstieg der Bücherliste (index.html). Läuft vor books.js: erstes Zeichnen sofort (flushSync),
-   damit Kopf, Öffnungszeiten und Platzhalter stehen, während die große Bücherliste noch lädt. */
+/* Entry of the book list (index.html). Runs before books.js: first render immediately (flushSync),
+   so the header, opening hours and placeholders stand while the large book list is still loading. */
 import "@/styles.css";
 import * as React from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
-import { titelSetzen } from "@/lib/sprache";
-import { App } from "@/bibliothek/app";
+import { setTitle } from "@/lib/language";
+import { App } from "@/library/app";
 
-titelSetzen();
-const root = createRoot(document.getElementById("seite"));
+setTitle();
+const root = createRoot(document.getElementById("page"));
 flushSync(() => root.render(<App />));

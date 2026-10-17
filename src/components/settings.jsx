@@ -1,47 +1,47 @@
-/* Einstellungen: Darstellung (Automatisch/Hell/Dunkel), größere Schrift, hoher Kontrast.
-   Seiten hängen eigene Abschnitte als children an (Bücherliste: Buchempfehlungen). */
+/* Settings: theme (automatic/light/dark), larger text, high contrast.
+   Pages append their own sections as children (book list: book recommendations). */
 import * as React from "react";
 
-import { Fenster } from "@/components/fenster";
+import { GlassDialog } from "@/components/glass-dialog";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useDarstellung, setPref } from "@/lib/darstellung";
-import { useSprache } from "@/lib/sprache";
+import { useAppearance, setPref } from "@/lib/appearance";
+import { useLanguage } from "@/lib/language";
 
 const THEMES = ["auto", "light", "dark"];
 
-// Abschnitt mit kleiner Überschrift
-export function Abschnitt({ titel, children }) {
+// Section with a small heading
+export function Section({ title, children }) {
   return (
     <section className="grid gap-1">
-      <h4 className="m-0 mb-1.5 text-s font-medium text-muted-foreground">{titel}</h4>
+      <h4 className="m-0 mb-1.5 text-s font-medium text-muted-foreground">{title}</h4>
       {children}
     </section>
   );
 }
 
-// Zeile mit Text links und Schalter rechts
-export function Option({ id, titel, hilfe, checked, onCheckedChange }) {
+// Row with text on the left and a switch on the right
+export function Option({ id, title, help, checked, onCheckedChange }) {
   return (
     <label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-4 border-t border-border py-3 first-of-type:border-t-0">
       <span className="grid gap-0.5">
-        <b className="font-semibold">{titel}</b>
-        <small className="text-s text-muted-foreground">{hilfe}</small>
+        <b className="font-semibold">{title}</b>
+        <small className="text-s text-muted-foreground">{help}</small>
       </span>
       <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </label>
   );
 }
 
-export function Einstellungen({ open, onOpenChange, children }) {
-  const { t } = useSprache();
-  const p = useDarstellung();
+export function Settings({ open, onOpenChange, children }) {
+  const { t } = useLanguage();
+  const p = useAppearance();
   return (
-    <Fenster open={open} onOpenChange={onOpenChange} name="Einstellungen" titleId="s-title" className="settings">
+    <GlassDialog open={open} onOpenChange={onOpenChange} name="Settings" titleId="s-title" className="settings">
       <div className="pane">
         <DialogTitle id="s-title">{t("sTitle")}</DialogTitle>
-        <Abschnitt titel={t("sLook")}>
+        <Section title={t("sLook")}>
           <ToggleGroup
             type="single" id="s-theme" className="seg3 grid-cols-3" style={{ "--i": THEMES.indexOf(p.theme) }}
             value={p.theme} onValueChange={v => v && setPref("theme", v)}
@@ -50,13 +50,13 @@ export function Einstellungen({ open, onOpenChange, children }) {
             <ToggleGroupItem value="light" data-v="light">{t("sLight")}</ToggleGroupItem>
             <ToggleGroupItem value="dark" data-v="dark">{t("sDark")}</ToggleGroupItem>
           </ToggleGroup>
-        </Abschnitt>
-        <Abschnitt titel={t("sA11y")}>
-          <Option id="s-font" titel={t("sFont")} hilfe={t("sFontH")} checked={p.font} onCheckedChange={v => setPref("font", v)} />
-          <Option id="s-contrast" titel={t("sContrast")} hilfe={t("sContrastH")} checked={p.contrast} onCheckedChange={v => setPref("contrast", v)} />
-        </Abschnitt>
+        </Section>
+        <Section title={t("sA11y")}>
+          <Option id="s-font" title={t("sFont")} help={t("sFontH")} checked={p.font} onCheckedChange={v => setPref("font", v)} />
+          <Option id="s-contrast" title={t("sContrast")} help={t("sContrastH")} checked={p.contrast} onCheckedChange={v => setPref("contrast", v)} />
+        </Section>
         {children}
       </div>
-    </Fenster>
+    </GlassDialog>
   );
 }

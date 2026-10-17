@@ -1,17 +1,17 @@
 /*
- * Sperre der Verwaltung. Die eigentliche Verwaltungslogik liegt nur verschlüsselt vor
- * (assets/admin.enc.js, AES-GCM 256, Schlüssel per PBKDF2-SHA-256 aus dem Passwort).
- * Ohne Passwort gibt es im Quelltext nichts, was sich aufrufen oder freischalten ließe.
- * Das Passwort selbst steht nirgends in den Dateien. Kein Server nötig.
+ * Lock of the admin page. The actual admin logic only exists encrypted
+ * (assets/admin.enc.js, AES-GCM 256, key via PBKDF2-SHA-256 from the password).
+ * Without the password there is nothing in the source that could be called or unlocked.
+ * The password itself is in none of the files. No server needed.
  */
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { log } from "@/lib/speicher";
-import { woerter, useSprache } from "@/lib/sprache";
+import { log } from "@/lib/storage";
+import { addStrings, useLanguage } from "@/lib/language";
 
-woerter({
+addStrings({
   de: {
     pageTitle: "Bibliothek – Verwaltung", admTitle: "Verwaltung",
     lockT: "Geschützter Bereich", lockP: "Bitte das Passwort der Bibliothek eingeben.", lockPw: "Passwort",
@@ -35,7 +35,7 @@ const b64 = {
   dec: s => Uint8Array.from(atob(s), c => c.charCodeAt(0)),
   enc: u => btoa(String.fromCharCode(...new Uint8Array(u))),
 };
-const sitzung = {
+const session = {
   get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* */ } },
   del(k) { try { sessionStorage.removeItem(k); } catch (e) { /* */ } },
@@ -50,62 +50,62 @@ async function decrypt(enc, key) {
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64.dec(enc.iv) }, key, b64.dec(enc.data));
   return new TextDecoder().decode(plain);
 }
-// Verwaltung starten: der entschlüsselte Quelltext meldet sich als window.DSM_VERWALTUNG an
-function starten(src) {
-  log("Sperre", "entsperrt, Verwaltung startet");
-  new Function(src)(); // Quelltext stammt aus der eigenen, verschlüsselten Datei
-  return window.DSM_VERWALTUNG;
+// Start the admin page: the decrypted source registers itself as window.DSM_ADMIN
+function start(src) {
+  log("Lock", "unlocked, admin page starting");
+  new Function(src)(); // the source comes from our own encrypted file
+  return window.DSM_ADMIN;
 }
-export function sperren() {
-  log("Sperre", "gesperrt");
-  sitzung.del(SKEY);
+export function lock() {
+  log("Lock", "locked");
+  session.del(SKEY);
   location.reload();
 }
 
-// Fehlversuche bremsen
-const fails = () => +sitzung.get("dsm-admin-fails") || 0;
+// Slow down failed attempts
+const fails = () => +session.get("dsm-admin-fails") || 0;
 let waitUntil = 0;
 
-export function Sperre({ onStart }) {
-  const { t } = useSprache();
+export function Lock({ onStart }) {
+  const { t } = useLanguage();
   const enc = window.DSM_ADMIN_ENC;
   const [busy, setBusy] = React.useState(false);
-  const [msg, setMsg] = React.useState(null); // [Schlüssel, Werte]
+  const [msg, setMsg] = React.useState(null); // [key, values]
   const form = React.useRef(null), pw = React.useRef(null);
 
-  // Innerhalb derselben Browser-Sitzung entsperrt bleiben
+  // Stay unlocked within the same browser session
   React.useEffect(() => {
-    const raw = sitzung.get(SKEY);
+    const raw = session.get(SKEY);
     if (!raw || !enc || !window.crypto || !crypto.subtle) { pw.current.focus(); return; }
     (async () => {
       try {
-        log("Sperre", "Schlüssel dieser Browser-Sitzung gefunden");
+        log("Lock", "key of this browser session found");
         const key = await crypto.subtle.importKey("raw", b64.dec(raw), { name: "AES-GCM" }, false, ["decrypt"]);
-        onStart(starten(await decrypt(enc, key)));
-      } catch (e) { sperren(); }
+        onStart(start(await decrypt(enc, key)));
+      } catch (e) { lock(); }
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function absenden(e) {
+  async function submit(e) {
     e.preventDefault();
     if (!enc) { setMsg(["lockBroken"]); return; }
     if (!window.crypto || !crypto.subtle) { setMsg(["lockInsecure"]); return; }
     const left = Math.ceil((waitUntil - Date.now()) / 1000);
-    if (left > 0) { setMsg(["lockWait", { s: left }]); log("Sperre", `zu früh, noch ${left} s warten`); return; }
+    if (left > 0) { setMsg(["lockWait", { s: left }]); log("Lock", `too early, wait ${left} s more`); return; }
     setBusy(true); setMsg(["lockBusy"]);
     try {
       const key = await keyFromPassword(enc, pw.current.value);
       const src = await decrypt(enc, key);
-      sitzung.set("dsm-admin-fails", "0");
-      sitzung.set(SKEY, b64.enc(await crypto.subtle.exportKey("raw", key)));
+      session.set("dsm-admin-fails", "0");
+      session.set(SKEY, b64.enc(await crypto.subtle.exportKey("raw", key)));
       pw.current.value = ""; setMsg(null); setBusy(false);
-      onStart(starten(src));
+      onStart(start(src));
     } catch (err) {
       const n = fails() + 1, s = Math.min(30, 2 ** Math.max(0, n - 2));
-      sitzung.set("dsm-admin-fails", String(n));
+      session.set("dsm-admin-fails", String(n));
       waitUntil = Date.now() + s * 1000;
       setMsg(["lockWrong"]); setBusy(false);
-      log("Sperre", `Passwort falsch (Versuch ${n}, nächster Versuch in ${s} s)`);
+      log("Lock", `wrong password (attempt ${n}, next attempt in ${s} s)`);
       const f = form.current;
       f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
       pw.current.select();
@@ -115,7 +115,7 @@ export function Sperre({ onStart }) {
   return (
     <div className="lock grid place-items-center pt-6 pb-15" id="lock">
       <form
-        ref={form} id="lock-form" autoComplete="off" aria-busy={String(busy)} onSubmit={absenden}
+        ref={form} id="lock-form" autoComplete="off" aria-busy={String(busy)} onSubmit={submit}
         className="grid w-full max-w-96 gap-3.5 rounded-3xl bg-surface p-[26px] shadow-[inset_0_0_0_1px_var(--line)]"
       >
         <h2 className="m-0 text-l font-semibold">{t("lockT")}</h2>

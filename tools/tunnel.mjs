@@ -1,17 +1,17 @@
 /*
- * Öffentliche Test-Adresse für website/ über einen Cloudflare Quick Tunnel (https://….trycloudflare.com).
- * Zum Prüfen auf echten Geräten (Handy, Tablet, Schul-PC) und für die Browser-Tests über echtes https.
+ * Public test address for website/ via a Cloudflare Quick Tunnel (https://….trycloudflare.com).
+ * For checking on real devices (phone, tablet, school PC) and for the browser tests over real https.
  *
- *   npm run tunnel                 website/ wie sie ist (eigener Server, Cache-Control: no-store)
- *   npm run tunnel:dev             Build im Watch-Modus + Live-Reload (browser-sync), Änderungen sofort auf dem Handy
- *   npm run test:live [-- <args>]  Tunnel öffnen, Playwright gegen die Tunnel-Adresse, Tunnel schließen
- *   DSM_LIVE_URL=https://… npm run test:live   Playwright gegen eine schon laufende Adresse (kein neuer Tunnel)
+ *   npm run tunnel                 website/ as it is (own server, Cache-Control: no-store)
+ *   npm run tunnel:dev             build in watch mode + live reload (browser-sync), changes appear on the phone immediately
+ *   npm run test:live [-- <args>]  open the tunnel, Playwright against the tunnel address, close the tunnel
+ *   DSM_LIVE_URL=https://… npm run test:live   Playwright against an address that is already running (no new tunnel)
  *
- * Voraussetzung: cloudflared (brew install cloudflared). Kein Cloudflare-Konto nötig, Adresse ist bei jedem Start neu.
- * Ausgeliefert wird nur website/ (dasselbe, was per FTP öffentlich wird), ohne Punktdateien (.htaccess), ohne *.php
- * und sicherung/ – PHP läuft hier nicht, die Verwaltung veröffentlicht über den Tunnel also wie lokal (Ordner/Download).
- * Mit echtem „Veröffentlichen“ (speichern.php läuft): npm run lokal -- --tunnel (werkzeuge/lokal.mjs, nutzt tunnel() von hier).
- * Die Adresse steht zusätzlich in tests/.tmp/tunnel-url.txt.
+ * Requirement: cloudflared (brew install cloudflared). No Cloudflare account needed, the address is new on every start.
+ * Only website/ is served (the same that becomes public via FTP), without dot files (.htaccess), without *.php
+ * and backup/ – PHP doesn't run here, so through the tunnel the admin page publishes as it does locally (folder/download).
+ * With real "Publish" (save.php running): npm run local -- --tunnel (tools/local.mjs, uses tunnel() from here).
+ * The address is also written to tests/.tmp/tunnel-url.txt.
  */
 import dns from "node:dns/promises";
 import fs from "node:fs";
@@ -24,109 +24,109 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const WEB = path.join(ROOT, "website");
 const TMP = path.join(ROOT, "tests", ".tmp");
 
-const TYPEN = {
+const TYPES = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".png": "image/png", ".webp": "image/webp",
   ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff2": "font/woff2", ".woff": "font/woff",
 };
 
-// Statischer Server für dir: no-store (sonst hält Cloudflare .js/.css am Rand fest), keine Punktdateien, kein Listing
-export function statischerServer(dir) {
+// Static server for dir: no-store (otherwise Cloudflare holds on to .js/.css at the edge), no dot files, no listing
+export function staticServer(dir) {
   return http.createServer((req, res) => {
     let p;
     try { p = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { p = ""; }
     if (p.endsWith("/")) p += "index.html";
-    const datei = path.join(dir, path.normalize(p));
-    const teile = path.relative(dir, datei).split(path.sep);
-    const fehler = code => { res.writeHead(code, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }); res.end(String(code)); };
-    if (!["GET", "HEAD"].includes(req.method)) return fehler(405);
-    if (!p || teile[0] === ".." || path.isAbsolute(teile[0]) || teile.some(t => t.startsWith("."))) return fehler(404);
-    // PHP liefe hier nicht, sondern käme als Quelltext (speichern-zugang.php = Hash des Speicher-Schlüssels)
-    if (teile[0] === "sicherung" || teile.some(t => /\.php$/i.test(t))) return fehler(404);
-    fs.stat(datei, (err, st) => {
-      if (err || !st.isFile()) return fehler(404);
+    const file = path.join(dir, path.normalize(p));
+    const parts = path.relative(dir, file).split(path.sep);
+    const fail = code => { res.writeHead(code, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }); res.end(String(code)); };
+    if (!["GET", "HEAD"].includes(req.method)) return fail(405);
+    if (!p || parts[0] === ".." || path.isAbsolute(parts[0]) || parts.some(t => t.startsWith("."))) return fail(404);
+    // PHP would not run here but be served as source (save-access.php = hash of the save key)
+    if (parts[0] === "backup" || parts.some(t => /\.php$/i.test(t))) return fail(404);
+    fs.stat(file, (err, st) => {
+      if (err || !st.isFile()) return fail(404);
       res.writeHead(200, {
-        "content-type": TYPEN[path.extname(datei).toLowerCase()] || "application/octet-stream",
+        "content-type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream",
         "content-length": st.size,
         "cache-control": "no-store",
       });
       if (req.method === "HEAD") return res.end();
-      fs.createReadStream(datei).pipe(res);
+      fs.createReadStream(file).pipe(res);
     });
   });
 }
 
-// Adresse aus einer Log-Zeile von cloudflared (steht in einem Kasten auf stderr)
-export function tunnelAdresse(zeile) {
-  const m = /https:\/\/(?!api\.)[a-z0-9-]+\.trycloudflare\.com/.exec(zeile);
+// Address from a log line of cloudflared (it sits in a box on stderr)
+export function tunnelAddress(line) {
+  const m = /https:\/\/(?!api\.)[a-z0-9-]+\.trycloudflare\.com/.exec(line);
   return m ? m[0] + "/" : null;
 }
 
-const freierPort = () => new Promise((ok, nein) => {
-  const s = http.createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => ok(port)); }).on("error", nein);
+const freePort = () => new Promise((ok, no) => {
+  const s = http.createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => ok(port)); }).on("error", no);
 });
 
-const warte = ms => new Promise(r => setTimeout(r, ms));
+const wait = ms => new Promise(r => setTimeout(r, ms));
 
-// true oder der letzte Grund (Status/Fehlercode), warum url nicht antwortet
-export async function erreichbar(url, sekunden) {
-  let grund = "";
-  for (let i = 0; i < sekunden; i++) {
+// true or the last reason (status/error code) why url does not answer
+export async function reachable(url, seconds) {
+  let reason = "";
+  for (let i = 0; i < seconds; i++) {
     try {
       const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(10000) });
       if (r.ok) return true;
-      grund = "HTTP " + r.status;
-    } catch (e) { grund = e.cause?.code || e.name; }
-    await warte(1000);
+      reason = "HTTP " + r.status;
+    } catch (e) { reason = e.cause?.code || e.name; }
+    await wait(1000);
   }
-  return grund;
+  return reason;
 }
 
-// Neuer Name erst beim autoritativen Nameserver abwarten (der cacht nicht). Wer zu früh über das System fragt,
-// bekommt NXDOMAIN, und macOS merkt sich das ≈90 s – auch für Chromium und das Handy im selben WLAN.
-export async function dnsBereit(adresse, sekunden) {
-  const host = new URL(adresse).hostname;
+// Wait for the new name at the authoritative name server first (it doesn't cache). Asking via the system too early
+// yields NXDOMAIN, and macOS remembers that for ≈90 s – also for Chromium and the phone in the same Wi-Fi.
+export async function dnsReady(address, seconds) {
+  const host = new URL(address).hostname;
   const auth = new dns.Resolver();
   try {
     const ns = await dns.resolveNs(host.split(".").slice(-2).join("."));
     auth.setServers((await Promise.all(ns.map(n => dns.resolve4(n).catch(() => [])))).flat());
-  } catch { return; } // ohne Nameserver-Auskunft einfach weiter, erreichbar() wartet ohnehin
-  for (let i = 0; i < sekunden * 2; i++) {
+  } catch { return; } // without name server information simply go on, reachable() waits anyway
+  for (let i = 0; i < seconds * 2; i++) {
     if (await auth.resolve4(host).then(a => a.length > 0, () => false)) return;
-    await warte(500);
+    await wait(500);
   }
 }
 
-const kinder = [];
-function starte(befehl, args, opt = {}) {
-  const k = spawn(befehl, args, { cwd: ROOT, ...opt });
-  kinder.push(k);
+const children = [];
+function start(command, args, opt = {}) {
+  const k = spawn(command, args, { cwd: ROOT, ...opt });
+  children.push(k);
   return k;
 }
-export function aufraeumen() {
-  for (const k of kinder) if (k.exitCode === null) k.kill("SIGTERM");
+export function cleanup() {
+  for (const k of children) if (k.exitCode === null) k.kill("SIGTERM");
 }
 
-// cloudflared starten, auf Adresse und erste Verbindung warten
+// Start cloudflared, wait for the address and the first connection
 export function tunnel(port) {
-  return new Promise((ok, nein) => {
-    const cf = starte("cloudflared", ["tunnel", "--no-autoupdate", "--url", `http://127.0.0.1:${port}`], { stdio: ["ignore", "pipe", "pipe"] });
+  return new Promise((ok, no) => {
+    const cf = start("cloudflared", ["tunnel", "--no-autoupdate", "--url", `http://127.0.0.1:${port}`], { stdio: ["ignore", "pipe", "pipe"] });
     const log = [];
-    let adresse = null;
-    const zeit = setTimeout(() => nein(new Error("cloudflared meldet nach 45 s keine Verbindung:\n" + log.slice(-15).join("\n"))), 45000);
+    let address = null;
+    const timer = setTimeout(() => no(new Error("cloudflared reports no connection after 45 s:\n" + log.slice(-15).join("\n"))), 45000);
     cf.on("error", e => {
-      clearTimeout(zeit);
-      nein(e.code === "ENOENT" ? new Error("cloudflared fehlt – installieren mit: brew install cloudflared") : e);
+      clearTimeout(timer);
+      no(e.code === "ENOENT" ? new Error("cloudflared is missing – install with: brew install cloudflared") : e);
     });
-    cf.on("exit", code => { clearTimeout(zeit); nein(new Error(`cloudflared beendet (Code ${code}):\n` + log.slice(-15).join("\n"))); });
+    cf.on("exit", code => { clearTimeout(timer); no(new Error(`cloudflared exited (code ${code}):\n` + log.slice(-15).join("\n"))); });
     let rest = "";
     cf.stderr.on("data", d => {
-      const zeilen = (rest + d).split("\n");
-      rest = zeilen.pop();
-      for (const z of zeilen) {
+      const lines = (rest + d).split("\n");
+      rest = lines.pop();
+      for (const z of lines) {
         log.push(z);
-        adresse ||= tunnelAdresse(z);
-        if (adresse && /Registered tunnel connection/.test(z)) { clearTimeout(zeit); ok(adresse); }
+        address ||= tunnelAddress(z);
+        if (address && /Registered tunnel connection/.test(z)) { clearTimeout(timer); ok(address); }
       }
     });
   });
@@ -140,51 +140,51 @@ async function devServer(port) {
   open: false, notify: false, ui: false, ghostMode: false, logLevel: "silent",
   middleware: [(req, res, next) => {
     res.setHeader("cache-control", "no-store");
-    if (/\\.php(\\?|$)|^\\/sicherung\\//i.test(decodeURIComponent(req.url.split("?")[0]))) { res.statusCode = 404; return res.end("404"); }
+    if (/\\.php(\\?|$)|^\\/backup\\//i.test(decodeURIComponent(req.url.split("?")[0]))) { res.statusCode = 404; return res.end("404"); }
     next();
   }],
 };\n`);
-  starte(process.execPath, [path.join(ROOT, "werkzeuge", "bauen.mjs"), "--watch"], { stdio: "inherit" });
-  starte("npx", ["--yes", "browser-sync@3", "start", "--config", cfg], { stdio: "inherit" });
-  const da = await erreichbar(`http://127.0.0.1:${port}/index.html`, 120); // npx fragt bei @3 ggf. erst die Registry
-  if (da !== true) throw new Error(`browser-sync antwortet nicht (${da})`);
+  start(process.execPath, [path.join(ROOT, "tools", "build.mjs"), "--watch"], { stdio: "inherit" });
+  start("npx", ["--yes", "browser-sync@3", "start", "--config", cfg], { stdio: "inherit" });
+  const up = await reachable(`http://127.0.0.1:${port}/index.html`, 120); // with @3 npx may ask the registry first
+  if (up !== true) throw new Error(`browser-sync does not answer (${up})`);
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const dev = args.includes("--dev");
   const test = args.includes("--test");
-  const weiter = args.filter(a => a !== "--dev" && a !== "--test");
+  const rest = args.filter(a => a !== "--dev" && a !== "--test");
 
-  process.on("SIGINT", () => { aufraeumen(); process.exit(130); });
-  process.on("SIGTERM", () => { aufraeumen(); process.exit(143); });
-  process.on("exit", aufraeumen);
+  process.on("SIGINT", () => { cleanup(); process.exit(130); });
+  process.on("SIGTERM", () => { cleanup(); process.exit(143); });
+  process.on("exit", cleanup);
 
-  let adresse = test && process.env.DSM_LIVE_URL;
-  if (!adresse) {
-    const port = await freierPort();
+  let address = test && process.env.DSM_LIVE_URL;
+  if (!address) {
+    const port = await freePort();
     if (dev) await devServer(port);
-    else await new Promise(ok => statischerServer(WEB).listen(port, "127.0.0.1", ok));
-    console.log(`lokal:  http://127.0.0.1:${port}/  (${dev ? "Live-Reload" : "website/"})`);
-    console.log("Tunnel wird geöffnet …");
-    adresse = await tunnel(port);
-    await dnsBereit(adresse, 60);
-    const da = await erreichbar(adresse + "index.html", 120);
-    if (da !== true) throw new Error(`${adresse} ist nach 120 s nicht erreichbar (${da})`);
+    else await new Promise(ok => staticServer(WEB).listen(port, "127.0.0.1", ok));
+    console.log(`local:  http://127.0.0.1:${port}/  (${dev ? "live reload" : "website/"})`);
+    console.log("Opening the tunnel …");
+    address = await tunnel(port);
+    await dnsReady(address, 60);
+    const up = await reachable(address + "index.html", 120);
+    if (up !== true) throw new Error(`${address} is not reachable after 120 s (${up})`);
     fs.mkdirSync(TMP, { recursive: true });
-    fs.writeFileSync(path.join(TMP, "tunnel-url.txt"), adresse + "\n");
+    fs.writeFileSync(path.join(TMP, "tunnel-url.txt"), address + "\n");
   }
 
   if (test) {
-    console.log(`Browser-Tests gegen ${adresse}`);
-    const pw = starte("npx", ["playwright", "test", ...weiter], { stdio: "inherit", env: { ...process.env, DSM_LIVE_URL: adresse } });
-    pw.on("exit", code => { aufraeumen(); process.exit(code ?? 1); });
+    console.log(`Browser tests against ${address}`);
+    const pw = start("npx", ["playwright", "test", ...rest], { stdio: "inherit", env: { ...process.env, DSM_LIVE_URL: address } });
+    pw.on("exit", code => { cleanup(); process.exit(code ?? 1); });
     return;
   }
-  console.log(`\n  Bücherliste:  ${adresse}\n  Verwaltung:   ${adresse}admin.html\n`);
-  console.log("Öffentlich erreichbar, solange dieses Fenster läuft. Beenden mit Ctrl+C.");
+  console.log(`\n  Book list:   ${address}\n  Admin page:  ${address}admin.html\n`);
+  console.log("Publicly reachable as long as this window runs. Stop with Ctrl+C.");
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch(e => { console.error(e.message); aufraeumen(); process.exit(1); });
+  main().catch(e => { console.error(e.message); cleanup(); process.exit(1); });
 }

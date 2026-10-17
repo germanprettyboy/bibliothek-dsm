@@ -1,31 +1,31 @@
-/* Einstieg der Verwaltung (admin.html): Kopf, Sperre, nach dem Entsperren die verschlüsselte Verwaltung. */
+/* Entry of the admin page (admin.html): header, lock, after unlocking the encrypted admin app. */
 import "@/styles.css";
 import * as React from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
-import { Einstellungen } from "@/components/einstellungen";
-import { Kopf } from "@/components/kopf";
+import { Settings } from "@/components/settings";
+import { Header } from "@/components/header";
 import { Toaster } from "@/components/ui/sonner";
-import { titelSetzen, useSprache } from "@/lib/sprache";
-import { GEMEINSAM } from "@/verwaltung/gemeinsam";
-import { Sperre, sperren } from "@/verwaltung/sperre";
+import { setTitle, useLanguage } from "@/lib/language";
+import { SHARED } from "@/admin/shared";
+import { Lock, lock } from "@/admin/lock";
 
-window.DSM_GEMEINSAM = GEMEINSAM;
+window.DSM_SHARED = SHARED;
 
-function Seite() {
-  const { t } = useSprache();
-  const [verwaltung, setVerwaltung] = React.useState(null);
-  const [einst, setEinst] = React.useState(false);
-  const App = verwaltung && verwaltung.App;
+function Page() {
+  const { t } = useLanguage();
+  const [admin, setAdmin] = React.useState(null);
+  const [settings, setSettings] = React.useState(false);
+  const App = admin && admin.App;
   return (
     <>
-      <Kopf onEinstellungen={() => setEinst(true)} />
+      <Header onSettings={() => setSettings(true)} />
       <section className="wrap intro pt-[18px] pb-3">
         <h1 className="m-0 text-l font-semibold leading-[1.1]">{t("admTitle")}</h1>
       </section>
       <main className="wrap">
-        {App ? <div id="app"><App sperren={sperren} /></div> : <Sperre onStart={v => setVerwaltung(v)} />}
+        {App ? <div id="app"><App lock={lock} /></div> : <Lock onStart={v => setAdmin(v)} />}
       </main>
       <footer className="foot border-t border-border text-s text-muted-foreground">
         <div className="wrap flex flex-wrap justify-between gap-x-4 gap-y-1.5 pt-[18px] pb-7">
@@ -33,12 +33,12 @@ function Seite() {
           <a className="text-inherit no-underline" href="./">{t("toList")}</a>
         </div>
       </footer>
-      <Einstellungen open={einst} onOpenChange={setEinst} />
+      <Settings open={settings} onOpenChange={setSettings} />
       <Toaster />
     </>
   );
 }
 
-titelSetzen();
-const root = createRoot(document.getElementById("seite"));
-flushSync(() => root.render(<Seite />));
+setTitle();
+const root = createRoot(document.getElementById("page"));
+flushSync(() => root.render(<Page />));

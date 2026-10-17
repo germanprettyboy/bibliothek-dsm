@@ -1,4 +1,4 @@
-/* Admin-Verschlüsselung: Roundtrip, falsches Passwort, Parameter. Optional: ist admin.enc.js aktuell? (DSM_ADMIN_PW) */
+/* Admin encryption: round trip, wrong password, parameters. Optional: is admin.enc.js current? (DSM_ADMIN_PW) */
 "use strict";
 const { test, describe, before } = require("node:test");
 const assert = require("node:assert/strict");
@@ -7,22 +7,22 @@ const path = require("path");
 const vm = require("vm");
 const { execFileSync } = require("child_process");
 const { webcrypto: crypto } = require("crypto");
-const { ROOT, WEB, TMP } = require("../helfer/laden.js");
+const { ROOT, WEB, TMP } = require("../helpers/load.js");
 
-const TOOL = path.join(ROOT, "werkzeuge", "admin-verschluesseln.js");
-// Klartext wie im Werkzeug: Schlüssel für speichern.php + extract.js + gebaute Verwaltung (werkzeuge/quelle/verwaltung/, React)
-const { quelleBauen, klartext, speicherSchluessel } = require(TOOL);
-let quelleText = null;
-const quelle = async () => (quelleText ??= await quelleBauen());
-const zeile = async pw => "var DSM_SPEICHERN_SCHLUESSEL = " + JSON.stringify(await speicherSchluessel(pw)) + ";\n";
+const TOOL = path.join(ROOT, "tools", "encrypt-admin.js");
+// Plaintext as in the tool: key for save.php + extract.js + built admin app (tools/source/admin/, React)
+const { buildSource, plaintext, saveKey } = require(TOOL);
+let sourceText = null;
+const source = async () => (sourceText ??= await buildSource());
+const keyLine = async pw => "var DSM_SAVE_KEY = " + JSON.stringify(await saveKey(pw)) + ";\n";
 
-function lesen(datei) {
+function read(file) {
   const ctx = { window: {} };
-  vm.runInNewContext(fs.readFileSync(datei, "utf8"), ctx);
+  vm.runInNewContext(fs.readFileSync(file, "utf8"), ctx);
   return ctx.window.DSM_ADMIN_ENC;
 }
-// Gleiche Schritte wie admin-lock.js im Browser
-async function entschluesseln(enc, pw) {
+// Same steps as the lock in the browser (src/admin/lock.jsx)
+async function decrypt(enc, pw) {
   const dec = s => Uint8Array.from(Buffer.from(s, "base64"));
   const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
   const key = await crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt: dec(enc.salt), iterations: enc.iter },
@@ -30,75 +30,75 @@ async function entschluesseln(enc, pw) {
   return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: dec(enc.iv) }, key, dec(enc.data)));
 }
 
-describe("admin-verschluesseln.js", () => {
+describe("encrypt-admin.js", () => {
   const out1 = path.join(TMP, "unit-enc-1.js"), out2 = path.join(TMP, "unit-enc-2.js");
   let a, b;
   before(() => {
     fs.mkdirSync(TMP, { recursive: true });
-    execFileSync(process.execPath, [TOOL, "test-passwort", out1]);
-    execFileSync(process.execPath, [TOOL, "test-passwort", out2]);
-    a = lesen(out1); b = lesen(out2);
+    execFileSync(process.execPath, [TOOL, "test-password", out1]);
+    execFileSync(process.execPath, [TOOL, "test-password", out2]);
+    a = read(out1); b = read(out2);
   });
 
-  test("Parameter: v1, PBKDF2 310.000, Salz 16 Byte, IV 12 Byte", () => {
+  test("parameters: v1, PBKDF2 310,000, salt 16 bytes, IV 12 bytes", () => {
     assert.equal(a.v, 1);
     assert.equal(a.iter, 310000);
     assert.equal(Buffer.from(a.salt, "base64").length, 16);
     assert.equal(Buffer.from(a.iv, "base64").length, 12);
   });
-  test("Salz und IV bei jedem Lauf neu", () => {
+  test("salt and IV new on every run", () => {
     assert.notEqual(a.salt, b.salt);
     assert.notEqual(a.iv, b.iv);
     assert.notEqual(a.data, b.data);
   });
-  test("richtiges Passwort: ergibt Schlüssel + extract.js + gebaute Verwaltung", async () => {
-    const q = await quelle();
-    assert.equal(await entschluesseln(a, "test-passwort"), (await zeile("test-passwort")) + q);
+  test("right password: yields key + extract.js + built admin app", async () => {
+    const q = await source();
+    assert.equal(await decrypt(a, "test-password"), (await keyLine("test-password")) + q);
     assert.ok(q.includes("window.DSMExtract") || q.includes("root.DSMExtract"));
-    assert.match(q, /window\.DSM_VERWALTUNG\s*=/);
+    assert.match(q, /window\.DSM_ADMIN\s*=/);
   });
-  test("Verwaltung nutzt React und Bausteine der Seite (keine zweite React-Kopie)", async () => {
-    const q = await quelle();
-    assert.match(q, /DSM_GEMEINSAM\.react\b/);
-    assert.ok(!/react\.dev\/errors/.test(q), "React steckt nicht im verschlüsselten Teil");
-    // jedes benutzte gemeinsame Modul stellt die Seite bereit
-    const gem = fs.readFileSync(path.join(ROOT, "src", "verwaltung", "gemeinsam.js"), "utf8");
-    for (const m of q.matchAll(/DSM_GEMEINSAM\[`([^`]+)`\]/g)) assert.ok(gem.includes(`"${m[1]}":`), m[1]);
+  test("admin app uses React and the building blocks of the page (no second copy of React)", async () => {
+    const q = await source();
+    assert.match(q, /DSM_SHARED\.react\b/);
+    assert.ok(!/react\.dev\/errors/.test(q), "React is not inside the encrypted part");
+    // the page provides every shared module that is used
+    const shared = fs.readFileSync(path.join(ROOT, "src", "admin", "shared.js"), "utf8");
+    for (const m of q.matchAll(/DSM_SHARED\[`([^`]+)`\]/g)) assert.ok(shared.includes(`"${m[1]}":`), m[1]);
   });
-  test("Schlüssel für speichern.php: fest je Passwort, unabhängig vom AES-Salz, Hash in speichern-zugang.php", async () => {
-    const k = await speicherSchluessel("test-passwort");
+  test("key for save.php: fixed per password, independent of the AES salt, hash in save-access.php", async () => {
+    const k = await saveKey("test-password");
     assert.match(k, /^[0-9a-f]{64}$/);
-    assert.equal(await speicherSchluessel("test-passwort"), k);
-    assert.notEqual(await speicherSchluessel("Test-passwort"), k);
-    const zu = fs.readFileSync(path.join(TMP, "speichern-zugang.php"), "utf8");
+    assert.equal(await saveKey("test-password"), k);
+    assert.notEqual(await saveKey("Test-password"), k);
+    const access = fs.readFileSync(path.join(TMP, "save-access.php"), "utf8");
     const hash = require("crypto").createHash("sha256").update(k).digest("hex");
-    assert.match(zu, /^<\?php /);
-    assert.ok(zu.includes(`return '${hash}';`));
-    assert.ok(!zu.includes(k), "nur der Hash, nicht der Schlüssel");
-    assert.ok(!fs.readFileSync(out1, "utf8").includes(k), "Schlüssel nur verschlüsselt");
+    assert.match(access, /^<\?php /);
+    assert.ok(access.includes(`return '${hash}';`));
+    assert.ok(!access.includes(k), "only the hash, not the key");
+    assert.ok(!fs.readFileSync(out1, "utf8").includes(k), "key only encrypted");
   });
-  test("falsches Passwort: Entschlüsselung schlägt fehl", async () => {
-    await assert.rejects(entschluesseln(a, "Test-passwort"));
-    await assert.rejects(entschluesseln(a, ""));
+  test("wrong password: decryption fails", async () => {
+    await assert.rejects(decrypt(a, "Test-password"));
+    await assert.rejects(decrypt(a, ""));
   });
-  test("Klartext steht nicht in der verschlüsselten Datei", () => {
+  test("the plaintext is not in the encrypted file", () => {
     const s = fs.readFileSync(out1, "utf8");
-    for (const m of ["PERSONAL_TABLES", "dsm-empf-entwurf", "showDirectoryPicker", "verliehenan"]) assert.ok(!s.includes(m), m);
+    for (const m of ["PERSONAL_TABLES", "dsm-recs-draft", "showDirectoryPicker", "verliehenan"]) assert.ok(!s.includes(m), m);
   });
-  test("ohne Passwort: Abbruch mit Fehlercode", () => {
+  test("without a password: abort with an error code", () => {
     assert.throws(() => execFileSync(process.execPath, [TOOL], { stdio: "pipe" }));
   });
 });
 
-describe("veröffentlichte admin.enc.js", () => {
-  const enc = lesen(path.join(WEB, "assets", "admin.enc.js"));
-  test("Format und Parameter", () => {
+describe("published admin.enc.js", () => {
+  const enc = read(path.join(WEB, "assets", "admin.enc.js"));
+  test("format and parameters", () => {
     assert.equal(enc.v, 1);
     assert.equal(enc.iter, 310000);
     assert.ok(enc.data.length > 1000);
   });
-  test("ist aktuell (gleich werkzeuge/quelle/*) – nur mit DSM_ADMIN_PW", { skip: !process.env.DSM_ADMIN_PW && "DSM_ADMIN_PW nicht gesetzt" }, async () => {
-    const plain = await entschluesseln(enc, process.env.DSM_ADMIN_PW);
-    assert.ok(plain === await klartext(process.env.DSM_ADMIN_PW), "admin.enc.js ist veraltet: node werkzeuge/admin-verschluesseln.js");
+  test("is current (equal to tools/source/*) – only with DSM_ADMIN_PW", { skip: !process.env.DSM_ADMIN_PW && "DSM_ADMIN_PW not set" }, async () => {
+    const plain = await decrypt(enc, process.env.DSM_ADMIN_PW);
+    assert.ok(plain === await plaintext(process.env.DSM_ADMIN_PW), "admin.enc.js is outdated: node tools/encrypt-admin.js");
   });
 });

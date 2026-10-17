@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { preactAlias } from "./werkzeuge/bauen.mjs";
+import { preactAlias } from "./tools/build.mjs";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({

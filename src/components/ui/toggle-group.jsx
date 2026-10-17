@@ -6,7 +6,7 @@ import { toggleVariants } from "@/components/ui/toggle";
 
 const ToggleGroupContext = React.createContext({ size: "default", variant: "segment" });
 
-// Segment-Wahl (Radix ToggleGroup, type="single": Knöpfe mit role="radio" und aria-checked)
+// segmented choice (Radix ToggleGroup, type="single": buttons with role="radio" and aria-checked)
 function ToggleGroup({ className, variant = "segment", size = "default", children, ...props }) {
   return (
     <ToggleGroupPrimitive.Root

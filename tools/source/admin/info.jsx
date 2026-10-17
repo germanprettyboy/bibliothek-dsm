@@ -1,5 +1,5 @@
-/* Reiter „Info“: Öffnungszeiten (bis zu zwei Zeiträume je Tag), Hinweis DE/IT, Ferien und Abwesenheiten.
-   Entwurf im Browser (localStorage dsm-info-entwurf), Veröffentlichen als info.js. */
+/* Tab "info": opening hours (up to two time ranges per day), notice DE/IT, holidays and absences.
+   Draft in the browser (localStorage dsm-info-draft), published as info.js. */
 import * as React from "react";
 import { PlusIcon, XIcon } from "lucide-react";
 
@@ -10,97 +10,97 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
-import { store } from "@/lib/speicher";
-import { useSprache } from "@/lib/sprache";
-import { Veroeffentlichen } from "./veroeffentlichen";
+import { store } from "@/lib/storage";
+import { useLanguage } from "@/lib/language";
+import { Publish } from "./publish";
 
-const IDAYS = ["mo", "di", "mi", "do", "fr", "sa"];
-const IDRAFT = "dsm-info-entwurf";
+const IDAYS = ["mon", "tue", "wed", "thu", "fri", "sat"];
+const IDRAFT = "dsm-info-draft";
 const HHMM = /^\d{2}:\d{2}$/, YMD = /^\d{4}-\d{2}-\d{2}$/;
 const today = () => new Date().toLocaleDateString("sv-SE");
 export function normInfo(x) {
-  const o = { zeiten: {}, hinweis: { de: "", it: "" }, schliessungen: [] };
-  IDAYS.forEach(k => { o.zeiten[k] = (x && x.zeiten && Array.isArray(x.zeiten[k]) ? x.zeiten[k] : []).slice(0, 2).map(r => [r[0] || "", r[1] || ""]); });
-  if (x && x.hinweis) o.hinweis = { de: x.hinweis.de || "", it: x.hinweis.it || "" };
-  if (x && Array.isArray(x.schliessungen)) {
-    o.schliessungen = x.schliessungen.map(c => ({ art: c.art === "abwesend" ? "abwesend" : "ferien", von: c.von || "", bis: c.bis || "", de: c.de || "", it: c.it || "" }));
+  const o = { hours: {}, notice: { de: "", it: "" }, closures: [] };
+  IDAYS.forEach(k => { o.hours[k] = (x && x.hours && Array.isArray(x.hours[k]) ? x.hours[k] : []).slice(0, 2).map(r => [r[0] || "", r[1] || ""]); });
+  if (x && x.notice) o.notice = { de: x.notice.de || "", it: x.notice.it || "" };
+  if (x && Array.isArray(x.closures)) {
+    o.closures = x.closures.map(c => ({ type: c.type === "absent" ? "absent" : "holiday", from: c.from || "", to: c.to || "", de: c.de || "", it: c.it || "" }));
   }
   return o;
 }
-export const infoLaden = () => normInfo(store.json(IDRAFT) || window.DSM_INFO);
+export const loadInfo = () => normInfo(store.json(IDRAFT) || window.DSM_INFO);
 const okRange = r => HHMM.test(r[0]) && HHMM.test(r[1]) && r[0] < r[1];
-const endOf = c => (c.bis && c.bis >= c.von ? c.bis : c.von);
+const endOf = c => (c.to && c.to >= c.from ? c.to : c.from);
 function cloProblem(c) {
-  if (!YMD.test(c.von)) return "iNoDate";
-  if (c.bis && c.bis < c.von) return "iBadRange";
+  if (!YMD.test(c.from)) return "iNoDate";
+  if (c.to && c.to < c.from) return "iBadRange";
   if (endOf(c) < today()) return "iPast";
   return "";
 }
-// Reihenfolge der Einträge (nach erstem Tag); nur bei Hinzufügen/Entfernen/Art neu, nicht beim Tippen
-const sortiert = l => l.map((c, n) => n).sort((a, b) => { const x = l[a].von || "9", y = l[b].von || "9"; return x < y ? -1 : x > y ? 1 : a - b; });
+// Order of the entries (by first day); only renewed on add/remove/type change, not while typing
+const sorted = l => l.map((c, n) => n).sort((a, b) => { const x = l[a].from || "9", y = l[b].from || "9"; return x < y ? -1 : x > y ? 1 : a - b; });
 function infoOut(info) {
-  const zeiten = {};
-  IDAYS.forEach(k => { zeiten[k] = info.zeiten[k].filter(okRange).map(r => [r[0], r[1]]).sort(); });
-  const schliessungen = info.schliessungen.filter(c => YMD.test(c.von))
-    .map(c => ({ art: c.art, von: c.von, bis: endOf(c), de: c.de.trim(), it: c.it.trim() }))
-    .sort((a, b) => (a.von < b.von ? -1 : a.von > b.von ? 1 : 0));
-  return { stand: today(), zeiten, hinweis: { de: info.hinweis.de.trim(), it: info.hinweis.it.trim() }, schliessungen };
+  const hours = {};
+  IDAYS.forEach(k => { hours[k] = info.hours[k].filter(okRange).map(r => [r[0], r[1]]).sort(); });
+  const closures = info.closures.filter(c => YMD.test(c.from))
+    .map(c => ({ type: c.type, from: c.from, to: endOf(c), de: c.de.trim(), it: c.it.trim() }))
+    .sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
+  return { updated: today(), hours, notice: { de: info.notice.de.trim(), it: info.notice.it.trim() }, closures };
 }
 
 export function Info({ info, setInfo }) {
-  const { t, nf } = useSprache();
+  const { t, nf } = useLanguage();
   const [armed, setArmed] = React.useState(false);
-  const [reihe, setReihe] = React.useState(() => sortiert(info.schliessungen));
-  const fokus = React.useRef(null), box = React.useRef(null), sortieren = React.useRef(false);
+  const [order, setOrder] = React.useState(() => sorted(info.closures));
+  const focus = React.useRef(null), box = React.useRef(null), resort = React.useRef(false);
 
-  const aendern = (fn, neuSortieren) => {
-    if (neuSortieren) sortieren.current = true;
-    setInfo(alt => {
-      const n = { zeiten: { ...alt.zeiten }, hinweis: { ...alt.hinweis }, schliessungen: alt.schliessungen.map(c => ({ ...c })), geaendert: true };
-      IDAYS.forEach(k => { n.zeiten[k] = alt.zeiten[k].map(r => r.slice()); });
+  const change = (fn, sortAgain) => {
+    if (sortAgain) resort.current = true;
+    setInfo(old => {
+      const n = { hours: { ...old.hours }, notice: { ...old.notice }, closures: old.closures.map(c => ({ ...c })), changed: true };
+      IDAYS.forEach(k => { n.hours[k] = old.hours[k].map(r => r.slice()); });
       fn(n);
       return n;
     });
   };
   React.useLayoutEffect(() => {
-    if (!sortieren.current) return;
-    sortieren.current = false;
-    setReihe(sortiert(info.schliessungen));
+    if (!resort.current) return;
+    resort.current = false;
+    setOrder(sorted(info.closures));
   }, [info]);
   React.useEffect(() => {
-    if (!info.geaendert) return undefined;
-    const id = setTimeout(() => { const { geaendert, ...d } = info; store.set(IDRAFT, JSON.stringify(d)); }, 300); // eslint-disable-line no-unused-vars
+    if (!info.changed) return undefined;
+    const id = setTimeout(() => { const { changed, ...d } = info; store.set(IDRAFT, JSON.stringify(d)); }, 300); // eslint-disable-line no-unused-vars
     return () => clearTimeout(id);
   }, [info]);
-  // Neues Feld (Zeitraum, Eintrag) gleich bearbeiten
+  // Edit a new field (time range, entry) right away
   React.useEffect(() => {
-    if (!fokus.current) return;
-    const el = box.current.querySelector(fokus.current);
-    if (el) { fokus.current = null; el.focus(); }
+    if (!focus.current) return;
+    const el = box.current.querySelector(focus.current);
+    if (el) { focus.current = null; el.focus(); }
   });
-  // Neue Einträge stehen bis zum nächsten Sortieren am Ende
-  const anzahl = info.schliessungen.length;
-  const folge = reihe.filter(n => n < anzahl).concat(info.schliessungen.map((c, n) => n).filter(n => !reihe.includes(n)));
+  // New entries stay at the end until the next sort
+  const count = info.closures.length;
+  const sequence = order.filter(n => n < count).concat(info.closures.map((c, n) => n).filter(n => !order.includes(n)));
 
-  const bad = IDAYS.reduce((a, k) => a + info.zeiten[k].filter(r => !okRange(r)).length, 0) + info.schliessungen.filter(c => !YMD.test(c.von)).length;
-  const vorbei = info.schliessungen.some(c => cloProblem(c) === "iPast");
-  const neu = art => { fokus.current = `#i-clo .clo[data-n="${info.schliessungen.length}"] input[data-f="von"]`; aendern(d => { d.schliessungen.push({ art, von: "", bis: "", de: "", it: "" }); }, true); };
-  const verwerfen = () => {
+  const bad = IDAYS.reduce((a, k) => a + info.hours[k].filter(r => !okRange(r)).length, 0) + info.closures.filter(c => !YMD.test(c.from)).length;
+  const past = info.closures.some(c => cloProblem(c) === "iPast");
+  const add = type => { focus.current = `#i-clo .clo[data-n="${info.closures.length}"] input[data-f="from"]`; change(d => { d.closures.push({ type, from: "", to: "", de: "", it: "" }); }, true); };
+  const discard = () => {
     if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 4000); return; }
     setArmed(false);
     store.del(IDRAFT);
-    const frisch = normInfo(window.DSM_INFO);
-    setInfo(frisch); setReihe(sortiert(frisch.schliessungen));
+    const fresh = normInfo(window.DSM_INFO);
+    setInfo(fresh); setOrder(sorted(fresh.closures));
   };
-  const bau = () => {
+  const build = () => {
     const out = infoOut(info);
     return {
-      text: "/* Öffnungszeiten, Ferien und Abwesenheiten der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */\n" +
+      text: "/* Opening hours, holidays and absences of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
         "window.DSM_INFO = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n",
-      fertig: () => { window.DSM_INFO = out; },
+      done: () => { window.DSM_INFO = out; },
     };
   };
-  const zeit = "h-10 w-28 px-2.5";
+  const time = "h-10 w-28 px-2.5";
   const mini = "size-[34px] rounded-md";
 
   return (
@@ -110,7 +110,7 @@ export function Info({ info, setInfo }) {
         <CardDescription>{t("iHoursP")}</CardDescription>
         <div className="hours mt-2.5 grid" id="i-hours">
           {IDAYS.map(k => {
-            const rs = info.zeiten[k];
+            const rs = info.hours[k];
             return (
               <div key={k} className="day grid gap-1.5 border-t border-border py-2.5 first:border-t-0 sm:grid-cols-[7rem_1fr] sm:items-center sm:gap-2.5" data-d={k}>
                 <b className="font-medium">{t("wd_" + k)}</b>
@@ -121,21 +121,21 @@ export function Info({ info, setInfo }) {
                         <React.Fragment key={f}>
                           {f ? <span aria-hidden="true">–</span> : null}
                           <Input
-                            type="time" className={zeit} data-f={f} value={r[f]} aria-invalid={okRange(r) ? undefined : "true"}
+                            type="time" className={time} data-f={f} value={r[f]} aria-invalid={okRange(r) ? undefined : "true"}
                             aria-label={t("wd_" + k) + " " + t(f ? "iTo" : "iFrom")}
-                            onChange={e => aendern(d => { d.zeiten[k][n][f] = e.target.value; })}
+                            onChange={e => change(d => { d.hours[k][n][f] = e.target.value; })}
                           />
                         </React.Fragment>
                       ))}
                       <Button variant="outline" size="icon-sm" className={mini} data-op="del" aria-label={t("iDelRange")}
-                        onClick={() => aendern(d => { d.zeiten[k].splice(n, 1); })}><XIcon aria-hidden="true" /></Button>
+                        onClick={() => change(d => { d.hours[k].splice(n, 1); })}><XIcon aria-hidden="true" /></Button>
                     </span>
                   ))}
-                  {rs.length ? null : <span className="zu text-muted-foreground">{t("iClosed")}</span>}
+                  {rs.length ? null : <span className="closed text-muted-foreground">{t("iClosed")}</span>}
                   {rs.length < 2 ? (
                     <Button variant="outline" size="icon-sm" className={mini} data-op="add" aria-label={t("iAddRange")} onClick={() => {
-                      fokus.current = `#i-hours .day[data-d="${k}"] .range:last-of-type input`;
-                      aendern(d => { const l = d.zeiten[k]; l.push(l.length ? [l[0][1] || "", ""] : ["08:00", "13:00"]); });
+                      focus.current = `#i-hours .day[data-d="${k}"] .range:last-of-type input`;
+                      change(d => { const l = d.hours[k]; l.push(l.length ? [l[0][1] || "", ""] : ["08:00", "13:00"]); });
                     }}><PlusIcon aria-hidden="true" /></Button>
                   ) : null}
                 </div>
@@ -143,7 +143,7 @@ export function Info({ info, setInfo }) {
             );
           })}
           <div>
-            <Button variant="ghost" size="text" id="i-copy" onClick={() => aendern(d => { ["di", "mi", "do", "fr"].forEach(k => { d.zeiten[k] = d.zeiten.mo.map(r => r.slice()); }); })}>{t("iCopy")}</Button>
+            <Button variant="ghost" size="text" id="i-copy" onClick={() => change(d => { ["tue", "wed", "thu", "fri"].forEach(k => { d.hours[k] = d.hours.mon.map(r => r.slice()); }); })}>{t("iCopy")}</Button>
           </div>
         </div>
       </Card>
@@ -154,7 +154,7 @@ export function Info({ info, setInfo }) {
           {["de", "it"].map(l => (
             <Label key={l}>
               <span>{t(l === "de" ? "eTeaserDe" : "eTeaserIt")}</span>
-              <Textarea id={"i-note-" + l} rows={2} value={info.hinweis[l]} onChange={e => aendern(d => { d.hinweis[l] = e.target.value; })} />
+              <Textarea id={"i-note-" + l} rows={2} value={info.notice[l]} onChange={e => change(d => { d.notice[l] = e.target.value; })} />
             </Label>
           ))}
         </div>
@@ -163,55 +163,55 @@ export function Info({ info, setInfo }) {
         <CardTitle>{t("iCloT")}</CardTitle>
         <CardDescription>{t("iCloP")}</CardDescription>
         <div className="mt-2" id="i-clo">
-          {folge.length ? folge.map(n => {
-            const c = info.schliessungen[n], p = cloProblem(c), ab = c.art === "abwesend";
+          {sequence.length ? sequence.map(n => {
+            const c = info.closures[n], p = cloProblem(c), ab = c.type === "absent";
             return (
-              <div key={n} className={cn("clo grid gap-2.5 border-t border-border py-3.5 first:border-t-0", p === "iPast" && "vorbei opacity-50")} data-n={n}>
+              <div key={n} className={cn("clo grid gap-2.5 border-t border-border py-3.5 first:border-t-0", p === "iPast" && "past opacity-50")} data-n={n}>
                 <div className="hd flex items-center justify-between gap-2.5">
                   <ToggleGroup
-                    type="single" variant="flaeche" size="xs" value={c.art} className="seg2 inline-grid w-fit rounded-lg p-[3px]"
-                    onValueChange={v => v && v !== c.art && aendern(d => { d.schliessungen[n].art = v; }, true)}
+                    type="single" variant="surface" size="xs" value={c.type} className="seg2 inline-grid w-fit rounded-lg p-[3px]"
+                    onValueChange={v => v && v !== c.type && change(d => { d.closures[n].type = v; }, true)}
                   >
-                    <ToggleGroupItem value="ferien" data-art="ferien">{t("iFerien")}</ToggleGroupItem>
-                    <ToggleGroupItem value="abwesend" data-art="abwesend">{t("iAbw")}</ToggleGroupItem>
+                    <ToggleGroupItem value="holiday" data-type="holiday">{t("iHoliday")}</ToggleGroupItem>
+                    <ToggleGroupItem value="absent" data-type="absent">{t("iAbsent")}</ToggleGroupItem>
                   </ToggleGroup>
                   <Button variant="outline" size="icon-sm" className={mini} data-op="del" aria-label={t("iDel")}
-                    onClick={() => aendern(d => { d.schliessungen.splice(n, 1); }, true)}><XIcon aria-hidden="true" /></Button>
+                    onClick={() => change(d => { d.closures.splice(n, 1); }, true)}><XIcon aria-hidden="true" /></Button>
                 </div>
                 <div className="dates grid grid-cols-2 gap-2.5">
-                  {["von", "bis"].map(f => (
-                    <Label key={f}>{t(f === "von" ? "iVon" : "iBis")}
-                      <Input type="date" className="h-10 px-2.5" data-f={f} value={c[f]} onChange={e => aendern(d => { d.schliessungen[n][f] = e.target.value; })} />
+                  {["from", "to"].map(f => (
+                    <Label key={f}>{t(f === "from" ? "iFirst" : "iLast")}
+                      <Input type="date" className="h-10 px-2.5" data-f={f} value={c[f]} onChange={e => change(d => { d.closures[n][f] = e.target.value; })} />
                     </Label>
                   ))}
                 </div>
                 <div className="texts grid gap-2.5 sm:grid-cols-2">
                   {["de", "it"].map(l => (
                     <Label key={l}>{t(l === "de" ? "eTeaserDe" : "eTeaserIt")}
-                      <Input className="txt h-10 px-2.5" data-f={l} value={c[l]} placeholder={t(l === "de" ? (ab ? "iPhAbw" : "iPhFerien") : (ab ? "iPhAbwIt" : "iPhFerienIt"))}
-                        onChange={e => aendern(d => { d.schliessungen[n][l] = e.target.value; })} />
+                      <Input className="txt h-10 px-2.5" data-f={l} value={c[l]} placeholder={t(l === "de" ? (ab ? "iPhAbsent" : "iPhHoliday") : (ab ? "iPhAbsentIt" : "iPhHolidayIt"))}
+                        onChange={e => change(d => { d.closures[n][l] = e.target.value; })} />
                     </Label>
                   ))}
                 </div>
-                <span className="warn text-s font-medium text-rot" hidden={!p}>{p ? t(p) : ""}</span>
+                <span className="warn text-s font-medium text-red" hidden={!p}>{p ? t(p) : ""}</span>
               </div>
             );
           }) : <p className="note m-0 text-s text-muted-foreground">{t("iNone")}</p>}
         </div>
         <CardFooter className="mt-3">
-          <Button variant="outline" size="sm" id="i-add-ferien" onClick={() => neu("ferien")}>{t("iAddFerien")}</Button>
-          <Button variant="outline" size="sm" id="i-add-abw" onClick={() => neu("abwesend")}>{t("iAddAbw")}</Button>
-          <Button variant="outline" size="sm" id="i-clean" hidden={!vorbei}
-            onClick={() => aendern(d => { d.schliessungen = d.schliessungen.filter(c => cloProblem(c) !== "iPast"); }, true)}>{t("iClean")}</Button>
+          <Button variant="outline" size="sm" id="i-add-holiday" onClick={() => add("holiday")}>{t("iAddHoliday")}</Button>
+          <Button variant="outline" size="sm" id="i-add-absent" onClick={() => add("absent")}>{t("iAddAbsent")}</Button>
+          <Button variant="outline" size="sm" id="i-clean" hidden={!past}
+            onClick={() => change(d => { d.closures = d.closures.filter(c => cloProblem(c) !== "iPast"); }, true)}>{t("iClean")}</Button>
         </CardFooter>
       </Card>
-      <Veroeffentlichen
-        datei="info.js" bau={bau} ids={{ knopf: "i-dl", how: "i-how", vorschau: "i-prev" }} alt="iDl" howKey="iHow" vorschau
-        onVorschau={() => store.set("dsm-vorschau-info", JSON.stringify(infoOut(info)))}
-        nachher={bad ? <p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="i-state">{t("iIncomplete", { n: nf(bad) })}</p> : null}
+      <Publish
+        file="info.js" build={build} ids={{ button: "i-dl", how: "i-how", preview: "i-prev" }} alt="iDl" howKey="iHow" preview
+        onPreview={() => store.set("dsm-preview-info", JSON.stringify(infoOut(info)))}
+        after={bad ? <p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="i-state">{t("iIncomplete", { n: nf(bad) })}</p> : null}
       >
-        <Button variant="outline" id="i-reset" onClick={verwerfen}><span>{t(armed ? "eResetSure" : "eReset")}</span></Button>
-      </Veroeffentlichen>
+        <Button variant="outline" id="i-reset" onClick={discard}><span>{t(armed ? "eResetSure" : "eReset")}</span></Button>
+      </Publish>
     </div>
   );
 }

@@ -1,5 +1,5 @@
-/* Italienische Bezeichnungen der Kategorien (Bereiche). Fehlt eine Kategorie, wird der deutsche Name angezeigt. */
-window.DSM_KATEGORIEN_IT = {
+/* Italian names of the categories (WinBIAP "Bereiche"). If a category is missing, the German name is shown. */
+window.DSM_CATEGORIES_IT = {
   "Abenteuer": "Avventura",
   "Abenteuer - Reise": "Avventura – Viaggi",
   "Absolutismus und Aufklärung": "Assolutismo e Illuminismo",

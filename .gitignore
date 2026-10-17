@@ -1,20 +1,23 @@
-# Enthält Leser- und Ausleihdaten (Schülerdaten) – niemals einchecken oder hochladen
+# Contains reader and loan data (student data) – never commit or upload
+data/
 daten/
 *.winbook
 node_modules/
 .DS_Store
 
-# Lokale Testumgebung (Playwright, Screenshots) und Sicherungskopien
+# Local test environment (Playwright, screenshots) and backup copies
 .pruefung/
 *.bak
 
-# Testläufe (Playwright-Ergebnisse, Test-Datenbanken, Test-Verschlüsselung, npm run lokal)
+# Test runs (Playwright results, test databases, test encryption, npm run local)
 tests/.tmp/
 
-# von speichern.php (npm run lokal): Sicherungen und halb geschriebene Dateien
+# from save.php (npm run local): backups and half-written files (old names until October 2026 as well)
+website/backup/
+website/.*.new
 website/sicherung/
 website/.*.neu
 
-# Claude-Worktrees und lokale Einstellungen (.claude/settings.json mit dem Hook wird eingecheckt)
+# Claude worktrees and local settings (.claude/settings.json with the hook is committed)
 .claude/worktrees/
 .claude/settings.local.json

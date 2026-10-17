@@ -1,17 +1,17 @@
-/* Öffnungszeiten, Ferien und Abwesenheiten der Bibliothek der Deutschen Schule Mailand. Gepflegt über admin.html – nicht von Hand bearbeiten. */
+/* Opening hours, holidays and absences of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */
 window.DSM_INFO = {
- "stand": "2026-10-15",
- "zeiten": {
-  "mo": [],
-  "di": [],
-  "mi": [],
-  "do": [],
-  "fr": [],
-  "sa": []
+ "updated": "2026-10-15",
+ "hours": {
+  "mon": [],
+  "tue": [],
+  "wed": [],
+  "thu": [],
+  "fri": [],
+  "sat": []
  },
- "hinweis": {
+ "notice": {
   "de": "",
   "it": ""
  },
- "schliessungen": []
+ "closures": []
 };

@@ -1,19 +1,19 @@
 /*
- * Baut und verschlüsselt die Verwaltungslogik für admin.html.
+ * Builds and encrypts the admin logic for admin.html.
  *
- *   node werkzeuge/admin-verschluesseln.js                       Passwort verdeckt abfragen
- *   node werkzeuge/admin-verschluesseln.js "<Passwort>" [Zieldatei]
+ *   node tools/encrypt-admin.js                         ask for the password without echo
+ *   node tools/encrypt-admin.js "<password>" [target file]
  *
- * Baut quelle/verwaltung/app.jsx (React, mit Vite) zu einem klassischen Skript. React, react-dom und alle
- * Module unter src/ („@/…“) bleiben draußen: die Seite stellt sie als window.DSM_GEMEINSAM bereit
- * (src/verwaltung/gemeinsam.js). Davor kommt quelle/extract.js (auch von Node genutzt, siehe books-erzeugen.js).
- * Beides zusammen wird mit AES-GCM 256 verschlüsselt (Schlüssel per PBKDF2-SHA-256, 310.000 Durchläufe,
- * zufälliges Salz) und als ../website/assets/admin.enc.js geschrieben. Das Passwort wird nirgends gespeichert.
+ * Builds source/admin/app.jsx (React, with Vite) into a classic script. React, react-dom and all
+ * modules under src/ ("@/…") stay outside: the page provides them as window.DSM_SHARED
+ * (src/admin/shared.js). source/extract.js goes in front (also used by Node, see generate-books.js).
+ * Both together are encrypted with AES-GCM 256 (key via PBKDF2-SHA-256, 310,000 iterations,
+ * random salt) and written as ../website/assets/admin.enc.js. The password is stored nowhere.
  *
- * Direkt veröffentlichen (website/speichern.php): Aus dem Passwort entsteht zusätzlich ein fester Schlüssel
- * (PBKDF2 mit eigenem, festem Salz – unabhängig vom AES-Schlüssel). Er steht vorn im verschlüsselten Klartext
- * (DSM_SPEICHERN_SCHLUESSEL); sein SHA-256 landet in website/speichern-zugang.php. Gleiches Passwort ergibt
- * denselben Schlüssel: Nach dem Neu-Verschlüsseln passt die Zugangsdatei auf dem Server weiter.
+ * Direct publishing (website/save.php): from the password an additional fixed key is derived
+ * (PBKDF2 with its own fixed salt – independent of the AES key). It sits at the start of the encrypted plaintext
+ * (DSM_SAVE_KEY); its SHA-256 goes into website/save-access.php. The same password yields
+ * the same key: after re-encrypting, the access file on the server still matches.
  */
 "use strict";
 const fs = require("fs");
@@ -21,10 +21,10 @@ const path = require("path");
 const { webcrypto: crypto } = require("crypto");
 
 const ROOT = path.join(__dirname, "..");
-const extern = id => id === "react" || id.startsWith("react/") || id === "react-dom" || id.startsWith("@/");
+const external = id => id === "react" || id.startsWith("react/") || id === "react-dom" || id.startsWith("@/");
 
-// Klartext der Verwaltung: extract.js + gebaute App (gleiche Quellen ergeben byte-gleichen Text)
-async function quelleBauen() {
+// Plaintext of the admin app: extract.js + built app (the same sources yield byte-identical text)
+async function buildSource() {
   const { build } = await import("vite");
   const react = (await import("@vitejs/plugin-react")).default;
   const out = await build({
@@ -37,16 +37,16 @@ async function quelleBauen() {
       write: false,
       target: "es2020",
       reportCompressedSize: false,
-      lib: { entry: path.join(__dirname, "quelle", "verwaltung", "app.jsx"), formats: ["iife"], name: "DSM_VERWALTUNG_QUELLE", fileName: () => "verwaltung.js" },
-      rollupOptions: { external: extern, output: { globals: id => `DSM_GEMEINSAM[${JSON.stringify(id)}]` } },
+      lib: { entry: path.join(__dirname, "source", "admin", "app.jsx"), formats: ["iife"], name: "DSM_ADMIN_SOURCE", fileName: () => "admin.js" },
+      rollupOptions: { external, output: { globals: id => `DSM_SHARED[${JSON.stringify(id)}]` } },
     },
   });
   const chunk = (Array.isArray(out) ? out[0] : out).output.find(o => o.type === "chunk");
-  return fs.readFileSync(path.join(__dirname, "quelle", "extract.js"), "utf8") + "\n;\n" + chunk.code;
+  return fs.readFileSync(path.join(__dirname, "source", "extract.js"), "utf8") + "\n;\n" + chunk.code;
 }
 
-// Passwort verdeckt im Terminal abfragen (landet so nicht in der Shell-History)
-function frage(text) {
+// Ask for the password in the terminal without echo (so it doesn't end up in the shell history)
+function ask(text) {
   return new Promise(res => {
     const rl = require("readline").createInterface({ input: process.stdin, output: process.stdout, terminal: true });
     rl._writeToOutput = s => { if (s.startsWith(text)) process.stdout.write(s); };
@@ -54,23 +54,23 @@ function frage(text) {
   });
 }
 
-async function speicherSchluessel(pw) {
+async function saveKey(pw) {
   const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
-  const salt = new TextEncoder().encode("dsm-bibliothek/speichern.php");
+  const salt = new TextEncoder().encode("dsm-library/save.php");
   const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 310000 }, base, 256);
   return Buffer.from(bits).toString("hex");
 }
-// Verschlüsselter Klartext: Schlüssel für speichern.php + extract.js + gebaute Verwaltung
-async function klartext(pw) {
-  return "var DSM_SPEICHERN_SCHLUESSEL = " + JSON.stringify(await speicherSchluessel(pw)) + ";\n" + (await quelleBauen());
+// Encrypted plaintext: key for save.php + extract.js + built admin app
+async function plaintext(pw) {
+  return "var DSM_SAVE_KEY = " + JSON.stringify(await saveKey(pw)) + ";\n" + (await buildSource());
 }
-async function zugang(pw) {
-  const hash = require("crypto").createHash("sha256").update(await speicherSchluessel(pw)).digest("hex");
-  return "<?php /* Zugang für speichern.php (SHA-256 des Schlüssels). Erzeugt mit werkzeuge/admin-verschluesseln.js. */\n" +
+async function access(pw) {
+  const hash = require("crypto").createHash("sha256").update(await saveKey(pw)).digest("hex");
+  return "<?php /* Access for save.php (SHA-256 of the key). Generated by tools/encrypt-admin.js. */\n" +
     "return '" + hash + "';\n";
 }
 
-async function verschluesseln(pw, src) {
+async function encrypt(pw, src) {
   const iter = 310000;
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -78,7 +78,7 @@ async function verschluesseln(pw, src) {
   const key = await crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iter }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
   const data = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(src)));
   const b64 = u => Buffer.from(u).toString("base64");
-  return "/* Verwaltung der Bibliothek, verschlüsselt. Erzeugt mit werkzeuge/admin-verschluesseln.js. */\n" +
+  return "/* Library admin app, encrypted. Generated by tools/encrypt-admin.js. */\n" +
     "window.DSM_ADMIN_ENC = " + JSON.stringify({ v: 1, iter, salt: b64(salt), iv: b64(iv), data: b64(data) }) + ";\n";
 }
 
@@ -87,19 +87,19 @@ if (require.main === module) {
     let pw = process.argv[2];
     const out = process.argv[3] || path.join(ROOT, "website", "assets", "admin.enc.js");
     if (!pw && process.stdin.isTTY) {
-      pw = await frage("Passwort: ");
-      if (pw && (await frage("Passwort wiederholen: ")) !== pw) { console.error("Die Passwörter stimmen nicht überein."); process.exit(1); }
+      pw = await ask("Password: ");
+      if (pw && (await ask("Repeat password: ")) !== pw) { console.error("The passwords do not match."); process.exit(1); }
     }
-    if (!pw) { console.error('Aufruf: node werkzeuge/admin-verschluesseln.js "<Passwort>" [Zieldatei]  (ohne Passwort: verdeckte Abfrage im Terminal)'); process.exit(1); }
-    const src = await klartext(pw);
-    const text = await verschluesseln(pw, src);
+    if (!pw) { console.error('Usage: node tools/encrypt-admin.js "<password>" [target file]  (without a password: hidden prompt in the terminal)'); process.exit(1); }
+    const src = await plaintext(pw);
+    const text = await encrypt(pw, src);
     fs.writeFileSync(out, text);
-    console.log("geschrieben:", out, "(" + src.length + " Zeichen Klartext, verschlüsselt)");
-    // …/assets/admin.enc.js → …/speichern-zugang.php, andere Zieldatei → daneben
-    const ordner = path.dirname(out), zu = path.join(path.basename(ordner) === "assets" ? path.dirname(ordner) : ordner, "speichern-zugang.php");
-    fs.writeFileSync(zu, await zugang(pw));
-    console.log("geschrieben:", zu, "(Zugang für speichern.php)");
+    console.log("written:", out, "(" + src.length + " characters of plaintext, encrypted)");
+    // …/assets/admin.enc.js → …/save-access.php, other target file → next to it
+    const folder = path.dirname(out), to = path.join(path.basename(folder) === "assets" ? path.dirname(folder) : folder, "save-access.php");
+    fs.writeFileSync(to, await access(pw));
+    console.log("written:", to, "(access for save.php)");
   })().catch(e => { console.error(e); process.exit(1); });
 }
 
-module.exports = { quelleBauen, klartext, speicherSchluessel };
+module.exports = { buildSource, plaintext, saveKey };

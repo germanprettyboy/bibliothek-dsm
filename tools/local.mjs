@@ -1,15 +1,15 @@
 /*
- * Lokale Entwicklung mit Online-Veröffentlichen wie auf dem Webspace:  npm run lokal  → http://127.0.0.1:8765/
+ * Local development with online publishing as on the webspace:  npm run local  → http://127.0.0.1:8765/
  *
- * - PHP-Webserver (php-wasm über npx, keine PHP-Installation, nicht in package.json) mit website/ als Wurzel
- *   und werkzeuge/lokal-router.php: speichern.php läuft echt und schreibt books.js/empfehlungen.js/info.js nach website/.
- * - Verwaltung: aktuelle werkzeuge/quelle/ mit dem lokalen Passwort verschlüsselt nach tests/.tmp/lokal/
- *   (Standard „lokal“, eigenes per DSM_LOKAL_PW). Echtes Passwort und echte admin.enc.js bleiben unberührt.
- *   Änderungen an werkzeuge/quelle/ → neu verschlüsseln (danach in der Verwaltung neu entsperren).
- * - npm run lokal -- --tunnel: zusätzlich öffentliche https-Adresse (Cloudflare Quick Tunnel, brew install cloudflared) davor,
- *   damit „Veröffentlichen“ auch vom Handy/Schul-PC aus echt schreibt. Weil die Adresse öffentlich ist, gilt dann ein
- *   zufälliges Passwort (wird angezeigt) statt „lokal“; Schreibziel bleibt website/ dieses Checkouts.
- * - src/ → website/ im Watch-Modus (wie npm run dev, ohne Live-Reload: Seite neu laden).
+ * - PHP web server (php-wasm via npx, no PHP installation, not in package.json) with website/ as its root
+ *   and tools/local-router.php: save.php runs for real and writes books.js/recommendations.js/info.js to website/.
+ * - Admin app: current tools/source/ encrypted with the local password into tests/.tmp/local/
+ *   (default "local", your own via DSM_LOCAL_PW). The real password and the real admin.enc.js stay untouched.
+ *   Changes to tools/source/ → encrypted again (then unlock again in the admin page).
+ * - npm run local -- --tunnel: additionally a public https address in front (Cloudflare Quick Tunnel, brew install cloudflared),
+ *   so that "Publish" also really writes from the phone/school PC. Because the address is public, a random
+ *   password (shown) applies instead of "local"; the write target stays website/ of this checkout.
+ * - src/ → website/ in watch mode (like npm run dev, without live reload: reload the page).
  */
 import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -18,83 +18,83 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import readline from "node:readline";
-import { tunnel, dnsBereit, erreichbar, aufraeumen } from "./tunnel.mjs";
+import { tunnel, dnsReady, reachable, cleanup } from "./tunnel.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const LOKAL = path.join(ROOT, "tests", ".tmp", "lokal");
-const MIT_TUNNEL = process.argv.includes("--tunnel");
-const PW = process.env.DSM_LOKAL_PW || (MIT_TUNNEL ? randomBytes(9).toString("base64url") : "lokal");
+const LOCAL = path.join(ROOT, "tests", ".tmp", "local");
+const WITH_TUNNEL = process.argv.includes("--tunnel");
+const PW = process.env.DSM_LOCAL_PW || (WITH_TUNNEL ? randomBytes(9).toString("base64url") : "local");
 const PORT = process.env.PORT || "8765";
 const PHP_WASM = "@php-wasm/cli@3.1.56";
 
-function verschluesseln() {
-  fs.mkdirSync(LOKAL, { recursive: true });
-  // schreibt admin.enc.js und daneben speichern-zugang.php
-  execFileSync(process.execPath, [path.join(ROOT, "werkzeuge", "admin-verschluesseln.js"), PW, path.join(LOKAL, "admin.enc.js")], { stdio: "ignore" });
+function encrypt() {
+  fs.mkdirSync(LOCAL, { recursive: true });
+  // writes admin.enc.js and save-access.php next to it
+  execFileSync(process.execPath, [path.join(ROOT, "tools", "encrypt-admin.js"), PW, path.join(LOCAL, "admin.enc.js")], { stdio: "ignore" });
 }
 
-// Antwortet auf dem Port schon etwas (meist npm run lokal / tunnel:php in einem anderen Fenster), stürzt php-wasm mit
-// EADDRINUSE ab – und die Prüfung vor dem Tunnel fände den alten Server. Also vorher abbrechen.
-const belegt = await new Promise(ok => {
+// If something already answers on the port (usually npm run local / tunnel:php in another window), php-wasm crashes with
+// EADDRINUSE – and the check before the tunnel would find the old server. So abort beforehand.
+const busy = await new Promise(ok => {
   const s = net.connect({ host: "127.0.0.1", port: +PORT }, () => { s.destroy(); ok(true); }).on("error", () => ok(false));
 });
-if (belegt) {
-  console.error(`Port ${PORT} ist belegt – läuft npm run lokal oder tunnel:php schon in einem anderen Fenster? Dort mit Strg+C beenden.
-Welcher Prozess:  lsof -nP -iTCP:${PORT} -sTCP:LISTEN     Anderer Port:  PORT=${+PORT + 1} npm run ${MIT_TUNNEL ? "tunnel:php" : "lokal"}`);
+if (busy) {
+  console.error(`Port ${PORT} is in use – is npm run local or tunnel:php already running in another window? Stop it there with Ctrl+C.
+Which process:  lsof -nP -iTCP:${PORT} -sTCP:LISTEN     Other port:  PORT=${+PORT + 1} npm run ${WITH_TUNNEL ? "tunnel:php" : "local"}`);
   process.exit(1);
 }
 
-console.log("Verwaltung wird mit dem lokalen Passwort verschlüsselt …");
-verschluesseln();
+console.log("Encrypting the admin app with the local password …");
+encrypt();
 
-// lokal-adresse.cjs: php-wasm lauscht sonst trotz „-S 127.0.0.1“ auf allen Schnittstellen (im WLAN erreichbar)
-const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "werkzeuge", "lokal-adresse.cjs"))}`.trim();
-const php = spawn("npx", ["--yes", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("werkzeuge", "lokal-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
-// php-wasm meldet, solange eine Verbindung offen ist, dutzendfach „Failed to accept a client (reason: Invalid argument)“
-// und „Failed to poll event“ (accept() im WASM-Socket; harmlos, Anfragen gehen durch, auch in 3.1.58 noch so).
-// Ausgeblendet samt Accepted/Closing je Verbindung; Anfragen, PHP-Fehler und alles andere bleiben sichtbar.
-const RAUSCHEN = /\] (Failed to accept a client \(reason: Invalid argument\)|Failed to poll event|\S+ (Accepted|Closing|Closed without sending a request\b.*))$/;
-readline.createInterface({ input: php.stderr }).on("line", z => { if (!RAUSCHEN.test(z)) console.error(z); });
+// local-address.cjs: otherwise php-wasm listens on all interfaces despite "-S 127.0.0.1" (reachable in the Wi-Fi)
+const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "tools", "local-address.cjs"))}`.trim();
+const php = spawn("npx", ["--yes", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("tools", "local-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
+// While a connection is open, php-wasm reports "Failed to accept a client (reason: Invalid argument)" dozens of times
+// and "Failed to poll event" (accept() in the WASM socket; harmless, requests go through, still so in 3.1.58).
+// Hidden together with Accepted/Closing per connection; requests, PHP errors and everything else stay visible.
+const NOISE = /\] (Failed to accept a client \(reason: Invalid argument\)|Failed to poll event|\S+ (Accepted|Closing|Closed without sending a request\b.*))$/;
+readline.createInterface({ input: php.stderr }).on("line", z => { if (!NOISE.test(z)) console.error(z); });
 
-const kinder = [
-  spawn(process.execPath, [path.join(ROOT, "werkzeuge", "bauen.mjs"), "--watch"], { cwd: ROOT, stdio: "inherit" }),
+const children = [
+  spawn(process.execPath, [path.join(ROOT, "tools", "build.mjs"), "--watch"], { cwd: ROOT, stdio: "inherit" }),
   php,
 ];
 console.log(`
-Bücherliste:  http://127.0.0.1:${PORT}/
-Verwaltung:   http://127.0.0.1:${PORT}/admin.html   Passwort: ${PW}
-„Veröffentlichen“ schreibt direkt nach website/ (alte Fassung in website/sicherung/). Beenden: Strg+C
-(Beim ersten Start lädt npx PHP herunter, das dauert einen Moment.)
+Book list:   http://127.0.0.1:${PORT}/
+Admin page:  http://127.0.0.1:${PORT}/admin.html   Password: ${PW}
+"Publish" writes directly to website/ (old version in website/backup/). Stop: Ctrl+C
+(On the first start npx downloads PHP, that takes a moment.)
 `);
 
-if (MIT_TUNNEL) {
-  console.log("Tunnel wird geöffnet …");
+if (WITH_TUNNEL) {
+  console.log("Opening the tunnel …");
   try {
-    const lokal = await erreichbar(`http://127.0.0.1:${PORT}/index.html`, 120);
-    if (lokal !== true) throw new Error(`PHP-Server antwortet nicht (${lokal})`);
-    const adresse = await tunnel(PORT);
-    await dnsBereit(adresse, 60);
-    const da = await erreichbar(adresse + "index.html", 120);
-    if (da !== true) throw new Error(`${adresse} ist nach 120 s nicht erreichbar (${da})`);
+    const local = await reachable(`http://127.0.0.1:${PORT}/index.html`, 120);
+    if (local !== true) throw new Error(`PHP server does not answer (${local})`);
+    const address = await tunnel(PORT);
+    await dnsReady(address, 60);
+    const up = await reachable(address + "index.html", 120);
+    if (up !== true) throw new Error(`${address} is not reachable after 120 s (${up})`);
     console.log(`
-Öffentlich (https), speichern.php läuft echt:
-  Bücherliste:  ${adresse}
-  Verwaltung:   ${adresse}admin.html   Passwort: ${PW}
-Öffentlich erreichbar, solange dieses Fenster läuft – Passwort nicht weitergeben.
+Public (https), save.php runs for real:
+  Book list:   ${address}
+  Admin page:  ${address}admin.html   Password: ${PW}
+Publicly reachable as long as this window runs – do not pass on the password.
 `);
-  } catch (e) { console.error(e.message); ende(); }
+  } catch (e) { console.error(e.message); stop(); }
 }
 
-let takt = null;
-fs.watch(path.join(ROOT, "werkzeuge", "quelle"), { recursive: true }, () => {
-  clearTimeout(takt);
-  takt = setTimeout(() => {
-    try { verschluesseln(); console.log("Verwaltung neu verschlüsselt – Seite neu laden und entsperren."); }
-    catch (e) { console.error("Verschlüsseln fehlgeschlagen:", e.message); }
+let tick = null;
+fs.watch(path.join(ROOT, "tools", "source"), { recursive: true }, () => {
+  clearTimeout(tick);
+  tick = setTimeout(() => {
+    try { encrypt(); console.log("Admin app encrypted again – reload the page and unlock."); }
+    catch (e) { console.error("Encryption failed:", e.message); }
   }, 300);
 });
 
-function ende() { kinder.forEach(k => k.kill()); aufraeumen(); process.exit(0); }
-process.on("SIGINT", ende);
-process.on("SIGTERM", ende);
-kinder.forEach(k => k.on("exit", code => { if (code) { console.error(`Beendet mit Fehler (${code}).`); ende(); } }));
+function stop() { children.forEach(k => k.kill()); cleanup(); process.exit(0); }
+process.on("SIGINT", stop);
+process.on("SIGTERM", stop);
+children.forEach(k => k.on("exit", code => { if (code) { console.error(`Exited with an error (${code}).`); stop(); } }));

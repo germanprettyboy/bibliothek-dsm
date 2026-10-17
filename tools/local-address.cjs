@@ -1,8 +1,8 @@
 /*
- * Wird von lokal.mjs per NODE_OPTIONS=--require in den PHP-Server (php-wasm über npx) geladen.
- * php-wasm übergeht die Adresse aus „-S 127.0.0.1:…“ und ruft listen(port) ohne Adresse auf – Node lauscht dann auf
- * allen Schnittstellen, im WLAN/Schulnetz wäre die Verwaltung (Passwort „lokal“) samt speichern.php erreichbar.
- * Hier bekommt jedes listen() ohne Adresse 127.0.0.1. Der Tunnel (cloudflared) verbindet sich ohnehin dorthin.
+ * Loaded by local.mjs via NODE_OPTIONS=--require into the PHP server (php-wasm via npx).
+ * php-wasm ignores the address from "-S 127.0.0.1:…" and calls listen(port) without an address – Node then listens on
+ * all interfaces, and in the Wi-Fi/school network the admin page (password "local") plus save.php would be reachable.
+ * Here every listen() without an address gets 127.0.0.1. The tunnel (cloudflared) connects there anyway.
  */
 const net = require("node:net");
 
