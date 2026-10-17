@@ -2,7 +2,7 @@
    Abschnitt in den Einstellungen und die Fragen beim ersten Besuch.
    Daten: empfehlungen.js (window.DSM_EMPFEHLUNGEN) oder Vorschau aus der Verwaltung. */
 import * as React from "react";
-import { ChevronRightIcon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
 
 import { Abschnitt, Option } from "@/components/einstellungen";
 import { Fenster } from "@/components/fenster";
@@ -26,7 +26,8 @@ woerter({
     "g_erw-roman": "Romane", "g_erw-sach": "Sachbücher", "g_erw-bio": "Biografien & Geschichte",
     d_mittelstufe: "Jugendromane und erste Klassiker", d_oberstufe: "Romane und Klassiker für Fortgeschrittene", d_erw: "In drei Kernbereichen",
     "d_erw-roman": "Erzählende Literatur", "d_erw-sach": "Natur, Gesellschaft, Technik", "d_erw-bio": "Lebensgeschichten und Zeitgeschichte",
-    askT1: "Buchempfehlungen", askP1: "Möchten Sie Buchempfehlungen sehen?", yes: "Ja, gerne", no: "Nein, danke",
+    askT1: "Buchempfehlungen", askP1: "Möchten Sie Buchempfehlungen sehen?",
+    askH1: "Drei bis vier ausgewählte Bücher über der Liste, passend zur Stufe. Jederzeit in den Einstellungen änderbar.", yes: "Ja, gerne", no: "Nein, danke",
     askT2: "Für wen?", askP2: "Wählen Sie die passende Stufe.", askT3: "Welcher Bereich?", askP3: "Erwachsenenliteratur in drei Kernbereichen.", back: "Zurück",
     sRecs: "Buchempfehlungen", sRecsShow: "Empfehlungen anzeigen", sRecsShowH: "Drei bis vier ausgewählte Bücher über der Liste.",
     sRecsFor: "Empfehlungen für",
@@ -40,7 +41,8 @@ woerter({
     "g_erw-roman": "Romanzi", "g_erw-sach": "Saggistica", "g_erw-bio": "Biografie e storia",
     d_mittelstufe: "Romanzi per ragazzi e primi classici", d_oberstufe: "Romanzi e classici per lettori esperti", d_erw: "In tre aree principali",
     "d_erw-roman": "Narrativa", "d_erw-sach": "Natura, società, tecnica", "d_erw-bio": "Vite e storia contemporanea",
-    askT1: "Consigli di lettura", askP1: "Desidera vedere dei consigli di lettura?", yes: "Sì, volentieri", no: "No, grazie",
+    askT1: "Consigli di lettura", askP1: "Desidera vedere dei consigli di lettura?",
+    askH1: "Da tre a quattro libri scelti sopra l'elenco, adatti al livello. Modificabile in qualsiasi momento nelle impostazioni.", yes: "Sì, volentieri", no: "No, grazie",
     askT2: "Per chi?", askP2: "Scelga il livello adatto.", askT3: "Quale area?", askP3: "Letteratura per adulti in tre aree principali.", back: "Indietro",
     sRecs: "Consigli di lettura", sRecsShow: "Mostra i consigli", sRecsShowH: "Da tre a quattro libri scelti sopra l'elenco.",
     sRecsFor: "Consigli per",
@@ -94,11 +96,11 @@ export function Empfehlungen({ R, byKey, geladen, onOpen, onArchiv }) {
   if (!geladen) {
     return (
       <section className="wrap recs pb-4" id="recs" hidden={!gewaehlt} aria-hidden="true">
-        <div className="recs-card skel relative overflow-hidden bg-surface pt-3.5 pb-4 sm:rounded-[20px] sm:p-4">
-          <div className="recs-head flex items-center gap-3 pr-2.5 pl-[max(16px,env(safe-area-inset-left,0px))] sm:p-0"><Skeleton /></div>
-          <div className="mt-2 grid px-[max(16px,env(safe-area-inset-left,0px))] sm:mt-3.5 sm:grid-cols-4 sm:gap-3.5 sm:px-0">
+        <div className="recs-card karte skel relative overflow-hidden p-4">
+          <div className="recs-head flex items-center gap-3"><Skeleton /></div>
+          <div className="mt-2 grid sm:mt-4 sm:grid-cols-4 sm:gap-4">
             {[0, 1, 2, 3].map(n => (
-              <div key={n} className="rec grid grid-cols-[40px_1fr] items-center gap-3.5 border-t border-border py-2.5 first:border-t-0 sm:block sm:border-0 sm:p-0">
+              <div key={n} className="rec grid grid-cols-[44px_1fr] items-center gap-4 border-t border-border py-3 first:border-t-0 sm:block sm:border-0 sm:p-0">
                 <div className="cover small" /><Skeleton />
               </div>
             ))}
@@ -110,8 +112,8 @@ export function Empfehlungen({ R, byKey, geladen, onOpen, onArchiv }) {
   if (!shown.length) return <section className="wrap recs" id="recs" hidden />;
   return (
     <section className="wrap recs pb-4" id="recs" aria-labelledby="recs-title">
-      <div className={cn("recs-card relative overflow-hidden bg-surface pt-3.5 pb-4 sm:rounded-[20px] sm:p-4", weg && "hide")}>
-        <div className="recs-head flex items-center justify-between gap-3 pr-2.5 pl-[max(16px,env(safe-area-inset-left,0px))] sm:p-0">
+      <div className={cn("recs-card karte relative overflow-hidden p-4", weg && "hide")}>
+        <div className="recs-head flex items-center justify-between gap-3">
           <h2 id="recs-title" className="m-0 min-w-0 text-m font-semibold leading-[1.2]">
             {/* Kopf öffnet die bisherigen Empfehlungen */}
             <button
@@ -125,13 +127,13 @@ export function Empfehlungen({ R, byKey, geladen, onOpen, onArchiv }) {
               <small className="text-s font-normal text-muted-foreground">{gLabel(p.gruppe)}</small>
             </button>
           </h2>
-          <Button variant="icon" size="icon-sm" id="recs-x" aria-label={t("recsClose")} onClick={ausblenden}><XIcon aria-hidden="true" /></Button>
+          <Button variant="icon" size="icon-sm" className="-my-1 -mr-1" id="recs-x" aria-label={t("recsClose")} onClick={ausblenden}><XIcon aria-hidden="true" /></Button>
         </div>
-        <div className="recs-row mt-2 grid px-[max(16px,env(safe-area-inset-left,0px))] sm:mt-3.5 sm:grid-cols-4 sm:gap-3.5 sm:px-0 sm:pt-0.5">
+        <div className="recs-row mt-2 grid sm:mt-4 sm:grid-cols-4 sm:gap-4">
           {shown.map((x, n) => (
             <button
               key={x.r.k} type="button" onClick={() => onOpen(x.b, x.r)}
-              className="rec group/rec grid min-w-0 grid-cols-[40px_1fr] items-center gap-3.5 border-t border-border py-2.5 text-left transition-opacity first:border-t-0 active:opacity-60 sm:flex sm:flex-col sm:justify-start sm:border-0 sm:p-0 sm:active:opacity-100"
+              className="rec group/rec grid min-w-0 grid-cols-[44px_1fr] items-center gap-4 border-t border-border py-3 text-left transition-opacity first:border-t-0 active:opacity-60 sm:flex sm:flex-col sm:items-stretch sm:justify-start sm:border-0 sm:p-0 sm:active:opacity-100"
             >
               <Cover
                 small titel={x.b.t} isbn={!!x.b.i} found={found[n]}
@@ -159,7 +161,7 @@ export function Archiv({ open, onOpenChange, R, byKey, onOpen }) {
   }, [R, byKey, g]);
   return (
     <Fenster open={open} onOpenChange={onOpenChange} name="Bisherige Empfehlungen" titleId="arc-t" className="archiv">
-      <div className="pane gap-[18px]">
+      <div className="pane">
         <div>
           <DialogTitle id="arc-t" asChild><h3>{t("arcT")}</h3></DialogTitle>
           <p className="sub mt-1 mb-0 text-muted-foreground">{g ? gLabel(g) : ""}</p>
@@ -206,7 +208,7 @@ function Runde({ x, n, thema, df, t, lang, onOpen }) {
             </span>
           </>
         );
-        const cls = "arc-item grid w-full grid-cols-[40px_1fr] items-start gap-3.5 border-t border-border py-3 text-left";
+        const cls = "arc-item grid w-full grid-cols-[44px_1fr] items-start gap-4 border-t border-border py-3 text-left";
         return it.b
           ? <button key={k} type="button" className={cn(cls, "transition-opacity active:opacity-60")} onClick={() => onOpen(it.b, it.r)}>{inner}</button>
           : <div key={k} className={cn(cls, "gone [&_.cover]:opacity-50")}>{inner}</div>;
@@ -216,7 +218,7 @@ function Runde({ x, n, thema, df, t, lang, onOpen }) {
 }
 
 // ---------- Einstellungen: Abschnitt Buchempfehlungen ----------
-const box = "grid overflow-hidden rounded-xl bg-surface shadow-[inset_0_0_0_1px_var(--line)]";
+const box = "karte grid overflow-hidden";
 export function EmpfEinstellungen() {
   const { t } = useSprache();
   const p = useWahl() || {};
@@ -245,6 +247,16 @@ export function EmpfEinstellungen() {
 }
 
 // ---------- Fragen beim ersten Besuch ----------
+// Bücherregal als Kopf der ersten Frage: Breite, Höhe und Logofarbe je Buchrücken, das letzte lehnt
+const REGAL = [[14, 52, "--mauve"], [10, 60, "--gelb"], [16, 44, "--orange"], [12, 56, "--blau"], [18, 48, "--rot"], [11, 58, "--gruen"], [14, 42, "--mauve", true]];
+const Regal = () => (
+  <div className="regal" aria-hidden="true">
+    {REGAL.map(([b, h, c, lehnt], n) => (
+      <i key={n} className={lehnt ? "lehnt" : undefined} style={{ "--b": b + "px", "--h": h + "px", "--c": `var(${c})`, "--n": n }} />
+    ))}
+  </div>
+);
+
 export function Fragen({ open, onOpenChange }) {
   const { t } = useSprache();
   const [step, setStep] = React.useState(1);
@@ -267,7 +279,7 @@ export function Fragen({ open, onOpenChange }) {
   const choice = g => (
     <button
       type="button" key={g} data-g={g} onClick={() => (g === "erw" ? setStep(3) : waehlen(g))}
-      className="choice flex w-full items-center justify-between gap-3 rounded-2xl border border-glass-brd px-[18px] py-4 text-left text-foreground transition-[transform,box-shadow] duration-150 ease-dsm [background:linear-gradient(180deg,var(--gb-top),var(--gb-bot))] shadow-[inset_0_1px_0_var(--glass-hi),0_2px_10px_rgba(0,0,0,.06)] hover:shadow-[inset_0_1px_0_var(--glass-hi),0_6px_18px_rgba(0,0,0,.1)] active:scale-[.985]"
+      className="choice flex min-h-[72px] w-full items-center justify-between gap-3.5 rounded-2xl border border-glass-brd px-4 py-3.5 text-left text-foreground transition-[transform,box-shadow] duration-150 ease-dsm [background:linear-gradient(180deg,var(--gb-top),var(--gb-bot))] shadow-[inset_0_1px_0_var(--glass-hi),0_2px_10px_rgba(0,0,0,.06)] hover:shadow-[inset_0_1px_0_var(--glass-hi),0_6px_18px_rgba(0,0,0,.1)] active:scale-[.985]"
     >
       <Balken g={g} />
       <span className="min-w-0 flex-1">
@@ -277,30 +289,34 @@ export function Fragen({ open, onOpenChange }) {
       <ChevronRightIcon aria-hidden="true" className="size-[18px] shrink-0 text-muted-foreground" />
     </button>
   );
-  const zurueck = (
-    <div>
-      <Button variant="ghost" size="text" data-a="back" onClick={() => setStep(step === 3 ? 2 : 1)}>← {t("back")}</Button>
-    </div>
-  );
   return (
     <Fenster
       open={open} onOpenChange={wechsel} name="Fragen beim ersten Besuch" titleId="ask-t" className="ask"
       onOpenAutoFocus={e => { e.preventDefault(); requestAnimationFrame(fokus); }}
     >
       <div className="pane min-h-60" ref={pane}>
-        <div className="step grid gap-[18px]" key={step}>
-          <DialogTitle id="ask-t" asChild><h3>{t("askT" + step)}</h3></DialogTitle>
-          <p className="lead m-0 text-muted-foreground">{t("askP" + step)}</p>
+        <div className="step grid gap-5" key={step}>
+          {/* Kopf: Regal bei der ersten Frage, danach „Zurück“ auf Höhe des Schließen-Knopfs */}
+          {step === 1 ? <Regal /> : (
+            <div className="flex min-h-11 items-center">
+              <Button variant="ghost" size="text" className="-ml-1 gap-1" data-a="back" onClick={() => setStep(step === 3 ? 2 : 1)}>
+                <ChevronLeftIcon aria-hidden="true" />{t("back")}
+              </Button>
+            </div>
+          )}
+          <div className="grid gap-2">
+            <div className="fortschritt mb-1" aria-hidden="true">{[1, 2, 3].map(n => <i key={n} className={n <= step ? "an" : undefined} />)}</div>
+            <DialogTitle id="ask-t" asChild><h3>{t("askT" + step)}</h3></DialogTitle>
+            <p className={cn("lead m-0", step === 1 ? "font-medium" : "text-muted-foreground")}>{t("askP" + step)}</p>
+            {step === 1 ? <p className="m-0 text-s text-muted-foreground">{t("askH1")}</p> : null}
+          </div>
           {step === 1 ? (
-            <div className="grid grid-cols-2 gap-2.5">
-              <Button variant="glass" size="lg" data-a="no" onClick={() => wechsel(false)}>{t("no")}</Button>
+            <div className="grid gap-2.5 sm:grid-cols-2">
               <Button variant="glass-primary" size="lg" className="primary" data-a="yes" onClick={() => setStep(2)}>{t("yes")}</Button>
+              <Button variant="glass" size="lg" data-a="no" onClick={() => wechsel(false)}>{t("no")}</Button>
             </div>
           ) : (
-            <>
-              <div className="grid gap-2.5">{(step === 2 ? ["mittelstufe", "oberstufe", "erw"] : ["erw-roman", "erw-sach", "erw-bio"]).map(choice)}</div>
-              {zurueck}
-            </>
+            <div className="grid gap-2.5">{(step === 2 ? ["mittelstufe", "oberstufe", "erw"] : ["erw-roman", "erw-sach", "erw-bio"]).map(choice)}</div>
           )}
         </div>
       </div>

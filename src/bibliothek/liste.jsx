@@ -15,13 +15,13 @@ import { norm } from "@/bibliothek/daten";
 woerter({
   de: {
     search: "Titel, Autor oder ISBN suchen", searchLabel: "Bücher durchsuchen", clear: "Suche löschen",
-    index: "Alphabetischer Index", hits: "{n} Treffer", sorted: "Alphabetisch nach Titel",
+    index: "Alphabetischer Index", hits: "{n} Treffer", count: "{n} Bücher", count1: "1 Buch", listT: "Bücherliste",
     emptyT: "Kein Buch gefunden", emptyP: "Eine andere Schreibweise oder nur einen Teil des Titels versuchen.",
     noData: "Die Bücherliste konnte nicht geladen werden (books.js fehlt).",
   },
   it: {
     search: "Cerca titolo, autore o ISBN", searchLabel: "Cerca nei libri", clear: "Cancella ricerca",
-    index: "Indice alfabetico", hits: "{n} risultati", hits1: "1 risultato", sorted: "In ordine alfabetico per titolo",
+    index: "Indice alfabetico", hits: "{n} risultati", hits1: "1 risultato", count: "{n} libri", count1: "1 libro", listT: "Elenco dei libri",
     emptyT: "Nessun libro trovato", emptyP: "Prova un'altra grafia o solo una parte del titolo.",
     noData: "Impossibile caricare l'elenco dei libri (manca books.js).",
   },
@@ -274,25 +274,26 @@ export function Liste({ books, geladen, onOpen }) {
   // Klick auf eine Zeile (ein Hörer für alle Zeilen)
   const zeile = e => e.target.closest(".row");
   const meta = !geladen ? null : !books.length ? "" : terms.length
-    ? (current.length === 1 && lang === "it" ? t("hits1") : t("hits", { n: nf(current.length) })) : t("sorted");
+    ? (current.length === 1 && lang === "it" ? t("hits1") : t("hits", { n: nf(current.length) }))
+    : (books.length === 1 ? t("count1") : t("count", { n: nf(books.length) }));
 
   return (
     <>
       <div id="bar-anchor" ref={anchor} />
       <div className={cn("bar", stuck && "stuck")} id="bar" ref={bar}>
-        <div className="wrap grid gap-2 py-2.5">
+        <div className="wrap grid gap-2 py-3">
           <label className="search relative">
-            <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
             <input
               id="q" ref={input} type="search" data-protokoll="eigen" autoComplete="off" spellCheck="false" enterKeyHint="search"
               placeholder={t("search")} aria-label={t("searchLabel")}
-              className="h-[46px] w-full appearance-none rounded-lg border border-border bg-surface pr-11 pl-[42px] text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 focus:border-blau focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blau)_40%,transparent)]"
+              className="h-12 w-full appearance-none rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blau)_55%,transparent)]"
               onChange={e => suchen(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape" && e.currentTarget.value) leeren(false); }}
               onFocus={onFocus}
             />
             <button
-              type="button" className="clear absolute top-1/2 right-1.5 grid size-[34px] -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground"
+              type="button" className="clear absolute top-1/2 right-1 grid size-10 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground"
               hidden={!hatText} aria-label={t("clear")} onClick={() => leeren(true)}
             >
               <XIcon aria-hidden="true" className="size-4" />
@@ -315,7 +316,8 @@ export function Liste({ books, geladen, onOpen }) {
 
       <div className="floater" id="floater" aria-hidden="true" ref={fl} />
 
-      <main className="wrap books" aria-busy={geladen ? undefined : "true"}>
+      <main className="wrap books" aria-busy={geladen ? undefined : "true"} aria-labelledby="list-t">
+        <h2 id="list-t" className="sr-only">{t("listT")}</h2>
         <p className="meta" id="meta" aria-live="polite">
           {meta ?? (
             <>

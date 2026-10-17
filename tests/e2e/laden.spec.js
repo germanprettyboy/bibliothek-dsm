@@ -4,7 +4,7 @@
  */
 const { test, expect, AUS, daten } = require("./hilfen.js");
 
-const { E } = daten();
+const { B, E } = daten();
 const AN = JSON.stringify({ want: true, gruppe: "mittelstufe" });
 
 // Datei (Standard books.js) erst nach freigeben() ausliefern
@@ -36,19 +36,22 @@ test.describe("Laden bei langsamer Verbindung", () => {
     await expect(page.locator("#list .row").first()).toBeVisible();
     await expect(page.locator("#list .skel")).toHaveCount(0);
     await expect(page.locator("main.books")).not.toHaveAttribute("aria-busy");
-    await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
+    await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("de-DE")} Bücher`);
   });
 
   test("nach 6 s Hinweis auf langsame Verbindung", async ({ page }) => {
     const freigeben = await bremsen(page);
     await page.goto("index.html", { waitUntil: "commit" });
     await expect(page.locator("#meta .ld:visible")).toHaveText("Bücherliste wird geladen …");
-    // CSS-Animationen vorspulen statt 6 s zu warten
-    await page.evaluate(() => document.querySelectorAll("#meta .ld").forEach(el => el.getAnimations().forEach(a => { a.currentTime = 7000; })));
-    await expect(page.locator("#meta .ld:visible")).toHaveText("Langsame Verbindung – die Liste lädt noch …");
+    // CSS-Animationen vorspulen statt 6 s zu warten. Wiederholt: Ersetzt React danach das feste Gerüst,
+    // beginnen die Animationen der neuen Hinweise wieder bei null.
+    await expect(async () => {
+      await page.evaluate(() => document.querySelectorAll("#meta .ld").forEach(el => el.getAnimations().forEach(a => { a.currentTime = 7000; })));
+      await expect(page.locator("#meta .ld:visible")).toHaveText("Langsame Verbindung – die Liste lädt noch …", { timeout: 500 });
+    }).toPass();
     freigeben();
     await page.waitForLoadState("load");
-    await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
+    await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("de-DE")} Bücher`);
   });
 
   test.describe("italienisch", () => {
@@ -59,7 +62,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
       await expect(page.locator("#meta .ld:visible")).toHaveText("Caricamento dell'elenco …");
       freigeben();
       await page.waitForLoadState("load");
-      await expect(page.locator("#meta")).toHaveText("In ordine alfabetico per titolo");
+      await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("it-IT")} libri`);
     });
   });
 
