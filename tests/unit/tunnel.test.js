@@ -21,6 +21,9 @@ before(async () => {
   fs.writeFileSync(path.join(SEITE, ".htaccess"), "geheim");
   fs.writeFileSync(path.join(SEITE, ".git", "config"), "geheim");
   fs.writeFileSync(path.join(BASIS, "geheim.txt"), "geheim");
+  fs.writeFileSync(path.join(SEITE, "speichern-zugang.php"), "<?php return 'geheim';");
+  fs.mkdirSync(path.join(SEITE, "sicherung"), { recursive: true });
+  fs.writeFileSync(path.join(SEITE, "sicherung", "info.js"), "geheim");
   T = await import(path.join(ROOT, "werkzeuge", "tunnel.mjs"));
   server = T.statischerServer(SEITE);
   await new Promise(ok => server.listen(0, "127.0.0.1", ok));
@@ -50,9 +53,10 @@ test("liefert Dateien mit passendem Typ und immer no-store (Cloudflare cacht son
   assert.equal(js.kopf["cache-control"], "no-store");
 });
 
-test("nichts außerhalb des Ordners, keine Punktdateien, kein Verzeichnis-Listing", async () => {
+test("nichts außerhalb des Ordners, keine Punktdateien, kein PHP-Quelltext, kein Verzeichnis-Listing", async () => {
   for (const p of ["/../geheim.txt", "/%2e%2e/geheim.txt", "/..%2fgeheim.txt", "/assets/../../geheim.txt",
-    "/.htaccess", "/.git/config", "/assets/%2e%2e/.htaccess", "/assets/", "/fehlt.js", "/%E0%A4%A"]) {
+    "/.htaccess", "/.git/config", "/assets/%2e%2e/.htaccess", "/speichern-zugang.php", "/SPEICHERN-ZUGANG.PHP",
+    "/sicherung/info.js", "/assets/", "/fehlt.js", "/%E0%A4%A"]) {
     const r = await holen(p);
     assert.equal(r.status, 404, p);
     assert.doesNotMatch(r.body, /geheim/, p);

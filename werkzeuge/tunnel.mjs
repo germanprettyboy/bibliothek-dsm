@@ -8,9 +8,11 @@
  *   DSM_LIVE_URL=https://… npm run test:live   Playwright gegen eine schon laufende Adresse (kein neuer Tunnel)
  *
  * Voraussetzung: cloudflared (brew install cloudflared). Kein Cloudflare-Konto nötig, Adresse ist bei jedem Start neu.
- * Ausgeliefert wird nur website/ (dasselbe, was per FTP öffentlich wird), ohne Punktdateien (.htaccess).
+ * Ausgeliefert wird nur website/ (dasselbe, was per FTP öffentlich wird), ohne Punktdateien (.htaccess), ohne *.php
+ * und sicherung/ – PHP läuft hier nicht, die Verwaltung veröffentlicht über den Tunnel also wie lokal (Ordner/Download).
  * Die Adresse steht zusätzlich in tests/.tmp/tunnel-url.txt.
  */
+import dns from "node:dns/promises";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -38,6 +40,8 @@ export function statischerServer(dir) {
     const fehler = code => { res.writeHead(code, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }); res.end(String(code)); };
     if (!["GET", "HEAD"].includes(req.method)) return fehler(405);
     if (!p || teile[0] === ".." || path.isAbsolute(teile[0]) || teile.some(t => t.startsWith("."))) return fehler(404);
+    // PHP liefe hier nicht, sondern käme als Quelltext (speichern-zugang.php = Hash des Speicher-Schlüssels)
+    if (teile[0] === "sicherung" || teile.some(t => /\.php$/i.test(t))) return fehler(404);
     fs.stat(datei, (err, st) => {
       if (err || !st.isFile()) return fehler(404);
       res.writeHead(200, {
@@ -63,12 +67,33 @@ const freierPort = () => new Promise((ok, nein) => {
 
 const warte = ms => new Promise(r => setTimeout(r, ms));
 
+// true oder der letzte Grund (Status/Fehlercode), warum url nicht antwortet
 async function erreichbar(url, sekunden) {
+  let grund = "";
   for (let i = 0; i < sekunden; i++) {
-    try { if ((await fetch(url, { cache: "no-store" })).ok) return true; } catch { /* noch nicht da */ }
+    try {
+      const r = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(10000) });
+      if (r.ok) return true;
+      grund = "HTTP " + r.status;
+    } catch (e) { grund = e.cause?.code || e.name; }
     await warte(1000);
   }
-  return false;
+  return grund;
+}
+
+// Neuer Name erst beim autoritativen Nameserver abwarten (der cacht nicht). Wer zu früh über das System fragt,
+// bekommt NXDOMAIN, und macOS merkt sich das ≈90 s – auch für Chromium und das Handy im selben WLAN.
+async function dnsBereit(adresse, sekunden) {
+  const host = new URL(adresse).hostname;
+  const auth = new dns.Resolver();
+  try {
+    const ns = await dns.resolveNs(host.split(".").slice(-2).join("."));
+    auth.setServers((await Promise.all(ns.map(n => dns.resolve4(n).catch(() => [])))).flat());
+  } catch { return; } // ohne Nameserver-Auskunft einfach weiter, erreichbar() wartet ohnehin
+  for (let i = 0; i < sekunden * 2; i++) {
+    if (await auth.resolve4(host).then(a => a.length > 0, () => false)) return;
+    await warte(500);
+  }
 }
 
 const kinder = [];
@@ -100,7 +125,6 @@ function tunnel(port) {
       for (const z of zeilen) {
         log.push(z);
         adresse ||= tunnelAdresse(z);
-        // erst nach registrierter Verbindung nachschlagen – sonst merkt sich der Resolver „gibt es nicht“
         if (adresse && /Registered tunnel connection/.test(z)) { clearTimeout(zeit); ok(adresse); }
       }
     });
@@ -113,11 +137,16 @@ async function devServer(port) {
   fs.writeFileSync(cfg, `module.exports = {
   server: ${JSON.stringify(WEB)}, files: ${JSON.stringify(WEB)}, port: ${port}, listen: "127.0.0.1",
   open: false, notify: false, ui: false, ghostMode: false, logLevel: "silent",
-  middleware: [(req, res, next) => { res.setHeader("cache-control", "no-store"); next(); }],
+  middleware: [(req, res, next) => {
+    res.setHeader("cache-control", "no-store");
+    if (/\\.php(\\?|$)|^\\/sicherung\\//i.test(decodeURIComponent(req.url.split("?")[0]))) { res.statusCode = 404; return res.end("404"); }
+    next();
+  }],
 };\n`);
   starte(process.execPath, [path.join(ROOT, "werkzeuge", "bauen.mjs"), "--watch"], { stdio: "inherit" });
   starte("npx", ["--yes", "browser-sync@3", "start", "--config", cfg], { stdio: "inherit" });
-  if (!(await erreichbar(`http://127.0.0.1:${port}/index.html`, 60))) throw new Error("browser-sync antwortet nicht");
+  const da = await erreichbar(`http://127.0.0.1:${port}/index.html`, 120); // npx fragt bei @3 ggf. erst die Registry
+  if (da !== true) throw new Error(`browser-sync antwortet nicht (${da})`);
 }
 
 async function main() {
@@ -138,7 +167,9 @@ async function main() {
     console.log(`lokal:  http://127.0.0.1:${port}/  (${dev ? "Live-Reload" : "website/"})`);
     console.log("Tunnel wird geöffnet …");
     adresse = await tunnel(port);
-    if (!(await erreichbar(adresse + "index.html", 60))) throw new Error(`${adresse} ist nach 60 s nicht erreichbar`);
+    await dnsBereit(adresse, 60);
+    const da = await erreichbar(adresse + "index.html", 120);
+    if (da !== true) throw new Error(`${adresse} ist nach 120 s nicht erreichbar (${da})`);
     fs.mkdirSync(TMP, { recursive: true });
     fs.writeFileSync(path.join(TMP, "tunnel-url.txt"), adresse + "\n");
   }
