@@ -7,6 +7,8 @@ import { Fenster } from "@/components/fenster";
 import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/speicher";
+import { C, still } from "@/lib/umwelt";
+import { wischen } from "@/lib/wischen";
 import { woerter, useSprache, t as tx } from "@/lib/sprache";
 import { Cover } from "@/bibliothek/cover";
 
@@ -25,8 +27,6 @@ woerter({
   },
 });
 
-const C = () => window.DSMCovers;
-const still = matchMedia("(prefers-reduced-motion: reduce)");
 const shelf = (s, lang) => (lang === "it" ? s.replace(/\s+Brett\s+(\d+)/i, ", ripiano $1").replace(/\s+Regal\s+(\d+)/i, " scaffale $1") : s);
 const cat = (k, lang) => (lang === "it" && window.DSM_KATEGORIEN_IT && window.DSM_KATEGORIEN_IT[k]) || k;
 const zeilen = a => a.map((x, n) => <React.Fragment key={n}>{n ? <br /> : null}{x}</React.Fragment>);
@@ -41,6 +41,19 @@ export function Detail({ eintrag, onClose }) {
   const [zoomable, setZoomable] = React.useState(false);
   const [zoom, setZoom] = React.useState(false);
   const box = React.useRef(null);
+
+  // Handy: Sheet fliegt von unten ein, Wischen nach oben = Vollbild, nach unten = schließen (lib/wischen)
+  const [innerEl, setInnerEl] = React.useState(null);
+  const schliesse = React.useRef(onClose);
+  schliesse.current = onClose;
+  React.useEffect(() => {
+    const sheet = innerEl && innerEl.closest("#detail");
+    if (!sheet) return undefined;
+    const zu = () => schliesse.current();
+    sheet.addEventListener("wisch-zu", zu);
+    const ab = wischen(sheet, innerEl, ".schleier.detail");
+    return () => { sheet.removeEventListener("wisch-zu", zu); ab(); };
+  }, [innerEl]);
 
   // Cover holen (mit Vorrang); ältere Antworten verwerfen
   React.useEffect(() => {
@@ -73,7 +86,7 @@ export function Detail({ eintrag, onClose }) {
         id="detail" titleId="d-title" overlayClassName="detail"
       >
         {b ? (
-          <div className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
+          <div ref={setInnerEl} className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
             <Cover
               ref={box} id="d-cover" titel={b.t} isbn={!!b.i} found={found} onShown={() => setZoomable(true)}
               className={cn(zoomable && "zoomable", zoom && "lifted")}

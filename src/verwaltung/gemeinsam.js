@@ -5,14 +5,12 @@ import * as React from "react";
 import * as jsxRuntime from "react/jsx-runtime";
 import * as ReactDOM from "react-dom";
 
-import * as badge from "@/components/ui/badge";
 import * as button from "@/components/ui/button";
 import * as card from "@/components/ui/card";
 import * as dialog from "@/components/ui/dialog";
 import * as input from "@/components/ui/input";
 import * as label from "@/components/ui/label";
 import * as radioGroup from "@/components/ui/radio-group";
-import * as separator from "@/components/ui/separator";
 import * as skeleton from "@/components/ui/skeleton";
 import * as sonner from "@/components/ui/sonner";
 import * as switchUi from "@/components/ui/switch";
@@ -30,14 +28,12 @@ export const GEMEINSAM = {
   "react": React,
   "react/jsx-runtime": jsxRuntime,
   "react-dom": ReactDOM,
-  "@/components/ui/badge": badge,
   "@/components/ui/button": button,
   "@/components/ui/card": card,
   "@/components/ui/dialog": dialog,
   "@/components/ui/input": input,
   "@/components/ui/label": label,
   "@/components/ui/radio-group": radioGroup,
-  "@/components/ui/separator": separator,
   "@/components/ui/skeleton": skeleton,
   "@/components/ui/sonner": sonner,
   "@/components/ui/switch": switchUi,

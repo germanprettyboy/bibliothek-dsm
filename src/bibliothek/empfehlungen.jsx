@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { log, store } from "@/lib/speicher";
 import { hinweis } from "@/lib/hinweis";
+import { C, still } from "@/lib/umwelt";
 import { woerter, useSprache, t as tx } from "@/lib/sprache";
 import { Cover } from "@/bibliothek/cover";
 import { useWahl, setWahl, getWahl } from "@/bibliothek/wahl";
@@ -50,8 +51,6 @@ woerter({
   },
 });
 
-const C = () => window.DSMCovers;
-const still = matchMedia("(prefers-reduced-motion: reduce)");
 export const gLabel = g => (g.startsWith("erw-") ? tx("g_erw") + " · " + tx("g_" + g) : tx("g_" + g));
 const FARBE = { mittelstufe: "--gelb", oberstufe: "--orange", erw: "--mauve", "erw-roman": "--rot", "erw-sach": "--gruen", "erw-bio": "--blau" };
 const Balken = ({ g }) => <i className="bar-c" style={{ background: `var(${FARBE[g]})` }} />;

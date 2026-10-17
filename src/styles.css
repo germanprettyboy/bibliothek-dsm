@@ -344,6 +344,19 @@
     .schleier.detail[data-state="open"] { animation: fade .12s ease-out; }
     .schleier.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
   }
+  /* Buch-Detail auf dem Handy: bildschirmhohes Sheet, lib/wischen.js schiebt es per transform (halb / voll / weg).
+     Vor dem ersten Skript-Schritt liegt es unten außerhalb, damit es nicht aufblitzt. */
+  @media (max-width: 39.999rem) {
+    #detail {
+      height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px))); max-height: none; overflow: hidden;
+      display: flex; flex-direction: column; transform: translateY(100%); will-change: transform; touch-action: none;
+    }
+    #detail > .inner { flex: 0 1 auto; min-height: 0; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-y; }
+    #detail .grab { flex: none; width: 40px; height: 4px; margin-top: 10px; transition: width .15s var(--snap), background-color .15s; }
+    #detail.zieht .grab { width: 56px; background: var(--muted); }
+    #detail[data-state="open"] { animation: none; }
+    #detail[data-state="closed"] { animation: sheet-weg var(--t-out) var(--ease-in) forwards; }
+  }
   /* Bisherige Empfehlungen: auf dem Handy fast bildschirmhoch */
   .sheet.archiv { height: 92dvh; }
   @media (min-width: 40rem) { .sheet.archiv { height: auto; width: min(40rem, calc(100% - 48px)); } }
@@ -380,7 +393,7 @@
   }
   .cover .ph::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; background: var(--ph-c, var(--rot)); box-shadow: 2px 0 0 rgba(0,0,0,.08); }
   .cover .ph::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.08), transparent 14%, transparent 86%, rgba(0,0,0,.05)); pointer-events: none; }
-  .cover .ph b { font-weight: 600; font-size: var(--fs-s); line-height: 1.2; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .cover .ph b { font-weight: 600; font-size: var(--fs-s); line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
   .cover .ph .rule { height: 2px; width: 26px; background: var(--ph-c, var(--rot)); }
   .cover.small .ph { padding: 6px 4px 6px 12px; }
   .cover.small .ph b { margin: 0; -webkit-line-clamp: 4; display: none; }
@@ -511,6 +524,7 @@
 @keyframes pop { from { transform: translateY(14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pop-out { to { transform: translateY(8px) scale(.98); opacity: 0; } }
 @keyframes snap-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-weg { to { transform: translateY(100%); } }
 @keyframes snap-down { to { transform: translateY(16px); opacity: 0; } }
 @keyframes snap-pop { from { transform: translateY(8px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes shimmer { to { transform: translateX(100%); } }
