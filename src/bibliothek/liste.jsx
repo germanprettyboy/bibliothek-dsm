@@ -1,28 +1,31 @@
-/* Bücherliste: Suche, A–Z-Leiste (ab Tablet), Buchstaben-Floater (Handy), Liste als reiner Text.
+/* Bücherliste: Suche, Filter nach Kategorie, A–Z-Leiste (ab Tablet), Buchstaben-Floater (Handy), Liste als reiner Text.
    Die Liste besteht aus Abschnitten zu höchstens 40 Büchern; jeder Buchstabe beginnt einen neuen (Anker ul#L-X).
    Per CSS (content-visibility) zeichnet der Browser nur Abschnitte in Sichtweite; für die übrigen steht eine aus
    der Textlänge geschätzte Höhe im Stil, bis sie einmal gezeichnet wurden. */
 import * as React from "react";
 import { flushSync } from "react-dom";
-import { SearchIcon, XIcon } from "lucide-react";
+import { ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/speicher";
 import { woerter, useSprache } from "@/lib/sprache";
 import { norm } from "@/bibliothek/daten";
+import { KategorienFenster, katModell } from "@/bibliothek/kategorien";
 
 woerter({
   de: {
     search: "Titel, Autor oder ISBN suchen", searchLabel: "Bücher durchsuchen", clear: "Suche löschen",
     index: "Alphabetischer Index", hits: "{n} Treffer", count: "{n} Bücher", count1: "1 Buch", listT: "Bücherliste",
     emptyT: "Kein Buch gefunden", emptyP: "Eine andere Schreibweise oder nur einen Teil des Titels versuchen.",
+    emptyK: "In dieser Kategorie nichts gefunden – anders suchen oder die Kategorie aufheben.",
     noData: "Die Bücherliste konnte nicht geladen werden (books.js fehlt).",
   },
   it: {
     search: "Cerca titolo, autore o ISBN", searchLabel: "Cerca nei libri", clear: "Cancella ricerca",
     index: "Indice alfabetico", hits: "{n} risultati", hits1: "1 risultato", count: "{n} libri", count1: "1 libro", listT: "Elenco dei libri",
     emptyT: "Nessun libro trovato", emptyP: "Prova un'altra grafia o solo una parte del titolo.",
+    emptyK: "Nessun risultato in questa categoria – prova un'altra ricerca o rimuovi la categoria.",
     noData: "Impossibile caricare l'elenco dei libri (manca books.js).",
   },
 });
@@ -151,6 +154,8 @@ export function Liste({ books, geladen, onOpen }) {
   const [enter, setEnter] = React.useState(true);
   const [stuck, setStuck] = React.useState(false);
   const [on, setOn] = React.useState(null);
+  const [kategorie, setKategorie] = React.useState(null); // g:<Oberbegriff> | k:<Kategorie> | null
+  const [katAuf, setKatAuf] = React.useState(false);
   const input = React.useRef(null), bar = React.useRef(null), anchor = React.useRef(null), list = React.useRef(null), fl = React.useRef(null);
   const marks = React.useRef([]);
 
@@ -159,7 +164,13 @@ export function Liste({ books, geladen, onOpen }) {
     const long = terms.filter(x => x.length > 1).sort((a, b) => b.length - a.length);
     return long.length ? { re: new RegExp("(" + long.map(reEsc).join("|") + ")", "i"), terms: long } : null;
   }, [terms]);
-  const current = React.useMemo(() => (terms.length ? books.filter(b => terms.every(x => b._s.includes(x))) : books), [books, terms]);
+  const kat = React.useMemo(() => katModell(books), [books]);
+  const katTest = React.useMemo(() => kat.test(kategorie), [kat, kategorie]);
+  const current = React.useMemo(() => {
+    const l = katTest ? books.filter(katTest) : books;
+    return terms.length ? l.filter(b => terms.every(x => b._s.includes(x))) : l;
+  }, [books, terms, katTest]);
+  const gefiltert = terms.length > 0 || !!kategorie;
   const teile = React.useMemo(() => abschnitte(current), [current]);
   const present = React.useMemo(() => new Set(teile.filter(s => s.head).map(s => s.head)), [teile]);
 
@@ -198,6 +209,15 @@ export function Liste({ books, geladen, onOpen }) {
     return () => clearTimeout(id);
   }, [terms]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---------- Kategorie ----------
+  const katWahl = id => {
+    if (id === kategorie) return;
+    setLive(true); setKategorie(id);
+    if (!id) { log("Filter", "Kategorie aufgehoben"); return; }
+    const n = books.filter(kat.test(id)).length;
+    log("Filter", `Kategorie „${kat.label(id, "de", t)}“: ${n} Bücher`);
+  };
+
   // ---------- Klebende Leiste ----------
   React.useLayoutEffect(() => {
     const setBarH = () => document.documentElement.style.setProperty("--bar-h", bar.current.offsetHeight + "px");
@@ -219,6 +239,13 @@ export function Liste({ books, geladen, onOpen }) {
     const y = anchorTop();
     if (scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
   }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Neue Kategorie: Treffer beginnen direkt unter der Leiste, wenn die Seite schon weiter unten stand
+  const ersteKat = React.useRef(true);
+  React.useLayoutEffect(() => {
+    if (ersteKat.current) { ersteKat.current = false; return; }
+    const y = anchorTop();
+    if (scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
+  }, [kategorie]); // eslint-disable-line react-hooks/exhaustive-deps
   const onFocus = () => {
     if (wide.matches) return;
     const y = anchorTop();
@@ -301,12 +328,12 @@ export function Liste({ books, geladen, onOpen }) {
   React.useLayoutEffect(() => {
     const neu = list.current.firstElementChild;
     if (live && neu && !still.matches) neu.animate([{ opacity: .15, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], { duration: 180, easing: "ease-out" });
-    if (terms.length && current.length <= 4) current.forEach(prefetch);
+    if (gefiltert && current.length <= 4) current.forEach(prefetch);
   }, [teile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Klick auf eine Zeile (ein Hörer für alle Zeilen)
   const zeile = e => e.target.closest(".row");
-  const meta = !geladen ? null : !books.length ? "" : terms.length
+  const meta = !geladen ? null : !books.length ? "" : gefiltert
     ? (current.length === 1 && lang === "it" ? t("hits1") : t("hits", { n: nf(current.length) }))
     : (books.length === 1 ? t("count1") : t("count", { n: nf(books.length) }));
 
@@ -315,12 +342,13 @@ export function Liste({ books, geladen, onOpen }) {
       <div id="bar-anchor" ref={anchor} />
       <div className={cn("bar", stuck && "stuck")} id="bar" ref={bar}>
         <div className="wrap grid gap-2 py-3">
-          <label className="search relative">
+          <div className="flex gap-2">
+          <label className="search relative min-w-0 flex-1">
             <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
             <input
               id="q" ref={input} type="search" data-protokoll="eigen" autoComplete="off" spellCheck="false" enterKeyHint="search"
               placeholder={t("search")} aria-label={t("searchLabel")}
-              className="h-12 w-full appearance-none rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blau)_55%,transparent)]"
+              className="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blau)_55%,transparent)]"
               onChange={e => suchen(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape" && e.currentTarget.value) leeren(false); }}
               onFocus={onFocus}
@@ -332,6 +360,28 @@ export function Liste({ books, geladen, onOpen }) {
               <XIcon aria-hidden="true" className="size-4" />
             </button>
           </label>
+          <button
+            type="button" id="k-btn" aria-haspopup="dialog" aria-label={t("katOpen")} aria-pressed={!!kategorie} disabled={!geladen || !kat.gruppen.length}
+            className={cn("k-btn grid h-12 min-w-12 shrink-0 grid-flow-col place-items-center gap-2 rounded-lg border border-border bg-surface px-3 text-m font-medium text-foreground transition-[border-color,background-color,color] duration-200 hover:border-foreground disabled:opacity-50 sm:px-4",
+              kategorie && "border-foreground bg-foreground text-background")}
+            onClick={() => setKatAuf(true)}
+          >
+            <ListFilterIcon aria-hidden="true" className="size-[18px]" />
+            <span className="hidden sm:inline" aria-hidden="true">{t("katBtn")}</span>
+          </button>
+          </div>
+          {kategorie ? (
+            <div className="flex min-w-0">
+              <span className="k-chip inline-flex h-10 min-w-0 items-center rounded-full border border-border bg-surface text-s font-medium">
+                <button type="button" className="min-w-0 truncate rounded-l-full py-2 pl-4 pr-1 text-left" aria-label={`${t("katOpen")}: ${kat.label(kategorie, lang, t)}`} onClick={() => setKatAuf(true)}>
+                  {kat.label(kategorie, lang, t)}
+                </button>
+                <button type="button" id="k-weg" className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground" aria-label={t("katWeg")} onClick={() => katWahl(null)}>
+                  <XIcon aria-hidden="true" className="size-4" />
+                </button>
+              </span>
+            </div>
+          ) : null}
           <nav className="index" id="index" aria-label={t("index")} onClick={e => {
             const a = e.target.closest("a[data-l]");
             if (!a) return;
@@ -371,11 +421,12 @@ export function Liste({ books, geladen, onOpen }) {
           ) : (
             <div className="empty">
               <strong>{t(books.length ? "emptyT" : "noData")}</strong>
-              {books.length ? <span>{t("emptyP")}</span> : null}
+              {books.length ? <span>{t(kategorie ? "emptyK" : "emptyP")}</span> : null}
             </div>
           )}
         </div>
       </main>
+      <KategorienFenster open={katAuf} onOpenChange={setKatAuf} kat={kat} gesamt={books.length} wahl={kategorie} onWahl={katWahl} />
     </>
   );
 }

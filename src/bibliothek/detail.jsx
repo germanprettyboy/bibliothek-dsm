@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { log } from "@/lib/speicher";
 import { woerter, useSprache, t as tx } from "@/lib/sprache";
 import { Cover } from "@/bibliothek/cover";
+import { katName } from "@/bibliothek/kategorien";
 
 woerter({
   de: {
@@ -28,7 +29,6 @@ woerter({
 const C = () => window.DSMCovers;
 const still = matchMedia("(prefers-reduced-motion: reduce)");
 const shelf = (s, lang) => (lang === "it" ? s.replace(/\s+Brett\s+(\d+)/i, ", ripiano $1").replace(/\s+Regal\s+(\d+)/i, " scaffale $1") : s);
-const cat = (k, lang) => (lang === "it" && window.DSM_KATEGORIEN_IT && window.DSM_KATEGORIEN_IT[k]) || k;
 const zeilen = a => a.map((x, n) => <React.Fragment key={n}>{n ? <br /> : null}{x}</React.Fragment>);
 
 export function Detail({ eintrag, onClose }) {
@@ -61,7 +61,7 @@ export function Detail({ eintrag, onClose }) {
 
   const txt = rec && (rec[lang] || rec.de);
   const angaben = b ? [
-    ["verlag", b.v], ["jahr", b.j], ["isbn", b.i && zeilen(b.i)], ["kategorie", b.k && cat(b.k, lang)],
+    ["verlag", b.v], ["jahr", b.j], ["isbn", b.i && zeilen(b.i)], ["kategorie", b.k && katName(b.k, lang)],
     ["standort", b.s && zeilen(b.s.map(s => shelf(s, lang)))],
   ].filter(x => x[1]) : [];
   const zoomAuf = () => { if (zoomable) setZoom(true); };

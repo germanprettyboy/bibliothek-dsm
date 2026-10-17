@@ -37,7 +37,7 @@ src/                ← Quelltext der Seiten (React + Tailwind + shadcn/ui), NIC
   components/ui/      shadcn/ui-Komponenten, an DSM angepasst (button, input, dialog, switch, toggle(-group), tabs, …)
   components/         fenster (Glas-Dialog), kopf (Logo/Sprache/Einstellungen), einstellungen
   lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast)
-  bibliothek/         Bücherliste: main, app, daten, liste, detail (+Zoom), cover, empfehlungen (+Archiv, Fragen), info, wahl
+  bibliothek/         Bücherliste: main, app, daten, liste, kategorien (Filter), detail (+Zoom), cover, empfehlungen (+Archiv, Fragen), info, wahl
   verwaltung/         main (Seite), sperre (PBKDF2/AES-GCM), gemeinsam (window.DSM_GEMEINSAM für die Verwaltung)
 werkzeuge/          ← NICHT hochladen
   bauen.mjs           src/ → website/ (Vite, je Seite ein IIFE-Skript, feste Dateinamen)
@@ -144,6 +144,13 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   (Web Animations, nur transform, `--snap`, 240/180 ms) in die Mitte, max. 27rem breit. Nur dann OL-Größe „L“ nachladen;
   Google-Bilder ohne größere Fassung höchstens 2,5-fach. Platzhalter nicht vergrößerbar.
 - A–Z-Leiste nur ab 768 px (48rem). Darunter nur Suche + Buchstaben-Floater rechts (nur beim Scrollen sichtbar).
+- Kategorie-Filter (17.10.2026, `bibliothek/kategorien.jsx`): Knopf `#k-btn` rechts neben der Suche (Handy nur Symbol,
+  ab 40rem „Kategorie“) öffnet Glas-Fenster mit Suchfeld `#k-q` und allen Kategorien des Bestands samt Anzahl
+  (`[data-kat]`: `alle`, `g:<Oberbegriff>`, `k:<Kategorie>`). Teilen sich ≥2 Kategorien den Teil vor „ - “/„: “, bilden sie
+  eine Gruppe: Oberbegriff wählt alle, darunter eingerückt die Unterkategorien, die reine Oberbegriff-Kategorie heißt
+  „allgemein“. Eine Kategorie gleichzeitig; Wahl als Chip `.k-chip` unter der Suche (× `#k-weg` hebt auf), wirkt zusammen
+  mit der Suche, `#meta` dann „n Treffer“. Nicht gespeichert (Neuladen = alle Bücher). Bücher ohne Kategorie (≈1.500) nur
+  unter „Alle Bücher“. IT-Namen aus kategorien-it.js (Oberbegriff aus dem ersten Teil einer übersetzten Unterkategorie).
 - Theme: Standard = Gerät; in den Einstellungen Automatisch/Hell/Dunkel. Dazu größere Schrift, hoher Kontrast.
 - Italienischer Text bleibt Anthrazit (kein Rot für Italienisch auf der Website).
 - Keine Farbstreifen-Leiste unter dem Titel. Keine Datenschutzhinweise auf der Admin-Seite.
