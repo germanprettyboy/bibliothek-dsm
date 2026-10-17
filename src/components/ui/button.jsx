@@ -26,7 +26,8 @@ const buttonVariants = cva(
         // Mindestens 44 px Zielfläche (WCAG 2.5.5); icon-sm nur, wo daneben Platz zum Danebentippen ist
         icon: "size-11",
         "icon-sm": "size-10 [&_svg:not([class*='size-'])]:size-4",
-        text: "h-auto px-1 py-2",
+        // Darf umbrechen: lange Textknöpfe (Verwaltung „Zeiten … übertragen“) machten die Seite auf dem Handy zu breit
+        text: "h-auto px-1 py-2 whitespace-normal text-left",
       },
     },
     defaultVariants: { variant: "default", size: "default" },
