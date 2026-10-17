@@ -3,14 +3,20 @@
  *
  * Quellen, in dieser Reihenfolge
  *  1. ekz-Bibliotheksservice: Bild direkt über die ISBN (cover.ekz.de/<ISBN>.jpg), 404 = keins.
- *     Trifft beim Bestand rund 8 von 10 Büchern, ohne Abfrage vorab. (Die Deutsche Nationalbibliothek
+ *     Statt 404 kommt oft (Bestand 17.10.2026: 376 von 2625) ein Ersatzbild „leider kein aktuelles
+ *     Bild vorhanden“ (170×270, immer dieselben 9977 Byte). Bilder in dieser Größe werden deshalb
+ *     ein zweites Mal als Daten geholt (ekz erlaubt CORS) und byte-genau verglichen – echte Cover
+ *     gleicher Größe bleiben. Lässt sich das nicht prüfen, gilt das Bild als Ersatzbild.
+ *     Trifft beim Bestand rund 2 von 3 Büchern, ohne Abfrage vorab. (Die Deutsche Nationalbibliothek
  *     scheidet aus: portal.dnb.de steht hinter einem Bot-Schutz, Browser bekommen dort HTML statt Bild.)
  *  2. Open Library, Sammelabfrage über /api/books (bis zu 20 Bücher je Anfrage) → Bild über die
  *     Cover-ID. Bilder über die ID sind nicht ratenbegrenzt (Abrufe direkt über die ISBN wären auf
  *     100 je 5 Minuten und IP begrenzt – im Schulnetz teilen sich alle eine IP).
  *  3. Google Books, Bild direkt über die ISBN. Die Google-API wird nicht benutzt: ohne Schlüssel
- *     ist ihr gemeinsames Tageskontingent erschöpft (immer 429). Ohne Cover liefert Google ein
- *     Ersatzbild 128×184, das wird verworfen.
+ *     ist ihr gemeinsames Tageskontingent erschöpft (immer 429). Ohne Cover liefert Google eins von
+ *     zwei Ersatzbildern: 128×184 (Buch-Umriss) oder 128×170 („image not available“), beide werden
+ *     verworfen. Google erlaubt kein CORS, Bytes vergleichen geht nicht – Maße reichen: im Bestand
+ *     (17.10.2026) 444 Ersatzbilder, nur 6 echte Cover in diesen Größen.
  * Auflösung: ekz 170–440 px (fest), Open Library „M“ ca. 180 px, Google ca. 128 px breit.
  *
  * Betrieb
@@ -36,6 +42,7 @@
   const TAIL_TICK = 600;       // ms zwischen Bildproben nach Open Library (Open-Library-Bild, Google-Bild)
   const IMG_TICK = 350;        // ms zwischen vorgeladenen Bildern aus dem Cache
   const POOL = 40;             // geladene Bildelemente im Speicher
+  const EKZ_ERSATZ = { w: 170, h: 270, bytes: 9977, fnv: 0x6b29ba0d }; // ekz „leider kein aktuelles Bild vorhanden“
   const CACHE_KEY = "dsm-cover-v3", HIT_TTL = 60 * 864e5, MISS_TTL = 14 * 864e5, MAX_ENTRIES = 3000;
 
   // ---------- Cache ----------
@@ -83,9 +90,29 @@
     pool.delete(src); pool.set(src, img);
     if (pool.size > POOL) pool.delete(pool.keys().next().value);
   }
-  // Google-Ersatzbild „kein Bild verfügbar“ und Ein-Pixel-Bilder verwerfen
+  // Google-Ersatzbilder (Buch-Umriss 128×184, „image not available“ 128×170) und Ein-Pixel-Bilder verwerfen
   const real = (img, src) => img.naturalWidth > 20 && img.naturalHeight > 20 &&
-    !(img.naturalWidth === 128 && img.naturalHeight === 184 && src.includes("books.google"));
+    !(img.naturalWidth === 128 && (img.naturalHeight === 184 || img.naturalHeight === 170) && src.includes("books.google"));
+  // ekz-Ersatzbild: nur Bilder in seiner Größe als Daten nachladen und vergleichen. src -> Promise<bool>
+  const ersatz = new Map();
+  function ekzErsatz(img, src) {
+    if (!src.startsWith("https://cover.ekz.de/") || img.naturalWidth !== EKZ_ERSATZ.w || img.naturalHeight !== EKZ_ERSATZ.h) return Promise.resolve(false);
+    if (ersatz.has(src)) return ersatz.get(src);
+    const to = timeoutSignal(8000);
+    const p = fetch(src, { referrerPolicy: "no-referrer", signal: to.signal })
+      .then(r => { if (!r.ok) throw new Error("ekz " + r.status); return r.arrayBuffer(); })
+      .then(buf => {
+        const b = new Uint8Array(buf);
+        if (b.length !== EKZ_ERSATZ.bytes) return false;
+        let h = 0x811c9dc5;
+        for (let i = 0; i < b.length; i++) { h ^= b[i]; h = Math.imul(h, 0x01000193) >>> 0; }
+        return h === EKZ_ERSATZ.fnv;
+      })
+      .catch(() => { ersatz.delete(src); return true; }) // nicht prüfbar: lieber Platzhalter als Ersatzbild
+      .finally(() => to.done());
+    ersatz.set(src, p);
+    return p;
+  }
   function loadImg(src, ms) {
     if (pool.has(src)) return Promise.resolve(true);
     return new Promise(res => {
@@ -93,7 +120,12 @@
       const t = setTimeout(() => { img.src = ""; res(false); }, ms || 8000);
       img.referrerPolicy = "no-referrer";
       img.decoding = "async";
-      img.onload = () => { clearTimeout(t); const ok = real(img, src); if (ok) keep(src, img); res(ok); };
+      img.onload = async () => {
+        clearTimeout(t);
+        const ok = real(img, src) && !await ekzErsatz(img, src);
+        if (ok) keep(src, img);
+        res(ok);
+      };
       img.onerror = () => { clearTimeout(t); res(false); };
       img.src = src;
     });
