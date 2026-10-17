@@ -1,7 +1,7 @@
 # Bibliothek DSM – Bücherliste der Deutschen Schule Mailand
 
 Statische Website (einzige Server-Datei: speichern.php fürs Veröffentlichen) mit der öffentlichen Bücherliste der Schulbibliothek und einer passwortgeschützten
-Verwaltungsseite. Zweisprachig Deutsch/Italienisch, mobile first. Oberfläche: React 19 + Tailwind CSS v4 + shadcn/ui,
+Verwaltungsseite. Zweisprachig Deutsch/Italienisch, mobile first. Oberfläche: React-API (läuft auf Preact 11 via `preact/compat`, Alias in `werkzeuge/bauen.mjs` `preactAlias`) + Tailwind CSS v4 + shadcn/ui,
 gebaut mit Vite (`npm run build`) zu festen Dateien in `website/` – das Ergebnis bleibt reines HTML/CSS/JS.
 Auftraggeber/Nutzer: Johann Bucher (Freiwilliger an der DSM). Antworten auf Deutsch, ohne Floskeln, ohne Emojis.
 
@@ -180,8 +180,9 @@ shadcn-Komponenten nach `ui:add` immer anpassen
 (`cn` aus `@/lib/utils`, keine `text-sm`/`text-xs`, kein `underline`, keine `dark:`-Klassen); regeln.test prüft das.
 `cn()` kennt die eigenen Größen (tailwind-merge erweitert), sonst würde `text-s text-muted-foreground` verschluckt.
 
-## Technik (React + Tailwind + Vite)
+## Technik (React-API auf Preact + Tailwind + Vite)
 
+- Quelltext importiert weiter `react`/`react-dom`; Vite ersetzt sie durch `preact/compat` (`preactAlias`, auch in `vite.config.js`). Grund: Bundle 407 → 205 KB (gzip 126 → 68 KB), verwaltung.js 378 → 181 KB. Preact 10 scheitert an Radix (ref als Prop an Funktionskomponenten → getComputedStyle-Fehler), Preact 11 läuft. Beim Preact-/Radix-Update `npm run test:alle` prüfen. Die verschlüsselte Verwaltung bleibt unverändert (React extern aus `DSM_GEMEINSAM`).
 - Je Seite ein Einstieg (`src/bibliothek/main.jsx`, `src/verwaltung/main.jsx`), gebaut als IIFE mit festem Namen
   (kein Hash: FTP ersetzt Dateien, .htaccess prüft bei jedem Besuch). React mountet in `#seite` und ersetzt das feste Gerüst;
   erstes Zeichnen per `flushSync`.
@@ -228,7 +229,7 @@ shadcn-Komponenten nach `ui:add` immer anpassen
 - Messen: 390 px, CPU 4-fach gedrosselt: DOMContentLoaded ≈0,5 s, Long Tasks ≈0,2 s (vorher 17,9 s / 9,4 s).
   Vergleich alt/React am 16.10.2026 (gleiche Maschine, headless, 4-fach): DOMContentLoaded 2,1 → 2,0 s, Liste komplett
   2,5 → 3,0 s (erste Zeilen sofort), größter Block 0,85 → 0,9 s (= Parsen von books.js), übrige Blöcke ≤0,25 s,
-  Suche 1,0 → 0,8 s. Bundle bibliothek.js ≈400 KB (≈125 KB gzip: React + Radix), style.css ≈11 KB gzip.
+  Suche 1,0 → 0,8 s. Bundle bibliothek.js seit Preact ≈205 KB (≈68 KB gzip; vorher ≈400 KB / 125 KB mit react-dom), style.css ≈11 KB gzip.
 
 ## Datenformate
 
