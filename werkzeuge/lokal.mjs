@@ -25,6 +25,10 @@ const LOKAL = path.join(ROOT, "tests", ".tmp", "lokal");
 const MIT_TUNNEL = process.argv.includes("--tunnel");
 const PW = process.env.DSM_LOKAL_PW || (MIT_TUNNEL ? randomBytes(9).toString("base64url") : "lokal");
 const PORT = process.env.PORT || "8765";
+// Genau diese Schreibweise auch in tests/unit/speichern.test.js (DSM_PHP): npx legt je Paketangabe einen Cache-Ordner
+// an (~/.npm/_npx/<hash>, php-wasm ≈470 MB mit allen PHP-Versionen). Ohne feste Version prüft npx bei jedem Start
+// „latest“ und installiert bei jeder neuen php-wasm-Version (erscheinen fast täglich) alles neu. --prefer-offline: auch
+// bei fester Version keine Registry-Abfrage (sonst ≈1 s, ohne Netz ENOTFOUND mit Wiederholungen statt sofortigem Start).
 const PHP_WASM = "@php-wasm/cli@3.1.56";
 
 function verschluesseln() {
@@ -49,7 +53,7 @@ verschluesseln();
 
 // lokal-adresse.cjs: php-wasm lauscht sonst trotz „-S 127.0.0.1“ auf allen Schnittstellen (im WLAN erreichbar)
 const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "werkzeuge", "lokal-adresse.cjs"))}`.trim();
-const php = spawn("npx", ["--yes", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("werkzeuge", "lokal-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
+const php = spawn("npx", ["--yes", "--prefer-offline", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("werkzeuge", "lokal-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
 // php-wasm meldet, solange eine Verbindung offen ist, dutzendfach „Failed to accept a client (reason: Invalid argument)“
 // und „Failed to poll event“ (accept() im WASM-Socket; harmlos, Anfragen gehen durch, auch in 3.1.58 noch so).
 // Ausgeblendet samt Accepted/Closing je Verbindung; Anfragen, PHP-Fehler und alles andere bleiben sichtbar.
@@ -64,7 +68,7 @@ console.log(`
 Bücherliste:  http://127.0.0.1:${PORT}/
 Verwaltung:   http://127.0.0.1:${PORT}/admin.html   Passwort: ${PW}
 „Veröffentlichen“ schreibt direkt nach website/ (alte Fassung in website/sicherung/). Beenden: Strg+C
-(Beim ersten Start lädt npx PHP herunter, das dauert einen Moment.)
+(Nur beim allerersten Start lädt npx PHP herunter (≈470 MB), danach aus dem Cache.)
 `);
 
 if (MIT_TUNNEL) {

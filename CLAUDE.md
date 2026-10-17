@@ -17,10 +17,12 @@ Auftraggeber/Nutzer: Johann Bucher (Freiwilliger an der DSM). Antworten auf Deut
     (asm.js, kein WASM). `fonts/` = Fira Sans 400/500/600 lokal (DSGVO). `sicherung/` nur auf dem Server (speichern.php).
 - `src/` – Quelltext. `index.html`/`admin.html` = Vorlagen mit festem Lade-Gerüst (`#seite`), nur kopiert. `kopf.js` = klassisches
   Skript im `<head>` (Theme/Sprache vor dem ersten Zeichnen, Platzhalter-Merker). `styles.css` = Tokens/Theme/Bausteine.
-  `verwaltung/`: main, sperre (PBKDF2/AES-GCM), gemeinsam (`window.DSM_GEMEINSAM`).
+  `verwaltung/`: main, sperre, gemeinsam (`window.DSM_GEMEINSAM`). `lib/umwelt`: `still` = reduzierte Bewegung, `C()` = covers.js.
 - `werkzeuge/` – `bauen.mjs` (Vite, je Seite IIFE, feste Namen), `quelle/` (extract.js + Verwaltungs-UI, KLARTEXT),
   `admin-verschluesseln.js`, `books-erzeugen.js` (gleiche Logik wie admin.html), `tunnel.mjs`, `branches.sh`,
   `lokal.mjs`/`lokal-router.php`/`lokal-adresse.cjs` (php-wasm nur auf 127.0.0.1 – übergeht sonst „-S“ und lauscht im ganzen Netz).
+  npx (php-wasm, browser-sync, shadcn) immer exakte Version + `--prefer-offline` (ein Cache je Paketangabe in ~/.npm/_npx, sonst
+  Registry-Abfrage je Start bzw. Neuinstallation, php-wasm ≈470 MB). Bewusst nicht in package.json.
 - `tests/`, `doku/`: nicht hochladen. `daten/` (`*.winbook` mit Schülerdaten): NIEMALS einchecken/hochladen.
 
 ## Befehle
@@ -28,7 +30,7 @@ Auftraggeber/Nutzer: Johann Bucher (Freiwilliger an der DSM). Antworten auf Deut
 ```bash
 npm run build          # src/ → website/ (nach JEDER Änderung an src/, Ergebnis committen)
 npm run books          # daten/*.winbook → website/books.js
-npm run serve          # :8765;  dev = Watch + Live-Reload;  tunnel(:dev) = https://….trycloudflare.com für Handy/Schul-PC
+npm run serve          # :8765;  dev = Watch + Live-Reload (browser-sync);  tunnel(:dev) = https://….trycloudflare.com für Handy/Schul-PC
 npm run lokal          # wie Webspace: PHP + echtes speichern.php, Watch, Passwort „lokal“ → http://127.0.0.1:8765/admin.html
 npm run tunnel:php     # lokal + öffentliche https-Adresse, schreibt nach website/ dieses Checkouts, zufälliges Passwort
 npm run ui:add -- <n>  # neue shadcn-Komponente (danach an DSM anpassen!)
@@ -56,8 +58,7 @@ importiert (`@/…`), muss in `src/verwaltung/gemeinsam.js` stehen (Test prüft 
 - Verwaltung: keine Zeile „Aktuell veröffentlicht …“, kein „Entwurf im Browser gespeichert“ (nur `#i-state` bei unvollständigen
   Info-Angaben), keine Zähler „(4)“, keine Datenschutzhinweise. `#e-groups` = `ToggleGroup` Variante `flaeche` (bricht um);
   Reiter ≤420 px volle Breite. `#lock-btn` = Schloss, Text gleitet bei Hover/Fokus heraus (Grid 0fr→1fr, `motion-reduce` ohne),
-  `aria-label` immer. `App` bekommt nur `sperren`. Editor: Gruppe voll (4) → Suchfeld gesperrt, Hinweis mittig; enthaltene
-  Treffer ausgegraut ohne Knopf.
+  `aria-label` immer. `App` bekommt nur `sperren`. Editor: Gruppe voll (4) → Suche gesperrt, Hinweis mittig; Enthaltenes grau.
 - Nur HTML/CSS/JS: keine Push-/Deploy-Dienste, keine Datenbank, kein weiterer Server-Code. Ausnahme `speichern.php` (17.10.2026,
   „ein Knopf, Inhalt direkt ändern“): eine Datei, kein Framework, schreibt nur die drei Datendateien. Vite-Build lokal erlaubt.
   Seiten laufen per Doppelklick (file://): klassische Skripte, kein `type="module"`.
@@ -78,20 +79,20 @@ importiert (`@/…`), muss in `src/verwaltung/gemeinsam.js` stehen (Test prüft 
   Gestaffelt im Hintergrund für Bücher in Sichtweite, klein (OL „M“ ≈180 px, Google ≈128 px, ekz fest 170–440 px).
 - Echtes Cover im Detail antippen → `#zoom` (zweiter Radix-Dialog, Glas-Schleier), FLIP-Flug (nur transform, `--snap`, 240/180 ms)
   in die Mitte, max. 27rem. Nur dann OL „L“; Google höchstens 2,5-fach. Platzhalter nicht vergrößerbar.
-- Fenster (Detail, Einstellungen, Fragen, Öffnungszeiten, Archiv): shadcn `Dialog` als `.glass.sheet`, Schleier `.schleier`
-  unscharf + leicht dunkel; Handy Bottom Sheet, ab 40rem mittig. Unschärfe immer an, außer „Transparenz reduzieren“ und Glas
-  in hohem Kontrast.
+- Detail auf dem Handy (<40rem, `lib/wischen.js`): Sheet bildschirmhoch, halbhoch geparkt (transform), fliegt von unten ein
+  (Feder als `linear()`), Finger führt 1:1; hoch = Vollbild (Inhalt scrollt), runter = halb, weiter/schnell = schließen, Schleier
+  folgt. Ab 40rem / reduzierte Bewegung unverändert. Test: detail.spec „Wischen“.
+- Fenster (Detail, Einstellungen, Fragen, Öffnungszeiten, Archiv): `Dialog` als `.glass.sheet`, Schleier `.schleier` unscharf +
+  dunkler; Handy Bottom Sheet, ab 40rem mittig. Unschärfe immer an, außer „Transparenz reduzieren“ und Glas in hohem Kontrast.
 - Theme: Standard = Gerät; Einstellungen Automatisch/Hell/Dunkel, größere Schrift, hoher Kontrast. Italienisch bleibt
   Anthrazit (kein Rot). Keine Farbstreifen-Leiste unter dem Titel.
-- Langsame Verbindung: `.skel`-Platzhalter für Liste und (wenn `data-empf` aus kopf.js) Empfehlungen, bis books.js (≈700 KB)
-  da ist; nach 6 s „Langsame Verbindung“. bibliothek.js lädt VOR books.js; books.js meldet sich per Setter auf
-  `window.DSM_BIBLIOTHEK`. Platzhalter für alles Nachladende: Cover (bis geladen), Logo (`.ld-bild`, `.da` bei load/error),
-  Info-Karte (wenn zuletzt gezeigt, `dsm-info-karte`), Entsperren-Knopf (Spinner bis verwaltung.js geladen und beim Prüfen).
-  Schriften `font-display: swap`.
+- Langsame Verbindung: `.skel`-Platzhalter für Liste und (wenn `data-empf` aus kopf.js) Empfehlungen, bis books.js (≈700 KB) da
+  ist; nach 6 s „Langsame Verbindung“. bibliothek.js lädt VOR books.js; books.js meldet sich per Setter auf `window.DSM_BIBLIOTHEK`.
+  Platzhalter für alles Nachladende: Cover (bis geladen), Logo (`.ld-bild`, `.da` bei load/error), Info-Karte (wenn zuletzt
+  gezeigt, `dsm-info-karte`), Entsperren-Knopf (Spinner bis verwaltung.js geladen, beim Prüfen). Schriften `font-display: swap`.
 - Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ (Regal `.regal` in Logofarben, `.fortschritt` drei Striche, ab
-  Schritt 2 „Zurück“ oben; Ja/Nein auf dem Handy untereinander) → Mittelstufe / Oberstufe / Erwachsenenliteratur → (Erw.)
-  Romane / Sachbücher / Biografien & Geschichte. In `dsm-empf`. Einstellungen: gleiche Wahl als Liste, Blöcke mit Abstand,
-  die drei Erwachsenen-Bereiche in einem Block.
+  Schritt 2 „Zurück“ oben; Ja/Nein am Handy untereinander) → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher /
+  Biografien & Geschichte. In `dsm-empf`. Einstellungen: gleiche Wahl als Liste, Blöcke mit Abstand, Erwachsene in einem Block.
 
 ## Design
 
@@ -163,7 +164,7 @@ importiert (`@/…`), muss in `src/verwaltung/gemeinsam.js` stehen (Test prüft 
 
 Nach jeder Änderung `npm run build` + `npm run test:alle`. `tests/unit/`: Whitelist per SQL-Spion (`helfer/testdb.js`), Cover,
 Verschlüsselung, speichern.php, Bau byte-genau gegen website/, Datenformate, harte Regeln (`regeln.test.js`), Tunnel.
-- speichern-Test braucht `php` im PATH oder `DSM_PHP="npx --yes @php-wasm/cli"`, sonst übersprungen.
+- speichern-Test braucht `php` im PATH oder `DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56"`, sonst übersprungen.
 - `DSM_ADMIN_PW=… npm test` prüft zusätzlich admin.enc.js. `echte-db.test` nur mit `daten/*.winbook` (nennt nur Anzahlen).
 - E2E: Admin-Tests verschlüsseln die Quellen mit „test-passwort“; Admin-Import byte-gleich zu `npm run books`; Cover-APIs gemockt.
 - Live: `brew install cloudflared`, fremde Adresse per `DSM_LIVE_URL=https://…`. Tunnel öffentlich: nur website/ ohne
@@ -173,11 +174,9 @@ Verschlüsselung, speichern.php, Bau byte-genau gegen website/, Datenformate, ha
 
 Jede Aufgabe in eigenem Worktree (`.claude/worktrees/<name>`, Branch `worktree-<name>`), am Ende derselben Session per
 `--no-ff`-Merge in den lokalen `main` (Haupt-Checkout). `main` ist immer hochladbar, also lauffähig.
-1. Im Worktree committen, dann `git merge main`; Konflikte **hier** lösen, nie in `main`: Quelltext/CLAUDE.md/LIESMICH
-   inhaltlich zusammenführen; `admin.enc.js` neu verschlüsseln; Gebautes `npm run build`; `books.js` `npm run books`;
-   `empfehlungen.js`/`info.js` fachlich zusammenführen.
-2. `npm run test:alle` grün, Sichtbares mit `npm run serve` ansehen; `werkzeuge/quelle/*` geändert → neu verschlüsseln
-   (Passwort bei Johann). Committen.
+1. Im Worktree committen, `git merge main`, Konflikte **hier** lösen (nie in `main`): Quelltext/CLAUDE.md/LIESMICH inhaltlich;
+   `admin.enc.js` neu verschlüsseln, Gebautes `npm run build`, `books.js` `npm run books`, `empfehlungen.js`/`info.js` fachlich.
+2. `npm run test:alle` grün, Sichtbares per `npm run serve` ansehen; `werkzeuge/quelle/*` geändert → neu verschlüsseln. Committen.
 3. ExitWorktree (`keep`), im Haupt-Checkout `npm run integrieren -- worktree-<name>`. Bricht ab bei unsauberem Haupt-Checkout,
    Uncommittetem, Konflikt, Syntaxfehler in `website/**.js`/`werkzeuge/**.js` → im Worktree beheben, erneut.
 4. `git worktree remove <pfad>` (fremde erst `git worktree unlock`), `git branch -d` (nie `-D`). Bericht: Merge-Commit, Warnungen.

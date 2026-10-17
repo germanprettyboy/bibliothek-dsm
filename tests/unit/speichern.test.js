@@ -1,5 +1,5 @@
 /* website/speichern.php: Zugang, nur drei Dateien, nur das Format der Verwaltung, Sicherung, atomares Ersetzen.
-   Braucht PHP: „php“ im PATH oder DSM_PHP (z. B. DSM_PHP="npx --yes @php-wasm/cli" npm test), sonst übersprungen. */
+   Braucht PHP: „php“ im PATH oder DSM_PHP (z. B. DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56" npm test – gleicher Cache wie npm run lokal), sonst übersprungen. */
 "use strict";
 const { test, describe, before } = require("node:test");
 const assert = require("node:assert/strict");
