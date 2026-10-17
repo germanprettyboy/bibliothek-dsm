@@ -1,6 +1,6 @@
 # Bibliothek DSM – Bücherliste der Deutschen Schule Mailand
 
-Statische Website (kein Server) mit der öffentlichen Bücherliste der Schulbibliothek und einer passwortgeschützten
+Statische Website (einzige Server-Datei: speichern.php fürs Veröffentlichen) mit der öffentlichen Bücherliste der Schulbibliothek und einer passwortgeschützten
 Verwaltungsseite. Zweisprachig Deutsch/Italienisch, mobile first. Oberfläche: React 19 + Tailwind CSS v4 + shadcn/ui,
 gebaut mit Vite (`npm run build`) zu festen Dateien in `website/` – das Ergebnis bleibt reines HTML/CSS/JS.
 Auftraggeber/Nutzer: Johann Bucher (Freiwilliger an der DSM). Antworten auf Deutsch, ohne Floskeln, ohne Emojis.
@@ -14,6 +14,9 @@ website/            ← NUR dieser Ordner kommt auf den Webspace (https!). Gebau
   books.js            window.DSM_BIBLIOTHEK  – erzeugt, nicht von Hand bearbeiten
   empfehlungen.js     window.DSM_EMPFEHLUNGEN – erzeugt, nicht von Hand bearbeiten
   info.js             window.DSM_INFO – Öffnungszeiten/Ferien/Abwesenheiten, erzeugt
+  speichern.php       einzige Server-Datei: Verwaltung speichert die drei Datendateien direkt (von Hand, siehe Regeln)
+  speichern-zugang.php  SHA-256 des Speicher-Schlüssels – erzeugt von admin-verschluesseln.js (nur mit Passwort)
+  sicherung/          nur auf dem Server: alte Fassungen der Datendateien (von speichern.php angelegt)
   LIESMICH.txt        Anleitung für Johann / die Bibliothek
   .htaccess           nur Apache: gzip + Cache-Header (per IfModule abgesichert; bei Error 500 löschen)
   assets/
@@ -91,13 +94,22 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   Leiste beginnen (`main.books` mindestens bildschirmhoch).
 - Empfehlungs-Editor: Gruppe voll (4) → Suchfeld gesperrt mit Hinweis mittig; Bücher schon in der
   Gruppe → Treffer ausgegraut, ohne Knopf.
-- Ergebnis nur HTML/CSS/JS: kein PHP, kein Server, keine Push-/Deploy-Dienste (vom Auftraggeber so gewollt).
+- Ergebnis HTML/CSS/JS, keine Push-/Deploy-Dienste, keine Datenbank. Einzige Ausnahme seit 17.10.2026 (Auftraggeber:
+  „ein Knopf, Inhalt direkt ändern, ohne lokale Dateien“): `website/speichern.php` – eine Datei, kein Framework,
+  schreibt nur books.js/empfehlungen.js/info.js. Sonst kein PHP, kein weiterer Server-Code.
   Build-Schritt (Vite) seit 16.10.2026 erlaubt (Auftraggeber: React + Tailwind + Build, shadcn/ui), läuft lokal;
   gebaute Dateien liegen eingecheckt in website/. Seiten laufen weiter per Doppelklick (file://): klassische Skripte, kein `type="module"`.
-- Admin „Veröffentlichen“ schreibt books.js/empfehlungen.js/info.js direkt in den Website-Ordner (File System Access API,
-  Chrome/Edge): Ordner einmal wählen (muss index.html enthalten), Handle in IndexedDB, danach ein Klick ohne Rückfrage.
-  Andere Browser: Download wie früher. Immer da: „Stattdessen herunterladen“ (Schul-PC ohne Website-Ordner).
-  Hochladen auf den Webspace per FTP bleibt Handarbeit.
+- Admin „Veröffentlichen“, in dieser Reihenfolge: (1) online (https) mit eingerichtetem speichern.php → POST, sofort live;
+  (2) Chrome/Edge: direkt in den Website-Ordner (File System Access API, Ordner einmal wählen, muss index.html enthalten,
+  Handle in IndexedDB); (3) andere Browser: Download. Immer da: „Stattdessen herunterladen“. Lokal ohne PHP bleibt
+  der FTP-Upload Handarbeit.
+- speichern.php: GET → `{dsm:"speichern",bereit,grund?}` (Verwaltung erkennt es so; statischer Server/file:// liefert kein
+  JSON → alter Weg). POST `?datei=` mit Kopfzeile `X-DSM-Schluessel`, Inhalt = fertige Datei. Angenommen nur exakt
+  Kopfkommentar + `window.DSM_… = ` + JSON-Objekt mit Pflichtfeld (buecher/gruppen/zeiten) + `;\n` – nie fremder Code.
+  Alte Fassung → `sicherung/` (10 je Datei), Ersetzen atomar (temp + rename, flock). Ab PHP 7.1 (Aruba-Version unbekannt):
+  kein str_starts_with/array_is_list/match. Schlüssel = PBKDF2(Passwort, festes Salz „dsm-bibliothek/speichern.php“,
+  310.000), steht nur im verschlüsselten Klartext (`var DSM_SPEICHERN_SCHLUESSEL`, Function-Scope, nicht window);
+  `website/speichern-zugang.php` enthält nur SHA-256 davon und wird von admin-verschluesseln.js geschrieben.
 - Cover-Quellen in dieser Reihenfolge: ekz-Bild direkt (`cover.ekz.de/<ISBN>.jpg`, 404 = keins, ≈80 % Treffer),
   dann Open Library, dann Google-Bild direkt (`books.google.com/books/content?vid=ISBN…`, Ersatzbild 128×184 verwerfen).
   NICHT: Google-Books-API (ohne Schlüssel immer 429, gemeinsames Tageskontingent), NICHT portal.dnb.de
@@ -213,6 +225,8 @@ Nach jeder Änderung `npm run build` und `npm run test:alle`. Tests in `tests/`:
 - `unit/covers.test.js` – covers.js in VM-Sandbox (fetch/Image gestubbt): Reihenfolge ekz → OL → Google-Bild, Ersatzbild-Erkennung, keine Google-API, nie `/b/isbn/`, Cache-TTL, Warteschlangen, Messung.
 - `unit/verschluesseln.test.js` – Roundtrip, falsches Passwort, React nur aus `DSM_GEMEINSAM` (jedes Modul dort vorhanden).
   Mit `DSM_ADMIN_PW=… npm test` zusätzlich: ist `admin.enc.js` aktuell?
+- `unit/speichern.test.js` – speichern.php gegen Temp-Ordner (Zugang, nur drei Dateien, Format, Sicherung, nichts bei
+  Ablehnung). Braucht PHP: `php` im PATH oder `DSM_PHP="npx --yes @php-wasm/cli" npm test` (sonst übersprungen).
 - `unit/bau.test.js` – baut src/ in tests/.tmp/bau und vergleicht byte-genau mit website/ (veraltet → `npm run build`).
 - `unit/daten.test.js` – Format von books.js, empfehlungen.js (Schlüssel im Bestand), info.js, Kategorien-Übersetzung.
 - `unit/regeln.test.js` – harte Regeln an src/ und website/ (keine externen Hosts außer ekz/OL/Google-Bilder – react.dev/tailwindcss.com
@@ -268,6 +282,13 @@ Regeln:
   Webspace bei Aruba: `.htaccess`-Auswertung unklar, daher `IfModule`-Absicherung beibehalten.
 
 ## Offen
+
+- speichern.php live einrichten und prüfen (17.10.2026 nur lokal getestet: PHP-Logik per php-wasm, Verwaltung per
+  Playwright mit gespieltem Server): `node werkzeuge/admin-verschluesseln.js` (Johann, Passwort) erzeugt
+  speichern-zugang.php; dann admin.enc.js, speichern.php, speichern-zugang.php hochladen. Unbekannt: PHP-Version bei
+  Aruba, Schreibrechte im Webspace, ob eine WAF (ModSecurity) POSTs mit JavaScript-Inhalt blockt.
+- Seit Online-Speichern ist der Server Original für books.js/empfehlungen.js/info.js: beim FTP-Upload diese drei
+  (und sicherung/) nicht mit alten lokalen Fassungen überschreiben.
 
 - Cover live geprüft (16.10.2026, Chromium): ekz/OL/Google-Bild laden. In admin.html „Cover-Abdeckung prüfen“ einmal
   komplett laufen lassen. Nutzungsbedingungen von cover.ekz.de (Hotlinking ohne ekz-Vertrag) mit Johann/Schule klären.

@@ -508,6 +508,99 @@ test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
   });
 });
 
+test.describe("Direkt online veröffentlichen (speichern.php)", () => {
+  // speichern.php gespielt: GET meldet den Zustand, POST antwortet nach Wunsch und merkt sich die Anfragen
+  async function server(page, { get = { bereit: true }, post = null } = {}) {
+    const anfragen = [];
+    await page.route("**/speichern.php*", async r => {
+      const q = r.request();
+      if (q.method() === "GET") return r.fulfill({ json: { dsm: "speichern", v: 1, ...get } });
+      anfragen.push({ datei: new URL(q.url()).searchParams.get("datei"), schluessel: q.headers()["x-dsm-schluessel"], text: q.postData() });
+      if (post) return r.fulfill(post);
+      return r.fulfill({ json: { dsm: "speichern", v: 1, ok: true } });
+    });
+    return anfragen;
+  }
+  const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
+  const flag = page => page.locator('.pub[data-datei="info.js"] .flag');
+  const ONLINE = "Ein Klick speichert info.js direkt auf der Website – sofort online, nichts hochladen.";
+
+  test("ein Klick: info.js geht mit Schlüssel an speichern.php, kein Ordnerdialog, Meldung „online“", async ({ page }) => {
+    const { speicherSchluessel } = require("../../werkzeuge/admin-verschluesseln.js");
+    const anfragen = await server(page);
+    await entsperren(page);
+    await info(page);
+    await expect(page.locator("#i-how")).toHaveText(ONLINE);
+    await expect(page.locator("#i-dl")).toHaveText("Veröffentlichen");
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Stattdessen herunterladen");
+    await page.fill("#i-note-de", "Online-Hinweis");
+    await page.click("#i-dl");
+    await expect(flag(page)).toHaveText(/^info\.js ist online, \d\d:\d\d Uhr\.$/);
+    expect(anfragen.length).toBe(1);
+    expect(anfragen[0].datei).toBe("info.js");
+    expect(anfragen[0].schluessel).toBe(await speicherSchluessel(PW));
+    expect(auswerten(anfragen[0].text, "DSM_INFO").hinweis.de).toBe("Online-Hinweis");
+    expect(await page.evaluate(() => window.__picks)).toBe(0);
+    // gilt danach als veröffentlicht
+    expect(await page.evaluate(() => window.DSM_INFO.hinweis.de)).toBe("Online-Hinweis");
+  });
+
+  test("gleicher Text wie der Download (byte-gleich), auch für books.js", async ({ page }) => {
+    const anfragen = await server(page);
+    await entsperren(page);
+    await laden(page, path.join(TMP, "test.winbook"));
+    await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator(".pub[data-datei=\"books.js\"] [data-pub-laden]")).toBeVisible();
+    const geladen = await herunterladen(page, '.pub[data-datei="books.js"] [data-pub-laden]');
+    await page.click("#dl");
+    await expect(page.locator('.pub[data-datei="books.js"] .flag')).toHaveText(/^books\.js ist online/);
+    expect(anfragen[0].datei).toBe("books.js");
+    expect(anfragen[0].text).toBe(geladen);
+  });
+
+  test("Zugang abgelehnt (403): Warnung, Stand bleibt unveröffentlicht", async ({ page }) => {
+    await server(page, { post: { status: 403, json: { dsm: "speichern", v: 1, fehler: "schluessel" } } });
+    await entsperren(page);
+    await info(page);
+    await expect(page.locator("#i-how")).toHaveText(ONLINE);
+    const vorher = await page.evaluate(() => JSON.stringify(window.DSM_INFO));
+    await page.fill("#i-note-de", "Abgelehnt");
+    await page.click("#i-dl");
+    await expect(flag(page)).toHaveText(/^Die Website hat das Speichern abgelehnt/);
+    await expect(flag(page)).toHaveClass(/warn/);
+    expect(await page.evaluate(() => JSON.stringify(window.DSM_INFO))).toBe(vorher);
+  });
+
+  test("Server-Fehler ohne JSON: Meldung mit Status", async ({ page }) => {
+    await server(page, { post: { status: 500, body: "Internal Server Error" } });
+    await entsperren(page);
+    await info(page);
+    await expect(page.locator("#i-how")).toHaveText(ONLINE);
+    await page.click("#i-dl");
+    await expect(flag(page)).toHaveText("Speichern auf der Website hat nicht geklappt (HTTP 500). Bitte noch einmal versuchen, sonst „Stattdessen herunterladen“.");
+  });
+
+  test("speichern.php ohne Zugangsdatei: Hinweis, Ordner-Weg wie bisher", async ({ page }) => {
+    const anfragen = await server(page, { get: { bereit: false, grund: "zugang" } });
+    await entsperren(page);
+    await info(page);
+    await expect(page.locator('.pub[data-datei="info.js"] [data-pub-einrichten]')).toHaveText("Direkt online speichern ist noch nicht eingerichtet: speichern-zugang.php fehlt auf der Website.");
+    await expect(page.locator("#i-how")).toContainText("nichts herunterladen, nichts verschieben");
+    await speichern(page, "#i-dl");
+    expect(anfragen.length).toBe(0);
+  });
+
+  test("Italienisch", async ({ page }) => {
+    await server(page);
+    await entsperren(page);
+    await info(page);
+    await page.click('.seg [data-lang="it"]');
+    await expect(page.locator("#i-how")).toHaveText("Un clic salva info.js direttamente sul sito – subito online, senza caricare nulla.");
+    await page.click("#i-dl");
+    await expect(flag(page)).toHaveText(/^info\.js è online dalle \d\d:\d\d\.$/);
+  });
+});
+
 test.describe("Browser ohne Ordnerzugriff (Safari, Firefox, Handy)", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => { delete window.showDirectoryPicker; delete Window.prototype.showDirectoryPicker; });
