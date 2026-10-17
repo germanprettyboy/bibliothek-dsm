@@ -32,6 +32,18 @@ for (const art of ["warn", "warnOnce"]) {
   logger[art] = (msg, o) => { if (!/fonts\/fira-sans.*didn't resolve at build time/.test(msg)) orig(msg, o); };
 }
 
+// React-API von Preact (preact/compat): gleiche Imports im Quelltext, Bundle ca. halb so groß
+export function preactAlias(root) {
+  const P = path.join(root, "node_modules", "preact");
+  return [
+    { find: /^react-dom\/client$/, replacement: P + "/compat/client" },
+    { find: /^react-dom$/, replacement: P + "/compat" },
+    { find: /^react\/jsx-runtime$/, replacement: P + "/jsx-runtime" },
+    { find: /^react$/, replacement: P + "/compat" },
+    { find: "@", replacement: path.join(root, "src") },
+  ];
+}
+
 // Gemeinsame Vite-Einstellungen, auch für die verschlüsselte Verwaltung (admin-verschluesseln.js)
 export function viteBasis() {
   return {
@@ -40,7 +52,7 @@ export function viteBasis() {
     customLogger: logger,
     logLevel: "warn",
     plugins: [react(), tailwindcss()],
-    resolve: { alias: { "@": SRC } },
+    resolve: { alias: preactAlias(ROOT) },
     define: { "process.env.NODE_ENV": JSON.stringify("production") },
   };
 }
