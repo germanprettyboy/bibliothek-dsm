@@ -78,7 +78,7 @@ describe("recommendations.js", () => {
   }
 });
 
-describe("info.js", () => {
+describe("info.js", { skip: !I && "website/info.js is missing (not committed)" }, () => {
   const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
   test("opening hours: only weekdays, ranges HH:MM, from < to", () => {
     assert.match(I.updated, ISO);

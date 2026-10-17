@@ -26,7 +26,8 @@ const buttonVariants = cva(
         // at least 44 px target size (WCAG 2.5.5); icon-sm only where there is room around it for missed taps
         icon: "size-11",
         "icon-sm": "size-10 [&_svg:not([class*='size-'])]:size-4",
-        text: "h-auto px-1 py-2",
+        // may wrap: long text buttons (admin page "copy hours …") made the page too wide on phones
+        text: "h-auto px-1 py-2 whitespace-normal text-left",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

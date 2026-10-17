@@ -293,6 +293,12 @@ test.describe("editing recommendations", () => {
     await expect(page.locator("#rec-list .warn")).toHaveCount(0);
   });
 
+  test("switching tabs without a transition", async ({ page }) => {
+    await unlock(page);
+    const duration = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => getComputedStyle(e).transitionDuration));
+    expect(duration).toEqual(["0s", "0s", "0s"]);
+  });
+
   test("full group: adding disabled; remove, add, sort, text – draft saved", async ({ page }) => {
     await unlock(page);
     await tab(page);

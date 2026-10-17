@@ -9,9 +9,10 @@ const ROOT = path.join(__dirname, "..", "..");
 const WEB = path.join(ROOT, "website");
 const TMP = path.join(ROOT, "tests", ".tmp");
 
-// Loads a file of the form "window.NAME = {...};" and returns window
+// Loads a file of the form "window.NAME = {...};" and returns window (missing: an empty window)
 function browserFile(rel) {
   const ctx = { window: {} };
+  if (rel === "info.js" && !fs.existsSync(path.join(WEB, rel))) return ctx.window; // info.js is not committed
   vm.runInNewContext(fs.readFileSync(path.join(WEB, rel), "utf8"), ctx, { filename: rel });
   return ctx.window;
 }

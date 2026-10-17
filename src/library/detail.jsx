@@ -7,8 +7,11 @@ import { GlassDialog } from "@/components/glass-dialog";
 import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
+import { C, reduced } from "@/lib/environment";
+import { swipe } from "@/lib/swipe";
 import { addStrings, useLanguage, t as tx } from "@/lib/language";
 import { Cover } from "@/library/cover";
+import { categoryName } from "@/library/categories";
 
 addStrings({
   de: {
@@ -25,11 +28,8 @@ addStrings({
   },
 });
 
-const C = () => window.DSMCovers;
-const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 // Location texts come from the catalog in German ("Regal 3 Brett 2"): translate the two words for Italian
 const shelf = (s, lang) => (lang === "it" ? s.replace(/\s+Brett\s+(\d+)/i, ", ripiano $1").replace(/\s+Regal\s+(\d+)/i, " scaffale $1") : s);
-const cat = (k, lang) => (lang === "it" && window.DSM_CATEGORIES_IT && window.DSM_CATEGORIES_IT[k]) || k;
 const lines = a => a.map((x, n) => <React.Fragment key={n}>{n ? <br /> : null}{x}</React.Fragment>);
 
 export function Detail({ entry, onClose }) {
@@ -42,6 +42,19 @@ export function Detail({ entry, onClose }) {
   const [zoomable, setZoomable] = React.useState(false);
   const [zoom, setZoom] = React.useState(false);
   const box = React.useRef(null);
+
+  // Phone: the sheet flies in from below, swipe up = full screen, down = close (lib/swipe)
+  const [innerEl, setInnerEl] = React.useState(null);
+  const close = React.useRef(onClose);
+  close.current = onClose;
+  React.useEffect(() => {
+    const sheet = innerEl && innerEl.closest("#detail");
+    if (!sheet) return undefined;
+    const closed = () => close.current();
+    sheet.addEventListener("swipe-close", closed);
+    const off = swipe(sheet, innerEl, ".scrim.detail");
+    return () => { sheet.removeEventListener("swipe-close", closed); off(); };
+  }, [innerEl]);
 
   // Fetch the cover (with priority); discard older answers
   React.useEffect(() => {
@@ -62,7 +75,7 @@ export function Detail({ entry, onClose }) {
 
   const txt = rec && (rec[lang] || rec.de);
   const details = b ? [
-    ["publisher", b.p], ["year", b.y], ["isbn", b.i && lines(b.i)], ["category", b.c && cat(b.c, lang)],
+    ["publisher", b.p], ["year", b.y], ["isbn", b.i && lines(b.i)], ["category", b.c && categoryName(b.c, lang)],
     ["location", b.l && lines(b.l.map(s => shelf(s, lang)))],
   ].filter(x => x[1]) : [];
   const zoomOpen = () => { if (zoomable) setZoom(true); };
@@ -74,7 +87,7 @@ export function Detail({ entry, onClose }) {
         id="detail" titleId="d-title" overlayClassName="detail"
       >
         {b ? (
-          <div className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
+          <div ref={setInnerEl} className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
             <Cover
               ref={box} id="d-cover" title={b.t} isbn={!!b.i} found={found} onShown={() => setZoomable(true)}
               className={cn(zoomable && "zoomable", zoom && "lifted")}

@@ -20,8 +20,8 @@ new file; open browser sessions have to unlock again.
 local.mjs + local-router.php + local-address.cjs
                     Local development as on the webspace: npm run local
                     -> http://127.0.0.1:8765/admin.html, password "local" (another one: DSM_LOCAL_PW=… npm run local).
-                    PHP comes as php-wasm via npx (no installation). "Publish" writes directly
-                    to ../website (old version in ../website/backup/). The admin app is encrypted again on start and on
+                    PHP comes as php-wasm via npx (no installation). "Publish" writes to
+                    ../tests/.tmp/local/data/ (copy of ../website, fresh on every start; website/ stays untouched). The admin app is encrypted again on start and on
                     changes to source/ (only for local use, the real admin.enc.js stays untouched).
                     src/ is built in watch mode; reload the page after changes.
                     Server only reachable at 127.0.0.1 (local-address.cjs), not from the Wi-Fi.

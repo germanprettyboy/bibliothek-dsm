@@ -5,13 +5,17 @@
 const { test, expect, OFF, data } = require("./helpers.js");
 
 const { B, R } = data();
+const NO_INFO = 'window.DSM_INFO = {"updated":"2026-10-01","hours":{"mon":[],"tue":[],"wed":[],"thu":[],"fri":[],"sat":[]},"notice":{"de":"","it":""},"closures":[]};\n';
 const ON = JSON.stringify({ want: true, group: "middle" });
 
-// Serve the file (default books.js) only after release()
-async function throttle(page, pattern = "**/books.js") {
+// Serve the file (default books.js) only after release(), with content instead of the real file
+async function throttle(page, pattern = "**/books.js", content) {
   let release;
   const gate = new Promise(r => { release = r; });
-  await page.route(pattern, async route => { await gate; await route.continue(); });
+  await page.route(pattern, async route => {
+    await gate;
+    await (content ? route.fulfill({ body: content, contentType: "text/javascript" }) : route.continue());
+  });
   return release;
 }
 
@@ -127,7 +131,7 @@ test.describe("placeholders for logo, info card and admin page", () => {
   test.describe("info card shown on the last visit", () => {
     test.use({ storage: { "dsm-recs": OFF, "dsm-info-card": "1" } });
     test("placeholder until the page decides; without a card it disappears and is forgotten", async ({ page }) => {
-      const infoRelease = await throttle(page, "**/info.js");
+      const infoRelease = await throttle(page, "**/info.js", NO_INFO);
       const booksRelease = await throttle(page);
       await page.goto("index.html", { waitUntil: "commit" });
       await expect(page.locator("#info .skel")).toBeVisible();

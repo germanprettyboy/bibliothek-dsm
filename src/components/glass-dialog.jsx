@@ -6,7 +6,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 
-export function GlassDialog({ open, onOpenChange, name, titleId, className, overlayClassName, children, onCloseAutoFocus, ...props }) {
+export function GlassDialog({ open, onOpenChange, name, titleId, className, overlayClassName, children, onCloseAutoFocus, onEscapeKeyDown, ...props }) {
   const { t } = useLanguage();
   const reason = React.useRef("button");
   React.useEffect(() => { if (open) log("Dialog", `${name} opened`); }, [open, name]);
@@ -22,7 +22,7 @@ export function GlassDialog({ open, onOpenChange, name, titleId, className, over
         overlayClassName={overlayClassName}
         closeLabel={t("close")}
         aria-labelledby={titleId}
-        onEscapeKeyDown={() => { reason.current = "Escape"; }}
+        onEscapeKeyDown={e => { if (onEscapeKeyDown) onEscapeKeyDown(e); if (!e.defaultPrevented) reason.current = "Escape"; }}
         onPointerDownOutside={() => { reason.current = "background"; }}
         onCloseAutoFocus={onCloseAutoFocus}
         {...props}

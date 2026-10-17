@@ -12,6 +12,10 @@ node_modules/
 # Test runs (Playwright results, test databases, test encryption, npm run local)
 tests/.tmp/
 
+# Opening hours/holidays: the original lives on the webspace (the admin page saves via save.php), not in the repo.
+# Locally published versions (folder access, tests) must not change main. Without the file the page shows no info card.
+website/info.js
+
 # from save.php (npm run local): backups and half-written files (old names until October 2026 as well)
 website/backup/
 website/.*.new

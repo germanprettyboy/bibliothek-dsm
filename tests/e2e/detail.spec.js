@@ -210,4 +210,33 @@ test.describe("detail on the phone", () => {
     expect(box.width).toBeLessThanOrEqual(390);
     expect(box.x).toBeGreaterThanOrEqual(0);
   });
+
+  // Swiping via CDP touch: sheet half-high, up = full screen, down = half, further down = close
+  async function swipe(page, from, to, steps = 8) {
+    const cdp = await page.context().newCDPSession(page);
+    const point = y => [{ x: 195, y }];
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from) });
+    for (let i = 1; i <= steps; i++) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(from + (to - from) * i / steps) });
+      await page.waitForTimeout(12);
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  }
+  const top = page => page.locator("#detail").evaluate(d => Math.round(d.getBoundingClientRect().top));
+  test("swiping: half, up = full screen, down = half, further down = closed", async ({ page }) => {
+    await open(page);
+    await openBook(page, WITH_ISBN);
+    await page.waitForTimeout(700);
+    const half = await top(page);
+    expect(half).toBeGreaterThan(150);
+    await swipe(page, half + 20, 120);
+    await page.waitForTimeout(700);
+    const full = await top(page);
+    expect(full).toBeLessThan(40);
+    await swipe(page, 200, 500);
+    await page.waitForTimeout(700);
+    expect(await top(page)).toBeGreaterThan(150);
+    await swipe(page, half + 20, 800);
+    await expect(page.locator("#detail")).toBeHidden();
+  });
 });

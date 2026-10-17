@@ -1,28 +1,32 @@
-/* Book list: search, A–Z bar (from tablet width), letter floater (phone), list as plain text.
+/* Book list: search, filter by category, A–Z bar (from tablet width), letter floater (phone), list as plain text.
    The list consists of chunks of at most 40 books; every letter starts a new one (anchor ul#L-X).
    Via CSS (content-visibility) the browser only renders chunks in view; the others carry a height estimated from
    the text length in their style until they have been rendered once. */
 import * as React from "react";
 import { flushSync } from "react-dom";
-import { SearchIcon, XIcon } from "lucide-react";
+import { ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
+import { C, reduced } from "@/lib/environment";
 import { addStrings, useLanguage } from "@/lib/language";
 import { norm } from "@/library/data";
+import { CategoryDialog, categoryModel } from "@/library/categories";
 
 addStrings({
   de: {
     search: "Titel, Autor oder ISBN suchen", searchLabel: "Bücher durchsuchen", clear: "Suche löschen",
     index: "Alphabetischer Index", hits: "{n} Treffer", count: "{n} Bücher", count1: "1 Buch", listT: "Bücherliste",
     emptyT: "Kein Buch gefunden", emptyP: "Eine andere Schreibweise oder nur einen Teil des Titels versuchen.",
+    emptyC: "In dieser Kategorie nichts gefunden – anders suchen oder die Kategorie aufheben.",
     noData: "Die Bücherliste konnte nicht geladen werden (books.js fehlt).",
   },
   it: {
     search: "Cerca titolo, autore o ISBN", searchLabel: "Cerca nei libri", clear: "Cancella ricerca",
     index: "Indice alfabetico", hits: "{n} risultati", hits1: "1 risultato", count: "{n} libri", count1: "1 libro", listT: "Elenco dei libri",
     emptyT: "Nessun libro trovato", emptyP: "Prova un'altra grafia o solo una parte del titolo.",
+    emptyC: "Nessun risultato in questa categoria – prova un'altra ricerca o rimuovi la categoria.",
     noData: "Impossibile caricare l'elenco dei libri (manca books.js).",
   },
 });
@@ -32,8 +36,6 @@ const lid = l => "L-" + (l === "#" ? "0" : l);
 const CHUNK = 40;
 const FIRST = 2, STEP = 20; // chunks in the first frame, chunks per further step
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const C = () => window.DSMCovers;
-const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const wide = matchMedia("(min-width: 48rem)");
 
 // Highlight hits the way the search matches (norm): without accents, ß = ss – "kastner" highlights "Kästner".
@@ -151,6 +153,8 @@ export function BookList({ books, loaded, onOpen }) {
   const [enter, setEnter] = React.useState(true);
   const [stuck, setStuck] = React.useState(false);
   const [on, setOn] = React.useState(null);
+  const [category, setCategory] = React.useState(null); // g:<parent> | c:<category> | null
+  const [catOpen, setCatOpen] = React.useState(false);
   const input = React.useRef(null), bar = React.useRef(null), anchor = React.useRef(null), list = React.useRef(null), fl = React.useRef(null);
   const marks = React.useRef([]);
 
@@ -159,7 +163,13 @@ export function BookList({ books, loaded, onOpen }) {
     const long = terms.filter(x => x.length > 1).sort((a, b) => b.length - a.length);
     return long.length ? { re: new RegExp("(" + long.map(reEsc).join("|") + ")", "i"), terms: long } : null;
   }, [terms]);
-  const current = React.useMemo(() => (terms.length ? books.filter(b => terms.every(x => b._s.includes(x))) : books), [books, terms]);
+  const model = React.useMemo(() => categoryModel(books), [books]);
+  const catTest = React.useMemo(() => model.test(category), [model, category]);
+  const current = React.useMemo(() => {
+    const l = catTest ? books.filter(catTest) : books;
+    return terms.length ? l.filter(b => terms.every(x => b._s.includes(x))) : l;
+  }, [books, terms, catTest]);
+  const filtered = terms.length > 0 || !!category;
   const parts = React.useMemo(() => chunks(current), [current]);
   const present = React.useMemo(() => new Set(parts.filter(s => s.head).map(s => s.head)), [parts]);
 
@@ -198,6 +208,15 @@ export function BookList({ books, loaded, onOpen }) {
     return () => clearTimeout(id);
   }, [terms]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---------- Category ----------
+  const chooseCategory = id => {
+    if (id === category) return;
+    setLive(true); setCategory(id);
+    if (!id) { log("Filter", "category cleared"); return; }
+    const n = books.filter(model.test(id)).length;
+    log("Filter", `category "${model.label(id, "de", t)}": ${n} books`);
+  };
+
   // ---------- Sticky bar ----------
   React.useLayoutEffect(() => {
     const setBarH = () => document.documentElement.style.setProperty("--bar-h", bar.current.offsetHeight + "px");
@@ -219,6 +238,13 @@ export function BookList({ books, loaded, onOpen }) {
     const y = anchorTop();
     if (scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
   }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
+  // New category: the hits start right below the bar if the page was already further down
+  const firstCat = React.useRef(true);
+  React.useLayoutEffect(() => {
+    if (firstCat.current) { firstCat.current = false; return; }
+    const y = anchorTop();
+    if (scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
+  }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
   const onFocus = () => {
     if (wide.matches) return;
     const y = anchorTop();
@@ -301,12 +327,12 @@ export function BookList({ books, loaded, onOpen }) {
   React.useLayoutEffect(() => {
     const first = list.current.firstElementChild;
     if (live && first && !reduced.matches) first.animate([{ opacity: .15, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], { duration: 180, easing: "ease-out" });
-    if (terms.length && current.length <= 4) current.forEach(prefetch);
+    if (filtered && current.length <= 4) current.forEach(prefetch);
   }, [parts]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Click on a row (one listener for all rows)
   const row = e => e.target.closest(".row");
-  const meta = !loaded ? null : !books.length ? "" : terms.length
+  const meta = !loaded ? null : !books.length ? "" : filtered
     ? (current.length === 1 && lang === "it" ? t("hits1") : t("hits", { n: nf(current.length) }))
     : (books.length === 1 ? t("count1") : t("count", { n: nf(books.length) }));
 
@@ -315,12 +341,13 @@ export function BookList({ books, loaded, onOpen }) {
       <div id="bar-anchor" ref={anchor} />
       <div className={cn("bar", stuck && "stuck")} id="bar" ref={bar}>
         <div className="wrap grid gap-2 py-3">
-          <label className="search relative">
+          <div className="flex gap-2">
+          <label className="search relative min-w-0 flex-1">
             <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
             <input
               id="q" ref={input} type="search" data-log="own" autoComplete="off" spellCheck="false" enterKeyHint="search"
               placeholder={t("search")} aria-label={t("searchLabel")}
-              className="h-12 w-full appearance-none rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blue)_55%,transparent)]"
+              className="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blue)_55%,transparent)]"
               onChange={e => search(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape" && e.currentTarget.value) clear(false); }}
               onFocus={onFocus}
@@ -332,6 +359,28 @@ export function BookList({ books, loaded, onOpen }) {
               <XIcon aria-hidden="true" className="size-4" />
             </button>
           </label>
+          <button
+            type="button" id="cat-btn" aria-haspopup="dialog" aria-label={t("catOpen")} aria-pressed={!!category} disabled={!loaded || !model.groups.length}
+            className={cn("cat-btn grid h-12 min-w-12 shrink-0 grid-flow-col place-items-center gap-2 rounded-lg border border-border bg-surface px-3 text-m font-medium text-foreground transition-[border-color,background-color,color] duration-200 hover:border-foreground disabled:opacity-50 sm:px-4",
+              category && "border-foreground bg-foreground text-background")}
+            onClick={() => setCatOpen(true)}
+          >
+            <ListFilterIcon aria-hidden="true" className="size-[18px]" />
+            <span className="hidden sm:inline" aria-hidden="true">{t("catBtn")}</span>
+          </button>
+          </div>
+          {category ? (
+            <div className="flex min-w-0">
+              <span className="cat-chip inline-flex h-10 min-w-0 items-center rounded-full border border-border bg-surface text-s font-medium">
+                <button type="button" className="min-w-0 truncate rounded-l-full py-2 pl-4 pr-1 text-left" aria-label={`${t("catOpen")}: ${model.label(category, lang, t)}`} onClick={() => setCatOpen(true)}>
+                  {model.label(category, lang, t)}
+                </button>
+                <button type="button" id="cat-clear" className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground" aria-label={t("catClear")} onClick={() => chooseCategory(null)}>
+                  <XIcon aria-hidden="true" className="size-4" />
+                </button>
+              </span>
+            </div>
+          ) : null}
           <nav className="index" id="index" aria-label={t("index")} onClick={e => {
             const a = e.target.closest("a[data-l]");
             if (!a) return;
@@ -371,11 +420,12 @@ export function BookList({ books, loaded, onOpen }) {
           ) : (
             <div className="empty">
               <strong>{t(books.length ? "emptyT" : "noData")}</strong>
-              {books.length ? <span>{t("emptyP")}</span> : null}
+              {books.length ? <span>{t(category ? "emptyC" : "emptyP")}</span> : null}
             </div>
           )}
         </div>
       </main>
+      <CategoryDialog open={catOpen} onOpenChange={setCatOpen} model={model} total={books.length} choice={category} onChoice={chooseCategory} />
     </>
   );
 }

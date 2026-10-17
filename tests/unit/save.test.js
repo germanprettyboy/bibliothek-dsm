@@ -1,5 +1,6 @@
 /* website/save.php: access, only three files, only the admin page's format, backup, atomic replacement.
-   Needs PHP: "php" in the PATH or DSM_PHP (e.g. DSM_PHP="npx --yes @php-wasm/cli" npm test), otherwise skipped. */
+   Needs PHP: "php" in the PATH or DSM_PHP (e.g. DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56" npm test – same cache
+   as npm run local), otherwise skipped. */
 "use strict";
 const { test, describe, before } = require("node:test");
 const assert = require("node:assert/strict");
@@ -16,8 +17,10 @@ function phpCommand() {
 const PHP = phpCommand();
 const KEY = "a".repeat(64);
 const HASH = crypto.createHash("sha256").update(KEY).digest("hex");
+// Header line of info.js from save.php itself (website/info.js is not committed)
+const INFO_HEAD = JSON.parse('"' + fs.readFileSync(path.join(WEB, "save.php"), "utf8").match(/'info\.js' => \["(.*?)", 'hours'\]/)[1] + '"');
 const HEAD = {
-  "info.js": fs.readFileSync(path.join(WEB, "info.js"), "utf8").split("= ")[0] + "= ",
+  "info.js": INFO_HEAD,
   "books.js": fs.readFileSync(path.join(WEB, "books.js"), "utf8").slice(0, 200).split("= ")[0] + "= ",
 };
 
@@ -51,7 +54,7 @@ function folder(name, { access = true, files = {} } = {}) {
 }
 
 describe("save.php", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, () => {
-  const info = fs.readFileSync(path.join(WEB, "info.js"), "utf8");
+  const info = INFO_HEAD + JSON.stringify({ updated: "2026-10-01", hours: { mon: [["08:00", "13:00"]] }, notice: { de: "", it: "" }, closures: [] }, null, 1) + ";\n";
   const books = fs.readFileSync(path.join(WEB, "books.js"), "utf8");
   const OLD = HEAD["info.js"] + '{"updated":"2020-01-01","hours":{}};\n';
   const OBJECT = HEAD["info.js"] + '{"updated":{"x":1},"hours":{}};\n';

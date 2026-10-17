@@ -23,7 +23,7 @@ const DSM_FILES = [
 const DSM_MAX = 8 * 1024 * 1024;
 const DSM_BACKUPS = 10;
 
-// DSM_ACCESS_FILE is only set by the local development server (tools/local-router.php)
+// DSM_ACCESS_FILE and DSM_DATA_FOLDER are only set by the local development server (tools/local-router.php)
 function dsm_access(string $folder): string {
   $file = defined('DSM_ACCESS_FILE') ? DSM_ACCESS_FILE : $folder . '/save-access.php';
   $hash = is_file($file) ? include $file : '';
@@ -88,7 +88,7 @@ if (!defined('DSM_SAVE_TEST')) {
     (string) ($_GET['file'] ?? ''),
     (string) ($_SERVER['HTTP_X_DSM_KEY'] ?? ''),
     function () { return file_get_contents('php://input', false, null, 0, DSM_MAX + 1); },
-    __DIR__
+    defined('DSM_DATA_FOLDER') ? DSM_DATA_FOLDER : __DIR__
   );
   if ($status === 403) sleep(1); // slow down guessing
   http_response_code($status);

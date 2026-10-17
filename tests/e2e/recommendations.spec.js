@@ -4,19 +4,44 @@ const { test, expect, open, data, OFF } = require("./helpers.js");
 const { R } = data();
 const pref = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-recs")));
 const ask = page => page.locator(".ask[role=dialog]");
+// First question: language, then "Möchten Sie Buchempfehlungen sehen?"
+const language = (page, l = "de") => ask(page).locator(`[data-a="${l}"]`).click();
 
 test.describe("first visit", () => {
   test.use({ storage: {} });
 
-  test('the question appears: "Möchten Sie Buchempfehlungen sehen?"', async ({ page }) => {
+  test('first the language, then "Möchten Sie Buchempfehlungen sehen?"', async ({ page }) => {
     await open(page);
     await expect(ask(page)).toBeVisible();
+    await expect(ask(page).locator("#ask-t")).toHaveText("Sprache · Lingua");
+    await expect(ask(page).locator('[data-a="de"], [data-a="it"]')).toHaveText(["Deutsch", "Italiano"]);
+    await expect(ask(page).locator(".progress")).toHaveCount(0);
+    await language(page);
     await expect(ask(page).locator("#ask-t")).toHaveText("Buchempfehlungen");
     await expect(ask(page).locator(".lead")).toHaveText("Möchten Sie Buchempfehlungen sehen?");
+    await ask(page).locator('[data-a="back"]').click();
+    await expect(ask(page).locator("#ask-t")).toHaveText("Sprache · Lingua");
+  });
+
+  test("no focus ring on a button when opening", async ({ page }) => {
+    await open(page);
+    await expect(ask(page)).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => document.activeElement.matches("button") && document.activeElement.matches(":focus-visible"))).toBe(false);
+    expect(await page.evaluate(() => !!document.activeElement.closest(".ask"))).toBe(true);
+  });
+
+  test("Italiano switches the page, the questions come in Italian", async ({ page }) => {
+    await open(page);
+    await language(page, "it");
+    await expect(ask(page).locator(".lead")).toHaveText("Desidera vedere dei consigli di lettura?");
+    await expect(page.locator("html")).toHaveAttribute("lang", "it");
+    expect(await page.evaluate(() => localStorage.getItem("dsm-lang"))).toBe("it");
   });
 
   test("no → saved, notice, no recommendations, no repeated question", async ({ page }) => {
     await open(page);
+    await language(page);
     await ask(page).locator('[data-a="no"]').click();
     await expect(ask(page)).toBeHidden();
     await expect(page.locator(".toast")).toContainText("Einstellungen");
@@ -38,6 +63,7 @@ test.describe("first visit", () => {
   for (const [g, label] of [["middle", "Mittelstufe"], ["upper", "Oberstufe"]]) {
     test(`yes → ${label} → recommendations visible`, async ({ page }) => {
       await open(page);
+      await language(page);
       await ask(page).locator('[data-a="yes"]').click();
       await expect(ask(page).locator("#ask-t")).toHaveText("Für wen?");
       await expect(ask(page).locator(".choice b")).toHaveText(["Mittelstufe", "Oberstufe", "Erwachsenenliteratur"]);
@@ -52,6 +78,7 @@ test.describe("first visit", () => {
 
   test("adult literature → fiction / nonfiction / biographies, back works", async ({ page }) => {
     await open(page);
+    await language(page);
     await ask(page).locator('[data-a="yes"]').click();
     await ask(page).locator('.choice[data-g="adult"]').click();
     await expect(ask(page).locator("#ask-t")).toHaveText("Welcher Bereich?");
@@ -67,9 +94,11 @@ test.describe("first visit", () => {
     await expect(page.locator("#recs-open small")).toHaveText("Erwachsenenliteratur · Biografien & Geschichte");
   });
 
-  test("question in Italian", async ({ page }) => {
+  test("saved Italian: Italiano preselected, question in Italian", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("dsm-lang", "it"));
     await open(page);
+    await expect(ask(page).locator('[data-a="it"]')).toHaveAttribute("data-variant", "glass-primary");
+    await language(page, "it");
     await expect(ask(page).locator(".lead")).toHaveText("Desidera vedere dei consigli di lettura?");
   });
 

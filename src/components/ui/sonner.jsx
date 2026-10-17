@@ -14,7 +14,8 @@ function Toaster(props) {
       toastOptions={{
         unstyled: true,
         classNames: {
-          toast: "toast glass relative mx-auto w-max max-w-[min(30rem,calc(100vw-32px))] rounded-2xl px-[18px] py-3 text-m",
+          // font-sans: Sonner sets its own system font on the toaster, which would otherwise override Fira Sans
+          toast: "toast glass relative font-sans mx-auto w-max max-w-[min(30rem,calc(100vw-32px))] rounded-2xl px-[18px] py-3 text-m",
         },
       }}
       {...props}

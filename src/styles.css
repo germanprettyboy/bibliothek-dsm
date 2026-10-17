@@ -345,9 +345,26 @@
     .scrim.detail[data-state="open"] { animation: fade .12s ease-out; }
     .scrim.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
   }
+  /* Book detail on the phone: a screen-high sheet, lib/swipe.js moves it via transform (half / full / away).
+     Before the script's first step it lies below the screen so it doesn't flash. */
+  @media (max-width: 39.999rem) {
+    #detail {
+      height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px))); max-height: none; overflow: hidden;
+      display: flex; flex-direction: column; transform: translateY(100%); will-change: transform; touch-action: none;
+    }
+    #detail > .inner { flex: 0 1 auto; min-height: 0; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-y; }
+    #detail .grab { flex: none; width: 40px; height: 4px; margin-top: 10px; transition: width .15s var(--snap), background-color .15s; }
+    #detail.dragging .grab { width: 56px; background: var(--muted); }
+    #detail[data-state="open"] { animation: none; }
+    #detail[data-state="closed"] { animation: sheet-away var(--t-out) var(--ease-in) forwards; }
+  }
   /* Previous recommendations: almost as tall as the screen on phones */
   .sheet.archive { height: 92dvh; }
   @media (min-width: 40rem) { .sheet.archive { height: auto; width: min(40rem, calc(100% - 48px)); } }
+  /* Categories: fixed height so the dialog doesn't jump while searching */
+  .sheet.categories { height: 92dvh; }
+  @media (min-width: 40rem) { .sheet.categories { height: min(44rem, 88dvh); } }
+  .cat-list > li { border-top: 1px solid var(--line); }
   .pane {
     padding: 18px max(20px, env(safe-area-inset-right, 0px)) calc(26px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
     display: grid; gap: 20px;
@@ -357,17 +374,13 @@
   /* Questions on the first visit: steps glide in */
   .step { animation: step-in var(--t-base) var(--ease); }
   /* Bookshelf as the head of the first question: spines in the logo colors stand up one after another */
-  .shelf { display: flex; align-items: flex-end; gap: 4px; height: 64px; padding-inline: 2px; border-bottom: 2px solid var(--line); }
+  .shelf { display: flex; align-items: flex-end; gap: 4px; height: 64px; padding-inline: 2px; }
   .shelf i {
     width: var(--b, 12px); height: var(--h, 48px); flex: none; border-radius: 3px 3px 1px 1px; background: var(--c);
     box-shadow: inset 2px 0 0 rgba(255, 255, 255, .28), inset -2px 0 0 rgba(0, 0, 0, .08);
     transform-origin: 50% 100%; animation: spine var(--t-slow) var(--snap) both; animation-delay: calc(var(--n, 0) * 35ms + 80ms);
   }
   .shelf i.leaning { rotate: 12deg; translate: 4px 0; transform-origin: 0 100%; }
-  /* Progress of the questions: three dashes, completed ones in the text color */
-  .progress { display: flex; gap: 6px; }
-  .progress i { height: 4px; width: 24px; border-radius: 2px; background: var(--line); transition: background-color var(--t-base) var(--ease); }
-  .progress i.on { background: var(--fg); }
 
   /* ---------- Cover ---------- */
   .cover { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 4px 8px 8px 4px; overflow: hidden; background: var(--surface); }
@@ -385,7 +398,7 @@
   }
   .cover .ph::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 9px; background: var(--ph-c, var(--red)); box-shadow: 2px 0 0 rgba(0,0,0,.08); }
   .cover .ph::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.08), transparent 14%, transparent 86%, rgba(0,0,0,.05)); pointer-events: none; }
-  .cover .ph b { font-weight: 600; font-size: var(--fs-s); line-height: 1.2; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .cover .ph b { font-weight: 600; font-size: var(--fs-s); line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
   .cover .ph .rule { height: 2px; width: 26px; background: var(--ph-c, var(--red)); }
   .cover.small .ph { padding: 6px 4px 6px 12px; }
   .cover.small .ph b { margin: 0; -webkit-line-clamp: 4; display: none; }
@@ -460,6 +473,7 @@
   /* Loading note above the list; after 6 s a note about the slow connection. Only the current language. */
   .meta .ld { grid-area: 1 / 1; }
   :root[lang="it"] .meta .ld[lang="de"], :root:not([lang="it"]) .meta .ld[lang="it"] { display: none; }
+  :root[lang="it"] .sp[lang="de"], :root:not([lang="it"]) .sp[lang="it"] { display: none; }
   .meta .ld:not(.slow) { animation: ld-out var(--t-slow) ease-out 6s both; }
   .meta .ld.slow { visibility: hidden; animation: ld-slow var(--t-slow) ease-out 6s both; }
   /* Recommendations and info card: placeholder only if chosen or shown on the last visit (head.js) */
@@ -516,6 +530,7 @@
 @keyframes pop { from { transform: translateY(14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pop-out { to { transform: translateY(8px) scale(.98); opacity: 0; } }
 @keyframes snap-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sheet-away { to { transform: translateY(100%); } }
 @keyframes snap-down { to { transform: translateY(16px); opacity: 0; } }
 @keyframes snap-pop { from { transform: translateY(8px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes shimmer { to { transform: translateX(100%); } }

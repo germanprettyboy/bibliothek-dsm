@@ -51,7 +51,14 @@ overview() {
       empty="$empty  $b – $wt\n"
     fi
   done
-  [ -n "$(g status --porcelain --untracked-files=no)" ] && note="Main checkout ($MAIN) has uncommitted changes on main.\n"
+  local changed f data_only=1
+  changed=$(g diff --name-only HEAD)
+  for f in $changed; do case " $DATA_FILES " in *" $f "*) ;; *) data_only=0 ;; esac; done
+  if [ -n "$changed" ] && [ "$data_only" = 1 ]; then
+    note="Main checkout: only admin data changed ($(echo $changed)) – npm run integrate takes it over via a merge.\n"
+  elif [ -n "$changed" ]; then
+    note="Main checkout ($MAIN) has uncommitted changes on main.\n"
+  fi
   local enc
   enc=$(check_encryption main) || note="$note$enc\n"
 
@@ -65,12 +72,41 @@ overview() {
   return 0
 }
 
+# If ONLY data files are changed in the main checkout (the admin page published into website/ via folder access),
+# that is intended content: via its own branch data-<time> into main as a merge commit (main only via merges),
+# instead of blocking the integration. Other changes alongside → do nothing, integrate() aborts as before.
+DATA_FILES="website/books.js website/recommendations.js website/info.js"
+take_over_data() {
+  local changed f idx tree commit branch
+  changed=$(g diff --name-only HEAD)
+  [ -z "$changed" ] && return 0
+  for f in $changed; do case " $DATA_FILES " in *" $f "*) ;; *) return 0 ;; esac; done
+  for f in $changed; do node --check "$MAIN/$f" 2>/dev/null || { echo "$f is not valid JavaScript – not taken over." >&2; return 0; }; done
+  idx=$(mktemp)
+  GIT_INDEX_FILE=$idx g read-tree HEAD && GIT_INDEX_FILE=$idx g add -- $changed &&
+    tree=$(GIT_INDEX_FILE=$idx g write-tree) &&
+    commit=$(g commit-tree "$tree" -p HEAD -m "Data from the admin page: $(echo $changed | sed 's#website/##g')") || { rm -f "$idx"; return 0; }
+  rm -f "$idx"
+  branch="data-$(date +%Y%m%d-%H%M%S)"
+  g branch "$branch" "$commit"
+  # the content is now in the commit; working copy back to HEAD so the merge restores it
+  g checkout HEAD -- $changed
+  if g merge --no-ff -q -m "Merge branch '$branch'" "$branch"; then
+    g branch -d -q "$branch"
+    echo "Admin data taken over: $(g log -1 --format='%h %s')"
+  else
+    g merge --abort 2>/dev/null
+    echo "Admin data not taken over – the content is in branch $branch." >&2
+  fi
+}
+
 integrate() {
   local b=${1:-} wt n output conflicts f failed=0
   [ -z "$b" ] && { echo "Usage: tools/branches.sh integrate <branch>" >&2; exit 2; }
   [ "$b" = main ] && { echo "main cannot be integrated into itself." >&2; exit 2; }
   g rev-parse --verify -q "refs/heads/$b" >/dev/null || { echo "Branch $b does not exist." >&2; exit 1; }
   [ "$(g symbolic-ref --short HEAD)" = main ] || { echo "Main checkout $MAIN is not on main." >&2; exit 1; }
+  take_over_data
   [ -z "$(g status --porcelain --untracked-files=no)" ] || { echo "Main checkout has uncommitted changes – clear that up first (ask Johann)." >&2; exit 1; }
   wt=$(worktree_of "$b")
   if [ -n "$wt" ] && [ -d "$wt" ] && [ "$(uncommitted "$wt")" -gt 0 ]; then

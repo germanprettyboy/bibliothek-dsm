@@ -88,7 +88,7 @@ describe("external connections", () => {
   test("local references in index.html and admin.html exist", () => {
     for (const f of ["index.html", "admin.html"]) {
       for (const m of read(f).matchAll(/(?:src|href)="([^"#:]+)"/g)) {
-        if (m[1] === "./") continue;
+        if (m[1] === "./" || m[1] === "info.js") continue; // info.js only lives on the webspace (not committed)
         assert.ok(fs.existsSync(path.join(WEB, m[1])), f + ": " + m[1]);
       }
     }

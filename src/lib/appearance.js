@@ -3,12 +3,12 @@
 import { useSyncExternalStore } from "react";
 
 import { store, log } from "@/lib/storage";
+import { reduced } from "@/lib/environment";
 
 const root = document.documentElement;
 let prefs = { theme: store.get("dsm-theme") || "auto", font: store.get("dsm-font") === "large", contrast: store.get("dsm-contrast") === "high" };
 const listeners = new Set();
 const darkMq = matchMedia("(prefers-color-scheme: dark)");
-const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 const isDark = p => p.theme === "dark" || (p.theme === "auto" && darkMq.matches);
 
 function apply() {

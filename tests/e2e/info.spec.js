@@ -6,6 +6,7 @@ const { test, expect, open, OFF } = require("./helpers.js");
 
 const HOURS = { mon: [], tue: [], wed: [["08:00", "12:00"], ["13:00", "15:00"]], thu: [["10:00", "14:00"]], fri: [], sat: [] };
 const info = (extra = {}) => JSON.stringify({ updated: "2026-10-01", hours: HOURS, notice: { de: "", it: "" }, closures: [], ...extra });
+const EMPTY = info({ hours: { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [] } });
 const at = async (page, hhmm) => page.clock.setFixedTime(new Date(`2026-10-14T${hhmm}:00+02:00`));
 const card = page => page.locator("#info .info-card");
 
@@ -18,7 +19,8 @@ async function withInfo(page, data, hhmm) {
 test.describe("info card", () => {
   test.use({ storage: { "dsm-recs": OFF } });
 
-  test("published info.js without hours and closing days: no card", async ({ page }) => {
+  test("info.js without hours and closing days: no card", async ({ page }) => {
+    await page.route("**/info.js", route => route.fulfill({ body: `window.DSM_INFO = ${EMPTY};\n`, contentType: "text/javascript" }));
     await open(page);
     await expect(page.locator("#info")).toBeHidden();
   });
