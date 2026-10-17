@@ -178,6 +178,10 @@ Kein `dark:` in Klassen – Farben wechseln über die Tokens. shadcn-Komponenten
   Bewegung: sofort. Keine Klasse an `<html>` zum Abschalten von Übergängen (`:root.x *` = zweimal alles neu berechnen).
 - Sprache (`components/kopf.jsx`): Markierung zuerst (`.seg[data-an]`, `will-change: transform`), `setLang` erst nach dem
   nächsten Frame (rAF + setTimeout). Sonner-Toaster mit festem `dir="ltr"` (sonst `getComputedStyle(html)` je Render).
+- Unschärfe klein: Schleier `blur(8px)`, Glas `blur(18px)` (vorher 12/30). Beide stapeln sich und werden in jedem Bild
+  einer Fenster-Animation neu gerechnet; ohne Unschärfe drittelt sich die GPU-Zeit (Software-GPU). Nicht wieder erhöhen.
+- Markierungen DE/IT und Theme: `--t-fast` (150 ms) mit `--snap`. Buch-Detail ab 40rem: auf 140 ms, zu 110 ms, Schleier 120/110 ms.
+- protokoll.js gibt erst nach dem Bild in die Konsole aus (`requestIdleCallback`, sonst 50 ms); Eintrag und Zeit entstehen sofort.
 - Dauer: hinein `--t-base` 200 / `--t-slow` 250 ms, hinaus `--t-out` 160 ms. Messskripte zum Wiederholen nicht eingecheckt
   (Muster: Playwright + CDP `setCPUThrottlingRate` 4, PerformanceObserver `long-animation-frame`).
 - Logos als WebP 360 px; dunkles Logo `loading="lazy"` (im hellen Modus nicht geladen). PNGs bleiben für die Anleitung.

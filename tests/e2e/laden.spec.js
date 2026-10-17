@@ -43,9 +43,12 @@ test.describe("Laden bei langsamer Verbindung", () => {
     const freigeben = await bremsen(page);
     await page.goto("index.html", { waitUntil: "commit" });
     await expect(page.locator("#meta .ld:visible")).toHaveText("Bücherliste wird geladen …");
-    // CSS-Animationen vorspulen statt 6 s zu warten
-    await page.evaluate(() => document.querySelectorAll("#meta .ld").forEach(el => el.getAnimations().forEach(a => { a.currentTime = 7000; })));
-    await expect(page.locator("#meta .ld:visible")).toHaveText("Langsame Verbindung – die Liste lädt noch …");
+    // CSS-Animationen vorspulen statt 6 s zu warten. Wiederholt: Ersetzt React danach das feste Gerüst,
+    // beginnen die Animationen der neuen Hinweise wieder bei null.
+    await expect(async () => {
+      await page.evaluate(() => document.querySelectorAll("#meta .ld").forEach(el => el.getAnimations().forEach(a => { a.currentTime = 7000; })));
+      await expect(page.locator("#meta .ld:visible")).toHaveText("Langsame Verbindung – die Liste lädt noch …", { timeout: 500 });
+    }).toPass();
     freigeben();
     await page.waitForLoadState("load");
     await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
