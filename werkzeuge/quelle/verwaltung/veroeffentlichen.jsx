@@ -3,8 +3,7 @@
       Schlüssel DSM_SPEICHERN_SCHLUESSEL steht vorn im verschlüsselten Klartext (werkzeuge/admin-verschluesseln.js).
    2. Chrome/Edge (File System Access API) schreiben direkt in den Website-Ordner. Der Ordner wird beim
       ersten Mal gewählt und in IndexedDB gemerkt; geprüft wird, dass index.html darin liegt.
-   3. Andere Browser: Download.
-   Immer da (online oder mit Ordnerzugriff): „Stattdessen herunterladen“ – Ausweg ohne Website-Ordner (z. B. Schul-PC). */
+   3. Andere Browser: Download. */
 /* global DSM_SPEICHERN_SCHLUESSEL */
 import * as React from "react";
 import { CheckIcon, DownloadIcon } from "lucide-react";
@@ -146,13 +145,12 @@ export function Veroeffentlichen({ datei, bau, ids, alt, howKey, vorschau, onVor
         ) : null}
         {children}
       </CardFooter>
-      <div className={cn("pub", (m || direkt || einrichten) && "mt-3 grid gap-2.5")} data-datei={datei}>
+      <div className={cn("pub", (m || einrichten || (z.ordner && !online)) && "mt-3 grid gap-2.5")} data-datei={datei}>
         {m ? <p className={cn("flag m-0", m.art)} role="status">{t(m.key, m.vars)}</p> : null}
         {einrichten ? <p className="note m-0 text-s text-muted-foreground" data-pub-einrichten>{t(einrichten)}</p> : null}
-        {direkt ? (
+        {z.ordner && !online ? (
           <p className="note m-0 text-s text-muted-foreground">
-            {z.ordner && !online ? <>{t("pubOrdner", { o: z.ordner.name })}{" · "}<Button variant="ghost" size="text" className={textKnopf} data-pub-wechseln onClick={() => wechseln(datei)}>{t("pubChange")}</Button>{" · "}</> : null}
-            <Button variant="ghost" size="text" className={textKnopf} data-pub-laden onClick={() => { herunterladen(datei, bau().text); log("Veröffentlichen", `${datei} stattdessen heruntergeladen`); }}>{t("pubLaden")}</Button>
+            {t("pubOrdner", { o: z.ordner.name })}{" · "}<Button variant="ghost" size="text" className={textKnopf} data-pub-wechseln onClick={() => wechseln(datei)}>{t("pubChange")}</Button>
           </p>
         ) : null}
       </div>

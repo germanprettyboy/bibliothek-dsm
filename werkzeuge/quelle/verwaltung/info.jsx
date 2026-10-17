@@ -208,7 +208,7 @@ export function Info({ info, setInfo }) {
       <Veroeffentlichen
         datei="info.js" bau={bau} ids={{ knopf: "i-dl", how: "i-how", vorschau: "i-prev" }} alt="iDl" howKey="iHow" vorschau
         onVorschau={() => store.set("dsm-vorschau-info", JSON.stringify(infoOut(info)))}
-        nachher={<p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="i-state">{t("iSaved") + (bad ? " · " + t("iIncomplete", { n: nf(bad) }) : "")}</p>}
+        nachher={bad ? <p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="i-state">{t("iIncomplete", { n: nf(bad) })}</p> : null}
       >
         <Button variant="outline" id="i-reset" onClick={verwerfen}><span>{t(armed ? "eResetSure" : "eReset")}</span></Button>
       </Veroeffentlichen>
