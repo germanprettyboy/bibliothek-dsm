@@ -9,10 +9,21 @@ test.describe("Liste", () => {
     await expect(page.locator("#list .row")).toHaveCount(B.buecher.length);
     await expect(page.locator("#list img")).toHaveCount(0);
     await expect(page.locator("#list .cover")).toHaveCount(0);
-    await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
+    await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("de-DE")} Bücher`);
     const erste = page.locator("#list .row").first();
     await expect(erste.locator(".t")).toHaveText(B.buecher[0].t);
     await expect(erste.locator(".a")).toHaveText(B.buecher[0].a.join(", "));
+  });
+
+  test("kein Footer; Sprunglink erscheint beim ersten Tab und führt zur Suche", async ({ page }) => {
+    await oeffnen(page);
+    await expect(page.locator("footer")).toHaveCount(0);
+    await page.keyboard.press("Tab");
+    const sprung = page.locator('a[href="#q"]');
+    await expect(sprung).toBeFocused();
+    await expect(sprung).toHaveText("Zur Suche springen");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#q")).toBeFocused();
   });
 
   test("Buchstaben-Abschnitte mit Ankern", async ({ page }) => {
@@ -108,7 +119,7 @@ test.describe("Suche", () => {
     await expect(page.locator("#list .row")).toHaveCount(B.buecher.length);
     await suche(page, "tschick");
     await page.locator("#q").press("Escape");
-    await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
+    await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("de-DE")} Bücher`);
   });
 
   test("HTML in der Suche wird nicht ausgeführt", async ({ page }) => {
