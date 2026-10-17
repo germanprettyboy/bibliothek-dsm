@@ -3,12 +3,12 @@
 import { useSyncExternalStore } from "react";
 
 import { store, log } from "@/lib/speicher";
+import { still } from "@/lib/umwelt";
 
 const root = document.documentElement;
 let prefs = { theme: store.get("dsm-theme") || "auto", font: store.get("dsm-font") === "large", contrast: store.get("dsm-contrast") === "high" };
 const hoerer = new Set();
 const dunkelMq = matchMedia("(prefers-color-scheme: dark)");
-const still = matchMedia("(prefers-reduced-motion: reduce)");
 const dunkel = p => p.theme === "dark" || (p.theme === "auto" && dunkelMq.matches);
 
 function anwenden() {

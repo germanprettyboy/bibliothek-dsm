@@ -9,6 +9,7 @@ import { ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/speicher";
+import { C, still } from "@/lib/umwelt";
 import { woerter, useSprache } from "@/lib/sprache";
 import { norm } from "@/bibliothek/daten";
 import { KategorienFenster, katModell } from "@/bibliothek/kategorien";
@@ -35,8 +36,6 @@ const lid = l => "L-" + (l === "#" ? "0" : l);
 const CHUNK = 40;
 const ERSTE = 2, STUFE = 20; // Abschnitte im ersten Bild, Abschnitte je weiterem Schritt
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const C = () => window.DSMCovers;
-const still = matchMedia("(prefers-reduced-motion: reduce)");
 const wide = matchMedia("(min-width: 48rem)");
 
 // Treffer markieren wie die Suche (norm): ohne Akzente, ß = ss – „kastner“ markiert „Kästner“.

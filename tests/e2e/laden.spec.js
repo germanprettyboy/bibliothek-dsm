@@ -5,13 +5,17 @@
 const { test, expect, AUS, daten } = require("./hilfen.js");
 
 const { B, E } = daten();
+const OHNE_INFO = 'window.DSM_INFO = {"stand":"2026-10-01","zeiten":{"mo":[],"di":[],"mi":[],"do":[],"fr":[],"sa":[]},"hinweis":{"de":"","it":""},"schliessungen":[]};\n';
 const AN = JSON.stringify({ want: true, gruppe: "mittelstufe" });
 
-// Datei (Standard books.js) erst nach freigeben() ausliefern
-async function bremsen(page, muster = "**/books.js") {
+// Datei (Standard books.js) erst nach freigeben() ausliefern, mit inhalt statt der echten Datei
+async function bremsen(page, muster = "**/books.js", inhalt) {
   let frei;
   const tor = new Promise(r => { frei = r; });
-  await page.route(muster, async route => { await tor; await route.continue(); });
+  await page.route(muster, async route => {
+    await tor;
+    await (inhalt ? route.fulfill({ body: inhalt, contentType: "text/javascript" }) : route.continue());
+  });
   return frei;
 }
 
@@ -127,7 +131,7 @@ test.describe("Platzhalter für Logo, Info-Karte und Verwaltung", () => {
   test.describe("Info-Karte beim letzten Besuch gezeigt", () => {
     test.use({ speicher: { "dsm-empf": AUS, "dsm-info-karte": "1" } });
     test("Platzhalter, bis info-panel.js entscheidet; ohne Karte verschwindet er und wird vergessen", async ({ page }) => {
-      const infoFrei = await bremsen(page, "**/info.js");
+      const infoFrei = await bremsen(page, "**/info.js", OHNE_INFO);
       const booksFrei = await bremsen(page);
       await page.goto("index.html", { waitUntil: "commit" });
       await expect(page.locator("#info .skel")).toBeVisible();
