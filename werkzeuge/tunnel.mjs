@@ -145,8 +145,9 @@ async function devServer(port) {
   }],
 };\n`);
   starte(process.execPath, [path.join(ROOT, "werkzeuge", "bauen.mjs"), "--watch"], { stdio: "inherit" });
-  starte("npx", ["--yes", "browser-sync@3", "start", "--config", cfg], { stdio: "inherit" });
-  const da = await erreichbar(`http://127.0.0.1:${port}/index.html`, 120); // npx fragt bei @3 ggf. erst die Registry
+  // feste Version + --prefer-offline: npx nimmt den eigenen Cache ohne Registry-Abfrage (siehe lokal.mjs)
+  starte("npx", ["--yes", "--prefer-offline", "browser-sync@3.0.4", "start", "--config", cfg], { stdio: "inherit" });
+  const da = await erreichbar(`http://127.0.0.1:${port}/index.html`, 120); // erster Start: npx lädt browser-sync
   if (da !== true) throw new Error(`browser-sync antwortet nicht (${da})`);
 }
 

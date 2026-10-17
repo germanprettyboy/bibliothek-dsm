@@ -26,7 +26,8 @@ src/       ← Quelltext, NICHT hochladen
   kopf.js                    klassisches Skript im <head>: Theme/Sprache vor dem ersten Zeichnen, Platzhalter-Merker
   styles.css                 Tailwind v4: DSM-Tokens, Theme, Bausteine (Liste, Cover, Glas, Platzhalter)
   components/ui/             shadcn/ui, an DSM angepasst; components/: fenster (Glas-Dialog), kopf, einstellungen
-  lib/                       utils (cn), speicher (localStorage, log), sprache (t()), darstellung, hinweis (Toast)
+  lib/                       utils (cn), speicher (localStorage, log), sprache (t()), darstellung, hinweis (Toast),
+                             umwelt (`still` = reduzierte Bewegung, `C()` = covers.js), wischen (Handy-Sheet Detail)
   bibliothek/                main, app, daten, liste, detail (+Zoom), cover, empfehlungen (+Archiv, Fragen), info, wahl
   verwaltung/                main, sperre (PBKDF2/AES-GCM), gemeinsam (window.DSM_GEMEINSAM)
 werkzeuge/ ← NICHT hochladen
@@ -40,6 +41,8 @@ werkzeuge/ ← NICHT hochladen
                              tests/.tmp/lokal/, setzt DSM_ZUGANG_DATEI. lokal-adresse.cjs (NODE_OPTIONS): nur 127.0.0.1
                              (php-wasm übergeht sonst „-S“ und lauscht im ganzen Netz), Log gefiltert, belegter Port → Meldung
   branches.sh                offene Branches + Integration in main
+  npx (php-wasm, browser-sync, shadcn) immer mit exakter Version + `--prefer-offline`: ein Cache-Ordner je Paketangabe
+  (~/.npm/_npx), sonst Registry-Abfrage je Start bzw. Neuinstallation (php-wasm ≈470 MB). Bewusst nicht in package.json.
 components.json, vite.config.js   shadcn (JSX, Aliase @/components, @/lib) / Editor+CLI
 tests/     unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)     ← NICHT hochladen
 doku/      Hintergrund, u. a. dsmailand-techstack.md                           ← NICHT hochladen
@@ -53,7 +56,7 @@ npm install
 npm run build          # src/ → website/ (nach JEDER Änderung an src/, Ergebnis committen)
 npm run books          # daten/*.winbook → website/books.js
 npm run serve          # http://localhost:8765
-npm run dev            # Watch-Build + Live-Reload (browser-sync über npx)
+npm run dev            # Watch-Build + Live-Reload (browser-sync über npx, gepinnt)
 npm run tunnel         # website/ unter https://….trycloudflare.com (Handy/Schul-PC); tunnel:dev mit Watch + Live-Reload
 npm run lokal          # wie Webspace: PHP + echtes speichern.php, Watch-Build, Passwort „lokal“ (DSM_LOKAL_PW),
                        #   http://127.0.0.1:8765/admin.html
@@ -114,6 +117,9 @@ von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemeinsam.js` ste
 - Echtes Cover im Detail antippen → `#zoom` (zweiter Radix-Dialog über dem Detail, Glas-Schleier), FLIP-Flug (Web
   Animations, nur transform, `--snap`, 240/180 ms) in die Mitte, max. 27rem. Nur dann OL „L“ laden; Google höchstens
   2,5-fach. Platzhalter nicht vergrößerbar.
+- Buch-Detail auf dem Handy (<40rem, `lib/wischen.js`): Sheet bildschirmhoch, per transform halbhoch geparkt, fliegt von
+  unten ein (Feder als `linear()`), Finger führt 1:1, hoch wischen = Vollbild (Inhalt scrollt), runter = halb, weiter =
+  schließen (Geschwindigkeit entscheidet), Schleier blendet mit. Ab 40rem / reduzierte Bewegung unverändert. Test: detail.spec „Wischen“.
 - Fenster (Detail, Einstellungen, Fragen, Öffnungszeiten, Archiv): shadcn `Dialog` als Glas (`.glass.sheet`), Schleier
   `.schleier` unscharf + leicht dunkel; Handy Bottom Sheet, ab 40rem mittig. Unschärfe immer an, entfällt nur bei
   „Transparenz reduzieren“ und beim Glas in hohem Kontrast.
@@ -219,7 +225,7 @@ Nach jeder Änderung `npm run build` und `npm run test:alle`.
   gezählt), Namensabgleich, Zusammenfassen, ISBN, Sortierung, `toScript`.
 - `unit/covers` – covers.js in VM-Sandbox: Reihenfolge, Ersatzbild, keine Google-API, nie `/b/isbn/`, Cache-TTL, Warteschlangen.
 - `unit/verschluesseln` – Roundtrip, falsches Passwort, React nur aus `DSM_GEMEINSAM`. Mit `DSM_ADMIN_PW=…`: admin.enc.js aktuell?
-- `unit/speichern` – speichern.php gegen Temp-Ordner. Braucht `php` im PATH oder `DSM_PHP="npx --yes @php-wasm/cli"`, sonst übersprungen.
+- `unit/speichern` – speichern.php gegen Temp-Ordner. Braucht `php` im PATH oder `DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56"`, sonst übersprungen.
 - `unit/bau` – baut nach tests/.tmp/bau, byte-genau gegen website/ (veraltet → `npm run build`).
 - `unit/daten` – Format der Datendateien, Empfehlungs-Schlüssel im Bestand, Kategorien-Übersetzung.
 - `unit/regeln` – harte Regeln an src/ und website/: keine externen Hosts außer ekz/OL/Google-Bilder, keine Google Fonts,
