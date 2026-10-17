@@ -49,6 +49,8 @@
   --w: 46rem;
   /* Bewegung: kurz (150–250 ms). Hinein mit --ease (ease-out), hinaus schneller (--t-out) mit --ease-in. */
   --t-fast: 150ms; --t-base: 200ms; --t-slow: 250ms; --t-out: 160ms;
+  /* Ausnahme: Farbwechsel der ganzen Seite (Theme/Kontrast) blendet ruhiger über */
+  --t-farbe: 350ms; --ease-farbe: cubic-bezier(.4, 0, .2, 1);
   --ease: cubic-bezier(.2, .7, .2, 1);
   --ease-in: cubic-bezier(.4, 0, 1, 1);
   --snap: cubic-bezier(.25, 1, .35, 1);
@@ -199,12 +201,10 @@
   }
 
   /* Farbwechsel (Theme, Kontrast, lib/darstellung.js): Die Seite wird einmal neu berechnet und als Bild überblendet
-     (View Transition), statt jede Fläche einzeln zu animieren. Die Theme-Wahl (.seg3, nur eine zur Zeit) liegt als
-     eigene, live gezeichnete Ebene obenauf: ihre Markierung gleitet, statt als altes Bild stehen zu bleiben. */
-  .seg3 { view-transition-name: dsm-wahl; }
-  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-base); animation-timing-function: ease-out; }
-  ::view-transition-old(dsm-wahl) { display: none; }
-  ::view-transition-group(dsm-wahl), ::view-transition-new(dsm-wahl) { animation: none; }
+     (View Transition), statt jede Fläche einzeln zu animieren. Hell ↔ dunkel ist ein großer Helligkeitssprung: länger
+     (--t-farbe) und weich an beiden Enden, sonst wirkt es wie ein Aufblitzen. Altes und neues Bild mit derselben Kurve,
+     damit sie sich zu jedem Zeitpunkt zu voller Deckkraft ergänzen. */
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-farbe); animation-timing-function: var(--ease-farbe); }
 
   /* Klebende Suchleiste: deckend; über ihr deckt ein fester Streifen die Statusleiste ab (iPhone, viewport-fit=cover) */
   .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid transparent; transition: border-color .2s, box-shadow .2s; }

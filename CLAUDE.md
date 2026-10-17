@@ -199,9 +199,11 @@ shadcn-Komponenten nach `ui:add` immer anpassen
 - Die Seite hat ~17.000 Elemente (Liste). Jede Änderung einer vererbten Eigenschaft an `<html>`/`<body>` trifft alle:
   KEINE Übergänge auf `body` (color/background), nichts Vererbtes animieren. `.list { pointer-events: auto }` fängt
   Radix' `body { pointer-events: none }` beim Öffnen jedes Fensters ab (29 → 4 ms, 4-fach gedrosselt).
-- Theme/Kontrast (`lib/darstellung.js`): Schalter sofort (React), Umfärben per `document.startViewTransition` als ein
-  Überblenden (`--t-base`); `.seg3` hat `view-transition-name: dsm-wahl` und gleitet live obenauf. Ohne API / reduzierte
-  Bewegung: sofort. Keine Klasse an `<html>` zum Abschalten von Übergängen (`:root.x *` = zweimal alles neu berechnen).
+- Theme/Kontrast (`lib/darstellung.js`): Markierung/Schalter sofort (React) und erst zu Ende gleiten lassen (150 ms), dann
+  die ganze Seite per `document.startViewTransition` in einem Stück überblenden (`--t-farbe` 350 ms, `--ease-farbe`, alt und
+  neu dieselbe Kurve). KEIN eigener Layer für `.seg3` mehr (stand in neuen Farben als harter Block auf der alten Seite).
+  Vorher Logo-Bilder `loading="eager"` + `decode()` (max. 400 ms), sonst fehlt das dunkle Logo im neuen Bild. Ohne API /
+  reduzierte Bewegung: sofort. Keine Klasse an `<html>` zum Abschalten von Übergängen (`:root.x *` = zweimal alles neu berechnen).
 - Sprache (`components/kopf.jsx`): Markierung zuerst (`.seg[data-an]`, `will-change: transform`), `setLang` erst nach dem
   nächsten Frame (rAF + setTimeout). Sonner-Toaster mit festem `dir="ltr"` (sonst `getComputedStyle(html)` je Render).
 - Unschärfe klein: Schleier `blur(8px)`, Glas `blur(18px)` (vorher 12/30). Beide stapeln sich und werden in jedem Bild
