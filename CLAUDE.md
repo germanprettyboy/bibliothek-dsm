@@ -36,7 +36,7 @@ src/                ← Quelltext der Seiten (React + Tailwind + shadcn/ui), NIC
   styles.css          Tailwind v4: DSM-Tokens, Theme (nur DSM-Werte), Bausteine (Liste, Cover, Glas, Platzhalter)
   components/ui/      shadcn/ui-Komponenten, an DSM angepasst (button, input, dialog, switch, toggle(-group), tabs, …)
   components/         fenster (Glas-Dialog), kopf (Logo/Sprache/Einstellungen), einstellungen
-  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast), leistung (Unschärfe)
+  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast), leistung (Unschärfe), umwelt (`still` = reduzierte Bewegung, `C()` = covers.js)
   bibliothek/         Bücherliste: main, app, daten, liste, detail (+Zoom), cover, empfehlungen (+Archiv, Fragen), info, wahl
   verwaltung/         main (Seite), sperre (PBKDF2/AES-GCM), gemeinsam (window.DSM_GEMEINSAM für die Verwaltung)
 werkzeuge/          ← NICHT hochladen

@@ -3,12 +3,12 @@
    Zweimal, weil das erste Öffnen oft nur wegen Shader-Aufwärmen ruckelt. Die Stufe steht in localStorage dsm-blur
    ({stufe, t}); kopf.js setzt sie beim nächsten Laden vor dem ersten Zeichnen, nach 14 Tagen wird neu gemessen. */
 import { store, log } from "@/lib/speicher";
+import { still } from "@/lib/umwelt";
 
 const STUFEN = ["voll", "wenig", "aus"];
 const DAUER = 400;      // ms: Fenster-Animationen dauern 110–250 ms, danach ruht die Seite
 const LANG = 28;        // ms: Bildabstand darüber = sichtbares Ruckeln (unter ~35 Bildern/s)
 const root = document.documentElement;
-const still = matchMedia("(prefers-reduced-motion: reduce)");
 let schlecht = 0, laeuft = false;
 
 const stufe = () => root.dataset.blur || "voll";
