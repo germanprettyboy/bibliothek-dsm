@@ -16,10 +16,8 @@
   try { var e = JSON.parse(get("dsm-empf") || "null"); if (e && e.want && e.gruppe) root.setAttribute("data-empf", ""); } catch (err) { /* */ }
   // Info-Karte beim letzten Besuch gezeigt? Dann Platzhalter, bis die Seite sie zeichnet
   if (get("dsm-info-karte") === "1") root.setAttribute("data-info", "");
-  // Unschärfe nach gemessener Leistung (lib/leistung.js): gilt nur für diese Browser-Sitzung (sessionStorage), jeder neue
-  // Besuch beginnt mit voller Unschärfe. Der frühere dauerhafte Merker (localStorage, 14 Tage) wird gelöscht.
-  try { localStorage.removeItem("dsm-blur"); } catch (err) { /* */ }
-  try { var u = sessionStorage.getItem("dsm-blur"); if (u === "wenig" || u === "aus") root.setAttribute("data-blur", u); } catch (err) { /* */ }
+  // Alte Merker der früheren Leistungsmessung (Unschärfe abschalten) löschen: Unschärfe ist immer an
+  try { localStorage.removeItem("dsm-blur"); sessionStorage.removeItem("dsm-blur"); } catch (err) { /* */ }
   // Logo (.ld-bild) im festen HTML, bevor React startet; unsichtbare Bilder (andere Farbwelt) zählen nicht
   function bildDa(ev) {
     var img = ev.target, box = img.tagName === "IMG" && img.closest(".ld-bild");

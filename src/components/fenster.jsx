@@ -3,7 +3,6 @@
 import * as React from "react";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { blurMessen } from "@/lib/leistung";
 import { log } from "@/lib/speicher";
 import { useSprache } from "@/lib/sprache";
 
@@ -11,7 +10,6 @@ export function Fenster({ open, onOpenChange, name, titleId, className, overlayC
   const { t } = useSprache();
   const grund = React.useRef("Knopf");
   React.useEffect(() => { if (open) log("Fenster", `${name} geöffnet`); }, [open, name]);
-  React.useEffect(() => { if (open) blurMessen(); }, [open]);
   const wechsel = an => {
     if (!an) log("Fenster", `${name} geschlossen (${grund.current})`);
     grund.current = "Knopf";

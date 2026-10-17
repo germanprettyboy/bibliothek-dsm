@@ -35,7 +35,7 @@
   /* Fokusrahmen in Textfarbe: deutlich auf jeder Fläche (WCAG 2.4.11, mind. 3:1) */
   --focus: #333333;
   --veil: rgba(28, 24, 22, .26);
-  --veil-dicht: rgba(28, 24, 22, .4); --glass-dicht: rgba(250, 248, 246, .97); /* ohne Unschärfe (data-blur="aus") */
+  --veil-dicht: rgba(28, 24, 22, .4); --glass-dicht: rgba(250, 248, 246, .97); /* ohne Unschärfe (Transparenz reduzieren) */
   --glass: rgba(255, 255, 255, .72); --glass-brd: rgba(255, 255, 255, .7); --glass-edge: rgba(40, 30, 28, .1); --glass-hi: rgba(255, 255, 255, .9);
   --gb-top: rgba(255, 255, 255, .78); --gb-bot: rgba(255, 255, 255, .34);
   --shadow: 0 24px 60px rgba(40, 30, 28, .2);
@@ -308,13 +308,8 @@
     background: var(--veil);
     -webkit-backdrop-filter: blur(8px) saturate(1.15); backdrop-filter: blur(8px) saturate(1.15);
   }
-  /* Unschärfe nach Leistung (lib/leistung.js misst die Fenster-Animationen, kopf.js setzt data-blur beim Laden):
-     ruckelt es, erst weniger, dann keine Unschärfe – die Flächen werden dafür dichter. Ebenso bei „Transparenz
-     reduzieren“ im System. Hoher Kontrast: Glas ist deckend, seine Unschärfe wäre unsichtbar, aber trotzdem teuer. */
-  :root[data-blur="wenig"] .glass { -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5); }
-  :root[data-blur="wenig"] .schleier { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
-  :root[data-blur="aus"] .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-dicht); }
-  :root[data-blur="aus"] .schleier { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--veil-dicht); }
+  /* Keine Leistungsmessung mehr: Unschärfe bleibt immer an (Messung schaltete sie auch auf dem iPhone 15 ab, siehe CLAUDE.md).
+     Nur Systemwunsch „Transparenz reduzieren“ und hoher Kontrast (Glas ist deckend, Unschärfe wäre unsichtbar) schalten sie ab. */
   @media (prefers-reduced-transparency: reduce) {
     :root .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-dicht); }
     :root .schleier { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--veil-dicht); }
