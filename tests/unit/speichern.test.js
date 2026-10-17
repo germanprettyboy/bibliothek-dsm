@@ -54,6 +54,7 @@ describe("speichern.php", { skip: !PHP && "kein PHP (php im PATH oder DSM_PHP)" 
   const info = fs.readFileSync(path.join(WEB, "info.js"), "utf8");
   const books = fs.readFileSync(path.join(WEB, "books.js"), "utf8");
   const ALT = KOPF["info.js"] + '{"stand":"2020-01-01","zeiten":{}};\n';
+  const OBJEKT = KOPF["info.js"] + '{"stand":{"x":1},"zeiten":{}};\n';
   let o = {}, r = [];
 
   before(() => {
@@ -63,6 +64,8 @@ describe("speichern.php", { skip: !PHP && "kein PHP (php im PATH oder DSM_PHP)" 
     o.gut = ordner("gut", { dateien: { "info.js": ALT } });
     o.voll = ordner("voll", { dateien: Object.fromEntries([["info.js", ALT]].concat(
       Array.from({ length: 12 }, (_, i) => [`sicherung/info-20200101-0000${String(i).padStart(2, "0")}.js`, "alt"]))) });
+    o.zweimal = ordner("zweimal", { dateien: { "info.js": ALT } });
+    o.objekt = ordner("objekt", { dateien: { "info.js": ALT } });
     const faelle = [
       { methode: "GET", ordner: o.ohne },                                   // 0
       { ordner: o.ohne, text: info },                                       // 1
@@ -82,6 +85,9 @@ describe("speichern.php", { skip: !PHP && "kein PHP (php im PATH oder DSM_PHP)" 
       { ordner: o.gut, text: info },                                        // 15 gut
       { ordner: o.gut, text: books, datei: "books.js" },                    // 16 books.js (neu, ohne Vorgänger)
       { ordner: o.voll, text: info },                                       // 17 Sicherungen ausdünnen
+      { ordner: o.zweimal, text: KOPF["info.js"] + '{"stand":"2020-02-02","zeiten":{}};\n' }, // 18 zweimal in derselben Sekunde
+      { ordner: o.zweimal, text: info },                                    // 19
+      { ordner: o.objekt, text: OBJEKT },                                   // 20 stand kein Text
     ];
     r = php(faelle);
   });
@@ -130,5 +136,17 @@ describe("speichern.php", { skip: !PHP && "kein PHP (php im PATH oder DSM_PHP)" 
     assert.equal(s.length, 10);
     assert.equal(fs.readFileSync(path.join(o.voll, "sicherung", s[9]), "utf8"), ALT);
     assert.ok(!s.includes("info-20200101-000000.js"));
+  });
+  test("zweimal in derselben Sekunde: keine Sicherung überschrieben, neueste sortiert zuletzt", () => {
+    assert.equal(r[18][0], 200);
+    assert.equal(r[19][0], 200);
+    const s = fs.readdirSync(path.join(o.zweimal, "sicherung")).filter(n => n.endsWith(".js")).sort();
+    assert.equal(s.length, 2);
+    assert.equal(fs.readFileSync(path.join(o.zweimal, "sicherung", s[0]), "utf8"), ALT);
+    assert.match(fs.readFileSync(path.join(o.zweimal, "sicherung", s[1]), "utf8"), /2020-02-02/);
+  });
+  test("stand kein Text: gespeichert, Antwort ohne Fehler", () => {
+    assert.deepEqual(r[20][1], { ok: true, datei: "info.js", bytes: Buffer.byteLength(OBJEKT), stand: "" });
+    assert.equal(fs.readFileSync(path.join(o.objekt, "info.js"), "utf8"), OBJEKT);
   });
 });
