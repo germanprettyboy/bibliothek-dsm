@@ -45,6 +45,7 @@ werkzeuge/          ← NICHT hochladen
   quelle/verwaltung/  Verwaltungsoberfläche (Klartext, React): app, bestand, empfehlungen, info, veroeffentlichen, woerter
   admin-verschluesseln.js   baut quelle/verwaltung/ (React extern) + extract.js → website/assets/admin.enc.js
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
+  tunnel.mjs          öffentliche Test-Adresse (Cloudflare Quick Tunnel) für website/, auch für Playwright
   lokal.mjs + lokal-router.php   npm run lokal: PHP-Webserver (php-wasm, npx, gepinnt) mit website/ als Wurzel;
                       Router liefert admin.enc.js aus tests/.tmp/lokal/ und setzt DSM_ZUGANG_DATEI für speichern.php
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
@@ -65,6 +66,8 @@ npm run build                                 # src/ → website/ (nach JEDER Ä
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
 npm run dev                                   # Build im Watch-Modus + Live-Reload (browser-sync über npx)
+npm run tunnel                                # website/ unter https://….trycloudflare.com (Handy/Schul-PC), Ctrl+C beendet
+npm run tunnel:dev                            # dasselbe mit Watch-Build + Live-Reload
 npm run lokal                                 # wie Webspace: PHP (php-wasm über npx) + speichern.php echt, Build-Watch,
                                               #   Verwaltung mit Passwort „lokal“ (DSM_LOKAL_PW) → http://127.0.0.1:8765/admin.html
 npm run ui:add -- <name>                      # neue shadcn-Komponente nach src/components/ui/ (danach an DSM anpassen!)
@@ -72,6 +75,7 @@ node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an 
 npm test                                      # Unit-Tests (node:test, ~15 s, baut einmal zum Vergleich)
 npm run test:e2e                              # Browser-Tests (Playwright/Chromium, eigener Server, Port je Checkout, ~1 min)
 npm run test:alle                             # beides
+npm run test:live                             # Browser-Tests über eigenen Tunnel (echtes https/Netz, ~3,5 min)
 npm run branches                              # was ist noch nicht in main?
 npm run integrieren -- <branch>               # fertigen Branch in main mergen (siehe unten)
 ```
@@ -265,6 +269,14 @@ Nach jeder Änderung `npm run build` und `npm run test:alle`. Tests in `tests/`:
   Einstellungen, Fragen-Ablauf, Empfehlungen, Info-Karte (feste Uhrzeit), Admin. Admin-Tests ersetzen `admin.enc.js` per Route durch
   eine mit „test-passwort“ verschlüsselte Fassung der aktuellen Quellen – das echte Passwort wird nicht gebraucht.
   Admin-Import muss byte-gleich zu `npm run books` sein (synthetische DB immer, Original-DB wenn vorhanden).
+- `unit/tunnel.test.js` – Server hinter dem Tunnel: nur der Ordner, keine Punktdateien/PHP, kein Listing, `no-store`; Adresse aus dem Log.
+- Live-Adresse (`werkzeuge/tunnel.mjs`, braucht `brew install cloudflared`, kein Konto): `npm run test:live` öffnet einen Quick
+  Tunnel, setzt `DSM_LIVE_URL` und startet Playwright ohne eigenen Server (2 Worker, 60 s, 1 Wiederholung). Gegen eine schon
+  laufende Adresse: `DSM_LIVE_URL=https://… npm run test:live` (auch `test:e2e`). Eigener Node-Server statt Python, weil
+  Cloudflare `.js`/`.css` ohne `Cache-Control` am Rand zwischenspeichert; Adresse auch in `tests/.tmp/tunnel-url.txt`.
+  Vor dem ersten Abruf wartet das Skript auf den autoritativen Nameserver (zu frühe Frage = NXDOMAIN, macOS cacht das ≈90 s).
+  Tunnel ist öffentlich, solange er läuft: nur website/ (wird ohnehin öffentlich), ohne Punktdateien, `*.php` und `sicherung/`
+  (PHP liefe nicht, käme als Quelltext; speichern.php fehlt also → Verwaltung veröffentlicht wie lokal). `.htaccess` gilt dort nicht.
 
 ## Branches integrieren (Pflicht am Ende jeder Aufgabe)
 
