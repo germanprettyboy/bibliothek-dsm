@@ -22,9 +22,10 @@ const buttonVariants = cva(
       size: {
         default: "h-11 rounded-md px-[18px]",
         sm: "h-9 rounded-md px-3.5 text-s",
-        lg: "min-h-[46px] px-5",
-        icon: "size-10",
-        "icon-sm": "size-[34px] [&_svg:not([class*='size-'])]:size-[15px]",
+        lg: "min-h-12 px-5",
+        // Mindestens 44 px Zielfläche (WCAG 2.5.5); icon-sm nur, wo daneben Platz zum Danebentippen ist
+        icon: "size-11",
+        "icon-sm": "size-10 [&_svg:not([class*='size-'])]:size-4",
         text: "h-auto px-1 py-2",
       },
     },

@@ -130,19 +130,21 @@ export function InfoKarte({ I, onOpen }) {
   if (!zeigen) return <section className="wrap info" id="info" hidden />;
   const Chev = <ChevronRightIcon aria-hidden="true" strokeWidth={1.6} className="go size-4 shrink-0 text-muted-foreground" />;
   return (
-    <section className="wrap info pb-3.5" id="info">
-      <button type="button" className="info-card grid w-full rounded-2xl bg-surface p-0 text-left shadow-[inset_0_0_0_1px_var(--line)] transition-transform duration-150 ease-dsm active:scale-[.99]" aria-label={t("infoOpen")} onClick={onOpen}>
+    <section className="wrap info pb-4" id="info">
+      {/* Kein aria-label: Bildschirmleser lesen den Status selbst, der Hinweis aufs Fenster steht unsichtbar dahinter */}
+      <button type="button" className="info-card karte grid w-full p-0 text-left transition-transform duration-150 ease-dsm active:scale-[.99]" aria-haspopup="dialog" onClick={onOpen}>
         {st ? (
           <Zeile><i className={cn("dot", st.k !== "auf" && st.k)} /><Text b={st.t} small={st.sub} />{Chev}</Zeile>
         ) : (
           <Zeile><Text b={t(A.hasHours ? "infoT" : "closuresT")} />{Chev}</Zeile>
         )}
         {soon ? <Zeile><i className={cn("bar-c", soon.art === "abwesend" && "abwesend")} /><Text b={A.label(soon)} small={A.closedText(soon)} /></Zeile> : null}
+        <span className="sr-only">{t("infoOpen")}</span>
       </button>
     </section>
   );
 }
-const Zeile = ({ children }) => <span className="info-line flex min-w-0 items-center gap-3 border-t border-border px-3.5 py-3 first:border-t-0">{children}</span>;
+const Zeile = ({ children }) => <span className="info-line flex min-w-0 items-center gap-3 border-t border-border px-4 py-3 first:border-t-0">{children}</span>;
 const Text = ({ b, small }) => (
   <span className="tx min-w-0 flex-1">
     <b className="block font-medium">{b}</b>
@@ -184,7 +186,7 @@ export function InfoFenster({ I, open, onOpenChange }) {
           {fut.length ? (
             <ul className="closures m-0 grid list-none gap-2 p-0">
               {fut.map((c, n) => (
-                <li key={n} className="flex gap-3 rounded-lg px-3 py-2.5 [background:var(--gb-bot)] shadow-[inset_0_0_0_1px_var(--line)]">
+                <li key={n} className="flex gap-3 rounded-2xl px-4 py-3 [background:var(--gb-bot)] shadow-[inset_0_0_0_1px_var(--line)]">
                   <i className={cn("bar-c", c.art === "abwesend" && "abwesend")} />
                   <span className="grid min-w-0 gap-0.5">
                     <b className="font-semibold">{A.label(c)}</b>
