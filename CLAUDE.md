@@ -48,6 +48,8 @@ werkzeuge/          ← NICHT hochladen
   tunnel.mjs          öffentliche Test-Adresse (Cloudflare Quick Tunnel) für website/, auch für Playwright
   lokal.mjs + lokal-router.php   npm run lokal: PHP-Webserver (php-wasm, npx, gepinnt) mit website/ als Wurzel;
                       Router liefert admin.enc.js aus tests/.tmp/lokal/ und setzt DSM_ZUGANG_DATEI für speichern.php
+                      lokal-adresse.cjs (per NODE_OPTIONS): php-wasm nur auf 127.0.0.1 – übergeht sonst „-S“ und lauscht im ganzen
+                      Netz; php-wasm-Log gefiltert (accept/poll-Rauschen); belegter Port → Meldung statt Absturz
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
 components.json     shadcn-Konfiguration (JSX statt TSX, Aliase @/components, @/lib); vite.config.js für Editor/CLI
 tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
