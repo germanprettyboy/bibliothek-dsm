@@ -10,6 +10,7 @@
  * Voraussetzung: cloudflared (brew install cloudflared). Kein Cloudflare-Konto nötig, Adresse ist bei jedem Start neu.
  * Ausgeliefert wird nur website/ (dasselbe, was per FTP öffentlich wird), ohne Punktdateien (.htaccess), ohne *.php
  * und sicherung/ – PHP läuft hier nicht, die Verwaltung veröffentlicht über den Tunnel also wie lokal (Ordner/Download).
+ * Mit echtem „Veröffentlichen“ (speichern.php läuft): npm run lokal -- --tunnel (werkzeuge/lokal.mjs, nutzt tunnel() von hier).
  * Die Adresse steht zusätzlich in tests/.tmp/tunnel-url.txt.
  */
 import dns from "node:dns/promises";
@@ -68,7 +69,7 @@ const freierPort = () => new Promise((ok, nein) => {
 const warte = ms => new Promise(r => setTimeout(r, ms));
 
 // true oder der letzte Grund (Status/Fehlercode), warum url nicht antwortet
-async function erreichbar(url, sekunden) {
+export async function erreichbar(url, sekunden) {
   let grund = "";
   for (let i = 0; i < sekunden; i++) {
     try {
@@ -83,7 +84,7 @@ async function erreichbar(url, sekunden) {
 
 // Neuer Name erst beim autoritativen Nameserver abwarten (der cacht nicht). Wer zu früh über das System fragt,
 // bekommt NXDOMAIN, und macOS merkt sich das ≈90 s – auch für Chromium und das Handy im selben WLAN.
-async function dnsBereit(adresse, sekunden) {
+export async function dnsBereit(adresse, sekunden) {
   const host = new URL(adresse).hostname;
   const auth = new dns.Resolver();
   try {
@@ -102,12 +103,12 @@ function starte(befehl, args, opt = {}) {
   kinder.push(k);
   return k;
 }
-function aufraeumen() {
+export function aufraeumen() {
   for (const k of kinder) if (k.exitCode === null) k.kill("SIGTERM");
 }
 
 // cloudflared starten, auf Adresse und erste Verbindung warten
-function tunnel(port) {
+export function tunnel(port) {
   return new Promise((ok, nein) => {
     const cf = starte("cloudflared", ["tunnel", "--no-autoupdate", "--url", `http://127.0.0.1:${port}`], { stdio: ["ignore", "pipe", "pipe"] });
     const log = [];

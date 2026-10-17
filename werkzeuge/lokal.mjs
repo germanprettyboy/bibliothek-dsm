@@ -6,16 +6,22 @@
  * - Verwaltung: aktuelle werkzeuge/quelle/ mit dem lokalen Passwort verschlüsselt nach tests/.tmp/lokal/
  *   (Standard „lokal“, eigenes per DSM_LOKAL_PW). Echtes Passwort und echte admin.enc.js bleiben unberührt.
  *   Änderungen an werkzeuge/quelle/ → neu verschlüsseln (danach in der Verwaltung neu entsperren).
+ * - npm run lokal -- --tunnel: zusätzlich öffentliche https-Adresse (Cloudflare Quick Tunnel, brew install cloudflared) davor,
+ *   damit „Veröffentlichen“ auch vom Handy/Schul-PC aus echt schreibt. Weil die Adresse öffentlich ist, gilt dann ein
+ *   zufälliges Passwort (wird angezeigt) statt „lokal“; Schreibziel bleibt website/ dieses Checkouts.
  * - src/ → website/ im Watch-Modus (wie npm run dev, ohne Live-Reload: Seite neu laden).
  */
 import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
+import { tunnel, dnsBereit, erreichbar, aufraeumen } from "./tunnel.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOKAL = path.join(ROOT, "tests", ".tmp", "lokal");
-const PW = process.env.DSM_LOKAL_PW || "lokal";
+const MIT_TUNNEL = process.argv.includes("--tunnel");
+const PW = process.env.DSM_LOKAL_PW || (MIT_TUNNEL ? randomBytes(9).toString("base64url") : "lokal");
 const PORT = process.env.PORT || "8765";
 const PHP_WASM = "@php-wasm/cli@3.1.56";
 
@@ -39,6 +45,24 @@ Verwaltung:   http://127.0.0.1:${PORT}/admin.html   Passwort: ${PW}
 (Beim ersten Start lädt npx PHP herunter, das dauert einen Moment.)
 `);
 
+if (MIT_TUNNEL) {
+  console.log("Tunnel wird geöffnet …");
+  try {
+    const lokal = await erreichbar(`http://127.0.0.1:${PORT}/index.html`, 120);
+    if (lokal !== true) throw new Error(`PHP-Server antwortet nicht (${lokal})`);
+    const adresse = await tunnel(PORT);
+    await dnsBereit(adresse, 60);
+    const da = await erreichbar(adresse + "index.html", 120);
+    if (da !== true) throw new Error(`${adresse} ist nach 120 s nicht erreichbar (${da})`);
+    console.log(`
+Öffentlich (https), speichern.php läuft echt:
+  Bücherliste:  ${adresse}
+  Verwaltung:   ${adresse}admin.html   Passwort: ${PW}
+Öffentlich erreichbar, solange dieses Fenster läuft – Passwort nicht weitergeben.
+`);
+  } catch (e) { console.error(e.message); ende(); }
+}
+
 let takt = null;
 fs.watch(path.join(ROOT, "werkzeuge", "quelle"), { recursive: true }, () => {
   clearTimeout(takt);
@@ -48,7 +72,7 @@ fs.watch(path.join(ROOT, "werkzeuge", "quelle"), { recursive: true }, () => {
   }, 300);
 });
 
-const ende = () => { kinder.forEach(k => k.kill()); process.exit(0); };
+function ende() { kinder.forEach(k => k.kill()); aufraeumen(); process.exit(0); }
 process.on("SIGINT", ende);
 process.on("SIGTERM", ende);
 kinder.forEach(k => k.on("exit", code => { if (code) { console.error(`Beendet mit Fehler (${code}).`); ende(); } }));
