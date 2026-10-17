@@ -210,4 +210,33 @@ test.describe("Detail auf dem Handy", () => {
     expect(box.width).toBeLessThanOrEqual(390);
     expect(box.x).toBeGreaterThanOrEqual(0);
   });
+
+  // Wischen per CDP-Touch: Sheet halbhoch, hoch = Vollbild, runter = halb, weiter runter = schließen
+  async function wische(page, von, bis, schritte = 8) {
+    const cdp = await page.context().newCDPSession(page);
+    const punkt = y => [{ x: 195, y }];
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: punkt(von) });
+    for (let i = 1; i <= schritte; i++) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: punkt(von + (bis - von) * i / schritte) });
+      await page.waitForTimeout(12);
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  }
+  const oben = page => page.locator("#detail").evaluate(d => Math.round(d.getBoundingClientRect().top));
+  test("Wischen: halb, hoch = Vollbild, runter = halb, weiter runter = zu", async ({ page }) => {
+    await oeffnen(page);
+    await oeffneBuch(page, MIT_ISBN);
+    await page.waitForTimeout(700);
+    const halb = await oben(page);
+    expect(halb).toBeGreaterThan(150);
+    await wische(page, halb + 20, 120);
+    await page.waitForTimeout(700);
+    const voll = await oben(page);
+    expect(voll).toBeLessThan(40);
+    await wische(page, 200, 500);
+    await page.waitForTimeout(700);
+    expect(await oben(page)).toBeGreaterThan(150);
+    await wische(page, halb + 20, 800);
+    await expect(page.locator("#detail")).toBeHidden();
+  });
 });
