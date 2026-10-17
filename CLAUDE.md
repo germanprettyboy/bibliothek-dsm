@@ -57,6 +57,11 @@ importiert (`@/…`), muss in `src/verwaltung/gemeinsam.js` stehen (Test prüft 
   darunter Bücher der gewählten Gruppe mit Text; Klick → Detail darüber.
 - Suchleiste klebt deckend oben; beim Suchen beginnen Treffer direkt darunter (`main.books` mind. bildschirmhoch).
   A–Z-Leiste nur ab 48rem, darunter Buchstaben-Floater rechts (nur beim Scrollen).
+- Kategorie-Filter (`src/bibliothek/kategorien.jsx`): `#k-btn` neben der Suche (Handy nur Symbol, ab 40rem „Kategorie“) →
+  Glas-Fenster mit Suchfeld `#k-q`, alle Kategorien mit Anzahl (`[data-kat]` = `alle` | `g:<Oberbegriff>` | `k:<Kategorie>`).
+  ≥2 Kategorien mit gleichem Teil vor „ - “/„: “ = Gruppe (Oberbegriff wählt alle, Unterkategorien eingerückt, reine
+  Oberbegriff-Kategorie = „allgemein“). Eine Wahl, Chip `.k-chip` unter der Suche (`#k-weg` hebt auf), wirkt mit der Suche
+  zusammen („n Treffer“), nicht gespeichert. Ohne Kategorie (≈1.500) nur unter „Alle Bücher“.
 - Verwaltung: keine Zeile „Aktuell veröffentlicht …“, kein „Entwurf im Browser gespeichert“ (nur `#i-state` bei unvollständigen
   Info-Angaben), keine Zähler „(4)“, keine Datenschutzhinweise. `#e-groups` = `ToggleGroup` Variante `flaeche` (bricht um);
   Reiter ≤420 px volle Breite. `#lock-btn` = Schloss, Text gleitet bei Hover/Fokus heraus (Grid 0fr→1fr, `motion-reduce` ohne),
