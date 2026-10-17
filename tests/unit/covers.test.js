@@ -22,8 +22,9 @@ const antwort = (body, status = 200) => ({ ok: status >= 200 && status < 300, st
 /*
  * ol(keys) → Objekt für die OL-Antwort; „throw“ simuliert Netzfehler.
  * bild(src) → true (Cover 180×270), false (404/Fehler) oder [Breite, Höhe].
+ * daten(src) → Inhalt eines ekz-Bilds für fetch (Buffer), „throw“ = Netzfehler, sonst 404.
  */
-function sandbox({ ol = () => ({}), bild = () => false, cache = null, conn = {}, hidden = false, alt = null } = {}) {
+function sandbox({ ol = () => ({}), bild = () => false, daten = () => null, cache = null, conn = {}, hidden = false, alt = null } = {}) {
   const calls = [], bilder = [], intervals = [], ls = new Map();
   if (cache) ls.set("dsm-cover-v3", JSON.stringify(cache));
   if (alt) ls.set("dsm-cover-v2", alt);
@@ -44,6 +45,11 @@ function sandbox({ ol = () => ({}), bild = () => false, cache = null, conn = {},
   const ctx = {
     fetch: async (url, opt) => {
       calls.push({ url, opt });
+      if (url.startsWith(EKZ)) {
+        const d = daten(url);
+        if (d === "throw") throw new TypeError("Failed to fetch");
+        return d ? { ok: true, status: 200, arrayBuffer: async () => d.buffer.slice(d.byteOffset, d.byteOffset + d.length) } : antwort({}, 404);
+      }
       if (!url.startsWith(OL)) throw new Error("unerwartete URL " + url);
       const r = ol(decodeURIComponent(url.slice(OL.length)).split(","));
       if (r === "throw") throw new TypeError("Failed to fetch");
@@ -79,6 +85,7 @@ function sandbox({ ol = () => ({}), bild = () => false, cache = null, conn = {},
   return {
     C: ctx.DSMCovers, calls, bilder, tick, gespeichert, ls, takte: () => intervals.length, ctx,
     ol: () => calls.filter(c => c.url.startsWith(OL)),
+    ekzDaten: () => calls.filter(c => c.url.startsWith(EKZ)),
     ekz: () => bilder.filter(s => s.startsWith(EKZ)),
     gb: () => bilder.filter(s => s.startsWith(GB)),
   };
@@ -134,9 +141,62 @@ describe("get(): Antippen, mit Vorrang", () => {
     assert.equal(s.gespeichert()[K2].u, "");
   });
 
+  test("Google-Ersatzbild „image not available“ 128×170 gilt als „kein Cover“", async () => {
+    const s = sandbox({ bild: src => (src.includes("books.google") ? [128, 170] : false) });
+    assert.equal(await s.C.get(buch(K2)), null);
+  });
+
   test("echtes Google-Cover 128×205 wird genommen", async () => {
     const s = sandbox({ bild: src => (src.includes("books.google") ? [128, 205] : false) });
     assert.equal((await s.C.get(buch(K2))).by, "coverGB");
+  });
+
+  // ekz liefert statt 404 oft „leider kein aktuelles Bild vorhanden“ (170×270, immer dieselben 9977 Byte)
+  const ERSATZ = fs.readFileSync(path.join(__dirname, "..", "helfer", "ekz-ersatzbild.jpg"));
+  const ekzBild = groesse => src => (src.includes("ekz.de") ? groesse : src.includes("openlibrary"));
+
+  test("ekz-Ersatzbild „leider kein aktuelles Bild vorhanden“ gilt als „kein Cover“ → Open Library", async () => {
+    const s = sandbox({ bild: ekzBild([170, 270]), daten: () => ERSATZ, ol: OLHIT(42) });
+    const r = await s.C.get(buch(K1));
+    assert.equal(r.by, "coverOL");
+    assert.equal(s.ekzDaten().length, 1);
+    assert.equal(s.ekzDaten()[0].opt.referrerPolicy, "no-referrer");
+  });
+
+  test("ekz-Ersatzbild ohne weitere Quelle: Platzhalter, gemerkt", async () => {
+    const s = sandbox({ bild: src => (src.includes("ekz.de") ? [170, 270] : false), daten: () => ERSATZ });
+    assert.equal(await s.C.get(buch(K1)), null);
+    await warte(450);
+    assert.equal(s.gespeichert()[K1].u, "");
+  });
+
+  test("echtes ekz-Cover in derselben Größe 170×270 bleibt", async () => {
+    const anders = Buffer.from(ERSATZ); anders[5000] ^= 1;
+    const s = sandbox({ bild: ekzBild([170, 270]), daten: () => anders, ol: OLHIT(42) });
+    assert.equal((await s.C.get(buch(K1))).by, "coverEKZ");
+    const s2 = sandbox({ bild: ekzBild([170, 270]), daten: () => Buffer.alloc(12000), ol: OLHIT(42) });
+    assert.equal((await s2.C.get(buch(K1))).by, "coverEKZ");
+  });
+
+  test("ekz-Bild anderer Größe: kein zweiter Abruf als Daten", async () => {
+    const s = sandbox({ bild: ekzBild([170, 271]), daten: () => ERSATZ });
+    assert.equal((await s.C.get(buch(K1))).by, "coverEKZ");
+    assert.equal(s.ekzDaten().length, 0);
+  });
+
+  test("ekz 170×270 nicht prüfbar (Netzfehler): lieber kein ekz-Bild", async () => {
+    const s = sandbox({ bild: ekzBild([170, 270]), daten: () => "throw", ol: OLHIT(42) });
+    assert.equal((await s.C.get(buch(K1))).by, "coverOL");
+    const s2 = sandbox({ bild: src => (src.includes("ekz.de") ? [170, 270] : false), daten: () => "throw" });
+    assert.equal(await s2.C.get(buch(K1)), null);
+  });
+
+  test("ekz-Ersatzbild aus altem Cache: wird verworfen und neu gesucht", async () => {
+    const cache = { [K1]: { u: EKZ + K1 + ".jpg", b: "coverEKZ", t: Date.now() } };
+    const s = sandbox({ cache, bild: ekzBild([170, 270]), daten: () => ERSATZ, ol: OLHIT(42) });
+    assert.equal((await s.C.get(buch(K1))).by, "coverOL");
+    await warte(450);
+    assert.equal(s.gespeichert()[K1].b, "coverOL");
   });
 
   test("mehrere ISBN: jede wird bei ekz probiert", async () => {
@@ -385,6 +445,12 @@ describe("survey(): Abdeckung messen (admin.html)", () => {
     assert.equal(s.ol().length, 1, "eine Sammelabfrage");
     assert.ok(!decodeURIComponent(s.ol()[0].url).includes(K4), "ekz-Treffer nicht an Open Library");
     assert.ok(verlauf.every((v, n) => n === 0 || v.done >= verlauf[n - 1].done), "Fortschritt steigt");
+  });
+  test("ekz-Ersatzbild zählt nicht als ekz-Cover", async () => {
+    const ERSATZ = fs.readFileSync(path.join(__dirname, "..", "helfer", "ekz-ersatzbild.jpg"));
+    const s = sandbox({ bild: src => (src.includes("ekz.de/" + K1) ? [170, 270] : src.includes("ekz.de/" + K2)), daten: () => ERSATZ });
+    const st = await s.C.survey([buch(K1), buch(K2)]).done;
+    assert.equal(st.ekz, 1); assert.equal(st.none, 1);
   });
   test("stop() bricht ab, complete = false", async () => {
     const s = sandbox();

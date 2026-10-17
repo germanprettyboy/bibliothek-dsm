@@ -1,4 +1,6 @@
 // Detailansicht mit Cover (Open Library / Google Books gemockt), Platzhalter, Schließen.
+const fs = require("fs");
+const path = require("path");
 const { test, expect, oeffnen, daten } = require("./hilfen.js");
 
 const { B } = daten();
@@ -83,6 +85,33 @@ test.describe("Cover", () => {
     await expect(img).toHaveAttribute("src", "https://cover.ekz.de/" + MIT_ISBN.i[0] + ".jpg");
     await expect(img).toHaveClass(/in/);
     await expect(page.locator("#d-src")).toHaveText("Cover: ekz-Bibliotheksservice");
+  });
+
+  // ekz liefert statt 404 oft „leider kein aktuelles Bild vorhanden“ (170×270, HTTP 200) – nie zeigen
+  const ersatzbild = page => page.route(/cover\.ekz\.de/, route => route.fulfill({
+    body: fs.readFileSync(path.join(__dirname, "..", "helfer", "ekz-ersatzbild.jpg")),
+    contentType: "image/jpeg", headers: { "access-control-allow-origin": "*" },
+  }));
+
+  test("ekz-Ersatzbild „leider kein aktuelles Bild vorhanden“: weiter zu Open Library", async ({ page, netz }) => {
+    netz.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
+    await ersatzbild(page);
+    await oeffnen(page);
+    await oeffneBuch(page, MIT_ISBN);
+    const img = page.locator("#d-cover img");
+    await expect(img).toHaveAttribute("src", "https://covers.openlibrary.org/b/id/123-M.jpg");
+    await expect(page.locator("#d-src")).toHaveText("Cover: Open Library");
+  });
+
+  test("ekz-Ersatzbild ohne andere Quelle: gestalteter Platzhalter", async ({ page, netz }) => {
+    netz.ol = () => ({});
+    await ersatzbild(page);
+    await oeffnen(page);
+    await oeffneBuch(page, MIT_ISBN);
+    await expect(page.locator("#d-cover .ph")).toHaveCount(1);
+    await expect.poll(() => page.evaluate(k => (JSON.parse(localStorage.getItem("dsm-cover-v3") || "{}")[k] || {}).u, MIT_ISBN.i.join(","))).toBe("");
+    await expect(page.locator("#d-cover img")).toHaveCount(0);
+    await expect(page.locator("#d-src")).toBeHidden();
   });
 
   test("Open Library: Sammelabfrage, Größe M, Quelle genannt, nie /b/isbn/", async ({ page, netz }) => {

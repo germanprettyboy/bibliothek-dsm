@@ -115,8 +115,12 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   kein str_starts_with/array_is_list/match. Schlüssel = PBKDF2(Passwort, festes Salz „dsm-bibliothek/speichern.php“,
   310.000), steht nur im verschlüsselten Klartext (`var DSM_SPEICHERN_SCHLUESSEL`, Function-Scope, nicht window);
   `website/speichern-zugang.php` enthält nur SHA-256 davon und wird von admin-verschluesseln.js geschrieben.
-- Cover-Quellen in dieser Reihenfolge: ekz-Bild direkt (`cover.ekz.de/<ISBN>.jpg`, 404 = keins, ≈80 % Treffer),
-  dann Open Library, dann Google-Bild direkt (`books.google.com/books/content?vid=ISBN…`, Ersatzbild 128×184 verwerfen).
+- Cover-Quellen in dieser Reihenfolge: ekz-Bild direkt (`cover.ekz.de/<ISBN>.jpg`, 404 = keins, Ersatzbild s. u.),
+  dann Open Library, dann Google-Bild direkt (`books.google.com/books/content?vid=ISBN…`, Ersatzbilder 128×184 und 128×170 „image not available“
+  verwerfen – Google ohne CORS, nur Maße; kostet 6 echte Cover).
+  ekz liefert statt 404 oft (17.10.2026: 376 von 2625 Bildern, echte Treffer ≈67 % des Bestands) ein Ersatzbild „leider kein
+  aktuelles Bild vorhanden“ (170×270, immer 9977 Byte): Bilder in dieser Größe holt covers.js per `fetch` (ekz: CORS `*`)
+  und vergleicht Länge + FNV-1a; nicht prüfbar = Ersatzbild. Echte 170×270-Cover (17 im Bestand) bleiben.
   NICHT: Google-Books-API (ohne Schlüssel immer 429, gemeinsames Tageskontingent), NICHT portal.dnb.de
   (Anubis-Bot-Schutz, Browser bekommen HTML → ERR_BLOCKED_BY_ORB). Open Library nur für ekz-Fehltreffer.
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
