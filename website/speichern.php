@@ -41,7 +41,7 @@ function dsm_speichern(string $methode, string $datei, string $schluessel, calla
   if ($methode !== 'POST') return [405, ['fehler' => 'methode']];
   if ($hash === '') return [503, ['fehler' => 'zugang']];
   if (!hash_equals($hash, hash('sha256', $schluessel))) return [403, ['fehler' => 'schluessel']];
-  if (!isset(DSM_DATEIEN[$datei])) return [400, ['fehler' => 'datei']];
+  if (!array_key_exists($datei, DSM_DATEIEN)) return [400, ['fehler' => 'datei']];
 
   $text = $lesen();
   if (!is_string($text) || $text === '') return [400, ['fehler' => 'leer']];
@@ -54,13 +54,17 @@ function dsm_speichern(string $methode, string $datei, string $schluessel, calla
 
   $sicherung = $ordner . '/sicherung';
   if (!is_dir($sicherung) && !@mkdir($sicherung, 0755)) return [500, ['fehler' => 'schreibrecht']];
-  $sperre = fopen($sicherung . '/.sperre', 'c');
+  $sperre = @fopen($sicherung . '/.sperre', 'c');
   if (!$sperre || !flock($sperre, LOCK_EX)) return [500, ['fehler' => 'sperre']];
   try {
     $ziel = $ordner . '/' . $datei;
     $name = substr($datei, 0, -3);
     if (is_file($ziel)) {
-      copy($ziel, sprintf('%s/%s-%s.js', $sicherung, $name, date('Ymd-His')));
+      // zweimal in derselben Sekunde: Buchstabe anhängen (sortiert nach der ersten), nichts überschreiben
+      $basis = sprintf('%s/%s-%s', $sicherung, $name, date('Ymd-His'));
+      $alt = $basis . '.js';
+      for ($z = ord('b'); is_file($alt) && $z <= ord('z'); $z++) $alt = $basis . chr($z) . '.js';
+      copy($ziel, $alt);
       $alte = glob($sicherung . '/' . $name . '-*.js') ?: [];
       sort($alte);
       foreach (array_slice($alte, 0, max(0, count($alte) - DSM_SICHERUNGEN)) as $alt) @unlink($alt);
@@ -75,7 +79,7 @@ function dsm_speichern(string $methode, string $datei, string $schluessel, calla
     flock($sperre, LOCK_UN);
     fclose($sperre);
   }
-  return [200, ['ok' => true, 'datei' => $datei, 'bytes' => strlen($text), 'stand' => isset($daten->stand) ? (string) $daten->stand : '']];
+  return [200, ['ok' => true, 'datei' => $datei, 'bytes' => strlen($text), 'stand' => isset($daten->stand) && is_scalar($daten->stand) ? (string) $daten->stand : '']];
 }
 
 if (!defined('DSM_SPEICHERN_TEST')) {

@@ -82,13 +82,16 @@ Cover
   Nur über die vorhandene ISBN; ohne ISBN gibt es kein Cover (gestalteter Platzhalter).
   Die Liste bleibt reiner Text. Für Bücher in Sichtweite lädt der Browser die Cover im
   Hintergrund gestaffelt und in kleiner Auflösung vor (ca. 130–440 px Breite):
-    - ekz-Bibliotheksservice: Bild direkt über die ISBN, alle 0,3 s ein Buch. Trifft rund 8 von
-      10 Büchern des Bestands. (Deutsche Nationalbibliothek geht nicht: Bot-Schutz.)
+    - ekz-Bibliotheksservice: Bild direkt über die ISBN, alle 0,3 s ein Buch. Trifft rund 2 von
+      3 Büchern des Bestands. Das ekz-Ersatzbild „leider kein aktuelles Bild vorhanden“ wird
+      erkannt und nie gezeigt; dann geht es mit den nächsten Quellen weiter.
+      (Deutsche Nationalbibliothek geht nicht: Bot-Schutz.)
     - Für die übrigen Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s).
       Bilder kommen über die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN
       wären auf 100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
     - Danach das Google-Books-Bild direkt über die ISBN (nicht die Google-API: ohne Schlüssel
-      ist deren Kontingent immer erschöpft).
+      ist deren Kontingent immer erschöpft). Googles Ersatzbilder („image not available“,
+      Buch-Umriss) werden ebenfalls erkannt und nicht gezeigt.
     - Pause bei verstecktem Tab und bei aktivem Datensparmodus.
   Beim Antippen wird ein noch fehlendes Cover sofort mit Vorrang geholt.
   Ergebnisse (auch „kein Cover“) merkt sich der Browser: Treffer 60 Tage, Fehlanzeigen 14 Tage.

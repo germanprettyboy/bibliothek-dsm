@@ -1,7 +1,7 @@
 # Bibliothek DSM – Bücherliste der Deutschen Schule Mailand
 
 Statische Website (einzige Server-Datei: speichern.php fürs Veröffentlichen) mit der öffentlichen Bücherliste der Schulbibliothek und einer passwortgeschützten
-Verwaltungsseite. Zweisprachig Deutsch/Italienisch, mobile first. Oberfläche: React 19 + Tailwind CSS v4 + shadcn/ui,
+Verwaltungsseite. Zweisprachig Deutsch/Italienisch, mobile first. Oberfläche: React-API (läuft auf Preact 11 via `preact/compat`, Alias in `werkzeuge/bauen.mjs` `preactAlias`) + Tailwind CSS v4 + shadcn/ui,
 gebaut mit Vite (`npm run build`) zu festen Dateien in `website/` – das Ergebnis bleibt reines HTML/CSS/JS.
 Auftraggeber/Nutzer: Johann Bucher (Freiwilliger an der DSM). Antworten auf Deutsch, ohne Floskeln, ohne Emojis.
 
@@ -70,6 +70,8 @@ npm run tunnel                                # website/ unter https://….trycl
 npm run tunnel:dev                            # dasselbe mit Watch-Build + Live-Reload
 npm run lokal                                 # wie Webspace: PHP (php-wasm über npx) + speichern.php echt, Build-Watch,
                                               #   Verwaltung mit Passwort „lokal“ (DSM_LOKAL_PW) → http://127.0.0.1:8765/admin.html
+npm run tunnel:php                            # wie lokal, plus öffentliche https-Adresse (cloudflared): „Veröffentlichen“ per speichern.php
+                                              #   funktioniert vom Handy/Schul-PC aus, schreibt nach website/ dieses Checkouts; zufälliges Passwort wird gezeigt
 npm run ui:add -- <name>                      # neue shadcn-Komponente nach src/components/ui/ (danach an DSM anpassen!)
 node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
 npm test                                      # Unit-Tests (node:test, ~15 s, baut einmal zum Vergleich)
@@ -119,8 +121,12 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   kein str_starts_with/array_is_list/match. Schlüssel = PBKDF2(Passwort, festes Salz „dsm-bibliothek/speichern.php“,
   310.000), steht nur im verschlüsselten Klartext (`var DSM_SPEICHERN_SCHLUESSEL`, Function-Scope, nicht window);
   `website/speichern-zugang.php` enthält nur SHA-256 davon und wird von admin-verschluesseln.js geschrieben.
-- Cover-Quellen in dieser Reihenfolge: ekz-Bild direkt (`cover.ekz.de/<ISBN>.jpg`, 404 = keins, ≈80 % Treffer),
-  dann Open Library, dann Google-Bild direkt (`books.google.com/books/content?vid=ISBN…`, Ersatzbild 128×184 verwerfen).
+- Cover-Quellen in dieser Reihenfolge: ekz-Bild direkt (`cover.ekz.de/<ISBN>.jpg`, 404 = keins, Ersatzbild s. u.),
+  dann Open Library, dann Google-Bild direkt (`books.google.com/books/content?vid=ISBN…`, Ersatzbilder 128×184 und 128×170 „image not available“
+  verwerfen – Google ohne CORS, nur Maße; kostet 6 echte Cover).
+  ekz liefert statt 404 oft (17.10.2026: 376 von 2625 Bildern, echte Treffer ≈67 % des Bestands) ein Ersatzbild „leider kein
+  aktuelles Bild vorhanden“ (170×270, immer 9977 Byte): Bilder in dieser Größe holt covers.js per `fetch` (ekz: CORS `*`)
+  und vergleicht Länge + FNV-1a; nicht prüfbar = Ersatzbild. Echte 170×270-Cover (17 im Bestand) bleiben.
   NICHT: Google-Books-API (ohne Schlüssel immer 429, gemeinsames Tageskontingent), NICHT portal.dnb.de
   (Anubis-Bot-Schutz, Browser bekommen HTML → ERR_BLOCKED_BY_ORB). Open Library nur für ekz-Fehltreffer.
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
@@ -176,8 +182,9 @@ shadcn-Komponenten nach `ui:add` immer anpassen
 (`cn` aus `@/lib/utils`, keine `text-sm`/`text-xs`, kein `underline`, keine `dark:`-Klassen); regeln.test prüft das.
 `cn()` kennt die eigenen Größen (tailwind-merge erweitert), sonst würde `text-s text-muted-foreground` verschluckt.
 
-## Technik (React + Tailwind + Vite)
+## Technik (React-API auf Preact + Tailwind + Vite)
 
+- Quelltext importiert weiter `react`/`react-dom`; Vite ersetzt sie durch `preact/compat` (`preactAlias`, auch in `vite.config.js`). Grund: Bundle 407 → 205 KB (gzip 126 → 68 KB), verwaltung.js 378 → 181 KB. Preact 10 scheitert an Radix (ref als Prop an Funktionskomponenten → getComputedStyle-Fehler), Preact 11 läuft. Beim Preact-/Radix-Update `npm run test:alle` prüfen. Die verschlüsselte Verwaltung bleibt unverändert (React extern aus `DSM_GEMEINSAM`).
 - Je Seite ein Einstieg (`src/bibliothek/main.jsx`, `src/verwaltung/main.jsx`), gebaut als IIFE mit festem Namen
   (kein Hash: FTP ersetzt Dateien, .htaccess prüft bei jedem Besuch). React mountet in `#seite` und ersetzt das feste Gerüst;
   erstes Zeichnen per `flushSync`.
@@ -225,7 +232,7 @@ shadcn-Komponenten nach `ui:add` immer anpassen
 - Messen: 390 px, CPU 4-fach gedrosselt: DOMContentLoaded ≈0,5 s, Long Tasks ≈0,2 s (vorher 17,9 s / 9,4 s).
   Vergleich alt/React am 16.10.2026 (gleiche Maschine, headless, 4-fach): DOMContentLoaded 2,1 → 2,0 s, Liste komplett
   2,5 → 3,0 s (erste Zeilen sofort), größter Block 0,85 → 0,9 s (= Parsen von books.js), übrige Blöcke ≤0,25 s,
-  Suche 1,0 → 0,8 s. Bundle bibliothek.js ≈400 KB (≈125 KB gzip: React + Radix), style.css ≈11 KB gzip.
+  Suche 1,0 → 0,8 s. Bundle bibliothek.js seit Preact ≈205 KB (≈68 KB gzip; vorher ≈400 KB / 125 KB mit react-dom), style.css ≈11 KB gzip.
 
 ## Datenformate
 

@@ -16,7 +16,7 @@ const X = require("./quelle/extract.js");
 (async () => {
   const dbFile = process.argv[2];
   if (!dbFile) { console.error("Aufruf: node werkzeuge/books-erzeugen.js <datei.winbook> [JJJJ-MM-TT]"); process.exit(1); }
-  const stand = process.argv[3] || new Date().toISOString().slice(0, 10);
+  const stand = process.argv[3] || new Date().toLocaleDateString("sv-SE"); // JJJJ-MM-TT, lokales Datum wie in admin.html
   const out = path.join(__dirname, "..", "website", "books.js");
   let prev = null;
   try { global.window = {}; require(out); prev = global.window.DSM_BIBLIOTHEK; } catch (e) { /* keine alte Datei */ }
