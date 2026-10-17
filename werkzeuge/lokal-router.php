@@ -18,7 +18,7 @@ if ($pfad === '/speichern.php') {
   require dirname(__DIR__) . '/website/speichern.php';
   return true;
 }
-if (substr($pfad, -4) === '.php') { // sonst nichts ausführen (z. B. eine echte speichern-zugang.php in website/)
+if (substr($pfad, -4) === '.php' || strpos($pfad, '/sicherung/') === 0) { // sonst nichts ausführen (z. B. eine echte speichern-zugang.php in website/)
   http_response_code(404);
   return true;
 }

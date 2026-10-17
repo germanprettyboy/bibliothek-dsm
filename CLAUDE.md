@@ -70,6 +70,8 @@ npm run tunnel                                # website/ unter https://….trycl
 npm run tunnel:dev                            # dasselbe mit Watch-Build + Live-Reload
 npm run lokal                                 # wie Webspace: PHP (php-wasm über npx) + speichern.php echt, Build-Watch,
                                               #   Verwaltung mit Passwort „lokal“ (DSM_LOKAL_PW) → http://127.0.0.1:8765/admin.html
+npm run tunnel:php                            # wie lokal, plus öffentliche https-Adresse (cloudflared): „Veröffentlichen“ per speichern.php
+                                              #   funktioniert vom Handy/Schul-PC aus, schreibt nach website/ dieses Checkouts; zufälliges Passwort wird gezeigt
 npm run ui:add -- <name>                      # neue shadcn-Komponente nach src/components/ui/ (danach an DSM anpassen!)
 node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
 npm test                                      # Unit-Tests (node:test, ~15 s, baut einmal zum Vergleich)
