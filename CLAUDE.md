@@ -51,6 +51,9 @@ werkzeuge/          ← NICHT hochladen
                       lokal-adresse.cjs (per NODE_OPTIONS): php-wasm nur auf 127.0.0.1 – übergeht sonst „-S“ und lauscht im ganzen
                       Netz; php-wasm-Log gefiltert (accept/poll-Rauschen); belegter Port → Meldung statt Absturz
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
+                      npx (php-wasm, browser-sync, shadcn) immer mit exakter Version + `--prefer-offline`: ein Cache-Ordner
+                      je Paketangabe (~/.npm/_npx), sonst Registry-Abfrage bei jedem Start bzw. Neuinstallation (php-wasm ≈470 MB)
+                      bei jeder neuen Version. Bewusst nicht in package.json (wäre ≈470 MB je Worktree).
 components.json     shadcn-Konfiguration (JSX statt TSX, Aliase @/components, @/lib); vite.config.js für Editor/CLI
 tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
 doku/               ← NICHT hochladen. Hintergrund-Analysen
@@ -67,7 +70,7 @@ npm install                                   # React, Radix, Tailwind, Vite, sq
 npm run build                                 # src/ → website/ (nach JEDER Änderung an src/, Ergebnis committen)
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
-npm run dev                                   # Build im Watch-Modus + Live-Reload (browser-sync über npx)
+npm run dev                                   # Build im Watch-Modus + Live-Reload (browser-sync über npx, gepinnt)
 npm run tunnel                                # website/ unter https://….trycloudflare.com (Handy/Schul-PC), Ctrl+C beendet
 npm run tunnel:dev                            # dasselbe mit Watch-Build + Live-Reload
 npm run lokal                                 # wie Webspace: PHP (php-wasm über npx) + speichern.php echt, Build-Watch,
@@ -273,7 +276,7 @@ Nach jeder Änderung `npm run build` und `npm run test:alle`. Tests in `tests/`:
 - `unit/verschluesseln.test.js` – Roundtrip, falsches Passwort, React nur aus `DSM_GEMEINSAM` (jedes Modul dort vorhanden).
   Mit `DSM_ADMIN_PW=… npm test` zusätzlich: ist `admin.enc.js` aktuell?
 - `unit/speichern.test.js` – speichern.php gegen Temp-Ordner (Zugang, nur drei Dateien, Format, Sicherung, nichts bei
-  Ablehnung). Braucht PHP: `php` im PATH oder `DSM_PHP="npx --yes @php-wasm/cli" npm test` (sonst übersprungen).
+  Ablehnung). Braucht PHP: `php` im PATH oder `DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56" npm test` (sonst übersprungen).
 - `unit/bau.test.js` – baut src/ in tests/.tmp/bau und vergleicht byte-genau mit website/ (veraltet → `npm run build`).
 - `unit/daten.test.js` – Format von books.js, empfehlungen.js (Schlüssel im Bestand), info.js, Kategorien-Übersetzung.
 - `unit/regeln.test.js` – harte Regeln an src/ und website/ (keine externen Hosts außer ekz/OL/Google-Bilder – react.dev/tailwindcss.com
