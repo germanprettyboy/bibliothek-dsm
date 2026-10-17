@@ -36,10 +36,36 @@ const C = () => window.DSMCovers;
 const still = matchMedia("(prefers-reduced-motion: reduce)");
 const wide = matchMedia("(min-width: 48rem)");
 
-// Treffer markieren: split mit Klammer im Ausdruck, ungerade Teile sind Treffer
-function hl(text, re) {
-  if (!re) return text;
-  return String(text).split(re).map((p, n) => (n % 2 ? <mark key={n}>{p}</mark> : p));
+// Treffer markieren wie die Suche (norm): ohne Akzente, ß = ss – „kastner“ markiert „Kästner“.
+// Reiner ASCII-Text (die meisten Zeilen): split mit Klammer im Ausdruck, ungerade Teile sind Treffer.
+// Sonst jedes Zeichen einzeln falten und die Treffer im gefalteten Text auf die Originalzeichen zurückrechnen.
+const ASCII = /^[\x20-\x7e]*$/;
+const FOLD = new Map();
+const fold = c => {
+  let f = FOLD.get(c);
+  if (f === undefined) FOLD.set(c, f = c.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]/g, " "));
+  return f;
+};
+function hl(text, such) {
+  if (!such) return text;
+  const s = String(text);
+  if (ASCII.test(s)) return s.split(such.re).map((p, n) => (n % 2 ? <mark key={n}>{p}</mark> : p));
+  const zeichen = [...s], ab = [];
+  let f = "";
+  for (const c of zeichen) { ab.push(f.length); f += fold(c); }
+  ab.push(f.length);
+  const an = new Uint8Array(f.length);
+  for (const w of such.terms) for (let i = f.indexOf(w); i >= 0; i = f.indexOf(w, i + 1)) an.fill(1, i, i + w.length);
+  const out = [];
+  let teil = "", markiert = false;
+  zeichen.forEach((c, n) => {
+    // Zeichen ohne gefaltete Form (einzelnes Akzentzeichen) gehören zum vorigen
+    const m = ab[n] < ab[n + 1] ? an.subarray(ab[n], ab[n + 1]).includes(1) : markiert;
+    if (m !== markiert && teil) { out.push(markiert ? <mark key={out.length}>{teil}</mark> : teil); teil = ""; }
+    markiert = m; teil += c;
+  });
+  if (teil) out.push(markiert ? <mark key={out.length}>{teil}</mark> : teil);
+  return out;
 }
 
 // Geschätzte Höhe eines Abschnitts: Zeichen je Zeile für Titel (fs-m) und Autor (fs-s), grob über die mittlere Zeichenbreite
@@ -49,12 +75,16 @@ function sizer() {
   const cT = w / (rem * .5), cA = w / (rem * .875 * .5);
   return (t, a) => 25 + rem * 1.35 * Math.ceil((t.length || 1) / cT) + (a ? 2 + rem * .875 * 1.5 * Math.ceil(a.length / cA) : 0);
 }
+// Kopf (Anker ul#L-X) nur beim ersten Auftreten eines Buchstabens: Die Sortierung (Collator) kann ihn unterbrechen,
+// z. B. „Œuvres“ zwischen den O (zählt zu „#“) oder griechische Titel nach Z
 function abschnitte(current) {
-  const est = sizer(), out = [];
+  const est = sizer(), out = [], koepfe = new Set();
   let cur = null, last = null;
   for (const b of current) {
     if (b._l !== last || cur.items.length === CHUNK) {
-      cur = { head: b._l !== last ? b._l : null, items: [], h: 0 };
+      const kopf = b._l !== last && !koepfe.has(b._l);
+      if (kopf) koepfe.add(b._l);
+      cur = { head: kopf ? b._l : null, items: [], h: 0 };
       out.push(cur);
       last = b._l;
     }
@@ -66,7 +96,7 @@ function abschnitte(current) {
 }
 
 // Ein Abschnitt; zeichnet nur neu, wenn sich Bücher oder Markierung ändern
-const Abschnitt = React.memo(function Abschnitt({ head, items, h, re }) {
+const Abschnitt = React.memo(function Abschnitt({ head, items, h, such }) {
   return (
     <ul data-l={head || undefined} id={head ? lid(head) : undefined} style={{ containIntrinsicSize: `auto ${Math.round(h)}px` }}>
       {items.map(b => {
@@ -74,8 +104,8 @@ const Abschnitt = React.memo(function Abschnitt({ head, items, h, re }) {
         return (
           <li key={b._i}>
             <button className="row" type="button" data-i={b._i}>
-              <span className="t">{hl(b.t, re)}</span>
-              {a ? <span className="a">{hl(a, re)}</span> : null}
+              <span className="t">{hl(b.t, such)}</span>
+              {a ? <span className="a">{hl(a, such)}</span> : null}
             </button>
           </li>
         );
@@ -125,9 +155,9 @@ export function Liste({ books, geladen, onOpen }) {
   const marks = React.useRef([]);
 
   const terms = React.useMemo(() => norm(q).split(" ").filter(Boolean), [q]);
-  const re = React.useMemo(() => {
+  const such = React.useMemo(() => {
     const long = terms.filter(x => x.length > 1).sort((a, b) => b.length - a.length);
-    return long.length ? new RegExp("(" + long.map(reEsc).join("|") + ")", "i") : null;
+    return long.length ? { re: new RegExp("(" + long.map(reEsc).join("|") + ")", "i"), terms: long } : null;
   }, [terms]);
   const current = React.useMemo(() => (terms.length ? books.filter(b => terms.every(x => b._s.includes(x))) : books), [books, terms]);
   const teile = React.useMemo(() => abschnitte(current), [current]);
@@ -231,10 +261,11 @@ export function Liste({ books, geladen, onOpen }) {
   const obs = React.useRef(null), alle = React.useRef(books);
   alle.current = books;
   if (!obs.current && "IntersectionObserver" in window) {
+    const gewollt = new Set(); // Bücher, die gerade im Hintergrund geladen werden sollen
     const seen = new IntersectionObserver(entries => {
       for (const e of entries) {
         const b = alle.current[+e.target.dataset.i];
-        if (e.isIntersecting) { warm(); C().want(b); } else C().unwant(b);
+        if (e.isIntersecting) { warm(); C().want(b); gewollt.add(b); } else { C().unwant(b); gewollt.delete(b); }
       }
     }, { rootMargin: "150px 0px" });
     const near = new IntersectionObserver(entries => {
@@ -242,11 +273,11 @@ export function Liste({ books, geladen, onOpen }) {
         for (const r of e.target.querySelectorAll(".row")) {
           const b = alle.current[+r.dataset.i];
           if (!b.i) continue;
-          if (e.isIntersecting) seen.observe(r); else { seen.unobserve(r); C().unwant(b); }
+          if (e.isIntersecting) seen.observe(r); else { seen.unobserve(r); C().unwant(b); gewollt.delete(b); }
         }
       }
     }, { rootMargin: "300px 0px" });
-    obs.current = { seen, near };
+    obs.current = { seen, near, gewollt };
   }
   React.useEffect(() => () => { if (obs.current) { obs.current.seen.disconnect(); obs.current.near.disconnect(); } }, []);
 
@@ -259,6 +290,8 @@ export function Liste({ books, geladen, onOpen }) {
     onScroll();
     if (!obs.current || !C().enabled) return;
     if (beob.current.teile !== teile) {
+      // Bücher der alten Liste nicht mehr im Hintergrund laden (die neue meldet ihre sichtbaren gleich wieder an)
+      obs.current.gewollt.forEach(b => C().unwant(b)); obs.current.gewollt.clear();
       obs.current.seen.disconnect(); obs.current.near.disconnect();
       beob.current = { teile, uls: new WeakSet() };
     }
@@ -334,7 +367,7 @@ export function Liste({ books, geladen, onOpen }) {
           {!geladen ? (
             <div className="skel" aria-hidden="true">{Array.from({ length: 14 }, (_, n) => <Skeleton key={n} />)}</div>
           ) : current.length ? (
-            <div className="rows">{teile.slice(0, grenze).map(s => <Abschnitt key={s.items[0]._i} head={s.head} items={s.items} h={s.h} re={re} />)}</div>
+            <div className="rows">{teile.slice(0, grenze).map(s => <Abschnitt key={s.items[0]._i} head={s.head} items={s.items} h={s.h} such={such} />)}</div>
           ) : (
             <div className="empty">
               <strong>{t(books.length ? "emptyT" : "noData")}</strong>

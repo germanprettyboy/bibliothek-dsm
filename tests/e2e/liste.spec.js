@@ -84,6 +84,16 @@ test.describe("Suche", () => {
     await expect(page.locator("#meta")).toHaveText(`${treffer(B.buecher, "kastner").length} Treffer`);
   });
 
+  test("Markierung auch mit Akzenten und ß, wie die Suche", async ({ page }) => {
+    await oeffnen(page);
+    await suche(page, "Kästner");
+    await expect(page.locator("#list .row .a mark").first()).toHaveText("Kästner");
+    await suche(page, "kastner");
+    await expect(page.locator("#list .row .a mark").first()).toHaveText("Kästner");
+    await suche(page, "krabat preussler");
+    await expect(page.locator("#list .row").first().locator("mark")).toHaveText(["Krabat", "Preußler"]);
+  });
+
   test("ISBN-Suche", async ({ page }) => {
     const b = B.buecher.find(x => x.i);
     await oeffnen(page);
@@ -204,5 +214,19 @@ test.describe("Vorschau aus der Verwaltung", () => {
     await oeffnen(page);
     await expect(page.locator("#preview")).toBeHidden();
     await expect(page.locator("#list .row")).toHaveCount(B.buecher.length);
+  });
+});
+
+test.describe("Buchstaben-Anker eindeutig", () => {
+  // Sortiert nach Collator, Anfangsbuchstabe nach Unicode: „Œuvres“ steht zwischen den O, zählt aber zu „#“,
+  // griechische Titel stehen nach Z – „#“ darf trotzdem nur einmal Anker sein
+  const buecher = ["1984", "Oase", "Œuvres", "Ohne Ende", "Zebra", "Ὀδύσσεια"].map(t => ({ t }));
+  test.use({ speicher: { "dsm-empf": JSON.stringify({ want: false, gruppe: null }), "dsm-vorschau": JSON.stringify({ stand: "2026-01-01", anzahl: buecher.length, buecher }) } });
+
+  test("jeder Buchstabe nur ein Abschnittskopf", async ({ page }) => {
+    await oeffnen(page, "index.html#vorschau");
+    await expect(page.locator("#list .row")).toHaveCount(buecher.length);
+    const koepfe = await page.locator("#list ul[data-l]").evaluateAll(us => us.map(u => u.id));
+    expect(koepfe).toEqual(["L-0", "L-O", "L-Z"]);
   });
 });

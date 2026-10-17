@@ -18,7 +18,9 @@ async function detailAufZu(page) {
 const filter = (page, sel) => page.evaluate(sel => getComputedStyle(document.querySelector(sel)).backdropFilter, sel);
 
 test.describe("Unschärfe nach Leistung", () => {
+  // Bis zu fünfmal Fenster auf und zu: unter Last (parallele Tests) dauert ein Durchgang 3–5 s, 30 s reichen nicht
   test("ruckelnde Fenster: erst weniger, dann keine Unschärfe, gemerkt", async ({ page }) => {
+    test.slow();
     await bilder(page, 40);
     await oeffnen(page);
     await expect(page.locator("html")).not.toHaveAttribute("data-blur", /.*/);
@@ -37,6 +39,7 @@ test.describe("Unschärfe nach Leistung", () => {
   });
 
   test("flüssige Fenster: Unschärfe bleibt", async ({ page }) => {
+    test.slow();
     await bilder(page, 16);
     await oeffnen(page);
     for (let i = 0; i < 3; i++) await detailAufZu(page);
