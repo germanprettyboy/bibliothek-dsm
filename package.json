@@ -8,6 +8,7 @@
     "verschluesseln": "node werkzeuge/admin-verschluesseln.js",
     "serve": "python3 -m http.server 8765 -d website",
     "dev": "node werkzeuge/bauen.mjs --watch & npx --yes browser-sync@3 start --server website --files website --port 8765 --no-open --no-notify --no-ui",
+    "lokal": "node werkzeuge/lokal.mjs",
     "ui:add": "npx --yes shadcn@4.22.0 add",
     "test": "node --test tests/unit/*.test.js",
     "test:e2e": "playwright test",

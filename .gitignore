@@ -8,8 +8,12 @@ node_modules/
 .pruefung/
 *.bak
 
-# Testläufe (Playwright-Ergebnisse, Test-Datenbanken, Test-Verschlüsselung)
+# Testläufe (Playwright-Ergebnisse, Test-Datenbanken, Test-Verschlüsselung, npm run lokal)
 tests/.tmp/
+
+# von speichern.php (npm run lokal): Sicherungen und halb geschriebene Dateien
+website/sicherung/
+website/.*.neu
 
 # Claude-Worktrees und lokale Einstellungen (.claude/settings.json mit dem Hook wird eingecheckt)
 .claude/worktrees/

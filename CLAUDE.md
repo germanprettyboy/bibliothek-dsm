@@ -36,7 +36,7 @@ src/                ← Quelltext der Seiten (React + Tailwind + shadcn/ui), NIC
   styles.css          Tailwind v4: DSM-Tokens, Theme (nur DSM-Werte), Bausteine (Liste, Cover, Glas, Platzhalter)
   components/ui/      shadcn/ui-Komponenten, an DSM angepasst (button, input, dialog, switch, toggle(-group), tabs, …)
   components/         fenster (Glas-Dialog), kopf (Logo/Sprache/Einstellungen), einstellungen
-  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast)
+  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast), leistung (Unschärfe)
   bibliothek/         Bücherliste: main, app, daten, liste, detail (+Zoom), cover, empfehlungen (+Archiv, Fragen), info, wahl
   verwaltung/         main (Seite), sperre (PBKDF2/AES-GCM), gemeinsam (window.DSM_GEMEINSAM für die Verwaltung)
 werkzeuge/          ← NICHT hochladen
@@ -46,6 +46,8 @@ werkzeuge/          ← NICHT hochladen
   admin-verschluesseln.js   baut quelle/verwaltung/ (React extern) + extract.js → website/assets/admin.enc.js
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
   tunnel.mjs          öffentliche Test-Adresse (Cloudflare Quick Tunnel) für website/, auch für Playwright
+  lokal.mjs + lokal-router.php   npm run lokal: PHP-Webserver (php-wasm, npx, gepinnt) mit website/ als Wurzel;
+                      Router liefert admin.enc.js aus tests/.tmp/lokal/ und setzt DSM_ZUGANG_DATEI für speichern.php
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
 components.json     shadcn-Konfiguration (JSX statt TSX, Aliase @/components, @/lib); vite.config.js für Editor/CLI
 tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
@@ -66,6 +68,8 @@ npm run serve                                 # http://localhost:8765
 npm run dev                                   # Build im Watch-Modus + Live-Reload (browser-sync über npx)
 npm run tunnel                                # website/ unter https://….trycloudflare.com (Handy/Schul-PC), Ctrl+C beendet
 npm run tunnel:dev                            # dasselbe mit Watch-Build + Live-Reload
+npm run lokal                                 # wie Webspace: PHP (php-wasm über npx) + speichern.php echt, Build-Watch,
+                                              #   Verwaltung mit Passwort „lokal“ (DSM_LOKAL_PW) → http://127.0.0.1:8765/admin.html
 npm run ui:add -- <name>                      # neue shadcn-Komponente nach src/components/ui/ (danach an DSM anpassen!)
 node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
 npm test                                      # Unit-Tests (node:test, ~15 s, baut einmal zum Vergleich)
@@ -131,6 +135,8 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
 - Keine Farbstreifen-Leiste unter dem Titel. Keine Datenschutzhinweise auf der Admin-Seite.
 - Fenster (Detail, Einstellungen, Fragen, Öffnungszeiten, Archiv): shadcn `Dialog` (Radix) als Glas-Fenster
   (`.glass.sheet`), Schleier `.schleier` unscharf + leicht abgedunkelt; Handy Bottom Sheet, ab 40rem mittig.
+  Ausnahme (Auftraggeber 17.10.2026): Unschärfe richtet sich nach der Leistung – ruckeln die Fenster, weniger oder keine.
+  Ebenso ohne Unschärfe bei „Transparenz reduzieren“ (System) und beim Glas in hohem Kontrast.
 - Langsame Verbindung: Lade-Platzhalter (Balken mit Lichtband, `.skel`) für Liste und – wenn gewählt
   (`data-empf` aus kopf.js) – Empfehlungen, bis books.js (≈700 KB) da ist; nach 6 s Hinweis „Langsame Verbindung“.
   Festes Gerüst in src/index.html bis React startet; bibliothek.js lädt VOR books.js (Kopf, Öffnungszeiten,
@@ -197,14 +203,20 @@ shadcn-Komponenten nach `ui:add` immer anpassen
 - Die Seite hat ~17.000 Elemente (Liste). Jede Änderung einer vererbten Eigenschaft an `<html>`/`<body>` trifft alle:
   KEINE Übergänge auf `body` (color/background), nichts Vererbtes animieren. `.list { pointer-events: auto }` fängt
   Radix' `body { pointer-events: none }` beim Öffnen jedes Fensters ab (29 → 4 ms, 4-fach gedrosselt).
-- Theme/Kontrast (`lib/darstellung.js`): Schalter sofort (React), Umfärben per `document.startViewTransition` als ein
-  Überblenden (`--t-base`); `.seg3` hat `view-transition-name: dsm-wahl` und gleitet live obenauf. Ohne API / reduzierte
-  Bewegung: sofort. Keine Klasse an `<html>` zum Abschalten von Übergängen (`:root.x *` = zweimal alles neu berechnen).
+- Theme/Kontrast (`lib/darstellung.js`): Markierung/Schalter sofort (React) und erst zu Ende gleiten lassen (150 ms), dann
+  die ganze Seite per `document.startViewTransition` in einem Stück überblenden (`--t-farbe` 350 ms, `--ease-farbe`, alt und
+  neu dieselbe Kurve). KEIN eigener Layer für `.seg3` mehr (stand in neuen Farben als harter Block auf der alten Seite).
+  Vorher Logo-Bilder `loading="eager"` + `decode()` (max. 400 ms), sonst fehlt das dunkle Logo im neuen Bild. Ohne API /
+  reduzierte Bewegung: sofort. Keine Klasse an `<html>` zum Abschalten von Übergängen (`:root.x *` = zweimal alles neu berechnen).
 - Sprache (`components/kopf.jsx`): Markierung zuerst (`.seg[data-an]`, `will-change: transform`), `setLang` erst nach dem
   nächsten Frame (rAF + setTimeout). Sonner-Toaster mit festem `dir="ltr"` (sonst `getComputedStyle(html)` je Render).
 - Unschärfe klein: Schleier `blur(8px)`, Glas `blur(18px)` (vorher 12/30). Beide stapeln sich und werden in jedem Bild
   einer Fenster-Animation neu gerechnet; ohne Unschärfe drittelt sich die GPU-Zeit (Software-GPU). Nicht wieder erhöhen.
-- Markierungen DE/IT und Theme: `--t-fast` (150 ms) mit `--snap`. Buch-Detail ab 40rem: auf 140 ms, zu 110 ms, Schleier 120/110 ms.
+- Unschärfe nach Leistung (`lib/leistung.js`): `blurMessen()` beim Öffnen jedes `Fenster` und des Zooms misst die
+  rAF-Abstände 400 ms lang (erste zwei Abstände nicht – Fensteraufbau). Ruckeln (≥3 Abstände > 28 ms oder Schnitt > 24 ms)
+  zweimal hintereinander → eine Stufe weniger: `data-blur` an `<html>` = (fehlt) voll 8/18 px → `wenig` 4/10 px → `aus`
+  (`--veil-dicht`, `--glass-dicht`). Gemerkt in `dsm-blur`, kopf.js setzt es vor dem ersten Zeichnen, 14 Tage gültig.
+  Gemessen 17.10.2026: Software-GPU stuft nach 2 bzw. 4 Öffnungen ab, Intel UHD 630 bleibt voll.- Markierungen DE/IT und Theme: `--t-fast` (150 ms) mit `--snap`. Buch-Detail ab 40rem: auf 140 ms, zu 110 ms, Schleier 120/110 ms.
 - protokoll.js gibt erst nach dem Bild in die Konsole aus (`requestIdleCallback`, sonst 50 ms); Eintrag und Zeit entstehen sofort.
 - Dauer: hinein `--t-base` 200 / `--t-slow` 250 ms, hinaus `--t-out` 160 ms. Messskripte zum Wiederholen nicht eingecheckt
   (Muster: Playwright + CDP `setCPUThrottlingRate` 4, PerformanceObserver `long-animation-frame`).
@@ -224,7 +236,7 @@ shadcn-Komponenten nach `ui:add` immer anpassen
   `k` = norm(Titel) + "|" + norm(Erstautor) (norm: klein, ohne Akzente, ß→ss, nur a–z0–9 und Leerzeichen).
 - `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
-- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v3` (Cover-Cache; v2 wird gelöscht), `dsm-info-karte` ("1"/"0", Platzhalter),
+- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v3` (Cover-Cache; v2 wird gelöscht), `dsm-info-karte` ("1"/"0", Platzhalter), `dsm-blur` ({stufe: wenig|aus, t}, Unschärfe nach Leistung),
   Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, IndexedDB `dsm-admin` (Store `kv`, Schlüssel `website` = Ordner-Handle), Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
   Protokoll: `dsm-protokoll` (localStorage, "aus" = abgeschaltet), `dsm-protokoll-verlauf` (sessionStorage, letzte 500 Einträge).
 - Konsolen-Protokoll (`assets/protokoll.js`): erfasst automatisch Klicks, Eingaben (600 ms entprellt), Schalter, Dateien,

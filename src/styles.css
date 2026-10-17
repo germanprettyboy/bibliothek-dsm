@@ -35,6 +35,7 @@
   /* Fokusrahmen in Textfarbe: deutlich auf jeder Fläche (WCAG 2.4.11, mind. 3:1) */
   --focus: #333333;
   --veil: rgba(28, 24, 22, .26);
+  --veil-dicht: rgba(28, 24, 22, .4); --glass-dicht: rgba(250, 248, 246, .97); /* ohne Unschärfe (data-blur="aus") */
   --glass: rgba(255, 255, 255, .72); --glass-brd: rgba(255, 255, 255, .7); --glass-edge: rgba(40, 30, 28, .1); --glass-hi: rgba(255, 255, 255, .9);
   --gb-top: rgba(255, 255, 255, .78); --gb-bot: rgba(255, 255, 255, .34);
   --shadow: 0 24px 60px rgba(40, 30, 28, .2);
@@ -48,6 +49,8 @@
   --w: 46rem;
   /* Bewegung: kurz (150–250 ms). Hinein mit --ease (ease-out), hinaus schneller (--t-out) mit --ease-in. */
   --t-fast: 150ms; --t-base: 200ms; --t-slow: 250ms; --t-out: 160ms;
+  /* Ausnahme: Farbwechsel der ganzen Seite (Theme/Kontrast) blendet ruhiger über */
+  --t-farbe: 350ms; --ease-farbe: cubic-bezier(.4, 0, .2, 1);
   --ease: cubic-bezier(.2, .7, .2, 1);
   --ease-in: cubic-bezier(.4, 0, 1, 1);
   --snap: cubic-bezier(.25, 1, .35, 1);
@@ -59,6 +62,7 @@
   :root:not([data-theme="light"]) {
     --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #34312f; --surface: #252322;
     --focus: #ece9e6; --veil: rgba(0, 0, 0, .46);
+    --veil-dicht: rgba(0, 0, 0, .62); --glass-dicht: rgba(38, 36, 34, .97);
     --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
     --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
     --shadow: 0 24px 60px rgba(0, 0, 0, .55);
@@ -69,6 +73,7 @@
 :root[data-theme="dark"] {
   --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #34312f; --surface: #252322;
   --focus: #ece9e6; --veil: rgba(0, 0, 0, .46);
+  --veil-dicht: rgba(0, 0, 0, .62); --glass-dicht: rgba(38, 36, 34, .97);
   --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
   --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
   --shadow: 0 24px 60px rgba(0, 0, 0, .55);
@@ -80,18 +85,21 @@
   --fg: #000000; --muted: #1f1f1f; --line: #6a6a6a; --surface: #ffffff; --bg: #ffffff; --focus: #000000;
   --glass: #ffffff; --glass-brd: #000000; --glass-edge: #000000; --glass-hi: transparent;
   --gb-top: #ffffff; --gb-bot: #ffffff; --veil: rgba(0, 0, 0, .55);
+  --glass-dicht: #ffffff; --veil-dicht: rgba(0, 0, 0, .55);
   --skel: #d4d4d4; --skel-hi: transparent;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-contrast="high"]:not([data-theme="light"]) {
     --fg: #ffffff; --muted: #e6e6e6; --line: #a0a0a0; --surface: #000000; --bg: #000000; --focus: #ffffff;
     --glass: #000000; --glass-brd: #ffffff; --glass-edge: #ffffff; --gb-top: #000000; --gb-bot: #000000;
+    --glass-dicht: #000000;
     --skel: #4a4a4a;
   }
 }
 :root[data-contrast="high"][data-theme="dark"] {
   --fg: #ffffff; --muted: #e6e6e6; --line: #a0a0a0; --surface: #000000; --bg: #000000; --focus: #ffffff;
   --glass: #000000; --glass-brd: #ffffff; --glass-edge: #ffffff; --gb-top: #000000; --gb-bot: #000000;
+  --glass-dicht: #000000;
   --skel: #4a4a4a;
 }
 :root[data-font="large"] { font-size: 118.75%; }
@@ -193,12 +201,10 @@
   }
 
   /* Farbwechsel (Theme, Kontrast, lib/darstellung.js): Die Seite wird einmal neu berechnet und als Bild überblendet
-     (View Transition), statt jede Fläche einzeln zu animieren. Die Theme-Wahl (.seg3, nur eine zur Zeit) liegt als
-     eigene, live gezeichnete Ebene obenauf: ihre Markierung gleitet, statt als altes Bild stehen zu bleiben. */
-  .seg3 { view-transition-name: dsm-wahl; }
-  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-base); animation-timing-function: ease-out; }
-  ::view-transition-old(dsm-wahl) { display: none; }
-  ::view-transition-group(dsm-wahl), ::view-transition-new(dsm-wahl) { animation: none; }
+     (View Transition), statt jede Fläche einzeln zu animieren. Hell ↔ dunkel ist ein großer Helligkeitssprung: länger
+     (--t-farbe) und weich an beiden Enden, sonst wirkt es wie ein Aufblitzen. Altes und neues Bild mit derselben Kurve,
+     damit sie sich zu jedem Zeitpunkt zu voller Deckkraft ergänzen. */
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-farbe); animation-timing-function: var(--ease-farbe); }
 
   /* Klebende Suchleiste: deckend; über ihr deckt ein fester Streifen die Statusleiste ab (iPhone, viewport-fit=cover) */
   .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid transparent; transition: border-color .2s, box-shadow .2s; }
@@ -302,6 +308,18 @@
     background: var(--veil);
     -webkit-backdrop-filter: blur(8px) saturate(1.15); backdrop-filter: blur(8px) saturate(1.15);
   }
+  /* Unschärfe nach Leistung (lib/leistung.js misst die Fenster-Animationen, kopf.js setzt data-blur beim Laden):
+     ruckelt es, erst weniger, dann keine Unschärfe – die Flächen werden dafür dichter. Ebenso bei „Transparenz
+     reduzieren“ im System. Hoher Kontrast: Glas ist deckend, seine Unschärfe wäre unsichtbar, aber trotzdem teuer. */
+  :root[data-blur="wenig"] .glass { -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5); }
+  :root[data-blur="wenig"] .schleier { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+  :root[data-blur="aus"] .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-dicht); }
+  :root[data-blur="aus"] .schleier { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--veil-dicht); }
+  @media (prefers-reduced-transparency: reduce) {
+    :root .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-dicht); }
+    :root .schleier { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--veil-dicht); }
+  }
+  :root[data-contrast="high"] .glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
   .schleier[data-state="open"] { animation: fade var(--t-base) ease-out; }
   .schleier[data-state="closed"] { animation: fade-out var(--t-out) var(--ease-in) forwards; }
   .schleier.closing { animation: fade-out var(--t-out) var(--ease-in) forwards; }

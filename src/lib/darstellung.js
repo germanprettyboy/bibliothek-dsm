@@ -19,11 +19,26 @@ function anwenden() {
 
 // Farbwechsel als ein Überblenden des ganzen Bildes (View Transition, nur Compositor): Neue Farben werden einmal
 // berechnet. Früher animierte body color/background – das hieß Stil aller ~17.000 Elemente in jedem Frame neu.
-// Schalter und Wahl reagieren sofort (React), nur das Umfärben der Seite läuft in der View Transition.
+// Ablauf: Markierung bzw. Schalter reagieren sofort (React) und gleiten erst zu Ende (--t-fast), dann wird die ganze
+// Seite in einem Stück überblendet. Sonst stünde die Wahl schon in neuen Farben auf der alten Seite (harter Block)
+// oder ihre alte Stellung bliebe als Geisterbild stehen. Das Logo der neuen Farbwelt (dunkel: loading="lazy", noch nie
+// geladen) wird vorher geladen, damit es im neuen Bild nicht fehlt und danach hineinspringt.
 // Ohne API (Firefox < 144, Safari < 18) oder bei reduzierter Bewegung: sofort.
-function farbwechsel() {
-  if (!document.startViewTransition || still.matches) anwenden();
-  else document.startViewTransition(anwenden);
+const GLEITEN = 150;
+const warte = ms => new Promise(r => setTimeout(r, ms));
+let lauf = 0;
+
+function logosLaden() {
+  const bilder = [...document.querySelectorAll(".logo img")];
+  bilder.forEach(b => { b.loading = "eager"; });
+  return Promise.all(bilder.map(b => b.decode().catch(() => {})));
+}
+
+async function farbwechsel() {
+  if (!document.startViewTransition || still.matches) return anwenden();
+  const nr = ++lauf;
+  await Promise.all([warte(GLEITEN), Promise.race([logosLaden(), warte(400)])]);
+  if (nr === lauf) document.startViewTransition(anwenden); // schnell hintereinander geklickt: nur der letzte Wechsel
 }
 
 export function setPref(k, v) {

@@ -23,8 +23,9 @@ const DSM_DATEIEN = [
 const DSM_MAX = 8 * 1024 * 1024;
 const DSM_SICHERUNGEN = 10;
 
+// DSM_ZUGANG_DATEI setzt nur der lokale Entwicklungs-Server (werkzeuge/lokal-router.php)
 function dsm_zugang(string $ordner): string {
-  $datei = $ordner . '/speichern-zugang.php';
+  $datei = defined('DSM_ZUGANG_DATEI') ? DSM_ZUGANG_DATEI : $ordner . '/speichern-zugang.php';
   $hash = is_file($datei) ? include $datei : '';
   return is_string($hash) && preg_match('/^[0-9a-f]{64}$/', $hash) ? $hash : '';
 }
