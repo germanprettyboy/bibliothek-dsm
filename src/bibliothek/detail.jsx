@@ -6,7 +6,6 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { Fenster } from "@/components/fenster";
 import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { blurMessen } from "@/lib/leistung";
 import { log } from "@/lib/speicher";
 import { woerter, useSprache, t as tx } from "@/lib/sprache";
 import { Cover } from "@/bibliothek/cover";
@@ -140,7 +139,6 @@ function Zoom({ open, box, onClosed }) {
     el.src = klein.src;
     place();
     anim.current = still.matches ? null : el.animate([{ transform: onCover() }, { transform: "none" }], { duration: 240, easing: snap() });
-    blurMessen();
     if (big === klein.src) return;
     const hi = new Image();
     hi.referrerPolicy = "no-referrer"; hi.src = big;

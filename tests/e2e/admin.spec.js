@@ -83,12 +83,6 @@ test.describe("Sperre", () => {
     await expect(page.locator("#lock")).toBeVisible();
     await expect(page.locator("#app")).toBeHidden();
     await expect(page.locator("#pw")).toBeFocused();
-    await expect(page.locator("#current")).toHaveText("");
-  });
-
-  test("nach dem Entsperren: aktueller Stand der Liste", async ({ page }) => {
-    await entsperren(page);
-    await expect(page.locator("#current")).toHaveText(`Aktuell veröffentlicht: ${B.buecher.length.toLocaleString("de-DE")} Bücher, Stand ${B.stand.split("-").reverse().join(".")}`);
   });
 
   test("falsches Passwort: Meldung, Wartezeit, Zähler", async ({ page }) => {
@@ -210,8 +204,6 @@ test.describe("Datenbank einlesen", () => {
     expect(d.verlauf.at(-1)).toEqual(d.abdeckung);
     const node = await nodeSkript(fs.readFileSync(path.join(TMP, "test.winbook")), { stand: d.stand, abdeckung: d.abdeckung, verlauf: d.verlauf });
     expect(s === node, "books.js weicht von Node-Erzeugung ab").toBe(true);
-    // danach gilt der neue Bestand als veröffentlicht
-    await expect(page.locator("#current")).toHaveText(/^Aktuell veröffentlicht: 8 Bücher, Stand /);
     await expect(page.locator("#r-taken")).toContainText("Gegenüber der aktuellen Liste+0 neu · −0 entfallen");
   });
 
@@ -293,13 +285,11 @@ test.describe("Empfehlungen bearbeiten", () => {
   const tab = async page => { await page.click('.tabs [data-tab="empf"]'); await expect(page.locator("#tab-empf")).toBeVisible(); };
   const entwurf = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-empf-entwurf") || "null"));
 
-  test("Gruppen mit Anzahl, aktueller Stand geladen", async ({ page }) => {
+  test("Gruppen, aktueller Stand geladen", async ({ page }) => {
     await entsperren(page);
     await tab(page);
     await expect(page.locator("#e-groups button")).toHaveText([
-      `Mittelstufe (${E.gruppen.mittelstufe.length})`, `Oberstufe (${E.gruppen.oberstufe.length})`,
-      `Erwachsene · Romane (${E.gruppen["erw-roman"].length})`, `Erwachsene · Sachbücher (${E.gruppen["erw-sach"].length})`,
-      `Erwachsene · Biografien & Geschichte (${E.gruppen["erw-bio"].length})`]);
+      "Mittelstufe", "Oberstufe", "Erwachsene · Romane", "Erwachsene · Sachbücher", "Erwachsene · Biografien & Geschichte"]);
     await expect(page.locator("#e-list .rec-ed b")).toHaveText(E.gruppen.mittelstufe.map(r => r.t));
     await expect(page.locator("#e-list .warn")).toHaveCount(0);
   });
@@ -333,7 +323,7 @@ test.describe("Empfehlungen bearbeiten", () => {
     await expect(page.locator('#e-list .rec-ed[data-n="0"] [data-op="up"]')).toBeDisabled();
     await expect(page.locator('#e-list .rec-ed[data-n="3"] [data-op="down"]')).toBeDisabled();
     await expect.poll(async () => (await entwurf(page))?.gruppen.mittelstufe[2]?.it).toBe("Un breve testo italiano.");
-    await expect(page.locator("#e-state")).toHaveText(/Entwurf im Browser gespeichert · \d+ Bücher in 5 Gruppen/);
+    await expect(page.locator("#e-state")).toHaveCount(0);
     // Entwurf bleibt nach Neuladen
     await page.reload();
     await expect(page.locator("#app")).toBeVisible({ timeout: 10000 });
@@ -407,7 +397,7 @@ test.describe("Verwaltung auf dem Handy", () => {
 test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const picks = page => page.evaluate(() => window.__picks);
-  const ordnerZeile = "Website-Ordner: website · Anderen Ordner wählen · Stattdessen herunterladen";
+  const ordnerZeile = "Website-Ordner: website · Anderen Ordner wählen";
 
   test("erster Klick fragt nach dem Ordner und schreibt info.js; danach ohne Rückfrage, auch nach Neuladen", async ({ page }) => {
     await entsperren(page);
@@ -442,10 +432,10 @@ test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
     await page.evaluate(() => localStorage.setItem("__test-ordner", "Downloads"));
     await page.click("#i-dl");
     const flag = page.locator('.pub[data-datei="info.js"] .flag');
-    await expect(flag).toHaveText("Im Ordner „Downloads“ liegt keine index.html. Bitte den Website-Ordner wählen – den Ordner mit index.html und admin.html. Ohne Website-Ordner: „Stattdessen herunterladen“.");
+    await expect(flag).toHaveText("Im Ordner „Downloads“ liegt keine index.html. Bitte den Website-Ordner wählen – den Ordner mit index.html und admin.html.");
     await expect(flag).toHaveClass(/warn/);
     expect(await ordnerDatei(page, "info.js", "Downloads")).toBeNull();
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Stattdessen herunterladen");
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveCount(0);
     await page.evaluate(() => localStorage.setItem("__test-ordner", "website"));
     await speichern(page, "#i-dl");
     expect(await picks(page)).toBe(2);
@@ -458,16 +448,7 @@ test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
     await page.click("#i-dl");
     await expect.poll(() => picks(page)).toBe(1);
     await expect(page.locator("#i-dl")).toBeEnabled();
-    await expect(page.locator('.pub[data-datei="info.js"]')).toHaveText("Stattdessen herunterladen");
-  });
-
-  test("ohne Website-Ordner (Schul-PC): „Stattdessen herunterladen“ liefert die Datei, ohne Dialog", async ({ page }) => {
-    await entsperren(page);
-    await info(page);
-    await page.fill("#i-note-de", "Für die Weitergabe");
-    const d = auswerten(await herunterladen(page, '.pub[data-datei="info.js"] [data-pub-laden]'), "DSM_INFO");
-    expect(d.hinweis.de).toBe("Für die Weitergabe");
-    expect(await picks(page)).toBe(0);
+    await expect(page.locator('.pub[data-datei="info.js"]')).toHaveText("");
   });
 
   test("anderen Ordner wählen", async ({ page }) => {
@@ -504,7 +485,7 @@ test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
     await expect(page.locator("#i-dl")).toHaveText("Pubblica");
     await page.click("#i-dl");
     await expect(page.locator('.pub[data-datei="info.js"] .flag')).toHaveText(/^info\.js salvato nella cartella «website» alle \d\d:\d\d\.$/);
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Cartella del sito: website · Scegli un'altra cartella · Scarica invece il file");
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Cartella del sito: website · Scegli un'altra cartella");
   });
 });
 
@@ -532,7 +513,7 @@ test.describe("Direkt online veröffentlichen (speichern.php)", () => {
     await info(page);
     await expect(page.locator("#i-how")).toHaveText(ONLINE);
     await expect(page.locator("#i-dl")).toHaveText("Veröffentlichen");
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Stattdessen herunterladen");
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveCount(0);
     await page.fill("#i-note-de", "Online-Hinweis");
     await page.click("#i-dl");
     await expect(flag(page)).toHaveText(/^info\.js ist online, \d\d:\d\d Uhr\.$/);
@@ -545,17 +526,15 @@ test.describe("Direkt online veröffentlichen (speichern.php)", () => {
     expect(await page.evaluate(() => window.DSM_INFO.hinweis.de)).toBe("Online-Hinweis");
   });
 
-  test("gleicher Text wie der Download (byte-gleich), auch für books.js", async ({ page }) => {
+  test("books.js geht mit Schlüssel an speichern.php", async ({ page }) => {
     const anfragen = await server(page);
     await entsperren(page);
     await laden(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
-    await expect(page.locator(".pub[data-datei=\"books.js\"] [data-pub-laden]")).toBeVisible();
-    const geladen = await herunterladen(page, '.pub[data-datei="books.js"] [data-pub-laden]');
     await page.click("#dl");
     await expect(page.locator('.pub[data-datei="books.js"] .flag')).toHaveText(/^books\.js ist online/);
     expect(anfragen[0].datei).toBe("books.js");
-    expect(anfragen[0].text).toBe(geladen);
+    expect(auswerten(anfragen[0].text, "DSM_BIBLIOTHEK").buecher.length).toBe(8);
   });
 
   test("Zugang abgelehnt (403): Warnung, Stand bleibt unveröffentlicht", async ({ page }) => {
@@ -577,7 +556,7 @@ test.describe("Direkt online veröffentlichen (speichern.php)", () => {
     await info(page);
     await expect(page.locator("#i-how")).toHaveText(ONLINE);
     await page.click("#i-dl");
-    await expect(flag(page)).toHaveText("Speichern auf der Website hat nicht geklappt (HTTP 500). Bitte noch einmal versuchen, sonst „Stattdessen herunterladen“.");
+    await expect(flag(page)).toHaveText("Speichern auf der Website hat nicht geklappt (HTTP 500). Bitte noch einmal versuchen.");
   });
 
   test("speichern.php ohne Zugangsdatei: Hinweis, Ordner-Weg wie bisher", async ({ page }) => {

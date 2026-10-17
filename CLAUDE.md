@@ -36,7 +36,7 @@ src/                ← Quelltext der Seiten (React + Tailwind + shadcn/ui), NIC
   styles.css          Tailwind v4: DSM-Tokens, Theme (nur DSM-Werte), Bausteine (Liste, Cover, Glas, Platzhalter)
   components/ui/      shadcn/ui-Komponenten, an DSM angepasst (button, input, dialog, switch, toggle(-group), tabs, …)
   components/         fenster (Glas-Dialog), kopf (Logo/Sprache/Einstellungen), einstellungen
-  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast), leistung (Unschärfe)
+  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast)
   bibliothek/         Bücherliste: main, app, daten, liste, detail (+Zoom), cover, empfehlungen (+Archiv, Fragen), info, wahl
   verwaltung/         main (Seite), sperre (PBKDF2/AES-GCM), gemeinsam (window.DSM_GEMEINSAM für die Verwaltung)
 werkzeuge/          ← NICHT hochladen
@@ -103,6 +103,11 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   zuerst, je Datum, „Aktuell“, Thema, darunter die Bücher der gewählten Gruppe mit Text; Klick → Detail darüber.
 - Suchleiste klebt deckend oben; beim Suchen springt die Seite so, dass die Treffer direkt unter der
   Leiste beginnen (`main.books` mindestens bildschirmhoch).
+- Verwaltung (17.10.2026): keine Zeile „Aktuell veröffentlicht …“ unter dem Titel, kein „Entwurf im Browser gespeichert“ (nur
+  `#i-state` bei unvollständigen Info-Angaben), keine Zähler „(4)“ an den Gruppen. Gruppenwahl `#e-groups` = shadcn
+  `ToggleGroup` Variante `flaeche` (Segment-Wahl, bricht auf dem Handy um); Reiter ab ≤420 px über die ganze Breite.
+  „Sperren“ (`#lock-btn`) = Schloss-Symbol, der Text gleitet bei Hover/Fokus nach rechts heraus (CSS-Grid 0fr→1fr,
+  `motion-reduce` ohne Animation), `aria-label` immer gesetzt. `App` bekommt nur noch `sperren` (kein `setAktuell`).
 - Empfehlungs-Editor: Gruppe voll (4) → Suchfeld gesperrt mit Hinweis mittig; Bücher schon in der
   Gruppe → Treffer ausgegraut, ohne Knopf.
 - Ergebnis HTML/CSS/JS, keine Push-/Deploy-Dienste, keine Datenbank. Einzige Ausnahme seit 17.10.2026 (Auftraggeber:
@@ -112,7 +117,8 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   gebaute Dateien liegen eingecheckt in website/. Seiten laufen weiter per Doppelklick (file://): klassische Skripte, kein `type="module"`.
 - Admin „Veröffentlichen“, in dieser Reihenfolge: (1) online (https) mit eingerichtetem speichern.php → POST, sofort live;
   (2) Chrome/Edge: direkt in den Website-Ordner (File System Access API, Ordner einmal wählen, muss index.html enthalten,
-  Handle in IndexedDB); (3) andere Browser: Download. Immer da: „Stattdessen herunterladen“. Lokal ohne PHP bleibt
+  Handle in IndexedDB); (3) andere Browser: Download. Kein eigener „Stattdessen herunterladen“-Link (17.10.2026
+  entfernt); ohne Ordnerzugriff ist der Hauptknopf selbst der Download. Lokal ohne PHP bleibt
   der FTP-Upload Handarbeit.
 - speichern.php: GET → `{dsm:"speichern",bereit,grund?}` (Verwaltung erkennt es so; statischer Server/file:// liefert kein
   JSON → alter Weg). POST `?datei=` mit Kopfzeile `X-DSM-Schluessel`, Inhalt = fertige Datei. Angenommen nur exakt
@@ -141,8 +147,8 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
 - Keine Farbstreifen-Leiste unter dem Titel. Keine Datenschutzhinweise auf der Admin-Seite.
 - Fenster (Detail, Einstellungen, Fragen, Öffnungszeiten, Archiv): shadcn `Dialog` (Radix) als Glas-Fenster
   (`.glass.sheet`), Schleier `.schleier` unscharf + leicht abgedunkelt; Handy Bottom Sheet, ab 40rem mittig.
-  Ausnahme (Auftraggeber 17.10.2026): Unschärfe richtet sich nach der Leistung – ruckeln die Fenster, weniger oder keine.
-  Ebenso ohne Unschärfe bei „Transparenz reduzieren“ (System) und beim Glas in hohem Kontrast.
+  Unschärfe ist immer an (keine Leistungsmessung, siehe Performance). Nur bei „Transparenz reduzieren“ (System) und beim
+  Glas in hohem Kontrast entfällt sie.
 - Langsame Verbindung: Lade-Platzhalter (Balken mit Lichtband, `.skel`) für Liste und – wenn gewählt
   (`data-empf` aus kopf.js) – Empfehlungen, bis books.js (≈700 KB) da ist; nach 6 s Hinweis „Langsame Verbindung“.
   Festes Gerüst in src/index.html bis React startet; bibliothek.js lädt VOR books.js (Kopf, Öffnungszeiten,
@@ -219,11 +225,15 @@ shadcn-Komponenten nach `ui:add` immer anpassen
   nächsten Frame (rAF + setTimeout). Sonner-Toaster mit festem `dir="ltr"` (sonst `getComputedStyle(html)` je Render).
 - Unschärfe klein: Schleier `blur(8px)`, Glas `blur(18px)` (vorher 12/30). Beide stapeln sich und werden in jedem Bild
   einer Fenster-Animation neu gerechnet; ohne Unschärfe drittelt sich die GPU-Zeit (Software-GPU). Nicht wieder erhöhen.
-- Unschärfe nach Leistung (`lib/leistung.js`): `blurMessen()` beim Öffnen jedes `Fenster` und des Zooms misst die
-  rAF-Abstände 400 ms lang (erste zwei Abstände nicht – Fensteraufbau). Ruckeln (≥3 Abstände > 28 ms oder Schnitt > 24 ms)
-  zweimal hintereinander → eine Stufe weniger: `data-blur` an `<html>` = (fehlt) voll 8/18 px → `wenig` 4/10 px → `aus`
-  (`--veil-dicht`, `--glass-dicht`). Gemerkt in `dsm-blur`, kopf.js setzt es vor dem ersten Zeichnen, 14 Tage gültig.
-  Gemessen 17.10.2026: Software-GPU stuft nach 2 bzw. 4 Öffnungen ab, Intel UHD 630 bleibt voll.- Markierungen DE/IT und Theme: `--t-fast` (150 ms) mit `--snap`. Buch-Detail ab 40rem: auf 140 ms, zu 110 ms, Schleier 120/110 ms.
+  Versuch „Glas ohne backdrop-filter, nur Schleier unscharf“ (16:54) sah schlechter aus und wurde zurückgenommen (16:57):
+  Glas bleibt `blur(18px) saturate(1.8)`, Schleier `blur(8px) saturate(1.15)` – nicht noch einmal ausprobieren.
+- KEINE Leistungsmessung der Unschärfe mehr (war `lib/leistung.js`, 17.10.2026 gelöscht). Sie schaltete die Unschärfe ab,
+  sobald zweimal Bildabstände > 28 ms vorkamen – auch auf dem iPhone 15: Im Stromsparmodus begrenzt iOS
+  `requestAnimationFrame` auf 30 fps (33 ms, WebKit-Bug 215745, Absicht), dazu kommen Aufbau des Fensters und Cover-Laden.
+  rAF-Abstände messen nicht die Kosten von `backdrop-filter`. Nicht wieder einführen, auch nicht pro Sitzung. kopf.js löscht
+  nur noch die alten Merker `dsm-blur`. Unschärfe-Kosten steuert man über kleine Radien (oben) und Abschalten bei
+  „Transparenz reduzieren“/hohem Kontrast, nicht über Messen.
+- Markierungen DE/IT und Theme: `--t-fast` (150 ms) mit `--snap`. Buch-Detail ab 40rem: auf 140 ms, zu 110 ms, Schleier 120/110 ms.
 - protokoll.js gibt erst nach dem Bild in die Konsole aus (`requestIdleCallback`, sonst 50 ms); Eintrag und Zeit entstehen sofort.
 - Dauer: hinein `--t-base` 200 / `--t-slow` 250 ms, hinaus `--t-out` 160 ms. Messskripte zum Wiederholen nicht eingecheckt
   (Muster: Playwright + CDP `setCPUThrottlingRate` 4, PerformanceObserver `long-animation-frame`).
@@ -243,7 +253,7 @@ shadcn-Komponenten nach `ui:add` immer anpassen
   `k` = norm(Titel) + "|" + norm(Erstautor) (norm: klein, ohne Akzente, ß→ss, nur a–z0–9 und Leerzeichen).
 - `info.js`: `{stand, zeiten:{mo..sa:[["HH:MM","HH:MM"]]}, hinweis:{de,it}, schliessungen:[{art:"ferien"|"abwesend",von,bis,de,it}]}`
   (Datum JJJJ-MM-TT, bis ≥ von; leerer Text → „Ferien“ bzw. „Bibliothek geschlossen“).
-- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v3` (Cover-Cache; v2 wird gelöscht), `dsm-info-karte` ("1"/"0", Platzhalter), `dsm-blur` ({stufe: wenig|aus, t}, Unschärfe nach Leistung),
+- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-empf`, `dsm-cover-v3` (Cover-Cache; v2 wird gelöscht), `dsm-info-karte` ("1"/"0", Platzhalter),
   Admin: `dsm-empf-entwurf`, `dsm-info-entwurf`, IndexedDB `dsm-admin` (Store `kv`, Schlüssel `website` = Ordner-Handle), Vorschau `dsm-vorschau` / `dsm-vorschau-empf` / `dsm-vorschau-info` (index.html#vorschau).
   Protokoll: `dsm-protokoll` (localStorage, "aus" = abgeschaltet), `dsm-protokoll-verlauf` (sessionStorage, letzte 500 Einträge).
 - Konsolen-Protokoll (`assets/protokoll.js`): erfasst automatisch Klicks, Eingaben (600 ms entprellt), Schalter, Dateien,

@@ -4,6 +4,8 @@
 import "./woerter";
 import * as React from "react";
 
+import { LockIcon } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { store } from "@/lib/speicher";
@@ -15,8 +17,8 @@ import { Info, infoLaden } from "./info";
 // Alte Vorschauen verwerfen, damit index.html#vorschau nur zeigt, was in dieser Sitzung entsteht
 ["dsm-vorschau", "dsm-vorschau-empf", "dsm-vorschau-info"].forEach(k => store.del(k));
 
-function App({ setAktuell, sperren }) {
-  const { lang, t, nf, df } = useSprache();
+function App({ sperren }) {
+  const { t } = useSprache();
   const [tab, setTab] = React.useState("bestand");
   // Bestand: veröffentlichte Liste, eingelesene Datenbank, Cover-Abdeckung
   const [cur, setCur] = React.useState(window.DSM_BIBLIOTHEK);
@@ -26,10 +28,6 @@ function App({ setAktuell, sperren }) {
   const [survey, setSurvey] = React.useState(null);
   const [draft, setDraft] = React.useState(entwurfLaden);
   const [info, setInfo] = React.useState(infoLaden);
-
-  React.useEffect(() => {
-    setAktuell(cur && cur.buecher ? t("current", { n: nf(cur.buecher.length), d: df(cur.stand) }) : t("currentNone"));
-  }, [cur, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const entry = () => {
     const e = { stand, buecher: result.books.length, isbn: result.books.filter(b => b.i).length };
@@ -72,12 +70,21 @@ function App({ setAktuell, sperren }) {
   return (
     <Tabs value={tab} onValueChange={setTab}>
       <div className="adm-top mb-[18px] flex flex-wrap items-center justify-between gap-3">
-        <TabsList className="tabs">
+        <TabsList className="tabs max-[420px]:w-full max-[420px]:grid-cols-3">
           {[["bestand", "tabBestand"], ["empf", "tabEmpf"], ["info", "tabInfo"]].map(([v, k]) => (
             <TabsTrigger key={v} value={v} data-tab={v}>{t(k)}</TabsTrigger>
           ))}
         </TabsList>
-        <Button variant="ghost" size="text" id="lock-btn" onClick={sperren}>{t("lockAgain")}</Button>
+        {/* Schloss; der Text gleitet bei Hover/Fokus nach rechts heraus */}
+        <Button
+          variant="ghost" size="icon" id="lock-btn" onClick={sperren} aria-label={t("lockAgain")}
+          className="group w-auto gap-0 rounded-full px-3 hover:bg-surface focus-visible:bg-surface"
+        >
+          <LockIcon aria-hidden="true" strokeWidth={2} />
+          <span className="grid grid-cols-[0fr] opacity-0 transition-[grid-template-columns,opacity,margin] duration-200 ease-dsm group-hover:ml-2 group-hover:grid-cols-[1fr] group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:grid-cols-[1fr] group-focus-visible:opacity-100 motion-reduce:transition-none">
+            <span className="overflow-hidden">{t("lockAgain")}</span>
+          </span>
+        </Button>
       </div>
       <TabsContent value="bestand"><Bestand B={B} /></TabsContent>
       <TabsContent value="empf"><Empfehlungen draft={draft} setDraft={setDraft} catalog={catalog} /></TabsContent>

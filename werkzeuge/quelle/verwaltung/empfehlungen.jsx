@@ -54,7 +54,7 @@ function recsOut(draft) {
 }
 
 export function Empfehlungen({ draft, setDraft, catalog }) {
-  const { t, nf } = useSprache();
+  const { t } = useSprache();
   const [g, setG] = React.useState("mittelstufe");
   const [q, setQ] = React.useState("");
   const [armed, setArmed] = React.useState(false);
@@ -84,7 +84,6 @@ export function Empfehlungen({ draft, setDraft, catalog }) {
     return catalog.filter(b => { const x = normE([b.t, b.u, (b.a || []).join(" "), (b.i || []).join(" ")].join(" ")); return terms.every(w => x.includes(w)); }).slice(0, 8);
   }, [q, catalog, full]);
   const have = new Set(list.map(r => r.k));
-  const n = GROUPS.reduce((a, x) => a + draft.gruppen[x].length, 0), ng = GROUPS.filter(x => draft.gruppen[x].length).length;
 
   const verwerfen = () => {
     if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 4000); return; }
@@ -117,15 +116,15 @@ export function Empfehlungen({ draft, setDraft, catalog }) {
           ))}
         </div>
         <ToggleGroup
-          type="single" id="e-groups" value={g} onValueChange={v => v && setG(v)}
-          className="mt-3 flex flex-wrap gap-2 bg-transparent p-0 pt-1.5 shadow-none"
+          type="single" variant="flaeche" id="e-groups" value={g} onValueChange={v => v && setG(v)}
+          className="mt-3 flex flex-wrap gap-1"
         >
           {GROUPS.map(x => (
             <ToggleGroupItem
               key={x} value={x} data-g={x}
-              className="h-auto rounded-full border border-border bg-background px-3.5 py-2 text-m font-normal text-foreground data-[state=on]:border-foreground data-[state=on]:bg-foreground data-[state=on]:font-medium data-[state=on]:text-background"
+              className="h-auto min-h-10 grow px-3.5 py-2 text-m"
             >
-              {t("g_" + x)} ({draft.gruppen[x].length})
+              {t("g_" + x)}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -185,7 +184,6 @@ export function Empfehlungen({ draft, setDraft, catalog }) {
       <Veroeffentlichen
         datei="empfehlungen.js" bau={bau} ids={{ knopf: "e-dl", how: "e-how", vorschau: "e-prev" }} alt="eDl" howKey="eHow" vorschau
         onVorschau={() => store.set("dsm-vorschau-empf", JSON.stringify(recsOut(draft)))}
-        nachher={<p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="e-state">{t("eSaved", { n: nf(n), g: nf(ng) })}</p>}
       >
         <Button variant="outline" id="e-reset" onClick={verwerfen}><span>{t(armed ? "eResetSure" : "eReset")}</span></Button>
       </Veroeffentlichen>
