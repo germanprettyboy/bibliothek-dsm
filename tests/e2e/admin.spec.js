@@ -485,7 +485,7 @@ test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
     await expect(page.locator("#i-dl")).toHaveText("Pubblica");
     await page.click("#i-dl");
     await expect(page.locator('.pub[data-datei="info.js"] .flag')).toHaveText(/^info\.js salvato nella cartella «website» alle \d\d:\d\d\.$/);
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Cartella del sito: website · Scegli un'altra cartella · Scarica invece il file");
+    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Cartella del sito: website · Scegli un'altra cartella");
   });
 });
 
