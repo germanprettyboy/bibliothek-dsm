@@ -56,15 +56,14 @@ Veröffentlichen aus der Verwaltung – lokal (ohne Online-Speichern)
   Beim ersten Mal fragt der Browser nach dem Ordner: den Ordner mit index.html und admin.html wählen und den
   Zugriff erlauben. Die Verwaltung merkt sich den Ordner; danach genügt ein Klick. Ein falscher Ordner (ohne
   index.html) wird abgelehnt. „Anderen Ordner wählen“ wechselt ihn.
-  Ohne Website-Ordner (z. B. Schul-PC): „Stattdessen herunterladen“ und die Datei weitergeben.
-  Safari und Firefox können nicht in Ordner schreiben; dort lädt der Knopf die Datei herunter wie früher.
+  Safari, Firefox und der Schul-PC ohne Ordnerzugriff: dort lädt der Knopf die Datei herunter; sie dann weitergeben.
   Danach wie gewohnt den Website-Ordner (bzw. die geänderte Datei) auf den Webspace laden.
 
 Verwaltung entsperren
   admin.html fragt nach dem Passwort. Die Verwaltungslogik liegt nur verschlüsselt vor
   (AES-GCM 256, Schlüssel aus dem Passwort per PBKDF2 mit 310.000 Durchläufen); das Passwort
   steht in keiner Datei. Nach falschen Eingaben wartet die Seite zunehmend länger.
-  Innerhalb derselben Browser-Sitzung bleibt die Verwaltung entsperrt; „Sperren“ beendet das.
+  Innerhalb derselben Browser-Sitzung bleibt die Verwaltung entsperrt; das Schloss oben rechts („Sperren“ erscheint beim Darüberfahren) beendet das.
   Voraussetzung: https:// oder lokal geöffnete Datei (Browser-Kryptografie).
   Schutzniveau: gegen Neugierige gedacht, nicht gegen gezielte Angriffe – es gibt keinen Server.
 

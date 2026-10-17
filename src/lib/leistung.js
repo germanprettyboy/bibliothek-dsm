@@ -1,8 +1,9 @@
 /* Unschärfe nach Leistung: Beim Öffnen jedes Fensters die Bildabstände der Animation messen (requestAnimationFrame).
    Ruckelt es zweimal hintereinander, eine Stufe weniger Unschärfe (voll → wenig → aus, styles.css :root[data-blur]).
-   Zweimal, weil das erste Öffnen oft nur wegen Shader-Aufwärmen ruckelt. Die Stufe steht in localStorage dsm-blur
-   ({stufe, t}); kopf.js setzt sie beim nächsten Laden vor dem ersten Zeichnen, nach 14 Tagen wird neu gemessen. */
-import { store, log } from "@/lib/speicher";
+   Zweimal, weil das erste Öffnen oft nur wegen Shader-Aufwärmen ruckelt. Die Stufe gilt nur für diese Browser-Sitzung
+   (sessionStorage dsm-blur: "wenig" | "aus"); kopf.js setzt sie beim Neuladen vor dem ersten Zeichnen. Jeder neue Besuch
+   beginnt mit voller Unschärfe und misst neu – ein einmal ruckelnder Moment schaltet sie nie dauerhaft ab. */
+import { log } from "@/lib/speicher";
 
 const STUFEN = ["voll", "wenig", "aus"];
 const DAUER = 400;      // ms: Fenster-Animationen dauern 110–250 ms, danach ruht die Seite
@@ -37,6 +38,6 @@ function auswerten(iv) {
   schlecht = 0;
   const neu = STUFEN[STUFEN.indexOf(stufe()) + 1];
   root.dataset.blur = neu;
-  store.set("dsm-blur", JSON.stringify({ stufe: neu, t: Date.now() }));
+  try { sessionStorage.setItem("dsm-blur", neu); } catch (e) { /* privat/gesperrt */ }
   log("Leistung", `Fenster-Animation ruckelt – Unschärfe jetzt „${neu}“`, { Bilder: iv.length, "über 28 ms": lang, "Schnitt": Math.round(mittel) + " ms" });
 }

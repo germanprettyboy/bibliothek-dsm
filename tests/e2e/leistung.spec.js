@@ -1,4 +1,4 @@
-// Unschärfe nach Leistung (src/lib/leistung.js): Messung beim Öffnen von Fenstern, Stufen voll → wenig → aus, gemerkt 14 Tage.
+// Unschärfe nach Leistung (src/lib/leistung.js): Messung beim Öffnen von Fenstern, Stufen voll → wenig → aus, gemerkt nur für die Sitzung.
 const { test, expect, oeffnen, AUS } = require("./hilfen.js");
 
 // requestAnimationFrame mit festen Bildabständen (ms) – so ruckelt oder läuft die Seite „gespielt“
@@ -19,7 +19,7 @@ const filter = (page, sel) => page.evaluate(sel => getComputedStyle(document.que
 
 test.describe("Unschärfe nach Leistung", () => {
   // Bis zu fünfmal Fenster auf und zu: unter Last (parallele Tests) dauert ein Durchgang 3–5 s, 30 s reichen nicht
-  test("ruckelnde Fenster: erst weniger, dann keine Unschärfe, gemerkt", async ({ page }) => {
+  test("ruckelnde Fenster: erst weniger, dann keine Unschärfe, für die Sitzung gemerkt", async ({ page }) => {
     test.slow();
     await bilder(page, 40);
     await oeffnen(page);
@@ -31,7 +31,8 @@ test.describe("Unschärfe nach Leistung", () => {
     await detailAufZu(page);
     await detailAufZu(page);
     await expect(page.locator("html")).toHaveAttribute("data-blur", "aus");
-    expect(JSON.parse(await page.evaluate(() => localStorage.getItem("dsm-blur"))).stufe).toBe("aus");
+    expect(await page.evaluate(() => sessionStorage.getItem("dsm-blur"))).toBe("aus");
+    expect(await page.evaluate(() => localStorage.getItem("dsm-blur"))).toBeNull();
     await page.locator("#list .row").nth(2).click();
     await expect(page.locator("#detail")).toBeVisible();
     expect(await filter(page, ".schleier")).toBe("none");
@@ -48,9 +49,10 @@ test.describe("Unschärfe nach Leistung", () => {
     expect(await filter(page, ".schleier")).toContain("blur(8px)");
   });
 
-  test.describe("gespeicherte Stufe", () => {
-    test.use({ speicher: { "dsm-empf": AUS, "dsm-blur": JSON.stringify({ stufe: "wenig", t: Date.now() }) } });
+  test.describe("gemerkte Stufe der Sitzung", () => {
+    test.use({ speicher: { "dsm-empf": AUS } });
     test("wird vor dem ersten Zeichnen gesetzt", async ({ page }) => {
+      await page.addInitScript(() => sessionStorage.setItem("dsm-blur", "wenig"));
       await oeffnen(page);
       await expect(page.locator("html")).toHaveAttribute("data-blur", "wenig");
       await page.locator("#list .row").nth(2).click();
@@ -58,11 +60,14 @@ test.describe("Unschärfe nach Leistung", () => {
     });
   });
 
-  test.describe("abgelaufene Stufe", () => {
-    test.use({ speicher: { "dsm-empf": AUS, "dsm-blur": JSON.stringify({ stufe: "aus", t: Date.now() - 15 * 864e5 }) } });
-    test("nach 14 Tagen wird neu gemessen", async ({ page }) => {
+  test.describe("alter dauerhafter Merker", () => {
+    test.use({ speicher: { "dsm-empf": AUS, "dsm-blur": JSON.stringify({ stufe: "aus", t: Date.now() }) } });
+    test("wird ignoriert und gelöscht: neuer Besuch beginnt mit voller Unschärfe", async ({ page }) => {
       await oeffnen(page);
       await expect(page.locator("html")).not.toHaveAttribute("data-blur", /.*/);
+      expect(await page.evaluate(() => localStorage.getItem("dsm-blur"))).toBeNull();
+      await page.locator("#list .row").nth(2).click();
+      expect(await filter(page, ".schleier")).toContain("blur(8px)");
     });
   });
 
