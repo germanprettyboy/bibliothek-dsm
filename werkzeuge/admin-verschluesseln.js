@@ -9,6 +9,11 @@
  * (src/verwaltung/gemeinsam.js). Davor kommt quelle/extract.js (auch von Node genutzt, siehe books-erzeugen.js).
  * Beides zusammen wird mit AES-GCM 256 verschlüsselt (Schlüssel per PBKDF2-SHA-256, 310.000 Durchläufe,
  * zufälliges Salz) und als ../website/assets/admin.enc.js geschrieben. Das Passwort wird nirgends gespeichert.
+ *
+ * Direkt veröffentlichen (website/speichern.php): Aus dem Passwort entsteht zusätzlich ein fester Schlüssel
+ * (PBKDF2 mit eigenem, festem Salz – unabhängig vom AES-Schlüssel). Er steht vorn im verschlüsselten Klartext
+ * (DSM_SPEICHERN_SCHLUESSEL); sein SHA-256 landet in website/speichern-zugang.php. Gleiches Passwort ergibt
+ * denselben Schlüssel: Nach dem Neu-Verschlüsseln passt die Zugangsdatei auf dem Server weiter.
  */
 "use strict";
 const fs = require("fs");
@@ -49,6 +54,22 @@ function frage(text) {
   });
 }
 
+async function speicherSchluessel(pw) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+  const salt = new TextEncoder().encode("dsm-bibliothek/speichern.php");
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: 310000 }, base, 256);
+  return Buffer.from(bits).toString("hex");
+}
+// Verschlüsselter Klartext: Schlüssel für speichern.php + extract.js + gebaute Verwaltung
+async function klartext(pw) {
+  return "var DSM_SPEICHERN_SCHLUESSEL = " + JSON.stringify(await speicherSchluessel(pw)) + ";\n" + (await quelleBauen());
+}
+async function zugang(pw) {
+  const hash = require("crypto").createHash("sha256").update(await speicherSchluessel(pw)).digest("hex");
+  return "<?php /* Zugang für speichern.php (SHA-256 des Schlüssels). Erzeugt mit werkzeuge/admin-verschluesseln.js. */\n" +
+    "return '" + hash + "';\n";
+}
+
 async function verschluesseln(pw, src) {
   const iter = 310000;
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -70,11 +91,15 @@ if (require.main === module) {
       if (pw && (await frage("Passwort wiederholen: ")) !== pw) { console.error("Die Passwörter stimmen nicht überein."); process.exit(1); }
     }
     if (!pw) { console.error('Aufruf: node werkzeuge/admin-verschluesseln.js "<Passwort>" [Zieldatei]  (ohne Passwort: verdeckte Abfrage im Terminal)'); process.exit(1); }
-    const src = await quelleBauen();
+    const src = await klartext(pw);
     const text = await verschluesseln(pw, src);
     fs.writeFileSync(out, text);
     console.log("geschrieben:", out, "(" + src.length + " Zeichen Klartext, verschlüsselt)");
+    // …/assets/admin.enc.js → …/speichern-zugang.php, andere Zieldatei → daneben
+    const ordner = path.dirname(out), zu = path.join(path.basename(ordner) === "assets" ? path.dirname(ordner) : ordner, "speichern-zugang.php");
+    fs.writeFileSync(zu, await zugang(pw));
+    console.log("geschrieben:", zu, "(Zugang für speichern.php)");
   })().catch(e => { console.error(e); process.exit(1); });
 }
 
-module.exports = { quelleBauen };
+module.exports = { quelleBauen, klartext, speicherSchluessel };
