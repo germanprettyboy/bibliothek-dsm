@@ -21,8 +21,8 @@ neuen Datei nicht mehr hinein; in offenen Browser-Sitzungen muss neu entsperrt w
 lokal.mjs + lokal-router.php + lokal-adresse.cjs
                     Lokale Entwicklung wie auf dem Webspace: npm run lokal
                     -> http://127.0.0.1:8765/admin.html, Passwort „lokal“ (anderes: DSM_LOKAL_PW=… npm run lokal).
-                    PHP kommt als php-wasm über npx (keine Installation). „Veröffentlichen“ schreibt direkt
-                    nach ../website (alte Fassung in ../website/sicherung/). Verwaltung wird beim Start und bei
+                    PHP kommt als php-wasm über npx (keine Installation). „Veröffentlichen“ schreibt nach
+                    ../tests/.tmp/lokal/daten/ (Kopie aus ../website, bei jedem Start neu; website/ bleibt unberührt). Verwaltung wird beim Start und bei
                     Änderungen an quelle/ neu verschlüsselt (nur für lokal, die echte admin.enc.js bleibt unberührt).
                     src/ wird im Watch-Modus gebaut; nach Änderungen die Seite neu laden.
                     Server nur unter 127.0.0.1 erreichbar (lokal-adresse.cjs), nicht aus dem WLAN.

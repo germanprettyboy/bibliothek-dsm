@@ -51,7 +51,14 @@ uebersicht() {
       leer="$leer  $b – $wt\n"
     fi
   done
-  [ -n "$(g status --porcelain --untracked-files=no)" ] && hinweis="Haupt-Checkout ($HAUPT) hat uncommittete Änderungen an main.\n"
+  local geaendert f nur_daten=1
+  geaendert=$(g diff --name-only HEAD)
+  for f in $geaendert; do case " $DATEN_DATEIEN " in *" $f "*) ;; *) nur_daten=0 ;; esac; done
+  if [ -n "$geaendert" ] && [ "$nur_daten" = 1 ]; then
+    hinweis="Haupt-Checkout: nur Verwaltungsdaten geändert ($(echo $geaendert)) – npm run integrieren übernimmt sie per Merge.\n"
+  elif [ -n "$geaendert" ]; then
+    hinweis="Haupt-Checkout ($HAUPT) hat uncommittete Änderungen an main.\n"
+  fi
   local enc
   enc=$(verschluesselung_pruefen main) || hinweis="$hinweis$enc\n"
 
@@ -65,12 +72,41 @@ uebersicht() {
   return 0
 }
 
+# Sind im Haupt-Checkout NUR Datendateien geändert (Verwaltung hat per Ordnerzugriff nach website/ veröffentlicht),
+# ist das gewollter Inhalt: über einen eigenen Branch daten-<Zeit> per Merge-Commit nach main (main nur per Merge),
+# statt die Integration zu blockieren. Andere Änderungen dabei → nichts tun, integrieren() bricht wie bisher ab.
+DATEN_DATEIEN="website/books.js website/empfehlungen.js website/info.js"
+daten_uebernehmen() {
+  local geaendert f idx baum commit zweig
+  geaendert=$(g diff --name-only HEAD)
+  [ -z "$geaendert" ] && return 0
+  for f in $geaendert; do case " $DATEN_DATEIEN " in *" $f "*) ;; *) return 0 ;; esac; done
+  for f in $geaendert; do node --check "$HAUPT/$f" 2>/dev/null || { echo "$f ist kein gültiges JavaScript – nicht übernommen." >&2; return 0; }; done
+  idx=$(mktemp)
+  GIT_INDEX_FILE=$idx g read-tree HEAD && GIT_INDEX_FILE=$idx g add -- $geaendert &&
+    baum=$(GIT_INDEX_FILE=$idx g write-tree) &&
+    commit=$(g commit-tree "$baum" -p HEAD -m "Daten aus der Verwaltung: $(echo $geaendert | sed 's#website/##g')") || { rm -f "$idx"; return 0; }
+  rm -f "$idx"
+  zweig="daten-$(date +%Y%m%d-%H%M%S)"
+  g branch "$zweig" "$commit"
+  # Inhalt steckt jetzt im Commit; Arbeitskopie auf HEAD zurück, damit der Merge sie wieder herstellt
+  g checkout HEAD -- $geaendert
+  if g merge --no-ff -q -m "Merge branch '$zweig'" "$zweig"; then
+    g branch -d -q "$zweig"
+    echo "Verwaltungsdaten übernommen: $(g log -1 --format='%h %s')"
+  else
+    g merge --abort 2>/dev/null
+    echo "Verwaltungsdaten nicht übernommen – Inhalt liegt im Branch $zweig." >&2
+  fi
+}
+
 integrieren() {
   local b=${1:-} wt n ausgabe konflikte f fehler=0
   [ -z "$b" ] && { echo "Aufruf: werkzeuge/branches.sh integrieren <branch>" >&2; exit 2; }
   [ "$b" = main ] && { echo "main lässt sich nicht in sich selbst integrieren." >&2; exit 2; }
   g rev-parse --verify -q "refs/heads/$b" >/dev/null || { echo "Branch $b gibt es nicht." >&2; exit 1; }
   [ "$(g symbolic-ref --short HEAD)" = main ] || { echo "Haupt-Checkout $HAUPT steht nicht auf main." >&2; exit 1; }
+  daten_uebernehmen
   [ -z "$(g status --porcelain --untracked-files=no)" ] || { echo "Haupt-Checkout hat uncommittete Änderungen – erst klären (Johann fragen)." >&2; exit 1; }
   wt=$(worktree_von "$b")
   if [ -n "$wt" ] && [ -d "$wt" ] && [ "$(offen "$wt")" -gt 0 ]; then
