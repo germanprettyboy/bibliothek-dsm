@@ -64,7 +64,7 @@ importiert (`@/…`), muss in `src/verwaltung/gemeinsam.js` stehen (Test prüft 
   zusammen („n Treffer“), nicht gespeichert. Ohne Kategorie (≈1.500) nur unter „Alle Bücher“.
 - Verwaltung: keine Zeile „Aktuell veröffentlicht …“, kein „Entwurf im Browser gespeichert“ (nur `#i-state` bei unvollständigen
   Info-Angaben), keine Zähler „(4)“, keine Datenschutzhinweise. `#e-groups` = `ToggleGroup` Variante `flaeche` (bricht um);
-  Reiter ≤420 px volle Breite. `#lock-btn` = Schloss, Text gleitet bei Hover/Fokus heraus (Grid 0fr→1fr, `motion-reduce` ohne),
+  Reiter ≤420 px volle Breite, Wechsel ohne Übergang (kein `transition-*` an `TabsTrigger`). `#lock-btn` = Schloss, Text gleitet bei Hover/Fokus heraus (Grid 0fr→1fr, `motion-reduce` ohne),
   `aria-label` immer. `App` bekommt nur `sperren`. Editor: Gruppe voll (4) → Suche gesperrt, Hinweis mittig; Enthaltenes grau.
 - Nur HTML/CSS/JS: keine Push-/Deploy-Dienste, keine Datenbank, kein weiterer Server-Code. Ausnahme `speichern.php` (17.10.2026,
   „ein Knopf, Inhalt direkt ändern“): eine Datei, kein Framework, schreibt nur die drei Datendateien. Vite-Build lokal erlaubt.
@@ -97,9 +97,11 @@ importiert (`@/…`), muss in `src/verwaltung/gemeinsam.js` stehen (Test prüft 
   ist; nach 6 s „Langsame Verbindung“. bibliothek.js lädt VOR books.js; books.js meldet sich per Setter auf `window.DSM_BIBLIOTHEK`.
   Platzhalter für alles Nachladende: Cover (bis geladen), Logo (`.ld-bild`, `.da` bei load/error), Info-Karte (wenn zuletzt
   gezeigt, `dsm-info-karte`), Entsperren-Knopf (Spinner bis verwaltung.js geladen, beim Prüfen). Schriften `font-display: swap`.
-- Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ (Regal `.regal` in Logofarben, `.fortschritt` drei Striche, ab
-  Schritt 2 „Zurück“ oben; Ja/Nein am Handy untereinander) → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher /
-  Biografien & Geschichte. In `dsm-empf`. Einstellungen: gleiche Wahl als Liste, Blöcke mit Abstand, Erwachsene in einem Block.
+- Erster Besuch: Overlay, zuerst „Sprache · Lingua“ (fest zweisprachig, Deutsch/Italiano, aktuelle hervorgehoben, → `dsm-lang`;
+  Regal `.regal` in Logofarben, ohne Bodenlinie) → „Möchten Sie Buchempfehlungen sehen?“ (ab hier „Zurück“ oben; Ja/Nein am Handy
+  untereinander) → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher / Biografien & Geschichte. In `dsm-empf`.
+  Kein Fortschrittsbalken (17.10.2026 entfernt). Beim Öffnen Fokus aufs Fenster (`.pane`, tabIndex -1), nicht auf einen Knopf –
+  Chrome zeigt sonst beim Laden sofort den Fokusrahmen. Einstellungen: gleiche Wahl als Liste, Blöcke mit Abstand, Erwachsene in einem Block.
 
 ## Design
 

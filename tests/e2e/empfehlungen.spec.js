@@ -4,19 +4,44 @@ const { test, expect, oeffnen, daten, AUS } = require("./hilfen.js");
 const { E } = daten();
 const pref = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-empf")));
 const ask = page => page.locator(".ask[role=dialog]");
+// Erste Frage: Sprache, danach „Möchten Sie Buchempfehlungen sehen?“
+const sprache = (page, l = "de") => ask(page).locator(`[data-a="${l}"]`).click();
 
 test.describe("Erster Besuch", () => {
   test.use({ speicher: {} });
 
-  test("Frage erscheint: „Möchten Sie Buchempfehlungen sehen?“", async ({ page }) => {
+  test("Zuerst die Sprache, dann „Möchten Sie Buchempfehlungen sehen?“", async ({ page }) => {
     await oeffnen(page);
     await expect(ask(page)).toBeVisible();
+    await expect(ask(page).locator("#ask-t")).toHaveText("Sprache · Lingua");
+    await expect(ask(page).locator('[data-a="de"], [data-a="it"]')).toHaveText(["Deutsch", "Italiano"]);
+    await expect(ask(page).locator(".fortschritt")).toHaveCount(0);
+    await sprache(page);
     await expect(ask(page).locator("#ask-t")).toHaveText("Buchempfehlungen");
     await expect(ask(page).locator(".lead")).toHaveText("Möchten Sie Buchempfehlungen sehen?");
+    await ask(page).locator('[data-a="back"]').click();
+    await expect(ask(page).locator("#ask-t")).toHaveText("Sprache · Lingua");
+  });
+
+  test("Beim Öffnen kein Fokusrahmen auf einem Knopf", async ({ page }) => {
+    await oeffnen(page);
+    await expect(ask(page)).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => document.activeElement.matches("button") && document.activeElement.matches(":focus-visible"))).toBe(false);
+    expect(await page.evaluate(() => !!document.activeElement.closest(".ask"))).toBe(true);
+  });
+
+  test("Italiano stellt die Seite um, die Fragen kommen auf Italienisch", async ({ page }) => {
+    await oeffnen(page);
+    await sprache(page, "it");
+    await expect(ask(page).locator(".lead")).toHaveText("Desidera vedere dei consigli di lettura?");
+    await expect(page.locator("html")).toHaveAttribute("lang", "it");
+    expect(await page.evaluate(() => localStorage.getItem("dsm-lang"))).toBe("it");
   });
 
   test("Nein → gespeichert, Hinweis, keine Empfehlungen, keine erneute Frage", async ({ page }) => {
     await oeffnen(page);
+    await sprache(page);
     await ask(page).locator('[data-a="no"]').click();
     await expect(ask(page)).toBeHidden();
     await expect(page.locator(".toast")).toContainText("Einstellungen");
@@ -38,6 +63,7 @@ test.describe("Erster Besuch", () => {
   for (const [g, label] of [["mittelstufe", "Mittelstufe"], ["oberstufe", "Oberstufe"]]) {
     test(`Ja → ${label} → Empfehlungen sichtbar`, async ({ page }) => {
       await oeffnen(page);
+      await sprache(page);
       await ask(page).locator('[data-a="yes"]').click();
       await expect(ask(page).locator("#ask-t")).toHaveText("Für wen?");
       await expect(ask(page).locator(".choice b")).toHaveText(["Mittelstufe", "Oberstufe", "Erwachsenenliteratur"]);
@@ -52,6 +78,7 @@ test.describe("Erster Besuch", () => {
 
   test("Erwachsenenliteratur → Romane / Sachbücher / Biografien, Zurück funktioniert", async ({ page }) => {
     await oeffnen(page);
+    await sprache(page);
     await ask(page).locator('[data-a="yes"]').click();
     await ask(page).locator('.choice[data-g="erw"]').click();
     await expect(ask(page).locator("#ask-t")).toHaveText("Welcher Bereich?");
@@ -67,9 +94,11 @@ test.describe("Erster Besuch", () => {
     await expect(page.locator("#recs-open small")).toHaveText("Erwachsenenliteratur · Biografien & Geschichte");
   });
 
-  test("Frage auf Italienisch", async ({ page }) => {
+  test("Gespeichertes Italienisch: Italiano vorgewählt, Frage auf Italienisch", async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem("dsm-lang", "it"));
     await oeffnen(page);
+    await expect(ask(page).locator('[data-a="it"]')).toHaveAttribute("data-variant", "glass-primary");
+    await sprache(page, "it");
     await expect(ask(page).locator(".lead")).toHaveText("Desidera vedere dei consigli di lettura?");
   });
 

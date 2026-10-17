@@ -373,17 +373,13 @@
   /* Fragen beim ersten Besuch: Schritte gleiten ein */
   .step { animation: step-in var(--t-base) var(--ease); }
   /* Bücherregal als Kopf der ersten Frage: Buchrücken in den Logofarben stellen sich nacheinander auf */
-  .regal { display: flex; align-items: flex-end; gap: 4px; height: 64px; padding-inline: 2px; border-bottom: 2px solid var(--line); }
+  .regal { display: flex; align-items: flex-end; gap: 4px; height: 64px; padding-inline: 2px; }
   .regal i {
     width: var(--b, 12px); height: var(--h, 48px); flex: none; border-radius: 3px 3px 1px 1px; background: var(--c);
     box-shadow: inset 2px 0 0 rgba(255, 255, 255, .28), inset -2px 0 0 rgba(0, 0, 0, .08);
     transform-origin: 50% 100%; animation: spine var(--t-slow) var(--snap) both; animation-delay: calc(var(--n, 0) * 35ms + 80ms);
   }
   .regal i.lehnt { rotate: 12deg; translate: 4px 0; transform-origin: 0 100%; }
-  /* Fortschritt der Fragen: drei Striche, erledigte in Textfarbe */
-  .fortschritt { display: flex; gap: 6px; }
-  .fortschritt i { height: 4px; width: 24px; border-radius: 2px; background: var(--line); transition: background-color var(--t-base) var(--ease); }
-  .fortschritt i.an { background: var(--fg); }
 
   /* ---------- Cover ---------- */
   .cover { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 4px 8px 8px 4px; overflow: hidden; background: var(--surface); }

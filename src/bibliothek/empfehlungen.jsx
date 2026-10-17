@@ -11,7 +11,7 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { log } from "@/lib/speicher";
+import { log, store } from "@/lib/speicher";
 import { hinweis } from "@/lib/hinweis";
 import { C, still } from "@/lib/umwelt";
 import { woerter, useSprache, t as tx } from "@/lib/sprache";
@@ -256,14 +256,18 @@ const Regal = () => (
   </div>
 );
 
+// Schritt 0: Sprache, zweisprachig beschriftet (die Seite kann noch in der falschen Sprache stehen)
+const SPRACHEN = [["de", "Deutsch"], ["it", "Italiano"]];
+
 export function Fragen({ open, onOpenChange }) {
-  const { t } = useSprache();
-  const [step, setStep] = React.useState(1);
+  const { t, lang, setLang } = useSprache();
+  const [step, setStep] = React.useState(0);
   const fertig = React.useRef(false);
   const pane = React.useRef(null);
-  // Fokus auf die Hauptwahl jedes Schritts (statt auf den Schließen-Knopf)
+  // Beim Öffnen Fokus auf das Fenster selbst (ein Knopf mit Fokus zeigt sonst gleich den Fokusrahmen), bei jedem
+  // weiteren Schritt auf dessen Hauptwahl (Rahmen dann nur nach Tastatur)
   const fokus = () => { const f = pane.current && pane.current.querySelector(".primary, .choice"); if (f) f.focus({ preventScroll: true }); };
-  React.useEffect(() => { if (open) fokus(); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => { if (open && step) fokus(); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const wechsel = an => {
     if (!an && !fertig.current) { setWahl({ want: false, gruppe: null }); hinweis(t("askNo")); }
@@ -291,25 +295,44 @@ export function Fragen({ open, onOpenChange }) {
   return (
     <Fenster
       open={open} onOpenChange={wechsel} name="Fragen beim ersten Besuch" titleId="ask-t" className="ask"
-      onOpenAutoFocus={e => { e.preventDefault(); requestAnimationFrame(fokus); }}
+      onOpenAutoFocus={e => { e.preventDefault(); if (pane.current) pane.current.focus({ preventScroll: true }); }}
     >
-      <div className="pane min-h-60" ref={pane}>
+      <div className="pane min-h-60 outline-none" ref={pane} tabIndex={-1}>
         <div className="step grid gap-5" key={step}>
           {/* Kopf: Regal bei der ersten Frage, danach „Zurück“ auf Höhe des Schließen-Knopfs */}
-          {step === 1 ? <Regal /> : (
+          {step === 0 ? <Regal /> : (
             <div className="flex min-h-11 items-center">
-              <Button variant="ghost" size="text" className="-ml-1 gap-1" data-a="back" onClick={() => setStep(step === 3 ? 2 : 1)}>
+              <Button variant="ghost" size="text" className="-ml-1 gap-1" data-a="back" onClick={() => setStep(step === 3 ? 2 : step - 1)}>
                 <ChevronLeftIcon aria-hidden="true" />{t("back")}
               </Button>
             </div>
           )}
-          <div className="grid gap-2">
-            <div className="fortschritt mb-1" aria-hidden="true">{[1, 2, 3].map(n => <i key={n} className={n <= step ? "an" : undefined} />)}</div>
-            <DialogTitle id="ask-t" asChild><h3>{t("askT" + step)}</h3></DialogTitle>
-            <p className={cn("lead m-0", step === 1 ? "font-medium" : "text-muted-foreground")}>{t("askP" + step)}</p>
-            {step === 1 ? <p className="m-0 text-s text-muted-foreground">{t("askH1")}</p> : null}
-          </div>
-          {step === 1 ? (
+          {step === 0 ? (
+            <>
+              <div className="grid gap-2">
+                <DialogTitle id="ask-t" asChild><h3>Sprache · Lingua</h3></DialogTitle>
+                <p className="lead m-0 font-medium">Deutsch oder Italiano?</p>
+              </div>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {SPRACHEN.map(([l, name]) => (
+                  <Button
+                    key={l} lang={l} data-a={l} size="lg"
+                    variant={l === lang ? "glass-primary" : "glass"} className={l === lang ? "primary" : undefined}
+                    onClick={() => { if (l !== lang) setLang(l); else store.set("dsm-lang", l); setStep(1); }}
+                  >
+                    {name}
+                  </Button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="grid gap-2">
+              <DialogTitle id="ask-t" asChild><h3>{t("askT" + step)}</h3></DialogTitle>
+              <p className={cn("lead m-0", step === 1 ? "font-medium" : "text-muted-foreground")}>{t("askP" + step)}</p>
+              {step === 1 ? <p className="m-0 text-s text-muted-foreground">{t("askH1")}</p> : null}
+            </div>
+          )}
+          {step === 0 ? null : step === 1 ? (
             <div className="grid gap-2.5 sm:grid-cols-2">
               <Button variant="glass-primary" size="lg" className="primary" data-a="yes" onClick={() => setStep(2)}>{t("yes")}</Button>
               <Button variant="glass" size="lg" data-a="no" onClick={() => wechsel(false)}>{t("no")}</Button>
