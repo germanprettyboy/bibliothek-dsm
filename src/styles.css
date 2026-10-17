@@ -360,6 +360,10 @@
   /* Bisherige Empfehlungen: auf dem Handy fast bildschirmhoch */
   .sheet.archiv { height: 92dvh; }
   @media (min-width: 40rem) { .sheet.archiv { height: auto; width: min(40rem, calc(100% - 48px)); } }
+  /* Kategorien: feste Höhe, damit das Fenster beim Durchsuchen nicht springt */
+  .sheet.kategorien { height: 92dvh; }
+  @media (min-width: 40rem) { .sheet.kategorien { height: min(44rem, 88dvh); } }
+  .kat-liste > li { border-top: 1px solid var(--line); }
   .pane {
     padding: 18px max(20px, env(safe-area-inset-right, 0px)) calc(26px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
     display: grid; gap: 20px;
@@ -468,6 +472,7 @@
   /* Ladehinweis über der Liste; nach 6 s Hinweis auf langsame Verbindung. Nur die aktuelle Sprache. */
   .meta .ld { grid-area: 1 / 1; }
   :root[lang="it"] .meta .ld[lang="de"], :root:not([lang="it"]) .meta .ld[lang="it"] { display: none; }
+  :root[lang="it"] .sp[lang="de"], :root:not([lang="it"]) .sp[lang="it"] { display: none; }
   .meta .ld:not(.slow) { animation: ld-out var(--t-slow) ease-out 6s both; }
   .meta .ld.slow { visibility: hidden; animation: ld-slow var(--t-slow) ease-out 6s both; }
   /* Empfehlungen und Info-Karte: Platzhalter nur, wenn gewählt bzw. beim letzten Besuch gezeigt (kopf.js) */

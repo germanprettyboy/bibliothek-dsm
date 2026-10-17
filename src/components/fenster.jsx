@@ -6,7 +6,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { log } from "@/lib/speicher";
 import { useSprache } from "@/lib/sprache";
 
-export function Fenster({ open, onOpenChange, name, titleId, className, overlayClassName, children, onCloseAutoFocus, ...props }) {
+export function Fenster({ open, onOpenChange, name, titleId, className, overlayClassName, children, onCloseAutoFocus, onEscapeKeyDown, ...props }) {
   const { t } = useSprache();
   const grund = React.useRef("Knopf");
   React.useEffect(() => { if (open) log("Fenster", `${name} geöffnet`); }, [open, name]);
@@ -22,7 +22,7 @@ export function Fenster({ open, onOpenChange, name, titleId, className, overlayC
         overlayClassName={overlayClassName}
         closeLabel={t("close")}
         aria-labelledby={titleId}
-        onEscapeKeyDown={() => { grund.current = "Escape"; }}
+        onEscapeKeyDown={e => { if (onEscapeKeyDown) onEscapeKeyDown(e); if (!e.defaultPrevented) grund.current = "Escape"; }}
         onPointerDownOutside={() => { grund.current = "Hintergrund"; }}
         onCloseAutoFocus={onCloseAutoFocus}
         {...props}
