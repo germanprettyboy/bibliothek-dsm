@@ -107,7 +107,8 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   Leiste beginnen (`main.books` mindestens bildschirmhoch).
 - Verwaltung (17.10.2026): keine Zeile „Aktuell veröffentlicht …“ unter dem Titel, kein „Entwurf im Browser gespeichert“ (nur
   `#i-state` bei unvollständigen Info-Angaben), keine Zähler „(4)“ an den Gruppen. Gruppenwahl `#e-groups` = shadcn
-  `ToggleGroup` Variante `flaeche` (Segment-Wahl, bricht auf dem Handy um); Reiter ab ≤420 px über die ganze Breite.
+  `ToggleGroup` Variante `flaeche` (Segment-Wahl, bricht auf dem Handy um); Reiter ab ≤420 px über die ganze Breite,
+  Wechsel Bestand/Empfehlungen/Info ohne Übergang (kein `transition-*` an `TabsTrigger`).
   „Sperren“ (`#lock-btn`) = Schloss-Symbol, der Text gleitet bei Hover/Fokus nach rechts heraus (CSS-Grid 0fr→1fr,
   `motion-reduce` ohne Animation), `aria-label` immer gesetzt. `App` bekommt nur noch `sperren` (kein `setAktuell`).
 - Empfehlungs-Editor: Gruppe voll (4) → Suchfeld gesperrt mit Hinweis mittig; Bücher schon in der
@@ -159,9 +160,12 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
   Jedes nachladende Element hat einen Platzhalter: Logo (`.ld-bild`, `.da` bei load/error),
   Info-Karte (nur wenn beim letzten Besuch gezeigt, `dsm-info-karte`), Entsperren-Knopf im Admin (gesperrt mit
   Spinner, bis verwaltung.js nach books.js geladen ist; Spinner auch beim Prüfen). Schriften: `font-display: swap`.
-- Erster Besuch: Overlay „Möchten Sie Buchempfehlungen sehen?“ (Kopf: Bücherregal `.regal` in Logofarben, Fortschritt
-  `.fortschritt` mit drei Strichen, ab Schritt 2 „Zurück“ oben; Ja/Nein auf dem Handy untereinander) → Mittelstufe / Oberstufe /
-  Erwachsenenliteratur → (Erw.) Romane / Sachbücher / Biografien & Geschichte. Wahl in localStorage `dsm-empf`.
+- Erster Besuch: Overlay, zuerst „Sprache · Lingua“ (fest zweisprachig, Deutsch/Italiano, aktuelle Sprache hervorgehoben,
+  Wahl → `dsm-lang`; Kopf: Bücherregal `.regal` in Logofarben, ohne Bodenlinie) → „Möchten Sie Buchempfehlungen sehen?“
+  (ab hier „Zurück“ oben; Ja/Nein auf dem Handy untereinander) → Mittelstufe / Oberstufe / Erwachsenenliteratur →
+  (Erw.) Romane / Sachbücher / Biografien & Geschichte. Wahl in localStorage `dsm-empf`. Kein Fortschrittsbalken (17.10.2026
+  entfernt). Beim Öffnen Fokus auf das Fenster (`.pane`, tabIndex -1), nicht auf einen Knopf – sonst zeigt Chrome beim
+  Laden sofort den Fokusrahmen.
   In den Einstellungen dieselbe Wahl als Liste: Blöcke Mittelstufe / Oberstufe / Erwachsenenliteratur mit Abstand
   dazwischen, die drei Erwachsenen-Bereiche untereinander in einem Block.
 - Admin-Sperre nur „schülersicher“, kein Server: PBKDF2-SHA-256 (310.000) + AES-GCM 256, Logik nur verschlüsselt.

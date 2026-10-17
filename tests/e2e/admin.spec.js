@@ -294,6 +294,12 @@ test.describe("Empfehlungen bearbeiten", () => {
     await expect(page.locator("#e-list .warn")).toHaveCount(0);
   });
 
+  test("Reiter wechseln ohne Übergang", async ({ page }) => {
+    await entsperren(page);
+    const dauer = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => getComputedStyle(e).transitionDuration));
+    expect(dauer).toEqual(["0s", "0s", "0s"]);
+  });
+
   test("volle Gruppe: Hinzufügen gesperrt; entfernen, hinzufügen, sortieren, Text – Entwurf gespeichert", async ({ page }) => {
     await entsperren(page);
     await tab(page);
