@@ -45,6 +45,8 @@ werkzeuge/          ← NICHT hochladen
   quelle/verwaltung/  Verwaltungsoberfläche (Klartext, React): app, bestand, empfehlungen, info, veroeffentlichen, woerter
   admin-verschluesseln.js   baut quelle/verwaltung/ (React extern) + extract.js → website/assets/admin.enc.js
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
+  lokal.mjs + lokal-router.php   npm run lokal: PHP-Webserver (php-wasm, npx, gepinnt) mit website/ als Wurzel;
+                      Router liefert admin.enc.js aus tests/.tmp/lokal/ und setzt DSM_ZUGANG_DATEI für speichern.php
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
 components.json     shadcn-Konfiguration (JSX statt TSX, Aliase @/components, @/lib); vite.config.js für Editor/CLI
 tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
@@ -63,6 +65,8 @@ npm run build                                 # src/ → website/ (nach JEDER Ä
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
 npm run dev                                   # Build im Watch-Modus + Live-Reload (browser-sync über npx)
+npm run lokal                                 # wie Webspace: PHP (php-wasm über npx) + speichern.php echt, Build-Watch,
+                                              #   Verwaltung mit Passwort „lokal“ (DSM_LOKAL_PW) → http://127.0.0.1:8765/admin.html
 npm run ui:add -- <name>                      # neue shadcn-Komponente nach src/components/ui/ (danach an DSM anpassen!)
 node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
 npm test                                      # Unit-Tests (node:test, ~15 s, baut einmal zum Vergleich)
