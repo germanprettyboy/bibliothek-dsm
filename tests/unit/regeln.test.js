@@ -162,8 +162,8 @@ describe("Design", () => {
   test("A–Z-Leiste erst ab 48rem", () => {
     assert.match(css, /\.index \{ display: none; \}\s*@media \(min-width: 48rem\) \{\s*\.index \{ display: flex;/);
   });
-  test("Glas-Fenster: backdrop-filter mit Unschärfe für Fenster (.glass) und Hintergrund (.schleier)", () => {
-    assert.match(css, /\.glass \{[^}]*backdrop-filter: blur\(/);
+  test("Glas-Fenster: Unschärfe nur im Schleier (.schleier), kein zweiter Blur im Glas (.glass)", () => {
+    assert.doesNotMatch(css, /\.glass \{[^}]*backdrop-filter: blur\(/);
     assert.match(css, /\.schleier \{[^}]*backdrop-filter: blur\(/);
     assert.match(liesSrc("components/ui/dialog.jsx"), /"glass sheet"/);
   });

@@ -52,7 +52,7 @@ test.describe("Detail", () => {
     });
   }
 
-  test("Glas-Effekt: Fenster und Hintergrund unscharf, Hintergrund abgedunkelt", async ({ page }) => {
+  test("Glas-Effekt: Hintergrund unscharf und abgedunkelt, Fenster selbst ohne zweiten Blur", async ({ page }) => {
     await oeffnen(page);
     await oeffneBuch(page, OHNE_ISBN);
     // Fenster und Schleier (Overlay des shadcn-Dialogs) erst nach der Einblend-Animation messen
@@ -61,7 +61,7 @@ test.describe("Detail", () => {
       const a = getComputedStyle(d), b = getComputedStyle(document.querySelector(".schleier.detail"));
       return { fenster: a.backdropFilter, hinten: b.backdropFilter, farbe: b.backgroundColor };
     });
-    expect(st.fenster).toContain("blur");
+    expect(st.fenster).not.toContain("blur");
     expect(st.hinten).toContain("blur");
     expect(st.farbe).toMatch(/rgba\(.*, 0\.\d+\)/);
   });

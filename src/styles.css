@@ -36,7 +36,7 @@
   --focus: #333333;
   --veil: rgba(28, 24, 22, .26);
   --veil-dicht: rgba(28, 24, 22, .4); --glass-dicht: rgba(250, 248, 246, .97); /* ohne Unschärfe (data-blur="aus") */
-  --glass: rgba(255, 255, 255, .72); --glass-brd: rgba(255, 255, 255, .7); --glass-edge: rgba(40, 30, 28, .1); --glass-hi: rgba(255, 255, 255, .9);
+  --glass: rgba(255, 255, 255, .82); --glass-brd: rgba(255, 255, 255, .7); --glass-edge: rgba(40, 30, 28, .1); --glass-hi: rgba(255, 255, 255, .9);
   --gb-top: rgba(255, 255, 255, .78); --gb-bot: rgba(255, 255, 255, .34);
   --shadow: 0 24px 60px rgba(40, 30, 28, .2);
   --ph-bg: #f1ede9;
@@ -63,7 +63,7 @@
     --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #34312f; --surface: #252322;
     --focus: #ece9e6; --veil: rgba(0, 0, 0, .46);
     --veil-dicht: rgba(0, 0, 0, .62); --glass-dicht: rgba(38, 36, 34, .97);
-    --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
+    --glass: rgba(40, 38, 36, .78); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
     --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
     --shadow: 0 24px 60px rgba(0, 0, 0, .55);
     --skel: #2c2a28; --skel-hi: rgba(255, 255, 255, .06);
@@ -74,7 +74,7 @@
   --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #34312f; --surface: #252322;
   --focus: #ece9e6; --veil: rgba(0, 0, 0, .46);
   --veil-dicht: rgba(0, 0, 0, .62); --glass-dicht: rgba(38, 36, 34, .97);
-  --glass: rgba(40, 38, 36, .66); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
+  --glass: rgba(40, 38, 36, .78); --glass-brd: rgba(255, 255, 255, .14); --glass-edge: rgba(0, 0, 0, .4); --glass-hi: rgba(255, 255, 255, .16);
   --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
   --shadow: 0 24px 60px rgba(0, 0, 0, .55);
   --skel: #2c2a28; --skel-hi: rgba(255, 255, 255, .06);
@@ -291,11 +291,11 @@
   /* ---------- Glas-Fenster (shadcn Dialog, src/components/ui/dialog.jsx) ----------
      Handy: Bottom Sheet; ab 40rem mittig. Fenster halbtransparent mit Lichtkante,
      Hintergrund (Overlay) unscharf und leicht abgedunkelt.
-     Unschärfe klein halten: Schleier und Glas stapeln sich, beide werden bei jedem Bild der Ein-/Ausblende-Animation
-     neu gerechnet. Vorher 12 + 30 px – auf schwacher GPU (Intel UHD 630, Software-GPU) ruckelte das Öffnen. */
+     Unschärfe nur EINMAL, im Schleier (backdrop-filter rechnet den ganzen Hintergrund in jedem Bild der Animation neu).
+     Das Glas liegt auf dem schon unscharfen Schleier: eigener Blur/saturate wäre kaum sichtbar, kostete aber die Hälfte
+     der GPU-Zeit – daher keiner, dafür etwas dichter. Verlauf: 12 + 30 px → 8 + 18 px → 8 + 0 px. */
   .glass {
     border: 1px solid var(--glass-brd); background: var(--glass); color: var(--fg);
-    -webkit-backdrop-filter: blur(18px) saturate(1.8); backdrop-filter: blur(18px) saturate(1.8);
     box-shadow: var(--shadow), inset 0 1px 0 var(--glass-hi), inset 0 0 0 .5px var(--glass-edge);
   }
   .glass::before {
@@ -306,12 +306,11 @@
   :root[data-contrast="high"] .glass::before { display: none; }
   .schleier {
     background: var(--veil);
-    -webkit-backdrop-filter: blur(8px) saturate(1.15); backdrop-filter: blur(8px) saturate(1.15);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   }
   /* Unschärfe nach Leistung (lib/leistung.js misst die Fenster-Animationen, kopf.js setzt data-blur beim Laden):
      ruckelt es, erst weniger, dann keine Unschärfe – die Flächen werden dafür dichter. Ebenso bei „Transparenz
      reduzieren“ im System. Hoher Kontrast: Glas ist deckend, seine Unschärfe wäre unsichtbar, aber trotzdem teuer. */
-  :root[data-blur="wenig"] .glass { -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5); }
   :root[data-blur="wenig"] .schleier { -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
   :root[data-blur="aus"] .glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-dicht); }
   :root[data-blur="aus"] .schleier { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--veil-dicht); }
