@@ -6,7 +6,8 @@ Inhalt
   admin.html        Verwaltung (passwortgeschützt): Bestand, Empfehlungen, Öffnungszeiten/Ferien
   books.js          Daten der Bücherliste (wird von admin.html erzeugt)
   empfehlungen.js   Buchempfehlungen (wird von admin.html erzeugt)
-  info.js           Öffnungszeiten, Ferien, Abwesenheiten (wird von admin.html erzeugt)
+  info.js           Öffnungszeiten, Ferien, Abwesenheiten (wird von admin.html erzeugt; liegt nur auf dem
+                    Webspace, fehlt im Download des Projekts – ohne die Datei zeigt die Seite keine Öffnungszeiten)
   speichern.php     lässt die Verwaltung diese drei Dateien direkt auf dem Webspace speichern
   speichern-zugang.php  Zugang dafür (wird beim Verschlüsseln der Verwaltung erzeugt)
   assets/          Stil, Skripte, Logos, Schrift Fira Sans (lokal), sql.js,

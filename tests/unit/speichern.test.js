@@ -16,8 +16,10 @@ function phpBefehl() {
 const PHP = phpBefehl();
 const SCHLUESSEL = "a".repeat(64);
 const HASH = crypto.createHash("sha256").update(SCHLUESSEL).digest("hex");
+// Kopfzeile von info.js aus speichern.php selbst (website/info.js ist nicht eingecheckt)
+const INFO_KOPF = JSON.parse('"' + fs.readFileSync(path.join(WEB, "speichern.php"), "utf8").match(/'info\.js' => \["(.*?)", 'zeiten'\]/)[1] + '"');
 const KOPF = {
-  "info.js": fs.readFileSync(path.join(WEB, "info.js"), "utf8").split("= ")[0] + "= ",
+  "info.js": INFO_KOPF,
   "books.js": fs.readFileSync(path.join(WEB, "books.js"), "utf8").slice(0, 200).split("= ")[0] + "= ",
 };
 
@@ -51,7 +53,7 @@ function ordner(name, { zugang = true, dateien = {} } = {}) {
 }
 
 describe("speichern.php", { skip: !PHP && "kein PHP (php im PATH oder DSM_PHP)" }, () => {
-  const info = fs.readFileSync(path.join(WEB, "info.js"), "utf8");
+  const info = INFO_KOPF + JSON.stringify({ stand: "2026-10-01", zeiten: { mo: [["08:00", "13:00"]] }, hinweis: { de: "", it: "" }, schliessungen: [] }, null, 1) + ";\n";
   const books = fs.readFileSync(path.join(WEB, "books.js"), "utf8");
   const ALT = KOPF["info.js"] + '{"stand":"2020-01-01","zeiten":{}};\n';
   const OBJEKT = KOPF["info.js"] + '{"stand":{"x":1},"zeiten":{}};\n';

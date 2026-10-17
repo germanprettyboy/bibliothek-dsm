@@ -78,7 +78,7 @@ describe("empfehlungen.js", () => {
   }
 });
 
-describe("info.js", () => {
+describe("info.js", { skip: !I && "website/info.js fehlt (nicht eingecheckt)" }, () => {
   const TAGE = ["mo", "di", "mi", "do", "fr", "sa", "so"];
   test("Öffnungszeiten: nur Wochentage, Bereiche HH:MM, von < bis", () => {
     assert.match(I.stand, ISO);

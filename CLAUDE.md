@@ -11,6 +11,8 @@ Auftraggeber/Nutzer: Johann Bucher (Freiwilliger an der DSM). Antworten auf Deut
   - GEBAUT aus `src/`: `index.html`, `admin.html`, `assets/{bibliothek,verwaltung}.js`, `assets/style.css`, `assets/kopf.js`.
   - Erzeugt, nie von Hand: `books.js`, `empfehlungen.js`, `info.js` (`window.DSM_BIBLIOTHEK/DSM_EMPFEHLUNGEN/DSM_INFO`),
     `speichern-zugang.php` (SHA-256 des Speicher-Schlüssels, von admin-verschluesseln.js).
+  - `info.js` NICHT eingecheckt (`.gitignore`, seit 17.10.2026, Auftraggeber): Original nur auf dem Webspace. Fehlt sie,
+    lädt die Seite ohne Info-Karte, die Verwaltung beginnt leer; Tests liefern eigene info.js bzw. überspringen die Prüfung.
   - Von Hand: `speichern.php`, `assets/protokoll.js` (DSM_LOG, vor allem anderen geladen), `assets/covers.js` (Cover, Cache,
     Abdeckungsmessung), `assets/kategorien-it.js`, `LIESMICH.txt`, `.htaccess` (gzip + Cache per IfModule; bei Error 500 löschen).
   - `assets/admin.enc.js` VERSCHLÜSSELT (quelle/extract.js + gebaute quelle/verwaltung/). `vendor/sql-asm.js` = sql.js 1.10.3
@@ -184,7 +186,7 @@ Verschlüsselung, speichern.php, Bau byte-genau gegen website/, Datenformate, ha
 Jede Aufgabe in eigenem Worktree (`.claude/worktrees/<name>`, Branch `worktree-<name>`), am Ende derselben Session per
 `--no-ff`-Merge in den lokalen `main` (Haupt-Checkout). `main` ist immer hochladbar, also lauffähig.
 1. Im Worktree committen, `git merge main`, Konflikte **hier** lösen (nie in `main`): Quelltext/CLAUDE.md/LIESMICH inhaltlich;
-   `admin.enc.js` neu verschlüsseln, Gebautes `npm run build`, `books.js` `npm run books`, `empfehlungen.js`/`info.js` fachlich.
+   `admin.enc.js` neu verschlüsseln, Gebautes `npm run build`, `books.js` `npm run books`, `empfehlungen.js` fachlich.
 2. `npm run test:alle` grün, Sichtbares per `npm run serve` ansehen; `werkzeuge/quelle/*` geändert → neu verschlüsseln. Committen.
 3. ExitWorktree (`keep`), im Haupt-Checkout `npm run integrieren -- worktree-<name>`. Bricht ab bei unsauberem Haupt-Checkout,
    Uncommittetem, Konflikt, Syntaxfehler in `website/**.js`/`werkzeuge/**.js` → im Worktree beheben, erneut. Sind im

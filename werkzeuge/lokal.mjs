@@ -57,7 +57,7 @@ verschluesseln();
 // jeder Start beginnt mit dem eingecheckten Stand; was beim letzten Mal veröffentlicht wurde, ist weg (nur Test)
 fs.rmSync(DATEN, { recursive: true, force: true });
 fs.mkdirSync(DATEN, { recursive: true });
-for (const d of DATEIEN) fs.copyFileSync(path.join(ROOT, "website", d), path.join(DATEN, d));
+for (const d of DATEIEN) if (fs.existsSync(path.join(ROOT, "website", d))) fs.copyFileSync(path.join(ROOT, "website", d), path.join(DATEN, d));
 
 // lokal-adresse.cjs: php-wasm lauscht sonst trotz „-S 127.0.0.1“ auf allen Schnittstellen (im WLAN erreichbar)
 const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "werkzeuge", "lokal-adresse.cjs"))}`.trim();
