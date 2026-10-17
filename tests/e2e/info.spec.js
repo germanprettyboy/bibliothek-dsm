@@ -6,6 +6,7 @@ const { test, expect, oeffnen, AUS } = require("./hilfen.js");
 
 const ZEITEN = { mo: [], di: [], mi: [["08:00", "12:00"], ["13:00", "15:00"]], do: [["10:00", "14:00"]], fr: [], sa: [] };
 const info = (extra = {}) => JSON.stringify({ stand: "2026-10-01", zeiten: ZEITEN, hinweis: { de: "", it: "" }, schliessungen: [], ...extra });
+const LEER = info({ zeiten: { mo: [], di: [], mi: [], do: [], fr: [], sa: [] } });
 const um = async (page, hhmm) => page.clock.setFixedTime(new Date(`2026-10-14T${hhmm}:00+02:00`));
 const karte = page => page.locator("#info .info-card");
 
@@ -18,7 +19,8 @@ async function mitInfo(page, daten, hhmm) {
 test.describe("Info-Karte", () => {
   test.use({ speicher: { "dsm-empf": AUS } });
 
-  test("veröffentlichte info.js ohne Zeiten und Schließtage: keine Karte", async ({ page }) => {
+  test("info.js ohne Zeiten und Schließtage: keine Karte", async ({ page }) => {
+    await page.route("**/info.js", route => route.fulfill({ body: `window.DSM_INFO = ${LEER};\n`, contentType: "text/javascript" }));
     await oeffnen(page);
     await expect(page.locator("#info")).toBeHidden();
   });
