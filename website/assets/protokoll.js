@@ -64,6 +64,12 @@
     } else console.log(daten);
   }
 
+  // Konsolenausgabe erst nach dem Bild (Zeit und Text stehen schon fest): Formatieren in der Konsole, vor allem bei
+  // offenen DevTools, soll Klick und Fenster-Animation nicht bremsen. Reihenfolge bleibt.
+  let warte = [], warteT = 0;
+  const spaeter = window.requestIdleCallback ? fn => requestIdleCallback(fn, { timeout: 300 }) : fn => setTimeout(fn, 50);
+  function ausgeben() { warteT = 0; const q = warte; warte = []; q.forEach(fn => fn()); }
+
   function log(bereich, text, daten) {
     const now = performance.now(), d = new Date();
     const e = { zeit: uhr(d), seite, bereich, text: String(text) };
@@ -77,8 +83,8 @@
     const kopf = [`%c${e.zeit} %c${abstand.padStart(9)} %c${bereich.padEnd(BREITE)}%c ${e.text}`,
       S.zeit, S.zeit, `background:${f[0]};color:${f[1]};${S.badge}`, S.text];
     const hat = daten !== undefined && daten !== null && (typeof daten !== "object" || Object.keys(daten).length || daten instanceof Error);
-    if (hat) { console.groupCollapsed(...kopf); details(daten); console.groupEnd(); }
-    else console.log(...kopf);
+    warte.push(hat ? () => { console.groupCollapsed(...kopf); details(daten); console.groupEnd(); } : () => console.log(...kopf));
+    if (!warteT) warteT = spaeter(ausgeben);
   }
 
   log.an = () => { on = true; write("localStorage", KEY, "an"); log("Seite", "Protokoll eingeschaltet"); };
