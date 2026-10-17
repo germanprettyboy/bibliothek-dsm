@@ -42,6 +42,7 @@ werkzeuge/          ← NICHT hochladen
   quelle/verwaltung/  Verwaltungsoberfläche (Klartext, React): app, bestand, empfehlungen, info, veroeffentlichen, woerter
   admin-verschluesseln.js   baut quelle/verwaltung/ (React extern) + extract.js → website/assets/admin.enc.js
   books-erzeugen.js   DB → website/books.js per Node (gleiche Logik wie admin.html)
+  tunnel.mjs          öffentliche Test-Adresse (Cloudflare Quick Tunnel) für website/, auch für Playwright
   branches.sh         Übersicht offener Entwicklungs-Branches + Integration in main
 components.json     shadcn-Konfiguration (JSX statt TSX, Aliase @/components, @/lib); vite.config.js für Editor/CLI
 tests/              ← NICHT hochladen. unit/ (node:test), e2e/ (Playwright), helfer/, .tmp/ (ignoriert)
@@ -60,11 +61,14 @@ npm run build                                 # src/ → website/ (nach JEDER Ä
 npm run books                                 # daten/*.winbook → website/books.js
 npm run serve                                 # http://localhost:8765
 npm run dev                                   # Build im Watch-Modus + Live-Reload (browser-sync über npx)
+npm run tunnel                                # website/ unter https://….trycloudflare.com (Handy/Schul-PC), Ctrl+C beendet
+npm run tunnel:dev                            # dasselbe mit Watch-Build + Live-Reload
 npm run ui:add -- <name>                      # neue shadcn-Komponente nach src/components/ui/ (danach an DSM anpassen!)
 node werkzeuge/admin-verschluesseln.js                # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
 npm test                                      # Unit-Tests (node:test, ~15 s, baut einmal zum Vergleich)
 npm run test:e2e                              # Browser-Tests (Playwright/Chromium, eigener Server, Port je Checkout, ~1 min)
 npm run test:alle                             # beides
+npm run test:live                             # Browser-Tests über eigenen Tunnel (echtes https/Netz, ~3,5 min)
 npm run branches                              # was ist noch nicht in main?
 npm run integrieren -- <branch>               # fertigen Branch in main mergen (siehe unten)
 ```
@@ -223,6 +227,12 @@ Nach jeder Änderung `npm run build` und `npm run test:alle`. Tests in `tests/`:
   Einstellungen, Fragen-Ablauf, Empfehlungen, Info-Karte (feste Uhrzeit), Admin. Admin-Tests ersetzen `admin.enc.js` per Route durch
   eine mit „test-passwort“ verschlüsselte Fassung der aktuellen Quellen – das echte Passwort wird nicht gebraucht.
   Admin-Import muss byte-gleich zu `npm run books` sein (synthetische DB immer, Original-DB wenn vorhanden).
+- `unit/tunnel.test.js` – Server hinter dem Tunnel: nur der Ordner, keine Punktdateien, kein Listing, `no-store`; Adresse aus dem Log.
+- Live-Adresse (`werkzeuge/tunnel.mjs`, braucht `brew install cloudflared`, kein Konto): `npm run test:live` öffnet einen Quick
+  Tunnel, setzt `DSM_LIVE_URL` und startet Playwright ohne eigenen Server (2 Worker, 60 s, 1 Wiederholung). Gegen eine schon
+  laufende Adresse: `DSM_LIVE_URL=https://… npm run test:live` (auch `test:e2e`). Eigener Node-Server statt Python, weil
+  Cloudflare `.js`/`.css` ohne `Cache-Control` am Rand zwischenspeichert; Adresse auch in `tests/.tmp/tunnel-url.txt`.
+  Tunnel ist öffentlich, solange er läuft: nur website/ (wird ohnehin öffentlich), `.htaccess` gilt dort nicht.
 
 ## Branches integrieren (Pflicht am Ende jeder Aufgabe)
 

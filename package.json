@@ -12,6 +12,9 @@
     "test": "node --test tests/unit/*.test.js",
     "test:e2e": "playwright test",
     "test:alle": "npm test && npm run test:e2e",
+    "test:live": "node werkzeuge/tunnel.mjs --test",
+    "tunnel": "node werkzeuge/tunnel.mjs",
+    "tunnel:dev": "node werkzeuge/tunnel.mjs --dev",
     "branches": "bash werkzeuge/branches.sh",
     "integrieren": "bash werkzeuge/branches.sh integrieren"
   },
