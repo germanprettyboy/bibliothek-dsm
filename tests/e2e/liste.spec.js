@@ -216,3 +216,17 @@ test.describe("Vorschau aus der Verwaltung", () => {
     await expect(page.locator("#list .row")).toHaveCount(B.buecher.length);
   });
 });
+
+test.describe("Buchstaben-Anker eindeutig", () => {
+  // Sortiert nach Collator, Anfangsbuchstabe nach Unicode: „Œuvres“ steht zwischen den O, zählt aber zu „#“,
+  // griechische Titel stehen nach Z – „#“ darf trotzdem nur einmal Anker sein
+  const buecher = ["1984", "Oase", "Œuvres", "Ohne Ende", "Zebra", "Ὀδύσσεια"].map(t => ({ t }));
+  test.use({ speicher: { "dsm-empf": JSON.stringify({ want: false, gruppe: null }), "dsm-vorschau": JSON.stringify({ stand: "2026-01-01", anzahl: buecher.length, buecher }) } });
+
+  test("jeder Buchstabe nur ein Abschnittskopf", async ({ page }) => {
+    await oeffnen(page, "index.html#vorschau");
+    await expect(page.locator("#list .row")).toHaveCount(buecher.length);
+    const koepfe = await page.locator("#list ul[data-l]").evaluateAll(us => us.map(u => u.id));
+    expect(koepfe).toEqual(["L-0", "L-O", "L-Z"]);
+  });
+});

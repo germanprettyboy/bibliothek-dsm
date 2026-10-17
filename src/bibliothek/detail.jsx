@@ -115,6 +115,7 @@ function Zoom({ open, box, onClosed }) {
   const { t } = useSprache();
   const img = React.useRef(null), anim = React.useRef(null), zMax = React.useRef(432);
   const [closing, setClosing] = React.useState(false);
+  const grund = React.useRef("Escape"); // Grund fürs Schließen über Radix (Escape oder Klick neben das Bild)
   const snap = () => getComputedStyle(document.documentElement).getPropertyValue("--snap").trim() || "ease-out";
 
   // Ziel: so groß wie möglich, Seitenverhältnis wie .cover (2:3), höchstens 27rem breit
@@ -165,11 +166,13 @@ function Zoom({ open, box, onClosed }) {
   };
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={an => { if (!an) zu("Escape"); }}>
+    <DialogPrimitive.Root open={open} onOpenChange={an => { if (!an) zu(grund.current); }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className={cn("schleier fixed inset-0 z-[60]", closing && "closing")} />
         <DialogPrimitive.Content
           className="zoom" id="zoom" aria-label={t("coverBig")} aria-describedby={undefined}
+          onEscapeKeyDown={() => { grund.current = "Escape"; }}
+          onPointerDownOutside={() => { grund.current = "Klick daneben"; }}
           onCloseAutoFocus={e => { e.preventDefault(); if (box.current) box.current.focus({ preventScroll: true }); }}
         >
           <DialogPrimitive.Title className="sr-only">{t("coverBig")}</DialogPrimitive.Title>

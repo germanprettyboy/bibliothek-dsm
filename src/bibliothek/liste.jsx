@@ -75,12 +75,16 @@ function sizer() {
   const cT = w / (rem * .5), cA = w / (rem * .875 * .5);
   return (t, a) => 25 + rem * 1.35 * Math.ceil((t.length || 1) / cT) + (a ? 2 + rem * .875 * 1.5 * Math.ceil(a.length / cA) : 0);
 }
+// Kopf (Anker ul#L-X) nur beim ersten Auftreten eines Buchstabens: Die Sortierung (Collator) kann ihn unterbrechen,
+// z. B. „Œuvres“ zwischen den O (zählt zu „#“) oder griechische Titel nach Z
 function abschnitte(current) {
-  const est = sizer(), out = [];
+  const est = sizer(), out = [], koepfe = new Set();
   let cur = null, last = null;
   for (const b of current) {
     if (b._l !== last || cur.items.length === CHUNK) {
-      cur = { head: b._l !== last ? b._l : null, items: [], h: 0 };
+      const kopf = b._l !== last && !koepfe.has(b._l);
+      if (kopf) koepfe.add(b._l);
+      cur = { head: kopf ? b._l : null, items: [], h: 0 };
       out.push(cur);
       last = b._l;
     }
@@ -257,10 +261,11 @@ export function Liste({ books, geladen, onOpen }) {
   const obs = React.useRef(null), alle = React.useRef(books);
   alle.current = books;
   if (!obs.current && "IntersectionObserver" in window) {
+    const gewollt = new Set(); // Bücher, die gerade im Hintergrund geladen werden sollen
     const seen = new IntersectionObserver(entries => {
       for (const e of entries) {
         const b = alle.current[+e.target.dataset.i];
-        if (e.isIntersecting) { warm(); C().want(b); } else C().unwant(b);
+        if (e.isIntersecting) { warm(); C().want(b); gewollt.add(b); } else { C().unwant(b); gewollt.delete(b); }
       }
     }, { rootMargin: "150px 0px" });
     const near = new IntersectionObserver(entries => {
@@ -268,11 +273,11 @@ export function Liste({ books, geladen, onOpen }) {
         for (const r of e.target.querySelectorAll(".row")) {
           const b = alle.current[+r.dataset.i];
           if (!b.i) continue;
-          if (e.isIntersecting) seen.observe(r); else { seen.unobserve(r); C().unwant(b); }
+          if (e.isIntersecting) seen.observe(r); else { seen.unobserve(r); C().unwant(b); gewollt.delete(b); }
         }
       }
     }, { rootMargin: "300px 0px" });
-    obs.current = { seen, near };
+    obs.current = { seen, near, gewollt };
   }
   React.useEffect(() => () => { if (obs.current) { obs.current.seen.disconnect(); obs.current.near.disconnect(); } }, []);
 
@@ -285,6 +290,8 @@ export function Liste({ books, geladen, onOpen }) {
     onScroll();
     if (!obs.current || !C().enabled) return;
     if (beob.current.teile !== teile) {
+      // Bücher der alten Liste nicht mehr im Hintergrund laden (die neue meldet ihre sichtbaren gleich wieder an)
+      obs.current.gewollt.forEach(b => C().unwant(b)); obs.current.gewollt.clear();
       obs.current.seen.disconnect(); obs.current.near.disconnect();
       beob.current = { teile, uls: new WeakSet() };
     }

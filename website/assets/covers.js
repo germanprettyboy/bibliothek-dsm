@@ -270,7 +270,7 @@
   });
   const kickImg = worker(IMG_TICK, () => imgQueue.length > 0, async () => {
     const { key, hit, book } = imgQueue.shift();
-    if (!await loadImg(hit.src)) { delete cache[key]; queue.set(key, book); kickEkz(); } // Bild weg: neu suchen
+    if (!await loadImg(hit.src)) { delete cache[key]; persist(); queue.set(key, book); kickEkz(); } // Bild weg: neu suchen
   });
 
   // ---------- Messung für die Admin-Seite ----------
