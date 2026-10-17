@@ -13,6 +13,7 @@
  */
 import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
@@ -32,10 +33,23 @@ function verschluesseln() {
   execFileSync(process.execPath, [path.join(ROOT, "werkzeuge", "admin-verschluesseln.js"), PW, path.join(LOKAL, "admin.enc.js")], { stdio: "ignore" });
 }
 
+// Antwortet auf dem Port schon etwas (meist npm run lokal / tunnel:php in einem anderen Fenster), stürzt php-wasm mit
+// EADDRINUSE ab – und die Prüfung vor dem Tunnel fände den alten Server. Also vorher abbrechen.
+const belegt = await new Promise(ok => {
+  const s = net.connect({ host: "127.0.0.1", port: +PORT }, () => { s.destroy(); ok(true); }).on("error", () => ok(false));
+});
+if (belegt) {
+  console.error(`Port ${PORT} ist belegt – läuft npm run lokal oder tunnel:php schon in einem anderen Fenster? Dort mit Strg+C beenden.
+Welcher Prozess:  lsof -nP -iTCP:${PORT} -sTCP:LISTEN     Anderer Port:  PORT=${+PORT + 1} npm run ${MIT_TUNNEL ? "tunnel:php" : "lokal"}`);
+  process.exit(1);
+}
+
 console.log("Verwaltung wird mit dem lokalen Passwort verschlüsselt …");
 verschluesseln();
 
-const php = spawn("npx", ["--yes", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("werkzeuge", "lokal-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"] });
+// lokal-adresse.cjs: php-wasm lauscht sonst trotz „-S 127.0.0.1“ auf allen Schnittstellen (im WLAN erreichbar)
+const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "werkzeuge", "lokal-adresse.cjs"))}`.trim();
+const php = spawn("npx", ["--yes", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("werkzeuge", "lokal-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
 // php-wasm meldet, solange eine Verbindung offen ist, dutzendfach „Failed to accept a client (reason: Invalid argument)“
 // und „Failed to poll event“ (accept() im WASM-Socket; harmlos, Anfragen gehen durch, auch in 3.1.58 noch so).
 // Ausgeblendet samt Accepted/Closing je Verbindung; Anfragen, PHP-Fehler und alles andere bleiben sichtbar.
