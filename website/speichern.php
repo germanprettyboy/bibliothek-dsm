@@ -23,7 +23,7 @@ const DSM_DATEIEN = [
 const DSM_MAX = 8 * 1024 * 1024;
 const DSM_SICHERUNGEN = 10;
 
-// DSM_ZUGANG_DATEI setzt nur der lokale Entwicklungs-Server (werkzeuge/lokal-router.php)
+// DSM_ZUGANG_DATEI und DSM_DATEN_ORDNER setzt nur der lokale Entwicklungs-Server (werkzeuge/lokal-router.php)
 function dsm_zugang(string $ordner): string {
   $datei = defined('DSM_ZUGANG_DATEI') ? DSM_ZUGANG_DATEI : $ordner . '/speichern-zugang.php';
   $hash = is_file($datei) ? include $datei : '';
@@ -88,7 +88,7 @@ if (!defined('DSM_SPEICHERN_TEST')) {
     (string) ($_GET['datei'] ?? ''),
     (string) ($_SERVER['HTTP_X_DSM_SCHLUESSEL'] ?? ''),
     function () { return file_get_contents('php://input', false, null, 0, DSM_MAX + 1); },
-    __DIR__
+    defined('DSM_DATEN_ORDNER') ? DSM_DATEN_ORDNER : __DIR__
   );
   if ($status === 403) sleep(1); // Raten bremsen
   http_response_code($status);

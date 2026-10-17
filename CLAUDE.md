@@ -21,6 +21,8 @@ Auftraggeber/Nutzer: Johann Bucher (Freiwilliger an der DSM). Antworten auf Deut
 - `werkzeuge/` – `bauen.mjs` (Vite, je Seite IIFE, feste Namen), `quelle/` (extract.js + Verwaltungs-UI, KLARTEXT),
   `admin-verschluesseln.js`, `books-erzeugen.js` (gleiche Logik wie admin.html), `tunnel.mjs`, `branches.sh`,
   `lokal.mjs`/`lokal-router.php`/`lokal-adresse.cjs` (php-wasm nur auf 127.0.0.1 – übergeht sonst „-S“ und lauscht im ganzen Netz).
+  lokal: Datendateien aus/nach `tests/.tmp/lokal/daten/` (`DSM_DATEN_ORDNER`, je Start frisch aus website/) – Testen ändert
+  nie die eingecheckten books.js/empfehlungen.js/info.js (vorher blockierte geänderte info.js ständig die Integration).
   npx (php-wasm, browser-sync, shadcn) immer exakte Version + `--prefer-offline` (ein Cache je Paketangabe in ~/.npm/_npx, sonst
   Registry-Abfrage je Start bzw. Neuinstallation, php-wasm ≈470 MB). Bewusst nicht in package.json.
 - `tests/`, `doku/`: nicht hochladen. `daten/` (`*.winbook` mit Schülerdaten): NIEMALS einchecken/hochladen.
@@ -32,7 +34,7 @@ npm run build          # src/ → website/ (nach JEDER Änderung an src/, Ergebn
 npm run books          # daten/*.winbook → website/books.js
 npm run serve          # :8765;  dev = Watch + Live-Reload (browser-sync);  tunnel(:dev) = https://….trycloudflare.com für Handy/Schul-PC
 npm run lokal          # wie Webspace: PHP + echtes speichern.php, Watch, Passwort „lokal“ → http://127.0.0.1:8765/admin.html
-npm run tunnel:php     # lokal + öffentliche https-Adresse, schreibt nach website/ dieses Checkouts, zufälliges Passwort
+npm run tunnel:php     # lokal + öffentliche https-Adresse, schreibt nach tests/.tmp/lokal/daten/, zufälliges Passwort
 npm run ui:add -- <n>  # neue shadcn-Komponente (danach an DSM anpassen!)
 node werkzeuge/admin-verschluesseln.js   # nach JEDER Änderung an werkzeuge/quelle/* (fragt Passwort verdeckt)
 npm test / test:e2e / test:alle / test:live   # Unit ~15 s / Playwright ~1 min / beides / über eigenen Tunnel ~3,5 min
@@ -178,7 +180,9 @@ Jede Aufgabe in eigenem Worktree (`.claude/worktrees/<name>`, Branch `worktree-<
    `admin.enc.js` neu verschlüsseln, Gebautes `npm run build`, `books.js` `npm run books`, `empfehlungen.js`/`info.js` fachlich.
 2. `npm run test:alle` grün, Sichtbares per `npm run serve` ansehen; `werkzeuge/quelle/*` geändert → neu verschlüsseln. Committen.
 3. ExitWorktree (`keep`), im Haupt-Checkout `npm run integrieren -- worktree-<name>`. Bricht ab bei unsauberem Haupt-Checkout,
-   Uncommittetem, Konflikt, Syntaxfehler in `website/**.js`/`werkzeuge/**.js` → im Worktree beheben, erneut.
+   Uncommittetem, Konflikt, Syntaxfehler in `website/**.js`/`werkzeuge/**.js` → im Worktree beheben, erneut. Sind im
+   Haupt-Checkout NUR die drei Datendateien geändert (Verwaltung per Ordnerzugriff = gewollter Inhalt), übernimmt es sie
+   vorher per Branch `daten-<Zeit>` + Merge. Datendateien in `main` nie verwerfen/zurücksetzen.
 4. `git worktree remove <pfad>` (fremde erst `git worktree unlock`), `git branch -d` (nie `-D`). Bericht: Merge-Commit, Warnungen.
 - `npm run branches` bzw. Hook (`.claude/settings.json` → `branches.sh --hook`) meldet offene Branches: „fertig committet,
   nicht in main“ zu Beginn integrieren, wenn erkennbar abgeschlossen, sonst Johann fragen.
