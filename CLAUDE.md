@@ -210,11 +210,12 @@ shadcn-Komponenten nach `ui:add` immer anpassen
   reduzierte Bewegung: sofort. Keine Klasse an `<html>` zum Abschalten von Übergängen (`:root.x *` = zweimal alles neu berechnen).
 - Sprache (`components/kopf.jsx`): Markierung zuerst (`.seg[data-an]`, `will-change: transform`), `setLang` erst nach dem
   nächsten Frame (rAF + setTimeout). Sonner-Toaster mit festem `dir="ltr"` (sonst `getComputedStyle(html)` je Render).
-- Unschärfe klein: Schleier `blur(8px)`, Glas `blur(18px)` (vorher 12/30). Beide stapeln sich und werden in jedem Bild
-  einer Fenster-Animation neu gerechnet; ohne Unschärfe drittelt sich die GPU-Zeit (Software-GPU). Nicht wieder erhöhen.
+- Unschärfe nur im Schleier: `blur(8px)`, ohne `saturate`. Das Glas hat KEIN `backdrop-filter` mehr (nur dichteres `--glass`,
+  .82 hell / .78 dunkel): es liegt auf dem schon unscharfen Schleier, ein zweiter Blur war kaum sichtbar, wurde aber in jedem
+  Bild der Fenster-Animation neu gerechnet (vorher 12+30 px, dann 8+18 px). Nicht wieder einbauen, nicht erhöhen.
 - Unschärfe nach Leistung (`lib/leistung.js`): `blurMessen()` beim Öffnen jedes `Fenster` und des Zooms misst die
   rAF-Abstände 400 ms lang (erste zwei Abstände nicht – Fensteraufbau). Ruckeln (≥3 Abstände > 28 ms oder Schnitt > 24 ms)
-  zweimal hintereinander → eine Stufe weniger: `data-blur` an `<html>` = (fehlt) voll 8/18 px → `wenig` 4/10 px → `aus`
+  zweimal hintereinander → eine Stufe weniger: `data-blur` an `<html>` = (fehlt) voll 8 px → `wenig` 4 px → `aus`
   (`--veil-dicht`, `--glass-dicht`). Gemerkt in `dsm-blur`, kopf.js setzt es vor dem ersten Zeichnen, 14 Tage gültig.
   Gemessen 17.10.2026: Software-GPU stuft nach 2 bzw. 4 Öffnungen ab, Intel UHD 630 bleibt voll.- Markierungen DE/IT und Theme: `--t-fast` (150 ms) mit `--snap`. Buch-Detail ab 40rem: auf 140 ms, zu 110 ms, Schleier 120/110 ms.
 - protokoll.js gibt erst nach dem Bild in die Konsole aus (`requestIdleCallback`, sonst 50 ms); Eintrag und Zeit entstehen sofort.
