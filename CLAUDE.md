@@ -36,7 +36,7 @@ src/                ← Quelltext der Seiten (React + Tailwind + shadcn/ui), NIC
   styles.css          Tailwind v4: DSM-Tokens, Theme (nur DSM-Werte), Bausteine (Liste, Cover, Glas, Platzhalter)
   components/ui/      shadcn/ui-Komponenten, an DSM angepasst (button, input, dialog, switch, toggle(-group), tabs, …)
   components/         fenster (Glas-Dialog), kopf (Logo/Sprache/Einstellungen), einstellungen
-  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast), umwelt (`still` = reduzierte Bewegung, `C()` = covers.js)
+  lib/                utils (cn), speicher (localStorage, log), sprache (DE/IT, t()), darstellung, hinweis (Toast), umwelt (`still` = reduzierte Bewegung, `C()` = covers.js), wischen (Handy-Sheet Detail)
   bibliothek/         Bücherliste: main, app, daten, liste, detail (+Zoom), cover, empfehlungen (+Archiv, Fragen), info, wahl
   verwaltung/         main (Seite), sperre (PBKDF2/AES-GCM), gemeinsam (window.DSM_GEMEINSAM für die Verwaltung)
 werkzeuge/          ← NICHT hochladen
@@ -143,6 +143,9 @@ Verwaltung von der Seite importiert (`@/…`), muss es in `src/verwaltung/gemein
 - Cover-Laden gestaffelt im Hintergrund für Bücher in Sichtweite, kleine Auflösung
   (OL „M“ ≈180 px, Google ≈128 px; ekz fest 170–440 px). Open Library NICHT über `/b/isbn/` laden
   (100 Abrufe / 5 min / IP, Schulnetz = eine IP) – immer `/api/books?jscmd=viewapi` (Sammelabfrage) → Cover-ID.
+- Buch-Detail auf dem Handy (<40rem, `lib/wischen.js`): Sheet bildschirmhoch, per transform halbhoch geparkt, fliegt von unten ein (Feder als `linear()`),
+  Finger führt 1:1, nach oben wischen = Vollbild (Inhalt scrollt), nach unten = halb, weiter = schließen (Geschwindigkeit entscheidet), Schleier blendet mit.
+  Ab 40rem und bei reduzierter Bewegung unverändert. Test: detail.spec „Wischen“ (CDP-Touch).
 - Echtes Cover im Detail antippen → eigenes Fenster `#zoom` (zweiter Radix-Dialog im Portal über dem Detail, Glas-Schleier), Bild fliegt per FLIP
   (Web Animations, nur transform, `--snap`, 240/180 ms) in die Mitte, max. 27rem breit. Nur dann OL-Größe „L“ nachladen;
   Google-Bilder ohne größere Fassung höchstens 2,5-fach. Platzhalter nicht vergrößerbar.
