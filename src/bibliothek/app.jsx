@@ -15,12 +15,12 @@ import { getWahl } from "@/bibliothek/wahl";
 woerter({
   de: {
     pageTitle: "Bibliothek – Deutsche Schule Mailand", title: "Bibliothek",
-    footer: "Bibliothek der Deutschen Schule Mailand",
+    skip: "Zur Suche springen",
     preview: "Vorschau der neuen Liste – noch nicht veröffentlicht.", previewEnd: "Vorschau beenden",
   },
   it: {
     pageTitle: "Biblioteca – Scuola Germanica di Milano", title: "Biblioteca",
-    footer: "Biblioteca della Scuola Germanica di Milano",
+    skip: "Vai alla ricerca",
     preview: "Anteprima del nuovo elenco – non ancora pubblicato.", previewEnd: "Chiudi anteprima",
   },
 });
@@ -51,6 +51,8 @@ export function App() {
 
   return (
     <>
+      {/* Sprunglink für Tastatur und Bildschirmleser: erst beim Fokus sichtbar */}
+      <a href="#q" className="sr-only rounded-lg bg-foreground px-4 py-3 font-semibold text-background no-underline focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[70]">{t("skip")}</a>
       <div className="banner text-s font-medium" id="preview" hidden={!VORSCHAU_AN}>
         <div className="wrap flex items-center justify-between gap-3 py-2">
           <span>{t("preview")}</span>
@@ -58,15 +60,12 @@ export function App() {
         </div>
       </div>
       <Kopf onEinstellungen={() => setFenster("einstellungen")} />
-      <section className="wrap intro pt-[18px] pb-3">
+      <section className="wrap intro pt-2 pb-4 sm:pt-3 sm:pb-5">
         <h1 className="m-0 text-l font-semibold leading-[1.1] [text-wrap:balance]">{t("title")}</h1>
       </section>
       <InfoKarte I={I} onOpen={() => setFenster("info")} />
       <Empfehlungen R={R} byKey={byKey} geladen={geladen} onOpen={oeffnen} onArchiv={() => setFenster("archiv")} />
       <Liste books={books} geladen={geladen} onOpen={oeffnen} />
-      <footer className="foot border-t border-border text-s text-muted-foreground">
-        <div className="wrap flex flex-wrap justify-between gap-x-4 gap-y-1.5 pt-[18px] pb-7"><span>{t("footer")}</span></div>
-      </footer>
 
       <Detail eintrag={detail} onClose={() => setDetail(null)} />
       <Einstellungen open={fenster === "einstellungen"} onOpenChange={fensterAuf("einstellungen")}>

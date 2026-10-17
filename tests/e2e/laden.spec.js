@@ -4,7 +4,7 @@
  */
 const { test, expect, AUS, daten } = require("./hilfen.js");
 
-const { E } = daten();
+const { B, E } = daten();
 const AN = JSON.stringify({ want: true, gruppe: "mittelstufe" });
 
 // Datei (Standard books.js) erst nach freigeben() ausliefern
@@ -36,7 +36,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
     await expect(page.locator("#list .row").first()).toBeVisible();
     await expect(page.locator("#list .skel")).toHaveCount(0);
     await expect(page.locator("main.books")).not.toHaveAttribute("aria-busy");
-    await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
+    await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("de-DE")} Bücher`);
   });
 
   test("nach 6 s Hinweis auf langsame Verbindung", async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
     await expect(page.locator("#meta .ld:visible")).toHaveText("Langsame Verbindung – die Liste lädt noch …");
     freigeben();
     await page.waitForLoadState("load");
-    await expect(page.locator("#meta")).toHaveText("Alphabetisch nach Titel");
+    await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("de-DE")} Bücher`);
   });
 
   test.describe("italienisch", () => {
@@ -59,7 +59,7 @@ test.describe("Laden bei langsamer Verbindung", () => {
       await expect(page.locator("#meta .ld:visible")).toHaveText("Caricamento dell'elenco …");
       freigeben();
       await page.waitForLoadState("load");
-      await expect(page.locator("#meta")).toHaveText("In ordine alfabetico per titolo");
+      await expect(page.locator("#meta")).toHaveText(`${B.buecher.length.toLocaleString("it-IT")} libri`);
     });
   });
 

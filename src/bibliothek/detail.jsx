@@ -86,7 +86,7 @@ export function Detail({ eintrag, onClose }) {
               <p className="mt-1 mb-0 text-muted-foreground [overflow-wrap:anywhere]" id="d-sub" hidden={!b.u}>{b.u || ""}</p>
               <p className="mt-2 mb-0 font-medium [overflow-wrap:anywhere]" id="d-by" hidden={!b.a}>{(b.a || []).join(", ")}</p>
             </div>
-            <div className="teaser col-span-full rounded-xl bg-surface px-4 py-3.5 shadow-[inset_0_0_0_1px_var(--line)]" id="d-teaser" hidden={!txt}>
+            <div className="teaser karte col-span-full px-4 py-3.5" id="d-teaser" hidden={!txt}>
               <b className="mb-1 block text-s font-semibold">{t("why")}</b>
               <p className="m-0 leading-normal">{txt || ""}</p>
             </div>
