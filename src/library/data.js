@@ -1,0 +1,50 @@
+/* Data of the book list: books.js (window.DSM_LIBRARY), recommendations.js, info.js – or their preview from the
+   admin page (index.html#preview, localStorage dsm-preview*). books.js loads AFTER this script (large, ≈700 KB),
+   so the header, opening hours and placeholders stand before it. */
+import { store } from "@/lib/storage";
+
+export const PREVIEW = location.hash === "#preview";
+
+export const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
+// Key of the recommendations: title + first author
+export const keyOf = b => norm(b.t) + "|" + norm((b.a && b.a[0]) || "");
+
+const letterOf = t => {
+  const c = String(t).replace(/^[^\p{L}\p{N}]+/u, "").normalize("NFD").charAt(0).toUpperCase();
+  return /[A-Z]/.test(c) ? c : "#";
+};
+
+// Preview from the admin page, if present and valid
+function preview(k, ok) {
+  if (!PREVIEW) return null;
+  const p = store.json(k);
+  return p && ok(p) ? p : null;
+}
+export const previewBooks = () => preview("dsm-preview", p => Array.isArray(p.books));
+export const previewRecs = () => preview("dsm-preview-recs", p => !!p.groups);
+export const previewInfo = () => preview("dsm-preview-info", p => !!p.hours);
+
+// Prepare books for list and search: running number, initial letter, search text
+export function prepare(data) {
+  const books = (data && data.books) || [];
+  books.forEach((b, i) => {
+    b._i = i;
+    b._l = letterOf(b.t);
+    b._s = norm([b.t, b.s, (b.a || []).join(" "), (b.i || []).join(" "), b.p].join(" "));
+  });
+  return books;
+}
+
+// Waits for books.js (classic script after this one). books.js sets window.DSM_LIBRARY = …; a setter reports
+// that at the same moment (DOMContentLoaded may be delayed after it). If the file is missing, the list stays empty.
+export function loadBooks(done) {
+  const p = previewBooks();
+  if (p) return done(p);
+  if (window.DSM_LIBRARY) return done(window.DSM_LIBRARY);
+  let value, reported = false;
+  const go = () => { if (!reported) { reported = true; done(value || null); } };
+  Object.defineProperty(window, "DSM_LIBRARY", { configurable: true, enumerable: true, get: () => value, set: v => { value = v; go(); } });
+  if (document.readyState !== "loading") go();
+  else document.addEventListener("DOMContentLoaded", go, { once: true });
+}

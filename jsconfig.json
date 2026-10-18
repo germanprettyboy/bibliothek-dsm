@@ -4,5 +4,5 @@
     "paths": { "@/*": ["./src/*"] },
     "jsx": "react-jsx"
   },
-  "include": ["src", "werkzeuge/quelle"]
+  "include": ["src", "tools/source"]
 }

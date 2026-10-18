@@ -1,28 +1,28 @@
 /*
- * Verwaltung (admin.html). Die echte admin.enc.js braucht das echte Passwort, das nirgends steht.
- * Darum wird sie hier durch eine mit „test-passwort“ verschlüsselte Fassung der aktuellen Quellen ersetzt.
+ * Admin page (admin.html). The real admin.enc.js needs the real password, which is written nowhere.
+ * So here it is replaced by a version of the current sources encrypted with "test-password".
  */
 const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
-const { test, expect, daten, TMP } = require("./hilfen.js");
-const X = require("../../werkzeuge/quelle/extract.js");
-const T = require("../helfer/testdb.js");
-const { echteDb } = require("../helfer/laden.js");
+const { test, expect, data, TMP } = require("./helpers.js");
+const X = require("../../tools/source/extract.js");
+const T = require("../helpers/testdb.js");
+const { realDb, keyOf } = require("../helpers/load.js");
 
-const PW = "test-passwort";
-const { B, E } = daten();
+const PW = "test-password";
+const { B, R } = data();
 
 test.beforeEach(async ({ context }) => {
   await context.route("**/assets/admin.enc.js", r => r.fulfill({ path: path.join(TMP, "admin.enc.js"), contentType: "text/javascript" }));
-  // Ordnerdialog des Browsers (nativ, nicht steuerbar) ersetzt durch einen Ordner im privaten Browser-Speicher (OPFS).
-  // localStorage „__test-ordner“: Name des gewählten Ordners; nur „website“ enthält index.html; „abbrechen“ = Dialog abgebrochen.
+  // The browser's folder dialog (native, not controllable) replaced by a folder in the private browser storage (OPFS).
+  // localStorage "__test-folder": name of the chosen folder; only "website" contains index.html; "cancel" = dialog cancelled.
   await context.addInitScript(() => {
     window.__picks = 0;
     window.showDirectoryPicker = async () => {
       window.__picks++;
-      const name = localStorage.getItem("__test-ordner") || "website";
-      if (name === "abbrechen") throw new DOMException("Auswahl abgebrochen", "AbortError");
+      const name = localStorage.getItem("__test-folder") || "website";
+      if (name === "cancel") throw new DOMException("Selection cancelled", "AbortError");
       const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(name, { create: true });
       if (name === "website") await (await (await dir.getFileHandle("index.html", { create: true })).createWritable()).close();
       return dir;
@@ -30,64 +30,63 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
-async function entsperren(page) {
+async function unlock(page) {
   await page.goto("admin.html");
   await page.fill("#pw", PW);
   await page.click("#unlock");
   await expect(page.locator("#app")).toBeVisible({ timeout: 15000 });
 }
-async function laden(page, datei) {
-  await page.setInputFiles("#file", datei);
+async function load(page, file) {
+  await page.setInputFiles("#file", file);
 }
-// Download als Text (Browser ohne Ordnerzugriff)
-async function herunterladen(page, knopf) {
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click(knopf)]);
+// Download as text (browser without folder access)
+async function download(page, button) {
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click(button)]);
   return fs.readFileSync(await dl.path(), "utf8");
 }
-// Datei im (Test-)Website-Ordner lesen, null = nicht vorhanden
-const ordnerDatei = (page, datei, ordner = "website") => page.evaluate(async ([d, o]) => {
+// Read a file in the (test) website folder, null = not present
+const folderFile = (page, file, folder = "website") => page.evaluate(async ([f, o]) => {
   try {
     const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(o);
-    return await (await (await dir.getFileHandle(d)).getFile()).text();
+    return await (await (await dir.getFileHandle(f)).getFile()).text();
   } catch (e) { return null; }
-}, [datei, ordner]);
-// Inhalt als Daten; null, solange die Datei fehlt oder gerade geschrieben wird
-const ordnerDaten = async (page, datei, name) => { try { return auswerten(await ordnerDatei(page, datei), name) || null; } catch (e) { return null; } };
-const DATEI = { "#dl": "books.js", "#e-dl": "empfehlungen.js", "#i-dl": "info.js" };
-const okText = datei => new RegExp(`^${datei.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
-// Veröffentlichen: Klick, Erfolgsmeldung, geschriebene Datei als Text
-async function speichern(page, knopf) {
-  const datei = DATEI[knopf];
-  await page.click(knopf);
-  await expect(page.locator(`.pub[data-datei="${datei}"] .flag`)).toHaveText(okText(datei));
-  return ordnerDatei(page, datei);
+}, [file, folder]);
+// Content as data; null while the file is missing or being written
+const folderData = async (page, file, name) => { try { return evaluate(await folderFile(page, file), name) || null; } catch (e) { return null; } };
+const FILE = { "#dl": "books.js", "#rec-dl": "recommendations.js", "#i-dl": "info.js" };
+const okText = file => new RegExp(`^${file.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
+// Publish: click, success message, written file as text
+async function save(page, button) {
+  const file = FILE[button];
+  await page.click(button);
+  await expect(page.locator(`.pub[data-file="${file}"] .flag`)).toHaveText(okText(file));
+  return folderFile(page, file);
 }
-const auswerten = (s, name) => { const w = {}; new Function("window", s)(w); return w[name]; };
-// Gleiche Erzeugung wie npm run books / books-erzeugen.js
-// Bücher der Test-Datenbank (wie nach dem Einlesen)
-async function testKatalog() {
+const evaluate = (s, name) => { const w = {}; new Function("window", s)(w); return w[name]; };
+// Books of the test database (as after importing)
+async function testCatalog() {
   const SQL = await initSqlJs();
   const db = new SQL.Database(fs.readFileSync(path.join(TMP, "test.winbook")));
   try { return X.extract(db).books; } finally { db.close(); }
 }
-const { schluessel } = require("../helfer/laden.js");
-async function nodeSkript(dbBytes, meta) {
+// Same generation as npm run books / generate-books.js
+async function nodeScript(dbBytes, meta) {
   const SQL = await initSqlJs();
   const db = new SQL.Database(dbBytes);
   try { return X.toScript(X.extract(db), meta); } finally { db.close(); }
 }
 
-test.describe("Sperre", () => {
-  test("gesperrt: nur Passwortfeld, Verwaltung verborgen", async ({ page }) => {
+test.describe("lock", () => {
+  test("locked: only the password field, admin app hidden", async ({ page }) => {
     await page.goto("admin.html");
     await expect(page.locator("#lock")).toBeVisible();
     await expect(page.locator("#app")).toBeHidden();
     await expect(page.locator("#pw")).toBeFocused();
   });
 
-  test("falsches Passwort: Meldung, Wartezeit, Zähler", async ({ page }) => {
+  test("wrong password: message, waiting time, counter", async ({ page }) => {
     await page.goto("admin.html");
-    await page.fill("#pw", "falsch");
+    await page.fill("#pw", "wrong");
     await page.click("#unlock");
     await expect(page.locator("#lock-msg")).toHaveText("Das Passwort stimmt nicht.", { timeout: 10000 });
     await expect(page.locator("#lock-form")).toHaveClass(/shake/);
@@ -97,18 +96,18 @@ test.describe("Sperre", () => {
     await expect(page.locator("#app")).toBeHidden();
   });
 
-  test("Wartezeit wächst mit weiteren Fehlversuchen (höchstens 30 s)", async ({ page }) => {
+  test("the waiting time grows with further failed attempts (at most 30 s)", async ({ page }) => {
     await page.addInitScript(() => sessionStorage.setItem("dsm-admin-fails", "9"));
     await page.goto("admin.html");
-    await page.fill("#pw", "falsch");
+    await page.fill("#pw", "wrong");
     await page.click("#unlock");
     await expect(page.locator("#lock-msg")).toHaveText("Das Passwort stimmt nicht.", { timeout: 10000 });
     await page.click("#unlock");
     await expect(page.locator("#lock-msg")).toHaveText(/^Bitte (29|30) Sekunden warten\.$/);
   });
 
-  test("richtiges Passwort: Verwaltung startet, bleibt bei Neuladen offen, Sperren schließt", async ({ page }) => {
-    await entsperren(page);
+  test("right password: the admin app starts, stays open on reload, lock closes it", async ({ page }) => {
+    await unlock(page);
     await expect(page.locator("#lock")).toBeHidden();
     expect(await page.evaluate(() => sessionStorage.getItem("dsm-admin-fails"))).toBe("0");
     expect(await page.evaluate(() => sessionStorage.getItem("dsm-admin-key"))).toBeTruthy();
@@ -120,24 +119,24 @@ test.describe("Sperre", () => {
     expect(await page.evaluate(() => sessionStorage.getItem("dsm-admin-key"))).toBeNull();
   });
 
-  test("Passwort steht nach dem Entsperren nicht mehr im Feld und nirgends im Speicher", async ({ page }) => {
-    await entsperren(page);
-    // Sperre samt Passwortfeld ist nach dem Entsperren nicht mehr auf der Seite
+  test("after unlocking the password is no longer in the field and nowhere in storage", async ({ page }) => {
+    await unlock(page);
+    // after unlocking the lock including the password field is no longer on the page
     await expect(page.locator("#pw")).toHaveCount(0);
     expect(await page.content()).not.toContain(PW);
-    const alles = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
-    expect(alles).not.toContain(PW);
+    const everything = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
+    expect(everything).not.toContain(PW);
   });
 
-  test("neuer Tab ist wieder gesperrt", async ({ page, context }) => {
-    await entsperren(page);
+  test("a new tab is locked again", async ({ page, context }) => {
+    await unlock(page);
     const p2 = await context.newPage();
     await p2.goto("admin.html");
     await expect(p2.locator("#lock")).toBeVisible();
     await expect(p2.locator("#app")).toBeHidden();
   });
 
-  test("manipulierter Sitzungsschlüssel: wird verworfen, Seite gesperrt", async ({ page }) => {
+  test("manipulated session key: discarded, page locked", async ({ page }) => {
     await page.addInitScript(() => {
       if (!sessionStorage.getItem("__manip")) { sessionStorage.setItem("__manip", "1"); sessionStorage.setItem("dsm-admin-key", btoa("x".repeat(32))); }
     });
@@ -147,7 +146,7 @@ test.describe("Sperre", () => {
     await expect(page.locator("#app")).toBeHidden();
   });
 
-  test("admin.enc.js fehlt: verständliche Meldung", async ({ page }) => {
+  test("admin.enc.js missing: understandable message", async ({ page }) => {
     await page.route("**/assets/admin.enc.js", r => r.fulfill({ status: 404, body: "" }));
     await page.goto("admin.html");
     await page.fill("#pw", PW);
@@ -155,7 +154,7 @@ test.describe("Sperre", () => {
     await expect(page.locator("#lock-msg")).toContainText("admin.enc.js fehlt");
   });
 
-  test("Italienisch", async ({ page }) => {
+  test("Italian", async ({ page }) => {
     await page.goto("admin.html");
     await page.click('.seg [data-lang="it"]');
     await expect(page.locator("#lock-msg")).toHaveText("");
@@ -163,10 +162,10 @@ test.describe("Sperre", () => {
   });
 });
 
-test.describe("Datenbank einlesen", () => {
-  test("Test-Datenbank: Bericht, Personendaten verworfen, Abgleich", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+test.describe("importing the database", () => {
+  test("test database: report, personal data discarded, cross-check", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     await expect(page.locator("#r-books")).toHaveText("8");
     const taken = page.locator("#r-taken");
@@ -175,10 +174,10 @@ test.describe("Datenbank einlesen", () => {
     await expect(taken).toContainText("Gelöschte oder ausgeschiedene Titel4");
     await expect(taken).toContainText("Mehrfachexemplare zusammengefasst1");
     await expect(taken).toContainText("Titel mit ISBN (Cover möglich)3");
-    // Vergleich wie in admin.js: Titel|Erstautor, klein geschrieben
+    // comparison as in the admin app: title|first author, lower case
     const k = b => (b.t + "|" + ((b.a && b.a[0]) || "")).toLowerCase();
-    const neu = await testKatalog(), alt = new Set(B.buecher.map(k)), jetzt = new Set(neu.map(k));
-    const a = [...jetzt].filter(x => !alt.has(x)).length, r = [...alt].filter(x => !jetzt.has(x)).length;
+    const fresh = await testCatalog(), old = new Set(B.books.map(k)), now = new Set(fresh.map(k));
+    const a = [...now].filter(x => !old.has(x)).length, r = [...old].filter(x => !now.has(x)).length;
     await expect(taken).toContainText(`Gegenüber der aktuellen Liste+${a} neu · −${r.toLocaleString("de-DE")} entfallen`);
     const rm = page.locator("#r-removed");
     await expect(rm).toContainText("Leserinnen und Leser3");
@@ -189,65 +188,65 @@ test.describe("Datenbank einlesen", () => {
     await expect(rm).toContainText("Bucheinträge mit Leser-Namen3");
     await expect(page.locator("#r-check")).toHaveText(/^1 Titel enthalten einen Namen.*2 Standort- oder Kategoriebezeichnungen/);
     await expect(page.locator("#r-check")).toHaveClass(/mid/);
-    // keine Namen in der Seite
+    // no names on the page
     await expect(page.locator("#report")).not.toContainText("Musterfrau");
   });
 
-  test("books.js veröffentlichen: byte-gleich zur Node-Erzeugung (npm run books)", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+  test("publish books.js: byte-identical to the Node generation (npm run books)", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
-    const s = await speichern(page, "#dl");
-    const d = auswerten(s, "DSM_BIBLIOTHEK");
-    expect(d.anzahl).toBe(8);
-    expect(d.abdeckung).toMatchObject({ stand: d.stand, buecher: 8, isbn: 3 });
-    expect(d.verlauf.at(-1)).toEqual(d.abdeckung);
-    const node = await nodeSkript(fs.readFileSync(path.join(TMP, "test.winbook")), { stand: d.stand, abdeckung: d.abdeckung, verlauf: d.verlauf });
-    expect(s === node, "books.js weicht von Node-Erzeugung ab").toBe(true);
+    const s = await save(page, "#dl");
+    const d = evaluate(s, "DSM_LIBRARY");
+    expect(d.count).toBe(8);
+    expect(d.coverage).toMatchObject({ updated: d.updated, books: 8, isbn: 3 });
+    expect(d.history.at(-1)).toEqual(d.coverage);
+    const node = await nodeScript(fs.readFileSync(path.join(TMP, "test.winbook")), { updated: d.updated, coverage: d.coverage, history: d.history });
+    expect(s === node, "books.js differs from the Node generation").toBe(true);
     await expect(page.locator("#r-taken")).toContainText("Gegenüber der aktuellen Liste+0 neu · −0 entfallen");
   });
 
-  test("Vorschau: index.html#vorschau zeigt die eingelesene Liste", async ({ page, context }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+  test("preview: index.html#preview shows the imported list", async ({ page, context }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     const [p2] = await Promise.all([context.waitForEvent("page"), page.click("#preview")]);
     await p2.waitForLoadState();
     await expect(p2.locator("#preview")).toBeVisible();
-    await expect(p2.locator("#list .row .t")).toHaveText(T.ERWARTET);
+    await expect(p2.locator("#list .row .t")).toHaveText(T.EXPECTED);
   });
 
-  test("keine SQLite-Datei → Meldung, erneut wählbar", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "kein-sqlite.winbook"));
+  test("not an SQLite file → message, can be chosen again", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "no-sqlite.winbook"));
     await expect(page.locator("#error")).toHaveText(/keine SQLite-Datenbank/);
     await expect(page.locator("#drop")).toBeVisible();
     await expect(page.locator("#report")).toBeHidden();
-    await laden(page, path.join(TMP, "test.winbook"));
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     await expect(page.locator("#error")).toBeHidden();
   });
 
-  test("SQLite ohne Büchertabelle → Meldung", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "keine-bibliothek.sqlite"));
+  test("SQLite without a books table → message", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "no-library.sqlite"));
     await expect(page.locator("#error")).toHaveText(/keine Bibliotheksdatenbank/, { timeout: 20000 });
   });
 
-  test("Meldungen und Bericht folgen der Sprache", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "kein-sqlite.winbook"));
+  test("messages and report follow the language", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "no-sqlite.winbook"));
     await page.click('.seg [data-lang="it"]');
     await expect(page.locator("#error")).toHaveText(/Non è un database SQLite|SQLite/);
-    await laden(page, path.join(TMP, "test.winbook"));
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#r-removed")).toContainText("Lettrici e lettori", { timeout: 20000 });
   });
 
-  test("Cover-Abdeckung prüfen (Dienste gemockt)", async ({ page, netz }) => {
-    netz.ol = keys => (keys.includes("ISBN:9783522202107") ? { "ISBN:9783522202107": { thumbnail_url: "https://covers.openlibrary.org/b/id/3-S.jpg" } } : {});
-    netz.bild = url => url.includes("covers.openlibrary.org/b/id/") || url.includes("cover.ekz.de/9783871347108");
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+  test("check cover coverage (services mocked)", async ({ page, net }) => {
+    net.ol = keys => (keys.includes("ISBN:9783522202107") ? { "ISBN:9783522202107": { thumbnail_url: "https://covers.openlibrary.org/b/id/3-S.jpg" } } : {});
+    net.image = url => url.includes("covers.openlibrary.org/b/id/") || url.includes("cover.ekz.de/9783871347108");
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     await expect(page.locator("#c-big")).toHaveText("37,5 %");
     await page.click("#c-run");
@@ -259,325 +258,325 @@ test.describe("Datenbank einlesen", () => {
     await expect(page.locator("#c-lines")).toContainText("Open Library1");
     await expect(page.locator("#c-lines")).toContainText("Google Books0");
     await expect(page.locator("#c-lines")).toContainText("Kein Cover gefunden1");
-    expect(netz.anfragen.filter(u => u.includes("/b/isbn/"))).toEqual([]);
-    const d = auswerten(await speichern(page, "#dl"), "DSM_BIBLIOTHEK");
-    expect(d.abdeckung).toMatchObject({ cover: 2, ekz: 1, ol: 1, gb: 0, ohne: 1, geprueft: 3, vollstaendig: true });
-    expect(netz.anfragen.filter(u => u.includes("api/books")).join()).not.toContain("9783871347108"); // ekz-Treffer nicht an Open Library
+    expect(net.requests.filter(u => u.includes("/b/isbn/"))).toEqual([]);
+    const d = evaluate(await save(page, "#dl"), "DSM_LIBRARY");
+    expect(d.coverage).toMatchObject({ cover: 2, ekz: 1, ol: 1, gb: 0, none: 1, checked: 3, complete: true });
+    expect(net.requests.filter(u => u.includes("api/books")).join()).not.toContain("9783871347108"); // ekz hits not sent to Open Library
   });
 
-  test("Original-Datenbank: books.js byte-gleich zur Node-Erzeugung", async ({ page }) => {
-    const db = echteDb();
-    test.skip(!db, "daten/BIBLIOTHEK_DSM_2024.winbook fehlt");
+  test("original database: books.js byte-identical to the Node generation", async ({ page }) => {
+    const db = realDb();
+    test.skip(!db, "data/BIBLIOTHEK_DSM_2024.winbook is missing");
     test.setTimeout(120000);
-    await entsperren(page);
-    await laden(page, db);
+    await unlock(page);
+    await load(page, db);
     await expect(page.locator("#report")).toBeVisible({ timeout: 90000 });
-    await expect(page.locator("#r-books")).toHaveText(B.buecher.length.toLocaleString("de-DE"));
-    const s = await speichern(page, "#dl");
-    const d = auswerten(s, "DSM_BIBLIOTHEK");
-    const node = await nodeSkript(fs.readFileSync(db), { stand: d.stand, abdeckung: d.abdeckung, verlauf: d.verlauf });
-    expect(s === node, "books.js weicht von npm run books ab").toBe(true);
-    expect(JSON.stringify(d.buecher)).toBe(JSON.stringify(B.buecher));
+    await expect(page.locator("#r-books")).toHaveText(B.books.length.toLocaleString("de-DE"));
+    const s = await save(page, "#dl");
+    const d = evaluate(s, "DSM_LIBRARY");
+    const node = await nodeScript(fs.readFileSync(db), { updated: d.updated, coverage: d.coverage, history: d.history });
+    expect(s === node, "books.js differs from npm run books").toBe(true);
+    expect(JSON.stringify(d.books)).toBe(JSON.stringify(B.books));
   });
 });
 
-test.describe("Empfehlungen bearbeiten", () => {
-  const tab = async page => { await page.click('.tabs [data-tab="empf"]'); await expect(page.locator("#tab-empf")).toBeVisible(); };
-  const entwurf = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-empf-entwurf") || "null"));
+test.describe("editing recommendations", () => {
+  const tab = async page => { await page.click('.tabs [data-tab="recs"]'); await expect(page.locator("#tab-recs")).toBeVisible(); };
+  const draft = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-recs-draft") || "null"));
 
-  test("Gruppen, aktueller Stand geladen", async ({ page }) => {
-    await entsperren(page);
+  test("groups, current state loaded", async ({ page }) => {
+    await unlock(page);
     await tab(page);
-    await expect(page.locator("#e-groups button")).toHaveText([
+    await expect(page.locator("#rec-groups button")).toHaveText([
       "Mittelstufe", "Oberstufe", "Erwachsene · Romane", "Erwachsene · Sachbücher", "Erwachsene · Biografien & Geschichte"]);
-    await expect(page.locator("#e-list .rec-ed b")).toHaveText(E.gruppen.mittelstufe.map(r => r.t));
-    await expect(page.locator("#e-list .warn")).toHaveCount(0);
+    await expect(page.locator("#rec-list .rec-ed b")).toHaveText(R.groups.middle.map(r => r.t));
+    await expect(page.locator("#rec-list .warn")).toHaveCount(0);
   });
 
-  test("Reiter wechseln ohne Übergang", async ({ page }) => {
-    await entsperren(page);
-    const dauer = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => getComputedStyle(e).transitionDuration));
-    expect(dauer).toEqual(["0s", "0s", "0s"]);
+  test("switching tabs without a transition", async ({ page }) => {
+    await unlock(page);
+    const duration = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => getComputedStyle(e).transitionDuration));
+    expect(duration).toEqual(["0s", "0s", "0s"]);
   });
 
-  test("volle Gruppe: Hinzufügen gesperrt; entfernen, hinzufügen, sortieren, Text – Entwurf gespeichert", async ({ page }) => {
-    await entsperren(page);
+  test("full group: adding disabled; remove, add, sort, text – draft saved", async ({ page }) => {
+    await unlock(page);
     await tab(page);
-    // Gruppe voll: Suchfeld gesperrt, Hinweis mittig
-    await expect(page.locator("#e-q")).toBeDisabled();
-    await expect(page.locator("#e-full")).toBeVisible();
-    await expect(page.locator("#e-full")).toHaveText("Gruppe voll (4)");
-    // entfernen
-    await page.locator('#e-list .rec-ed[data-n="3"] [data-op="del"]').click();
-    await expect(page.locator("#e-list .rec-ed")).toHaveCount(3);
-    await expect(page.locator("#e-q")).toBeEnabled();
-    await expect(page.locator("#e-full")).toBeHidden();
-    // hinzufügen
-    await page.fill("#e-q", "verwandlung kafka");
-    const add = page.locator("#e-res button:not([disabled])").first();
-    const titel = (await page.locator("#e-res li b").first().textContent()).trim();
+    // group full: search field disabled, note centered
+    await expect(page.locator("#rec-q")).toBeDisabled();
+    await expect(page.locator("#rec-full")).toBeVisible();
+    await expect(page.locator("#rec-full")).toHaveText("Gruppe voll (4)");
+    // remove
+    await page.locator('#rec-list .rec-ed[data-n="3"] [data-op="del"]').click();
+    await expect(page.locator("#rec-list .rec-ed")).toHaveCount(3);
+    await expect(page.locator("#rec-q")).toBeEnabled();
+    await expect(page.locator("#rec-full")).toBeHidden();
+    // add
+    await page.fill("#rec-q", "verwandlung kafka");
+    const add = page.locator("#rec-res button:not([disabled])").first();
+    const title = (await page.locator("#rec-res li b").first().textContent()).trim();
     await add.click();
-    await expect(page.locator("#e-list .rec-ed")).toHaveCount(4);
-    await expect(page.locator("#e-list .rec-ed b").nth(3)).toHaveText(titel);
-    await expect(page.locator("#e-list .rec-ed:last-child textarea").first()).toBeFocused();
-    // Text
-    await page.locator("#e-list .rec-ed:last-child textarea[data-f=de]").fill("Ein kurzer deutscher Text.");
-    await page.locator("#e-list .rec-ed:last-child textarea[data-f=it]").fill("Un breve testo italiano.");
-    // nach oben
-    await page.locator('#e-list .rec-ed[data-n="3"] [data-op="up"]').click();
-    await expect(page.locator("#e-list .rec-ed b").nth(2)).toHaveText(titel);
-    await expect(page.locator('#e-list .rec-ed[data-n="0"] [data-op="up"]')).toBeDisabled();
-    await expect(page.locator('#e-list .rec-ed[data-n="3"] [data-op="down"]')).toBeDisabled();
-    await expect.poll(async () => (await entwurf(page))?.gruppen.mittelstufe[2]?.it).toBe("Un breve testo italiano.");
-    await expect(page.locator("#e-state")).toHaveCount(0);
-    // Entwurf bleibt nach Neuladen
+    await expect(page.locator("#rec-list .rec-ed")).toHaveCount(4);
+    await expect(page.locator("#rec-list .rec-ed b").nth(3)).toHaveText(title);
+    await expect(page.locator("#rec-list .rec-ed:last-child textarea").first()).toBeFocused();
+    // text
+    await page.locator("#rec-list .rec-ed:last-child textarea[data-f=de]").fill("Ein kurzer deutscher Text.");
+    await page.locator("#rec-list .rec-ed:last-child textarea[data-f=it]").fill("Un breve testo italiano.");
+    // up
+    await page.locator('#rec-list .rec-ed[data-n="3"] [data-op="up"]').click();
+    await expect(page.locator("#rec-list .rec-ed b").nth(2)).toHaveText(title);
+    await expect(page.locator('#rec-list .rec-ed[data-n="0"] [data-op="up"]')).toBeDisabled();
+    await expect(page.locator('#rec-list .rec-ed[data-n="3"] [data-op="down"]')).toBeDisabled();
+    await expect.poll(async () => (await draft(page))?.groups.middle[2]?.it).toBe("Un breve testo italiano.");
+    await expect(page.locator("#rec-state")).toHaveCount(0);
+    // the draft survives a reload
     await page.reload();
     await expect(page.locator("#app")).toBeVisible({ timeout: 10000 });
     await tab(page);
-    await expect(page.locator("#e-list .rec-ed b").nth(2)).toHaveText(titel);
+    await expect(page.locator("#rec-list .rec-ed b").nth(2)).toHaveText(title);
   });
 
-  test("empfehlungen.js veröffentlichen: Format, Schlüssel, getrimmte Texte", async ({ page }) => {
-    await entsperren(page);
+  test("publish recommendations.js: format, keys, trimmed texts", async ({ page }) => {
+    await unlock(page);
     await tab(page);
-    await page.locator('#e-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("  Neuer Text mit Leerzeichen.  ");
-    const s = await speichern(page, "#e-dl");
-    expect(s).toMatch(/^\/\*.*\*\/\nwindow\.DSM_EMPFEHLUNGEN = \{/);
+    await page.locator('#rec-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("  Neuer Text mit Leerzeichen.  ");
+    const s = await save(page, "#rec-dl");
+    expect(s).toMatch(/^\/\*.*\*\/\nwindow\.DSM_RECOMMENDATIONS = \{/);
     expect(s).not.toContain("<");
-    const d = auswerten(s, "DSM_EMPFEHLUNGEN");
-    expect(Object.keys(d.gruppen)).toEqual(["mittelstufe", "oberstufe", "erw-roman", "erw-sach", "erw-bio"]);
-    expect(d.gruppen.mittelstufe[0].de).toBe("Neuer Text mit Leerzeichen.");
-    expect(d.gruppen.oberstufe).toEqual(E.gruppen.oberstufe);
-    for (const r of d.gruppen.mittelstufe) expect(Object.keys(r)).toEqual(["k", "t", "a", "de", "it"]);
+    const d = evaluate(s, "DSM_RECOMMENDATIONS");
+    expect(Object.keys(d.groups)).toEqual(["middle", "upper", "adult-fiction", "adult-nonfiction", "adult-bio"]);
+    expect(d.groups.middle[0].de).toBe("Neuer Text mit Leerzeichen.");
+    expect(d.groups.upper).toEqual(R.groups.upper);
+    for (const r of d.groups.middle) expect(Object.keys(r)).toEqual(["k", "t", "a", "de", "it"]);
   });
 
-  test("Vorschau der Empfehlungen auf index.html#vorschau", async ({ page, context }) => {
-    await entsperren(page);
+  test("preview of the recommendations on index.html#preview", async ({ page, context }) => {
+    await unlock(page);
     await tab(page);
-    await page.locator('#e-list .rec-ed[data-n="0"] [data-op="del"]').click();
-    const [p2] = await Promise.all([context.waitForEvent("page"), page.click("#e-prev")]);
-    await p2.evaluate(() => localStorage.setItem("dsm-empf", JSON.stringify({ want: true, gruppe: "mittelstufe" })));
+    await page.locator('#rec-list .rec-ed[data-n="0"] [data-op="del"]').click();
+    const [p2] = await Promise.all([context.waitForEvent("page"), page.click("#rec-prev")]);
+    await p2.evaluate(() => localStorage.setItem("dsm-recs", JSON.stringify({ want: true, group: "middle" })));
     await p2.reload();
     await expect(p2.locator("#preview")).toBeVisible();
-    await expect(p2.locator("#recs .rec .rt b")).toHaveText(E.gruppen.mittelstufe.slice(1).map(r => r.t));
+    await expect(p2.locator("#recs .rec .rt b")).toHaveText(R.groups.middle.slice(1).map(r => r.t));
   });
 
-  test("Entwurf verwerfen: zweiter Klick nötig", async ({ page }) => {
-    await entsperren(page);
+  test("discard the draft: a second click is needed", async ({ page }) => {
+    await unlock(page);
     await tab(page);
-    await page.locator('#e-list .rec-ed[data-n="0"] [data-op="del"]').click();
-    await expect(page.locator("#e-list .rec-ed")).toHaveCount(E.gruppen.mittelstufe.length - 1);
-    // Entwurf wird verzögert gespeichert (300 ms) – erst danach verwerfen
-    await expect.poll(async () => (await entwurf(page))?.gruppen.mittelstufe.length).toBe(E.gruppen.mittelstufe.length - 1);
-    await page.click("#e-reset");
-    await expect(page.locator("#e-reset")).toHaveText("Wirklich verwerfen?");
-    await expect(page.locator("#e-list .rec-ed")).toHaveCount(E.gruppen.mittelstufe.length - 1);
-    await page.click("#e-reset");
-    await expect(page.locator("#e-list .rec-ed")).toHaveCount(E.gruppen.mittelstufe.length);
-    expect(await entwurf(page)).toBeNull();
+    await page.locator('#rec-list .rec-ed[data-n="0"] [data-op="del"]').click();
+    await expect(page.locator("#rec-list .rec-ed")).toHaveCount(R.groups.middle.length - 1);
+    // the draft is saved with a delay (300 ms) – only discard afterwards
+    await expect.poll(async () => (await draft(page))?.groups.middle.length).toBe(R.groups.middle.length - 1);
+    await page.click("#rec-reset");
+    await expect(page.locator("#rec-reset")).toHaveText("Wirklich verwerfen?");
+    await expect(page.locator("#rec-list .rec-ed")).toHaveCount(R.groups.middle.length - 1);
+    await page.click("#rec-reset");
+    await expect(page.locator("#rec-list .rec-ed")).toHaveCount(R.groups.middle.length);
+    expect(await draft(page)).toBeNull();
   });
 
-  test("Empfehlung, die nach dem Einlesen fehlt, wird markiert", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+  test("a recommendation missing after an import is marked", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     await tab(page);
-    const da = new Set((await testKatalog()).map(schluessel));
-    const fehlen = E.gruppen.mittelstufe.filter(r => !da.has(r.k)).length;
-    expect(fehlen).toBeGreaterThan(0);
-    await expect(page.locator("#e-list .warn")).toHaveCount(fehlen);
-    await expect(page.locator("#e-list .warn").first()).toHaveText("Nicht im aktuellen Bestand – wird nicht angezeigt.");
+    const present = new Set((await testCatalog()).map(keyOf));
+    const missing = R.groups.middle.filter(r => !present.has(r.k)).length;
+    expect(missing).toBeGreaterThan(0);
+    await expect(page.locator("#rec-list .warn")).toHaveCount(missing);
+    await expect(page.locator("#rec-list .warn").first()).toHaveText("Nicht im aktuellen Bestand – wird nicht angezeigt.");
   });
 });
 
-test.describe("Verwaltung auf dem Handy", () => {
+test.describe("admin page on the phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  test("kein waagrechtes Scrollen", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+  test("no horizontal scrolling", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 });
 
-test.describe("Veröffentlichen direkt in den Website-Ordner", () => {
+test.describe("publishing directly into the website folder", () => {
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const picks = page => page.evaluate(() => window.__picks);
-  const ordnerZeile = "Website-Ordner: website · Anderen Ordner wählen";
+  const folderLine = "Website-Ordner: website · Anderen Ordner wählen";
 
-  test("erster Klick fragt nach dem Ordner und schreibt info.js; danach ohne Rückfrage, auch nach Neuladen", async ({ page }) => {
-    await entsperren(page);
+  test("the first click asks for the folder and writes info.js; afterwards without asking, also after a reload", async ({ page }) => {
+    await unlock(page);
     await info(page);
     await expect(page.locator("#i-dl")).toHaveText("Veröffentlichen");
     await expect(page.locator("#i-how")).toContainText("nichts herunterladen, nichts verschieben");
     await page.fill("#i-note-de", "Erster Hinweis");
-    const d = auswerten(await speichern(page, "#i-dl"), "DSM_INFO");
-    expect(d.hinweis.de).toBe("Erster Hinweis");
+    const d = evaluate(await save(page, "#i-dl"), "DSM_INFO");
+    expect(d.notice.de).toBe("Erster Hinweis");
     expect(await picks(page)).toBe(1);
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText(ordnerZeile);
+    await expect(page.locator('.pub[data-file="info.js"] .note')).toHaveText(folderLine);
     await expect(page.locator("#i-how")).toHaveText("Ein Klick schreibt info.js direkt in den Website-Ordner „website“.");
-    // zweites Mal: kein Dialog
+    // second time: no dialog
     await page.fill("#i-note-de", "Zweiter Hinweis");
     await page.click("#i-dl");
-    await expect.poll(async () => (await ordnerDaten(page, "info.js", "DSM_INFO"))?.hinweis.de).toBe("Zweiter Hinweis");
+    await expect.poll(async () => (await folderData(page, "info.js", "DSM_INFO"))?.notice.de).toBe("Zweiter Hinweis");
     expect(await picks(page)).toBe(1);
-    // Ordner bleibt nach Neuladen gemerkt (IndexedDB)
+    // the folder stays remembered after a reload (IndexedDB)
     await page.reload();
     await expect(page.locator("#app")).toBeVisible({ timeout: 10000 });
     await info(page);
     await expect(page.locator("#i-how")).toHaveText("Ein Klick schreibt info.js direkt in den Website-Ordner „website“.");
     await page.fill("#i-note-de", "Dritter Hinweis");
     await page.click("#i-dl");
-    await expect.poll(async () => (await ordnerDaten(page, "info.js", "DSM_INFO"))?.hinweis.de).toBe("Dritter Hinweis");
+    await expect.poll(async () => (await folderData(page, "info.js", "DSM_INFO"))?.notice.de).toBe("Dritter Hinweis");
     expect(await picks(page)).toBe(0);
   });
 
-  test("falscher Ordner (ohne index.html): Meldung, nichts geschrieben; danach richtiger Ordner", async ({ page }) => {
-    await entsperren(page);
+  test("wrong folder (without index.html): message, nothing written; then the right folder", async ({ page }) => {
+    await unlock(page);
     await info(page);
-    await page.evaluate(() => localStorage.setItem("__test-ordner", "Downloads"));
+    await page.evaluate(() => localStorage.setItem("__test-folder", "Downloads"));
     await page.click("#i-dl");
-    const flag = page.locator('.pub[data-datei="info.js"] .flag');
+    const flag = page.locator('.pub[data-file="info.js"] .flag');
     await expect(flag).toHaveText("Im Ordner „Downloads“ liegt keine index.html. Bitte den Website-Ordner wählen – den Ordner mit index.html und admin.html.");
     await expect(flag).toHaveClass(/warn/);
-    expect(await ordnerDatei(page, "info.js", "Downloads")).toBeNull();
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveCount(0);
-    await page.evaluate(() => localStorage.setItem("__test-ordner", "website"));
-    await speichern(page, "#i-dl");
+    expect(await folderFile(page, "info.js", "Downloads")).toBeNull();
+    await expect(page.locator('.pub[data-file="info.js"] .note')).toHaveCount(0);
+    await page.evaluate(() => localStorage.setItem("__test-folder", "website"));
+    await save(page, "#i-dl");
     expect(await picks(page)).toBe(2);
   });
 
-  test("Dialog abgebrochen: keine Meldung, nichts geschrieben", async ({ page }) => {
-    await entsperren(page);
+  test("dialog cancelled: no message, nothing written", async ({ page }) => {
+    await unlock(page);
     await info(page);
-    await page.evaluate(() => localStorage.setItem("__test-ordner", "abbrechen"));
+    await page.evaluate(() => localStorage.setItem("__test-folder", "cancel"));
     await page.click("#i-dl");
     await expect.poll(() => picks(page)).toBe(1);
     await expect(page.locator("#i-dl")).toBeEnabled();
-    await expect(page.locator('.pub[data-datei="info.js"]')).toHaveText("");
+    await expect(page.locator('.pub[data-file="info.js"]')).toHaveText("");
   });
 
-  test("anderen Ordner wählen", async ({ page }) => {
-    await entsperren(page);
+  test("choose another folder", async ({ page }) => {
+    await unlock(page);
     await info(page);
-    await speichern(page, "#i-dl");
-    await page.evaluate(() => localStorage.setItem("__test-ordner", "Downloads"));
-    await page.click('.pub[data-datei="info.js"] [data-pub-wechseln]');
-    await expect(page.locator('.pub[data-datei="info.js"] .flag')).toHaveText(/^Im Ordner „Downloads“ liegt keine index\.html/);
-    // bisheriger Ordner bleibt
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText(ordnerZeile);
+    await save(page, "#i-dl");
+    await page.evaluate(() => localStorage.setItem("__test-folder", "Downloads"));
+    await page.click('.pub[data-file="info.js"] [data-pub-change]');
+    await expect(page.locator('.pub[data-file="info.js"] .flag')).toHaveText(/^Im Ordner „Downloads“ liegt keine index\.html/);
+    // the previous folder stays
+    await expect(page.locator('.pub[data-file="info.js"] .note')).toHaveText(folderLine);
   });
 
-  test("Empfehlungen zweimal veröffentlichen: neue Runde nur einmal im Archiv", async ({ page }) => {
-    await entsperren(page);
-    await page.click('.tabs [data-tab="empf"]');
-    await page.locator('#e-list .rec-ed[data-n="0"] [data-op="del"]').click();
-    const a = auswerten(await speichern(page, "#e-dl"), "DSM_EMPFEHLUNGEN");
-    const vorher = (E.archiv || []).length;
-    expect(a.archiv.length).toBe(vorher + 1);
-    expect(a.stand).toBe(new Date().toLocaleDateString("sv-SE"));
-    await page.locator('#e-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("Nur der Text ist neu.");
-    await page.click("#e-dl");
-    await expect.poll(async () => (await ordnerDaten(page, "empfehlungen.js", "DSM_EMPFEHLUNGEN"))?.gruppen.mittelstufe[0].de).toBe("Nur der Text ist neu.");
-    const b = auswerten(await ordnerDatei(page, "empfehlungen.js"), "DSM_EMPFEHLUNGEN");
-    expect(b.archiv.length).toBe(vorher + 1);
-    expect(b.stand).toBe(a.stand);
+  test("publish recommendations twice: the new round only once in the archive", async ({ page }) => {
+    await unlock(page);
+    await page.click('.tabs [data-tab="recs"]');
+    await page.locator('#rec-list .rec-ed[data-n="0"] [data-op="del"]').click();
+    const a = evaluate(await save(page, "#rec-dl"), "DSM_RECOMMENDATIONS");
+    const before = (R.archive || []).length;
+    expect(a.archive.length).toBe(before + 1);
+    expect(a.updated).toBe(new Date().toLocaleDateString("sv-SE"));
+    await page.locator('#rec-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("Nur der Text ist neu.");
+    await page.click("#rec-dl");
+    await expect.poll(async () => (await folderData(page, "recommendations.js", "DSM_RECOMMENDATIONS"))?.groups.middle[0].de).toBe("Nur der Text ist neu.");
+    const b = evaluate(await folderFile(page, "recommendations.js"), "DSM_RECOMMENDATIONS");
+    expect(b.archive.length).toBe(before + 1);
+    expect(b.updated).toBe(a.updated);
   });
 
-  test("Italienisch", async ({ page }) => {
-    await entsperren(page);
+  test("Italian", async ({ page }) => {
+    await unlock(page);
     await info(page);
     await page.click('.seg [data-lang="it"]');
     await expect(page.locator("#i-dl")).toHaveText("Pubblica");
     await page.click("#i-dl");
-    await expect(page.locator('.pub[data-datei="info.js"] .flag')).toHaveText(/^info\.js salvato nella cartella «website» alle \d\d:\d\d\.$/);
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveText("Cartella del sito: website · Scegli un'altra cartella");
+    await expect(page.locator('.pub[data-file="info.js"] .flag')).toHaveText(/^info\.js salvato nella cartella «website» alle \d\d:\d\d\.$/);
+    await expect(page.locator('.pub[data-file="info.js"] .note')).toHaveText("Cartella del sito: website · Scegli un'altra cartella");
   });
 });
 
-test.describe("Direkt online veröffentlichen (speichern.php)", () => {
-  // speichern.php gespielt: GET meldet den Zustand, POST antwortet nach Wunsch und merkt sich die Anfragen
-  async function server(page, { get = { bereit: true }, post = null } = {}) {
-    const anfragen = [];
-    await page.route("**/speichern.php*", async r => {
+test.describe("publishing directly online (save.php)", () => {
+  // save.php simulated: GET reports the state, POST answers as wished and records the requests
+  async function server(page, { get = { ready: true }, post = null } = {}) {
+    const requests = [];
+    await page.route("**/save.php*", async r => {
       const q = r.request();
-      if (q.method() === "GET") return r.fulfill({ json: { dsm: "speichern", v: 1, ...get } });
-      anfragen.push({ datei: new URL(q.url()).searchParams.get("datei"), schluessel: q.headers()["x-dsm-schluessel"], text: q.postData() });
+      if (q.method() === "GET") return r.fulfill({ json: { dsm: "save", v: 2, ...get } });
+      requests.push({ file: new URL(q.url()).searchParams.get("file"), key: q.headers()["x-dsm-key"], text: q.postData() });
       if (post) return r.fulfill(post);
-      return r.fulfill({ json: { dsm: "speichern", v: 1, ok: true } });
+      return r.fulfill({ json: { dsm: "save", v: 2, ok: true } });
     });
-    return anfragen;
+    return requests;
   }
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
-  const flag = page => page.locator('.pub[data-datei="info.js"] .flag');
+  const flag = page => page.locator('.pub[data-file="info.js"] .flag');
   const ONLINE = "Ein Klick speichert info.js direkt auf der Website – sofort online, nichts hochladen.";
 
-  test("ein Klick: info.js geht mit Schlüssel an speichern.php, kein Ordnerdialog, Meldung „online“", async ({ page }) => {
-    const { speicherSchluessel } = require("../../werkzeuge/admin-verschluesseln.js");
-    const anfragen = await server(page);
-    await entsperren(page);
+  test('one click: info.js goes to save.php with the key, no folder dialog, message "online"', async ({ page }) => {
+    const { saveKey } = require("../../tools/encrypt-admin.js");
+    const requests = await server(page);
+    await unlock(page);
     await info(page);
     await expect(page.locator("#i-how")).toHaveText(ONLINE);
     await expect(page.locator("#i-dl")).toHaveText("Veröffentlichen");
-    await expect(page.locator('.pub[data-datei="info.js"] .note')).toHaveCount(0);
+    await expect(page.locator('.pub[data-file="info.js"] .note')).toHaveCount(0);
     await page.fill("#i-note-de", "Online-Hinweis");
     await page.click("#i-dl");
     await expect(flag(page)).toHaveText(/^info\.js ist online, \d\d:\d\d Uhr\.$/);
-    expect(anfragen.length).toBe(1);
-    expect(anfragen[0].datei).toBe("info.js");
-    expect(anfragen[0].schluessel).toBe(await speicherSchluessel(PW));
-    expect(auswerten(anfragen[0].text, "DSM_INFO").hinweis.de).toBe("Online-Hinweis");
+    expect(requests.length).toBe(1);
+    expect(requests[0].file).toBe("info.js");
+    expect(requests[0].key).toBe(await saveKey(PW));
+    expect(evaluate(requests[0].text, "DSM_INFO").notice.de).toBe("Online-Hinweis");
     expect(await page.evaluate(() => window.__picks)).toBe(0);
-    // gilt danach als veröffentlicht
-    expect(await page.evaluate(() => window.DSM_INFO.hinweis.de)).toBe("Online-Hinweis");
+    // counts as published afterwards
+    expect(await page.evaluate(() => window.DSM_INFO.notice.de)).toBe("Online-Hinweis");
   });
 
-  test("books.js geht mit Schlüssel an speichern.php", async ({ page }) => {
-    const anfragen = await server(page);
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+  test("books.js goes to save.php with the key", async ({ page }) => {
+    const requests = await server(page);
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     await page.click("#dl");
-    await expect(page.locator('.pub[data-datei="books.js"] .flag')).toHaveText(/^books\.js ist online/);
-    expect(anfragen[0].datei).toBe("books.js");
-    expect(auswerten(anfragen[0].text, "DSM_BIBLIOTHEK").buecher.length).toBe(8);
+    await expect(page.locator('.pub[data-file="books.js"] .flag')).toHaveText(/^books\.js ist online/);
+    expect(requests[0].file).toBe("books.js");
+    expect(evaluate(requests[0].text, "DSM_LIBRARY").books.length).toBe(8);
   });
 
-  test("Zugang abgelehnt (403): Warnung, Stand bleibt unveröffentlicht", async ({ page }) => {
-    await server(page, { post: { status: 403, json: { dsm: "speichern", v: 1, fehler: "schluessel" } } });
-    await entsperren(page);
+  test("access denied (403): warning, the state stays unpublished", async ({ page }) => {
+    await server(page, { post: { status: 403, json: { dsm: "save", v: 2, error: "key" } } });
+    await unlock(page);
     await info(page);
     await expect(page.locator("#i-how")).toHaveText(ONLINE);
-    const vorher = await page.evaluate(() => JSON.stringify(window.DSM_INFO));
+    const before = await page.evaluate(() => JSON.stringify(window.DSM_INFO));
     await page.fill("#i-note-de", "Abgelehnt");
     await page.click("#i-dl");
     await expect(flag(page)).toHaveText(/^Die Website hat das Speichern abgelehnt/);
     await expect(flag(page)).toHaveClass(/warn/);
-    expect(await page.evaluate(() => JSON.stringify(window.DSM_INFO))).toBe(vorher);
+    expect(await page.evaluate(() => JSON.stringify(window.DSM_INFO))).toBe(before);
   });
 
-  test("Server-Fehler ohne JSON: Meldung mit Status", async ({ page }) => {
+  test("server error without JSON: message with the status", async ({ page }) => {
     await server(page, { post: { status: 500, body: "Internal Server Error" } });
-    await entsperren(page);
+    await unlock(page);
     await info(page);
     await expect(page.locator("#i-how")).toHaveText(ONLINE);
     await page.click("#i-dl");
     await expect(flag(page)).toHaveText("Speichern auf der Website hat nicht geklappt (HTTP 500). Bitte noch einmal versuchen.");
   });
 
-  test("speichern.php ohne Zugangsdatei: Hinweis, Ordner-Weg wie bisher", async ({ page }) => {
-    const anfragen = await server(page, { get: { bereit: false, grund: "zugang" } });
-    await entsperren(page);
+  test("save.php without the access file: note, folder route as before", async ({ page }) => {
+    const requests = await server(page, { get: { ready: false, reason: "access" } });
+    await unlock(page);
     await info(page);
-    await expect(page.locator('.pub[data-datei="info.js"] [data-pub-einrichten]')).toHaveText("Direkt online speichern ist noch nicht eingerichtet: speichern-zugang.php fehlt auf der Website.");
+    await expect(page.locator('.pub[data-file="info.js"] [data-pub-setup]')).toHaveText("Direkt online speichern ist noch nicht eingerichtet: save-access.php fehlt auf der Website.");
     await expect(page.locator("#i-how")).toContainText("nichts herunterladen, nichts verschieben");
-    await speichern(page, "#i-dl");
-    expect(anfragen.length).toBe(0);
+    await save(page, "#i-dl");
+    expect(requests.length).toBe(0);
   });
 
-  test("Italienisch", async ({ page }) => {
+  test("Italian", async ({ page }) => {
     await server(page);
-    await entsperren(page);
+    await unlock(page);
     await info(page);
     await page.click('.seg [data-lang="it"]');
     await expect(page.locator("#i-how")).toHaveText("Un clic salva info.js direttamente sul sito – subito online, senza caricare nulla.");
@@ -586,28 +585,28 @@ test.describe("Direkt online veröffentlichen (speichern.php)", () => {
   });
 });
 
-test.describe("Browser ohne Ordnerzugriff (Safari, Firefox, Handy)", () => {
+test.describe("browser without folder access (Safari, Firefox, phone)", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => { delete window.showDirectoryPicker; delete Window.prototype.showDirectoryPicker; });
   });
 
-  test("info.js wird wie bisher heruntergeladen, Hinweis nennt Chrome/Edge", async ({ page }) => {
-    await entsperren(page);
+  test("info.js is downloaded as before, the note names Chrome/Edge", async ({ page }) => {
+    await unlock(page);
     expect(await page.evaluate(() => typeof window.showDirectoryPicker)).toBe("undefined");
     await page.click('.tabs [data-tab="info"]');
     await expect(page.locator("#i-dl")).toHaveText("info.js herunterladen");
     await expect(page.locator("#i-how")).toHaveText("Direkt speichern geht in Chrome oder Edge am Computer. Die heruntergeladene Datei info.js im Website-Ordner ersetzen (neben index.html).");
     await page.fill("#i-note-de", "Per Download");
-    const d = auswerten(await herunterladen(page, "#i-dl"), "DSM_INFO");
-    expect(d.hinweis.de).toBe("Per Download");
-    await expect(page.locator('.pub[data-datei="info.js"]')).toHaveText("");
+    const d = evaluate(await download(page, "#i-dl"), "DSM_INFO");
+    expect(d.notice.de).toBe("Per Download");
+    await expect(page.locator('.pub[data-file="info.js"]')).toHaveText("");
   });
 
-  test("books.js wird heruntergeladen", async ({ page }) => {
-    await entsperren(page);
-    await laden(page, path.join(TMP, "test.winbook"));
+  test("books.js is downloaded", async ({ page }) => {
+    await unlock(page);
+    await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
     await expect(page.locator("#dl")).toHaveText("books.js herunterladen");
-    expect(auswerten(await herunterladen(page, "#dl"), "DSM_BIBLIOTHEK").anzahl).toBe(8);
+    expect(evaluate(await download(page, "#dl"), "DSM_LIBRARY").count).toBe(8);
   });
 });

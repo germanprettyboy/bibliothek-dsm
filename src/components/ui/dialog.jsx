@@ -5,9 +5,9 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
-// shadcn/ui Dialog als Glas-Fenster: auf dem Handy Bottom Sheet mit Griff, ab 40rem mittig.
-// Hintergrund (Overlay .schleier) unscharf und abgedunkelt. Animationen über data-state (styles.css),
-// Radix wartet beim Schließen auf das Ende der Ausblend-Animation.
+// shadcn/ui Dialog as a glass dialog: bottom sheet with a grabber on phones, centered from 40rem.
+// Background (overlay .scrim) blurred and dimmed. Animations via data-state (styles.css),
+// Radix waits for the end of the fade-out animation when closing.
 
 function Dialog(props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
@@ -26,7 +26,7 @@ function DialogClose(props) {
 }
 
 function DialogOverlay({ className, ...props }) {
-  return <DialogPrimitive.Overlay data-slot="dialog-overlay" className={cn("schleier fixed inset-0 z-50", className)} {...props} />;
+  return <DialogPrimitive.Overlay data-slot="dialog-overlay" className={cn("scrim fixed inset-0 z-50", className)} {...props} />;
 }
 
 function DialogContent({ className, overlayClassName, children, showCloseButton = true, closeLabel, ...props }) {

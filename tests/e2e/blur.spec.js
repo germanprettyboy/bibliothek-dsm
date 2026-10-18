@@ -1,20 +1,20 @@
-// Unschärfe bleibt immer an: auch bei 30 fps (iPhone im Stromsparmodus) und sehr langsamen Bildern, kein Abschalten durch Messung.
-const { test, expect, oeffnen, AUS } = require("./hilfen.js");
+// Blur always stays on: also at 30 fps (iPhone in low power mode) and very slow frames, no switching off by measuring.
+const { test, expect, open, OFF } = require("./helpers.js");
 
-const bilder = (page, ms) => page.addInitScript(ms => {
-  const echt = window.requestAnimationFrame.bind(window);
+const frames = (page, ms) => page.addInitScript(ms => {
+  const real = window.requestAnimationFrame.bind(window);
   let t = 0;
-  window.requestAnimationFrame = cb => echt(() => { t += ms; cb(t); });
+  window.requestAnimationFrame = cb => real(() => { t += ms; cb(t); });
 }, ms);
 const filter = (page, sel) => page.evaluate(sel => getComputedStyle(document.querySelector(sel)).backdropFilter, sel);
 
-test.describe("Unschärfe", () => {
-  test.use({ speicher: { "dsm-empf": AUS, "dsm-blur": JSON.stringify({ stufe: "aus", t: Date.now() }) } });
+test.describe("blur", () => {
+  test.use({ storage: { "dsm-recs": OFF, "dsm-blur": JSON.stringify({ stufe: "aus", t: Date.now() }) } });
   for (const ms of [33, 60]) {
-    test(`bleibt an bei ${ms} ms Bildabstand, alter Merker wird gelöscht`, async ({ page }) => {
+    test(`stays on at ${ms} ms between frames, the old flag is deleted`, async ({ page }) => {
       test.slow();
-      await bilder(page, ms);
-      await oeffnen(page);
+      await frames(page, ms);
+      await open(page);
       for (let i = 0; i < 4; i++) {
         await page.locator("#list .row").nth(2).click();
         await expect(page.locator("#detail")).toBeVisible();
@@ -24,7 +24,7 @@ test.describe("Unschärfe", () => {
       }
       await page.locator("#list .row").nth(2).click();
       await expect(page.locator("html")).not.toHaveAttribute("data-blur", /.*/);
-      expect(await filter(page, ".schleier")).toContain("blur(8px)");
+      expect(await filter(page, ".scrim")).toContain("blur(8px)");
       expect(await filter(page, "#detail")).toContain("blur(18px)");
       expect(await page.evaluate(() => localStorage.getItem("dsm-blur"))).toBeNull();
     });

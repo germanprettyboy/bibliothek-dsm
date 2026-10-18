@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/werkzeuge/branches.sh\" --hook 2>/dev/null || true"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/tools/branches.sh\" --hook 2>/dev/null || true"
           }
         ]
       }

@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-// Karte = Abschnitt der Verwaltung (früher .panel)
+// Card = section of the admin page (formerly .panel)
 function Card({ className, ...props }) {
   return <div data-slot="card" className={cn("flex flex-col gap-1.5 rounded-xl border border-border bg-card p-[18px] text-card-foreground", className)} {...props} />;
 }

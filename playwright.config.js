@@ -1,20 +1,20 @@
-// Browser-Tests: npx playwright test  (startet einen eigenen Server für diesen Checkout)
+// Browser tests: npx playwright test  (starts its own server for this checkout)
 const { defineConfig } = require("@playwright/test");
 
-// Port je Checkout aus dem Pfad abgeleitet (8700–8999): parallele Worktrees testen nie die Dateien eines anderen.
-// Überschreiben mit DSM_TEST_PORT=…
+// Port per checkout derived from the path (8700–8999): parallel worktrees never test another one's files.
+// Override with DSM_TEST_PORT=…
 let h = 0;
 for (const c of __dirname) h = (h * 31 + c.charCodeAt(0)) >>> 0;
 const PORT = +process.env.DSM_TEST_PORT || 8700 + (h % 300);
 
-// DSM_LIVE_URL=https://… : gegen eine laufende Adresse testen (npm run test:live, Cloudflare-Tunnel) statt eigenem Server.
-// Echtes Netz dazwischen: weniger parallel, mehr Zeit, ein zweiter Versuch.
+// DSM_LIVE_URL=https://… : test against a running address (npm run test:live, Cloudflare tunnel) instead of an own server.
+// Real network in between: less parallel, more time, a second attempt.
 const LIVE = process.env.DSM_LIVE_URL ? process.env.DSM_LIVE_URL.replace(/\/?$/, "/") : null;
 
 module.exports = defineConfig({
   testDir: "tests/e2e",
   globalSetup: "./tests/e2e/setup.js",
-  outputDir: "tests/.tmp/ergebnisse",
+  outputDir: "tests/.tmp/results",
   fullyParallel: true,
   workers: LIVE || process.env.CI ? 2 : "50%",
   forbidOnly: !!process.env.CI,
@@ -34,7 +34,7 @@ module.exports = defineConfig({
   webServer: LIVE ? undefined : {
     command: `python3 -m http.server ${PORT} -b 127.0.0.1 -d website`,
     url: `http://localhost:${PORT}/index.html`,
-    reuseExistingServer: false, // fremder Server auf dem Port = Fehler statt stiller Test der falschen Dateien
+    reuseExistingServer: false, // a foreign server on the port = error instead of silently testing the wrong files
     stdout: "ignore",
     stderr: "ignore",
   },

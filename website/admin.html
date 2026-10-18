@@ -10,17 +10,17 @@
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preload" href="assets/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css">
-<script src="assets/protokoll.js"></script>
-<script src="assets/kopf.js"></script>
+<script src="assets/logger.js"></script>
+<script src="assets/head.js"></script>
 </head>
 <body>
-<!-- Erzeugt aus src/admin.html (npm run build) – hier nicht bearbeiten.
-     Inhalt von #seite: festes Gerüst mit gesperrtem Entsperren-Knopf, bis assets/verwaltung.js (React) übernimmt. -->
-<div id="seite">
+<!-- Generated from src/admin.html (npm run build) – do not edit here.
+     Content of #page: static skeleton with a disabled unlock button until assets/admin.js (React) takes over. -->
+<div id="page">
 <header class="wrap flex items-center justify-between gap-3 pt-4 pb-2 sm:pt-6 sm:pb-3">
-  <a class="logo ld-bild" href="./">
-    <img class="logo-l" src="assets/logo-hell.webp" width="360" height="200" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
-    <img class="logo-d" src="assets/logo-dunkel.webp" width="360" height="200" loading="lazy" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+  <a class="logo ld-img" href="./">
+    <img class="logo-l" src="assets/logo-light.webp" width="360" height="200" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
+    <img class="logo-d" src="assets/logo-dark.webp" width="360" height="200" loading="lazy" decoding="async" alt="Deutsche Schule Mailand – Scuola Germanica di Milano">
   </a>
   <div class="flex items-center gap-2">
     <div class="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" role="group" aria-label="Sprache · Lingua">
@@ -43,7 +43,7 @@
       <p class="m-0 text-muted-foreground">Bitte das Passwort der Bibliothek eingeben.</p>
       <input type="password" id="pw" autocomplete="current-password" aria-label="Passwort" required
         class="h-12 w-full min-w-0 rounded-lg border border-input bg-background px-3.5 text-m text-foreground outline-none">
-      <!-- gesperrt mit Spinner, bis assets/verwaltung.js (nach books.js) geladen ist -->
+      <!-- disabled with a spinner until assets/admin.js (after books.js) has loaded -->
       <button type="submit" id="unlock" disabled class="busy inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-md border border-foreground bg-foreground px-[18px] text-m font-semibold whitespace-nowrap text-background"><span class="spin" aria-hidden="true"></span><span>Entsperren</span></button>
       <p class="msg m-0 min-h-[1.4em] font-medium" id="lock-msg" role="alert"></p>
     </form>
@@ -56,10 +56,10 @@
 </div>
 
 <script src="books.js"></script>
-<script src="empfehlungen.js"></script>
+<script src="recommendations.js"></script>
 <script src="info.js"></script>
 <script src="assets/covers.js"></script>
 <script src="assets/admin.enc.js"></script>
-<script src="assets/verwaltung.js"></script>
+<script src="assets/admin.js"></script>
 </body>
 </html>
