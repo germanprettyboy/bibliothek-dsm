@@ -8,11 +8,11 @@ Code, comments, identifiers, data formats and docs are English (since 2026-10-17
 
 ## Folders
 
-- `website/` – ONLY this folder goes onto the webspace (https, FTP). Built files are committed.
+- `website/` – ONLY this folder will go onto the webspace (https, FTP; no webspace exists yet). Built files are committed.
   - BUILT from `src/`: `index.html`, `admin.html`, `assets/{library,admin}.js`, `assets/style.css`, `assets/head.js`.
   - Generated, never by hand: `books.js`, `recommendations.js`, `info.js` (`window.DSM_LIBRARY/DSM_RECOMMENDATIONS/DSM_INFO`),
     `save-access.php` (SHA-256 of the save key, written by encrypt-admin.js).
-  - `info.js` NOT committed (`.gitignore`, since 2026-10-17, client): the original lives only on the webspace. If it is missing,
+  - `info.js` NOT committed (`.gitignore`, since 2026-10-17, client): once a webspace exists, the original lives only there. If it is missing,
     the page loads without an info card and the admin page starts empty; tests supply their own info.js or skip the check.
   - By hand: `save.php`, `assets/logger.js` (DSM_LOG, loaded before everything else), `assets/covers.js` (covers, cache,
     coverage survey), `assets/categories-it.js`, `LIESMICH.txt` (German guide), `.htaccess` (gzip + cache via IfModule; delete on Error 500).
@@ -212,17 +212,14 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
 
 ## Open
 
-- English renaming (2026-10-17) – before the next FTP upload: (1) Johann runs `node tools/encrypt-admin.js` (new key
-  salt → new save-access.php; the committed admin.enc.js still contains the old German admin app and does not work with
-  the new page). (2) Download books.js, empfehlungen.js, info.js from the webspace into an empty folder, run
-  `node tools/migrate-data.mjs <folder>`, upload the results (books.js, recommendations.js, info.js). (3) Upload website/
-  (new names: save.php, save-access.php, assets/{library,admin,head,logger,categories-it}.js, logo-light/dark).
-  (4) Delete the old files on the webspace: empfehlungen.js, speichern.php, speichern-zugang.php, sicherung/ (after a
-  look), assets/{bibliothek,verwaltung,kopf,protokoll,kategorien-it}.js, assets/logo-{hell,dunkel}.*. (5) In the main
-  checkout rename `daten/` → `data/` (otherwise `npm run books` and real-db.test don't find the database).
-- Set up save.php live (only tested locally): Johann runs encrypt-admin.js (creates save-access.php),
-  then upload admin.enc.js, save.php, save-access.php. Unknown at Aruba: PHP version, write permissions, WAF.
-- The server is the original for books.js/recommendations.js/info.js: don't overwrite these and backup/ on an FTP upload.
+- **THERE IS NO WEBSPACE YET (as of 2026-10-18).** Nothing has ever been uploaded; no live data exists anywhere. The site
+  only runs locally (`npm run serve` / `npm run local` / tunnel). Don't plan migrations of live data, don't assume a server
+  copy is "the original", don't tell Johann to download or delete anything on a server. When a webspace exists (likely
+  Aruba, see docs/), upload `website/` once and set up save.php: admin.enc.js, save.php, save-access.php are current
+  (encrypted 2026-10-18). Unknown then: PHP version, write permissions, WAF. Only from that moment on the server copies of
+  books.js/recommendations.js/info.js and backup/ become the original.
+- `tools/migrate-data.mjs` (old German data format → English) only matters for stray old local files; nothing live to migrate.
+- `website/info.js` is not committed and currently doesn't exist: the page shows no opening hours until the admin page publishes one.
 - Covers: run "Cover-Abdeckung prüfen" completely in admin.html; clarify the terms of use of cover.ekz.de.
 - Untested: blur in Safari; school PC with Windows 7 (Tailwind v4 needs Chrome 111+, Safari 16.4+, Firefox 128+).
 - 20 initial recommendation texts (DE/IT) by Claude – Johann should proofread them. Remote `origin` (GitHub) must stay private (plaintext).
