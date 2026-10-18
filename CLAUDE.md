@@ -150,7 +150,9 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 - Inherited properties on `<html>`/`<body>` hit everything: NO transitions on `body`, animate nothing inherited, no class on
   `<html>` to switch off transitions. `.list { pointer-events: auto }` catches Radix' `body { pointer-events: none }`.
 - Theme/contrast (`lib/appearance.js`): marker immediately, 150 ms glide, then `document.startViewTransition` (`--t-color`
-  350 ms, `--ease-color`). NO own layer for `.seg3`. Before that, logos `loading="eager"` + `decode()` (max. 400 ms).
+  350 ms, `--ease-color`). Component transitions (buttons, bar, toggles) are switched off for the switch by a `<style>` element
+  (`transition: none !important`, in the DOM from the callback until 300 ms after the fade): otherwise they run hidden on the
+  main thread under the cross-fade = 300–700 ms frames at CPU 4×. Not a class on `<html>`. NO own layer for `.seg3`. Before that, logos `loading="eager"` + `decode()` (max. 400 ms).
   Language (`components/header.jsx`): marker first (`.seg[data-on]`, `will-change: transform`), `setLang` after the frame
   (rAF + setTimeout). Sonner toaster with `dir="ltr"` (otherwise `getComputedStyle(html)` per render).
 - Blur: scrim `blur(8px) saturate(1.15)`, glass `blur(18px) saturate(1.8)` – don't increase; glass without backdrop-filter looked
