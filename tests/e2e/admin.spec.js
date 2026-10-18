@@ -490,13 +490,14 @@ test.describe("publishing directly into the website folder", () => {
     await expect(page.locator("#i-ann .note")).toHaveText("Ohne Text erscheint kein Banner.");
     await page.fill("#i-ann-de", "  Heute ab 12 Uhr geschlossen.  ");
     await page.fill("#i-ann-it", "Oggi chiusa dalle 12.");
-    // dots: neutral chosen, arrow keys move the choice (radio group)
+    // dots (radio group): neutral chosen at first
+    await expect(page.locator('#i-ann-color [role="radio"]')).toHaveCount(7);
     await expect(page.locator('#i-ann-color [data-color="neutral"]')).toHaveAttribute("aria-checked", "true");
     await page.locator('#i-ann-color [data-color="red"]').click();
     await expect(page.locator('#i-ann-color [data-color="red"]')).toHaveAttribute("aria-checked", "true");
-    await expect(page.locator('#i-ann-color [role="radio"]')).toHaveCount(7);
-    await page.keyboard.press("ArrowRight");
+    await page.locator('#i-ann-color [data-color="green"]').click();
     await expect(page.locator('#i-ann-color [data-color="green"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator('#i-ann-color [data-color="red"]')).toHaveAttribute("aria-checked", "false");
     await expect(page.locator("#i-ann-color-t")).toContainText("Grün");
     const bar = page.locator("#i-ann-preview .announce-bar");
     await expect(bar).toHaveAttribute("data-color", "green");

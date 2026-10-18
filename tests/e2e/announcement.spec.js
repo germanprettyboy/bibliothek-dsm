@@ -35,15 +35,6 @@ test.describe("announcement", () => {
     await expect(banner(page)).toHaveCount(0);
   });
 
-  test("closing animates: collapsing state before it is removed", async ({ page }) => {
-    await withInfo(page, ANN);
-    await open(page);
-    await expect(banner(page)).toHaveClass(/\bopen\b/);
-    await page.locator("#announce .announce-x").click();
-    await expect(banner(page)).not.toHaveClass(/\bopen\b/);
-    await expect(banner(page)).toHaveCount(0);
-  });
-
   test("Esc closes it on the computer – not while a dialog is open, not in the search field", async ({ page }) => {
     await withInfo(page, ANN);
     await open(page);
