@@ -218,18 +218,56 @@
   main.books { min-height: calc(100vh - var(--bar-h)); min-height: calc(100lvh - var(--bar-h)); } /* lvh: does not change when the iOS toolbar / keyboard moves, the text no longer jumps */
   .search input::-webkit-search-cancel-button { display: none; }
 
+  /* Category filter next to the search: one button; with a choice a dark pill [filter | ×]. The × slides out from
+     under the filter once the dialog is gone, the search gives way. From 40rem the filter shows "Kategorie"; with a
+     choice the category (one word) slides out on hover/focus. Widths via grid 0fr → 1fr. */
+  .cat-pill {
+    display: flex; flex: none; height: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg);
+    transition: border-color var(--t-base), background-color var(--t-base), color var(--t-base);
+  }
+  .cat-pill:not(.on, .off):hover { border-color: var(--fg); }
+  .cat-pill.on { border-color: var(--fg); background: var(--fg); color: var(--bg); transition-delay: var(--t-out); }
+  .cat-pill.off { opacity: .5; }
+  .cat-pill button { display: flex; align-items: center; height: 46px; padding: 0; border: 0; border-radius: 11px; background: transparent; color: inherit; font: inherit; font-weight: 500; }
+  .cat-pill button:disabled { cursor: default; }
+  .cat-pill button:focus-visible { outline-offset: -4px; }
+  .cat-pill.on button:focus-visible { outline-color: currentColor; }
+  #cat-btn { padding: 0 14px; }
+  .cat-x { display: grid; grid-template-columns: 0fr; transition: grid-template-columns var(--t-base) var(--ease); }
+  .cat-x > span { display: flex; min-width: 0; overflow: hidden; }
+  /* Label: the width opens with --snap and the text follows a moment later (fade + 6 px glide along with the icon)
+     instead of being wiped in by the edge; closing the other way round: text out quickly, then the width */
+  .cat-label { display: grid; grid-template-columns: 0fr; transition: grid-template-columns var(--t-base) var(--ease-in) 60ms; }
+  .cat-label > span { min-width: 0; overflow: hidden; }
+  .cat-label > span > span {
+    display: block; padding-left: 8px; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    opacity: 0; transform: translateX(6px); transition: opacity 90ms var(--ease-in), transform 90ms var(--ease-in);
+  }
+  .cat-div { flex: none; width: 1px; margin: 11px 0; background: currentColor; opacity: .35; }
+  #cat-clear { flex: none; justify-content: center; width: 46px; opacity: 0; transform: translateX(-100%); transition: transform var(--t-base) var(--ease), opacity var(--t-fast); }
+  .cat-pill.on .cat-x { grid-template-columns: 1fr; transition-delay: var(--t-out); }
+  .cat-pill.on #cat-clear { opacity: 1; transform: none; transition-delay: var(--t-out); }
+  @media (min-width: 40rem) {
+    :is(.cat-pill:not(.on), .cat-pill.on #cat-btn:focus-visible) .cat-label { grid-template-columns: 1fr; transition: grid-template-columns var(--t-slow) var(--snap); }
+    :is(.cat-pill:not(.on), .cat-pill.on #cat-btn:focus-visible) .cat-label > span > span { opacity: 1; transform: none; transition: opacity var(--t-base) ease-out 70ms, transform var(--t-slow) var(--snap) 40ms; }
+  }
+  @media (min-width: 40rem) and (hover: hover) {
+    .cat-pill.on #cat-btn:hover .cat-label { grid-template-columns: 1fr; transition: grid-template-columns var(--t-slow) var(--snap); }
+    .cat-pill.on #cat-btn:hover .cat-label > span > span { opacity: 1; transform: none; transition: opacity var(--t-base) ease-out 70ms, transform var(--t-slow) var(--snap) 40ms; }
+  }
+
   /* A–Z bar: only from tablet width (iPad, 768 px) */
   .index { display: none; }
   @media (min-width: 48rem) {
     .index { display: flex; justify-content: space-between; gap: 0; margin: 0 -4px; }
-    .index a {
+    .index button {
       flex: none; min-width: 26px; height: 30px; display: grid; place-items: center; border-radius: 8px;
-      color: var(--fg); text-decoration: none; font-weight: 500; font-size: var(--fs-s);
+      color: var(--fg); font-weight: 500; font-size: var(--fs-s);
       transition: background-color .15s, color .15s;
     }
-    .index a:hover { background: var(--surface); }
-    .index a[aria-disabled="true"] { color: var(--line); pointer-events: none; }
-    .index a.on { background: var(--fg); color: var(--bg); }
+    .index button:hover { background: var(--surface); }
+    .index button:disabled { color: var(--line); pointer-events: none; }
+    .index button.on { background: var(--fg); color: var(--bg); }
     .floater { display: none; }
   }
 
@@ -494,7 +532,7 @@
   .info-line > .skel-row > span:first-child { width: 9rem; max-width: 70%; margin-block: .375em; }
   .info-line > .skel-row > span + span { width: 6rem; max-width: 50%; margin-top: .375em; }
   /* Images with a placeholder (logo): surface with shimmer, the image fades in as soon as it is there (.loaded) */
-  .ld-img { position: relative; overflow: hidden; border-radius: 6px; }
+  .ld-img { position: relative; overflow: hidden; } /* square corners: the logo is not cut off */
   .ld-img img { transition: opacity var(--t-base) ease-out; }
   .ld-img:not(.loaded) img { opacity: 0; }
   .ld-img:not(.loaded)::before { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--skel); animation: ld-in var(--t-slow) ease-out .15s both; }
@@ -549,4 +587,5 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   html { scroll-behavior: auto; }
+  .cat-pill, .cat-pill .cat-x, #cat-clear, .cat-label, .cat-label > span > span { transition-delay: 0s !important; }
 }

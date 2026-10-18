@@ -1,4 +1,4 @@
-// Filter by category: dialog with groups (parent term before " - "/": "), chip above the list, together with the search.
+// Filter by category: dialog with groups (parent term before " - "/": "), filter pill [filter | ×] next to the search, together with the search.
 const { test, expect, open, data, hits, OFF } = require("./helpers.js");
 
 const { B, C } = data();
@@ -16,17 +16,21 @@ async function choose(page, id) {
 }
 
 test.describe("categories", () => {
-  test("the parent term selects the whole group, the chip shows the choice, × clears it", async ({ page }) => {
+  test("the parent term selects the whole group, the filter button names the choice, × clears it", async ({ page }) => {
     await open(page);
     const fantasy = inGroup("Fantasy");
     expect(fantasy.length).toBeGreaterThan(inCat("Fantasy").length);
     await choose(page, "g:Fantasy");
     await expect(page.locator("#list .row")).toHaveCount(fantasy.length);
     await expect(page.locator("#meta")).toHaveText(`${num(fantasy.length)} Treffer`);
-    await expect(page.locator(".cat-chip")).toContainText("Fantasy");
+    await expect(page.locator("#cat-btn")).toHaveAttribute("aria-label", "Nach Kategorie filtern: Fantasy");
+    await expect(page.locator("#cat-btn .cat-label")).toHaveText("Fantasy");
     await expect(page.locator("#cat-btn")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".cat-pill")).toHaveClass(/\bon\b/);
     await page.click("#cat-clear");
-    await expect(page.locator(".cat-chip")).toHaveCount(0);
+    await expect(page.locator(".cat-pill")).not.toHaveClass(/\bon\b/);
+    await expect(page.locator("#cat-btn")).toBeFocused();
+    await expect.poll(() => page.locator(".cat-x").evaluate(e => e.offsetWidth)).toBe(0);
     await expect(page.locator("#list .row")).toHaveCount(B.books.length);
     await expect(page.locator("#meta")).toHaveText(`${num(B.books.length)} Bücher`);
   });
@@ -45,7 +49,7 @@ test.describe("categories", () => {
     await expect(d.locator('[data-cat="c:Fantasy"] span').first()).toHaveText("allgemein");
     await magic.click();
     await expect(page.locator("#list .row")).toHaveCount(inCat("Fantasy - Magie").length);
-    await expect(page.locator(".cat-chip")).toContainText("Fantasy - Magie");
+    await expect(page.locator("#cat-btn")).toHaveAttribute("aria-label", /: Fantasy - Magie$/);
     await page.click("#cat-btn");
     await expect(page.getByRole("dialog").locator('[data-cat="c:Fantasy - Magie"]')).toHaveAttribute("aria-pressed", "true");
   });
@@ -88,6 +92,19 @@ test.describe("categories", () => {
     await expect(page.getByRole("dialog")).toContainText(/Fantasy/);
   });
 
+  test("desktop: hovering the filter reveals the category in one word, the search gives way", async ({ page }) => {
+    await open(page);
+    await choose(page, "c:Wichtige Herrschergeschlechter im Mittelalter");
+    await page.mouse.move(0, 0);
+    const label = page.locator("#cat-btn .cat-label");
+    await expect(label).toHaveText("Herrschergeschlechter");
+    await expect.poll(async () => (await label.boundingBox() || { width: 0 }).width).toBe(0);
+    const before = await page.locator("#q").boundingBox();
+    await page.hover("#cat-btn");
+    await expect.poll(async () => (await label.boundingBox() || { width: 0 }).width).toBeGreaterThan(60);
+    expect((await page.locator("#q").boundingBox()).width).toBeLessThan(before.width - 60);
+  });
+
   test.describe("Italian", () => {
     test.use({ storage: { "dsm-recs": OFF, "dsm-lang": "it" } });
     test("names from categories-it.js, also for the parent term and the subcategory", async ({ page }) => {
@@ -99,21 +116,29 @@ test.describe("categories", () => {
       await expect(d.locator('[data-cat="g:Abenteuer"] span').first()).toHaveText("Avventura");
       await expect(d.locator('[data-cat="c:Abenteuer - Reise"] span').first()).toHaveText("Viaggi");
       await d.locator('[data-cat="c:Abenteuer - Reise"]').click();
-      await expect(page.locator(".cat-chip")).toContainText("Avventura – Viaggi");
+      await expect(page.locator("#cat-btn")).toHaveAttribute("aria-label", "Filtra per categoria: Avventura – Viaggi");
     });
   });
 
   test.describe("phone", () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-    test("button next to the search without text, no horizontal scrolling with a chip", async ({ page }) => {
+    test("button next to the search without text, × beside it in the same size, no horizontal scrolling", async ({ page }) => {
       await open(page);
-      const button = await page.locator("#cat-btn").boundingBox();
+      const button = await page.locator(".cat-pill").boundingBox();
       const search = await page.locator("#q").boundingBox();
       expect(Math.abs(button.y - search.y)).toBeLessThan(1);
       expect(button.height).toBeGreaterThanOrEqual(44);
       expect(button.width).toBeGreaterThanOrEqual(44);
+      const before = await page.locator("#q").boundingBox();
       await choose(page, "g:Historische Romane");
-      await expect(page.locator(".cat-chip")).toBeVisible();
+      await expect(page.locator("#cat-clear")).toBeVisible();
+      await expect(page.locator("#cat-btn .cat-label")).not.toBeVisible();
+      // × as large as the filter: both 46 px inside the 48 px pill, with a divider between them
+      await expect.poll(() => page.locator(".cat-x").evaluate(e => e.offsetWidth)).toBe(47);
+      expect((await page.locator("#cat-clear").boundingBox()).width).toBeCloseTo((await page.locator("#cat-btn").boundingBox()).width, 0);
+      const x = await page.locator("#cat-clear").boundingBox(), after = await page.locator("#q").boundingBox();
+      expect(Math.abs(x.y - button.y - 1)).toBeLessThan(1);
+      expect(after.width).toBeLessThan(before.width);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
     });
