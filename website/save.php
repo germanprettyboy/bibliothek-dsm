@@ -86,6 +86,12 @@ function dsm_save(string $method, string $file, string $key, callable $read, str
 }
 
 if (!defined('DSM_SAVE_TEST')) {
+  // PHP warnings only into the server log (npm run local: the terminal), never into the answer: printed before the JSON
+  // they send the headers early (status always 200, text/html) and the admin page can only report "HTTP 200".
+  // php-wasm and many webspaces display them by default; the buffer also swallows anything a host prints regardless.
+  ini_set('display_errors', '0');
+  ini_set('log_errors', '1');
+  ob_start();
   list($status, $response) = dsm_save(
     (string) ($_SERVER['REQUEST_METHOD'] ?? ''),
     (string) ($_GET['file'] ?? ''),
@@ -94,6 +100,7 @@ if (!defined('DSM_SAVE_TEST')) {
     defined('DSM_DATA_FOLDER') ? DSM_DATA_FOLDER : __DIR__
   );
   if ($status === 403) sleep(1); // slow down guessing
+  ob_end_clean();
   http_response_code($status);
   header('Content-Type: application/json; charset=utf-8');
   header('Cache-Control: no-store');

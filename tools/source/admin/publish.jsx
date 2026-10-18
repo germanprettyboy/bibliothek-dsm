@@ -74,17 +74,19 @@ async function permit(dir) {
 const failure = e => ({ type: "warn", key: (e && e.code) || "pubErr", vars: { o: (e && e.o) || "", m: (e && e.message) || String(e) } });
 
 async function upload(file, text) {
-  let r, j = null;
+  let r, j = null, answer = "";
   try {
     r = await fetch("save.php?file=" + encodeURIComponent(file), {
       method: "POST", cache: "no-store", body: text,
       headers: { "Content-Type": "text/javascript;charset=utf-8", "X-DSM-Key": KEY },
     });
   } catch (e) { throw Object.assign(new Error("website not reachable"), { code: "pubLiveErr" }); }
-  try { j = await r.json(); } catch (e) { /* no answer from save.php */ }
+  try { answer = await r.text(); j = JSON.parse(answer); } catch (e) { /* no answer from save.php */ }
   if (r.ok && j && j.ok) return;
   const f = j && j.error;
-  throw Object.assign(new Error(f || `HTTP ${r.status}`), { code: f === "key" ? "pubLiveKey" : "pubLiveErr" });
+  // Without an error code: status plus the start of the answer (PHP warning, host error page …), not just "HTTP 200"
+  const start = answer.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
+  throw Object.assign(new Error(f || `HTTP ${r.status}` + (start ? `: ${start}` : "")), { code: f === "key" ? "pubLiveKey" : "pubLiveErr" });
 }
 
 // build() returns { text, done }: done() runs after a successful write (the new state counts as published)
