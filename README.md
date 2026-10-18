@@ -1,70 +1,70 @@
-# Bibliothek DSM
+# Library DSM
 
-Öffentliche Bücherliste der Schulbibliothek der Deutschen Schule Mailand (DSM) mit passwortgeschützter Verwaltung.
-Zweisprachig Deutsch/Italienisch, mobile first.
+Public book list of the school library of the Deutsche Schule Mailand (DSM) with a password-protected admin page.
+Bilingual German/Italian, mobile first.
 
-- **Bücherliste** (`index.html`): alphabetisch, Suche, A–Z-Sprung, Detailansicht mit Cover, Buchempfehlungen, Öffnungszeiten/Ferien.
-- **Verwaltung** (`admin.html`): Bestand aus der WinBIAP-Datenbank importieren, Empfehlungen pflegen, Öffnungszeiten eintragen, veröffentlichen.
-- **Technik**: React 19, Tailwind CSS v4, shadcn/ui, gebaut mit Vite. Das Ergebnis in `website/` ist reines HTML/CSS/JS und läuft auch per Doppelklick (`file://`).
-  Einzige Server-Datei: `website/speichern.php` (Online-Speichern der Verwaltung).
+- **Book list** (`index.html`): alphabetical, search, category filter, A–Z jump, detail view with cover, book recommendations, opening hours/holidays.
+- **Admin page** (`admin.html`): import the catalog from the WinBIAP database, maintain recommendations, enter opening hours, publish.
+- **Technology**: React API on Preact, Tailwind CSS v4, shadcn/ui, built with Vite. The result in `website/` is plain HTML/CSS/JS and also runs via double-click (`file://`).
+  Only server file: `website/save.php` (online saving from the admin page).
 
-## Datenschutz
+## Privacy
 
-Keine Schülerdaten und kein Ausleihstatus öffentlich. Die Extraktion arbeitet mit einer Whitelist (Titel, Untertitel, Autor, Verlag, Jahr, ISBN, Kategorie, Standort);
-Leser-, Ausleih- und Gebührentabellen werden nur gezählt. `daten/` (Original-Datenbank) ist in `.gitignore` und wird nie eingecheckt.
-`werkzeuge/quelle/` liegt im Klartext: Repository nur privat halten.
+No student data and no loan status in public. The extraction works with a whitelist (title, subtitle, author, publisher, year, ISBN, category, location);
+reader, loan and fee tables are only counted. `data/` (original database) is in `.gitignore` and never committed.
+`tools/source/` is plaintext: keep the repository private.
 
-## Ordner
+## Folders
 
-| Ordner | Inhalt | Hochladen? |
+| Folder | Content | Upload? |
 | --- | --- | --- |
-| `website/` | gebaute Seite, Daten (`books.js`, `empfehlungen.js`, `info.js`), `speichern.php`, Assets | ja, nur dieser Ordner |
-| `src/` | Quelltext der Seiten (React, Tailwind, shadcn/ui) | nein |
-| `werkzeuge/` | Build, Verschlüsselung der Verwaltung, Extraktion, lokaler Server, Tunnel | nein |
-| `tests/` | Unit-Tests (`node:test`) und Browser-Tests (Playwright) | nein |
-| `doku/`, `anleitung/` | Hintergrund-Analysen, Anleitung | nein |
-| `daten/` | Original-Datenbank mit Schülerdaten | niemals |
+| `website/` | built site, data (`books.js`, `recommendations.js`; `info.js` only on the webspace), `save.php`, assets | yes, only this folder |
+| `src/` | source of the pages (React, Tailwind, shadcn/ui) | no |
+| `tools/` | build, encryption of the admin app, extraction, data migration, local server, tunnel | no |
+| `tests/` | unit tests (`node:test`) and browser tests (Playwright) | no |
+| `docs/`, `anleitung/` | background analyses, German staff guide | no |
+| `data/` | original database with student data | never |
 
-## Loslegen
+## Getting started
 
 ```bash
 npm install
-npm run build        # src/ → website/ (nach jeder Änderung an src/, Ergebnis committen)
+npm run build        # src/ → website/ (after every change to src/, commit the result)
 npm run serve        # http://localhost:8765
-npm run dev          # Build im Watch-Modus mit Live-Reload
-npm run lokal        # wie Webspace: PHP + speichern.php echt, Verwaltung unter /admin.html (Passwort „lokal“)
-npm run books        # daten/*.winbook → website/books.js
+npm run dev          # build in watch mode with live reload
+npm run local        # like the webspace: PHP + real save.php, admin page at /admin.html (password "local")
+npm run books        # data/*.winbook → website/books.js
 ```
 
-Nach Änderungen an `werkzeuge/quelle/**` die Verwaltung neu verschlüsseln (fragt das Passwort verdeckt ab):
+After changes to `tools/source/**` encrypt the admin app again (asks for the password without echo):
 
 ```bash
-node werkzeuge/admin-verschluesseln.js
+node tools/encrypt-admin.js
 ```
 
-Das Admin-Passwort steht in keiner Datei.
+The admin password is in no file.
 
 ## Tests
 
 ```bash
-npm test             # Unit-Tests, ca. 15 s
-npm run test:e2e     # Browser-Tests (Chromium), ca. 1 min
-npm run test:alle    # beides
-npm run test:live    # Browser-Tests über Cloudflare-Tunnel (braucht cloudflared)
+npm test             # unit tests, about 15 s
+npm run test:e2e     # browser tests (Chromium), about 1.5 min
+npm run test:all     # both
+npm run test:live    # browser tests via a Cloudflare tunnel (needs cloudflared)
 ```
 
-## Veröffentlichen
+## Publishing
 
-Den Ordner `website/` auf den Webspace laden (https). Sobald Online-Speichern eingerichtet ist, sind `books.js`, `empfehlungen.js`, `info.js`
-und `sicherung/` auf dem Server das Original: beim Hochladen nicht mit alten lokalen Fassungen überschreiben.
-Details in `website/LIESMICH.txt`.
+Upload the folder `website/` to the webspace (https). Once online saving is set up, `books.js`, `recommendations.js`, `info.js`
+and `backup/` on the server are the original: don't overwrite them with old local versions when uploading.
+Details in `website/LIESMICH.txt` (German).
 
-## Arbeitsweise
+## Way of working
 
-Jede Aufgabe läuft in einem eigenen Git-Worktree und wird am Ende per `npm run integrieren -- worktree-<name>` mit `--no-ff` in `main` gemerged.
-`main` ist immer lauffähig und darf hochgeladen werden. Übersicht offener Branches: `npm run branches`.
-Alle Regeln, Designvorgaben und Datenformate stehen in `CLAUDE.md`.
+Every task runs in its own git worktree and is merged into `main` with `--no-ff` at the end via `npm run integrate -- worktree-<name>`.
+`main` is always working and may be uploaded. Overview of open branches: `npm run branches`.
+All rules, design requirements and data formats are in `CLAUDE.md`.
 
-## Auftraggeber
+## Client
 
-Johann Bucher (Freiwilliger an der DSM).
+Johann Bucher (volunteer at the DSM).
