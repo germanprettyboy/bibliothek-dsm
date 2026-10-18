@@ -140,6 +140,9 @@ describe("save.php", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, ()
     assert.equal(fs.readFileSync(path.join(o.full, "backup", s[9]), "utf8"), OLD);
     assert.ok(!s.includes("info-20200101-000000.js"));
   });
+  test("backup/ locked for visitors (new and already existing folder)", () => {
+    for (const f of [o.good, o.full]) assert.match(fs.readFileSync(path.join(f, "backup", ".htaccess"), "utf8"), /Require all denied[\s\S]*Deny from all/);
+  });
   test("twice in the same second: no backup overwritten, the newest sorts last", () => {
     assert.equal(r[18][0], 200);
     assert.equal(r[19][0], 200);

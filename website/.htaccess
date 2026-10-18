@@ -6,9 +6,15 @@
   AddOutputFilterByType DEFLATE text/html text/css text/plain application/javascript text/javascript image/svg+xml
 </IfModule>
 
+# Hardening: no framing by other pages (clickjacking of the admin page), no MIME guessing,
+# cover hosts only learn the origin, never the full address.
 # Caching: briefly revalidate pages, scripts and data on every visit (a new book list is visible immediately),
 # fonts and images practically never change.
 <IfModule mod_headers.c>
+  Header always set X-Frame-Options "DENY"
+  Header always set Content-Security-Policy "frame-ancestors 'none'"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
   <FilesMatch "\.(html|js|css|txt)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>

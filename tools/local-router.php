@@ -29,7 +29,8 @@ if ($path === '/save.php') {
   require dirname(__DIR__) . '/website/save.php';
   return true;
 }
-if (substr($path, -4) === '.php' || strpos($path, '/backup/') === 0) { // run nothing else (e.g. a real save-access.php in website/)
+// run nothing else (e.g. a real save-access.php in website/), no backups (sicherung/ = their name until October 2026)
+if (strtolower(substr($path, -4)) === '.php' || preg_match('#^/(backup|sicherung)/#i', $path)) {
   http_response_code(404);
   return true;
 }

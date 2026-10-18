@@ -38,6 +38,8 @@ Veröffentlichen aus der Verwaltung – online (Normalfall)
   Browser, auch am Schul-PC, Tablet oder Handy. Meldung: „info.js ist online, 10:42 Uhr.“
   Jede ersetzte Fassung bleibt im Ordner „backup“ auf dem Webspace (die letzten 10 je Datei);
   zum Zurückholen die gewünschte Sicherung per FTP herunterladen, umbenennen (z. B. info.js) und hochladen.
+  Die versteckte Datei backup/.htaccess (legt save.php selbst an) sperrt den Ordner für Besucher –
+  nicht löschen.
   Nur für den Bestand braucht es weiter die .winbook-Datei aus WinBIAP (siehe „Bestand aktualisieren“).
 
   Einmal einrichten (Betreuung der Website):

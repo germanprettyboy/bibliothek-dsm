@@ -9,7 +9,7 @@
  *
  * Requirement: cloudflared (brew install cloudflared). No Cloudflare account needed, the address is new on every start.
  * Only website/ is served (the same that becomes public via FTP), without dot files (.htaccess), without *.php
- * and backup/ – PHP doesn't run here, so through the tunnel the admin page publishes as it does locally (folder/download).
+ * and backup/ (also the old name sicherung/) – PHP doesn't run here, so through the tunnel the admin page publishes as it does locally (folder/download).
  * With real "Publish" (save.php running): npm run local -- --tunnel (tools/local.mjs, uses tunnel() from here).
  * The address is also written to tests/.tmp/tunnel-url.txt.
  */
@@ -41,8 +41,9 @@ export function staticServer(dir) {
     const fail = code => { res.writeHead(code, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" }); res.end(String(code)); };
     if (!["GET", "HEAD"].includes(req.method)) return fail(405);
     if (!p || parts[0] === ".." || path.isAbsolute(parts[0]) || parts.some(t => t.startsWith("."))) return fail(404);
-    // PHP would not run here but be served as source (save-access.php = hash of the save key)
-    if (parts[0] === "backup" || parts.some(t => /\.php$/i.test(t))) return fail(404);
+    // PHP would not run here but be served as source (save-access.php = hash of the save key);
+    // backups: backup/, sicherung/ = its name until October 2026
+    if (/^(backup|sicherung)$/i.test(parts[0]) || parts.some(t => /\.php$/i.test(t))) return fail(404);
     fs.stat(file, (err, st) => {
       if (err || !st.isFile()) return fail(404);
       res.writeHead(200, {
@@ -140,7 +141,7 @@ async function devServer(port) {
   open: false, notify: false, ui: false, ghostMode: false, logLevel: "silent",
   middleware: [(req, res, next) => {
     res.setHeader("cache-control", "no-store");
-    if (/\\.php(\\?|$)|^\\/backup\\//i.test(decodeURIComponent(req.url.split("?")[0]))) { res.statusCode = 404; return res.end("404"); }
+    if (/\\.php(\\?|$)|^\\/(backup|sicherung)\\//i.test(decodeURIComponent(req.url.split("?")[0]))) { res.statusCode = 404; return res.end("404"); }
     next();
   }],
 };\n`);

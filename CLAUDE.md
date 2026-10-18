@@ -15,7 +15,7 @@ Code, comments, identifiers, data formats and docs are English (since 2026-10-17
   - `info.js` NOT committed (`.gitignore`, since 2026-10-17, client): once a webspace exists, the original lives only there. If it is missing,
     the page loads without an info card and the admin page starts empty; tests supply their own info.js or skip the check.
   - By hand: `save.php`, `assets/logger.js` (DSM_LOG, loaded before everything else), `assets/covers.js` (covers, cache,
-    coverage survey), `assets/categories-it.js`, `LIESMICH.txt` (German guide), `.htaccess` (gzip + cache via IfModule; delete on Error 500).
+    coverage survey), `assets/categories-it.js`, `LIESMICH.txt` (German guide), `.htaccess` (gzip + cache + security headers via IfModule, no full CSP; delete on Error 500).
   - `assets/admin.enc.js` ENCRYPTED (source/extract.js + built source/admin/). `vendor/sql-asm.js` = sql.js 1.10.3
     (asm.js, no WASM). `fonts/` = Fira Sans 400/500/600 local (GDPR). `backup/` only on the server (save.php).
 - `src/` – source. `index.html`/`admin.html` = templates with a static loading skeleton (`#page`), only copied. `head.js` = classic
@@ -82,7 +82,7 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   (no separate "Stattdessen herunterladen" link). Locally without PHP, FTP stays manual work.
 - save.php: GET → `{dsm:"save",v:2,ready,reason?}` (no JSON → old route). POST `?file=` with `X-DSM-Key`, body = the finished
   file; only exactly header comment + `window.DSM_… = ` + JSON object with the required field (books/groups/hours) + `;\n`.
-  Old version → `backup/` (10 per file), atomic (temp + rename, flock). PHP ≥7.1 (no str_starts_with/array_is_list/match).
+  Old version → `backup/` (10 per file, `backup/.htaccess` denies access, written if missing), atomic (temp + rename, flock). PHP ≥7.1 (no str_starts_with/array_is_list/match).
   Key = PBKDF2(password, salt "dsm-library/save.php", 310,000), only in the encrypted plaintext
   (`var DSM_SAVE_KEY`, function scope, not window).
 - Admin lock only "student-proof": PBKDF2-SHA-256 (310,000) + AES-GCM 256, logic only encrypted.
