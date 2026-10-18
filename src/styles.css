@@ -252,14 +252,14 @@
   .index { display: none; }
   @media (min-width: 48rem) {
     .index { display: flex; justify-content: space-between; gap: 0; margin: 0 -4px; }
-    .index a {
+    .index button {
       flex: none; min-width: 26px; height: 30px; display: grid; place-items: center; border-radius: 8px;
-      color: var(--fg); text-decoration: none; font-weight: 500; font-size: var(--fs-s);
+      color: var(--fg); font-weight: 500; font-size: var(--fs-s);
       transition: background-color .15s, color .15s;
     }
-    .index a:hover { background: var(--surface); }
-    .index a[aria-disabled="true"] { color: var(--line); pointer-events: none; }
-    .index a.on { background: var(--fg); color: var(--bg); }
+    .index button:hover { background: var(--surface); }
+    .index button:disabled { color: var(--line); pointer-events: none; }
+    .index button.on { background: var(--fg); color: var(--bg); }
     .floater { display: none; }
   }
 
@@ -524,7 +524,7 @@
   .info-line > .skel-row > span:first-child { width: 9rem; max-width: 70%; margin-block: .375em; }
   .info-line > .skel-row > span + span { width: 6rem; max-width: 50%; margin-top: .375em; }
   /* Images with a placeholder (logo): surface with shimmer, the image fades in as soon as it is there (.loaded) */
-  .ld-img { position: relative; overflow: hidden; border-radius: 6px; }
+  .ld-img { position: relative; overflow: hidden; } /* square corners: the logo is not cut off */
   .ld-img img { transition: opacity var(--t-base) ease-out; }
   .ld-img:not(.loaded) img { opacity: 0; }
   .ld-img:not(.loaded)::before { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--skel); animation: ld-in var(--t-slow) ease-out .15s both; }

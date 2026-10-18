@@ -182,7 +182,7 @@ describe("design", () => {
 describe("the list stays plain text", () => {
   test("list row without an image", () => {
     const a = readSrc("library/list.jsx");
-    const row = a.slice(a.indexOf("const Chunk"), a.indexOf("// Fast animated jump"));
+    const row = a.slice(a.indexOf("const Chunk"), a.indexOf("// Covers: open connections"));
     assert.ok(row.length > 100);
     assert.ok(!/<img|cover/i.test(row));
   });

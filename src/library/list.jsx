@@ -1,9 +1,8 @@
-/* Book list: search, filter by category, A–Z bar (from tablet width), letter floater (phone), list as plain text.
+/* Book list: search, filter by category, A–Z bar = filter by initial letter (from tablet width), letter floater (phone), list as plain text.
    The list consists of chunks of at most 40 books; every letter starts a new one (anchor ul#L-X).
    Via CSS (content-visibility) the browser only renders chunks in view; the others carry a height estimated from
    the text length in their style until they have been rendered once. */
 import * as React from "react";
-import { flushSync } from "react-dom";
 import { ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,16 +16,18 @@ import { CategoryDialog, categoryModel } from "@/library/categories";
 addStrings({
   de: {
     search: "Titel, Autor oder ISBN suchen", searchLabel: "Bücher durchsuchen", clear: "Suche löschen",
-    index: "Alphabetischer Index", hits: "{n} Treffer", count: "{n} Bücher", count1: "1 Buch", listT: "Bücherliste",
+    index: "Nach Anfangsbuchstaben filtern", hits: "{n} Treffer", count: "{n} Bücher", count1: "1 Buch", listT: "Bücherliste",
     emptyT: "Kein Buch gefunden", emptyP: "Eine andere Schreibweise oder nur einen Teil des Titels versuchen.",
     emptyC: "In dieser Kategorie nichts gefunden – anders suchen oder die Kategorie aufheben.",
+    emptyL: "Unter diesem Buchstaben nichts gefunden – anders suchen oder den Buchstaben aufheben.",
     noData: "Die Bücherliste konnte nicht geladen werden (books.js fehlt).",
   },
   it: {
     search: "Cerca titolo, autore o ISBN", searchLabel: "Cerca nei libri", clear: "Cancella ricerca",
-    index: "Indice alfabetico", hits: "{n} risultati", hits1: "1 risultato", count: "{n} libri", count1: "1 libro", listT: "Elenco dei libri",
+    index: "Filtra per lettera iniziale", hits: "{n} risultati", hits1: "1 risultato", count: "{n} libri", count1: "1 libro", listT: "Elenco dei libri",
     emptyT: "Nessun libro trovato", emptyP: "Prova un'altra grafia o solo una parte del titolo.",
     emptyC: "Nessun risultato in questa categoria – prova un'altra ricerca o rimuovi la categoria.",
+    emptyL: "Nessun risultato con questa lettera – prova un'altra ricerca o rimuovi la lettera.",
     noData: "Impossibile caricare l'elenco dei libri (manca books.js).",
   },
 });
@@ -116,26 +117,6 @@ const Chunk = React.memo(function Chunk({ head, items, h, query }) {
   );
 });
 
-// Fast animated jump: fixed short duration instead of browser smooth scroll (which dawdles over long distances).
-// The target is measured anew in every step: chunks rendered for the first time on the way
-// (content-visibility) differ from their estimated height.
-let glideId = 0;
-function glide(el) {
-  cancelAnimationFrame(glideId);
-  const target = () => Math.max(0, Math.min(el.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0),
-    document.documentElement.scrollHeight - innerHeight));
-  const from = scrollY, d = target() - from;
-  if (reduced.matches || Math.abs(d) < 2) { scrollTo({ top: target(), behavior: "instant" }); return; }
-  const dur = Math.min(420, 200 + Math.abs(d) / 50), t0 = performance.now();
-  const step = now => {
-    const p = Math.min(1, (now - t0) / dur);
-    scrollTo({ top: from + (target() - from) * (1 - Math.pow(1 - p, 3)), behavior: "instant" });
-    if (p < 1) glideId = requestAnimationFrame(step);
-  };
-  glideId = requestAnimationFrame(step);
-}
-["wheel", "touchstart", "keydown"].forEach(t => addEventListener(t, () => cancelAnimationFrame(glideId), { passive: true }));
-
 // Covers: open connections to the services only once the first cover is needed
 let warmed = false;
 function warm() {
@@ -152,7 +133,7 @@ export function BookList({ books, loaded, onOpen }) {
   const [live, setLive] = React.useState(false);
   const [enter, setEnter] = React.useState(true);
   const [stuck, setStuck] = React.useState(false);
-  const [on, setOn] = React.useState(null);
+  const [letter, setLetter] = React.useState(null); // initial letter from the A–Z bar | null
   const [category, setCategory] = React.useState(null); // g:<parent> | c:<category> | null
   const [catOpen, setCatOpen] = React.useState(false);
   const input = React.useRef(null), bar = React.useRef(null), anchor = React.useRef(null), list = React.useRef(null), fl = React.useRef(null);
@@ -165,13 +146,15 @@ export function BookList({ books, loaded, onOpen }) {
   }, [terms]);
   const model = React.useMemo(() => categoryModel(books), [books]);
   const catTest = React.useMemo(() => model.test(category), [model, category]);
-  const current = React.useMemo(() => {
+  const base = React.useMemo(() => {
     const l = catTest ? books.filter(catTest) : books;
     return terms.length ? l.filter(b => terms.every(x => b._s.includes(x))) : l;
   }, [books, terms, catTest]);
-  const filtered = terms.length > 0 || !!category;
+  // letters that occur under the search and category (the others are disabled in the bar)
+  const present = React.useMemo(() => new Set(base.map(b => b._l)), [base]);
+  const current = React.useMemo(() => (letter ? base.filter(b => b._l === letter) : base), [base, letter]);
+  const filtered = terms.length > 0 || !!category || !!letter;
   const parts = React.useMemo(() => chunks(current), [current]);
-  const present = React.useMemo(() => new Set(parts.filter(s => s.head).map(s => s.head)), [parts]);
 
   // Render every new list step by step: first two chunks (visible immediately), then STEP more each, every
   // step in its own task (input gets handled in between). 4500 rows at once would be a block of seconds on weak
@@ -183,8 +166,6 @@ export function BookList({ books, loaded, onOpen }) {
     const id = setTimeout(() => setProgress({ parts, n: limit + STEP }), 0);
     return () => clearTimeout(id);
   }, [loaded, parts, limit]);
-  // A–Z jump before everything is rendered: render the rest immediately
-  const renderAll = () => { if (limit < parts.length) flushSync(() => setProgress({ parts, n: Infinity })); };
 
   // Fade-in of the first list
   React.useEffect(() => { if (!loaded) return undefined; const id = setTimeout(() => setEnter(false), 600); return () => clearTimeout(id); }, [loaded]);
@@ -217,6 +198,14 @@ export function BookList({ books, loaded, onOpen }) {
     log("Filter", `category "${model.label(id, "de", t)}": ${n} books`);
   };
 
+  // ---------- Initial letter ----------
+  // The A–Z bar filters instead of jumping; the chosen letter again lifts the filter
+  const chooseLetter = l => {
+    const next = l === letter ? null : l;
+    setLive(true); setLetter(next);
+    log("Filter", next ? `letter "${next}": ${base.filter(b => b._l === next).length} books` : "letter cleared");
+  };
+
   // ---------- Sticky bar ----------
   React.useLayoutEffect(() => {
     const setBarH = () => document.documentElement.style.setProperty("--bar-h", bar.current.offsetHeight + "px");
@@ -238,20 +227,20 @@ export function BookList({ books, loaded, onOpen }) {
     const y = anchorTop();
     if (scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
   }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
-  // New category: the hits start right below the bar if the page was already further down
+  // New category or letter: the hits start right below the bar if the page was already further down
   const firstCat = React.useRef(true);
   React.useLayoutEffect(() => {
     if (firstCat.current) { firstCat.current = false; return; }
     const y = anchorTop();
     if (scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
-  }, [category]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [category, letter]); // eslint-disable-line react-hooks/exhaustive-deps
   const onFocus = () => {
     if (wide.matches) return;
     const y = anchorTop();
     if (Math.abs(scrollY - y) > 1) scrollTo({ top: y, behavior: "instant" });
   };
 
-  // ---------- Letter floater and current letter ----------
+  // ---------- Letter floater (phone) ----------
   // Floater only visible while scrolling; switches when a new letter begins (DOM directly, without re-rendering)
   const flState = React.useRef({ letter: null, hide: 0 });
   const onScroll = React.useCallback(fromScroll => {
@@ -261,7 +250,6 @@ export function BookList({ books, loaded, onOpen }) {
       cur = ms[0].dataset.l;
       for (const m of ms) { if (m.getBoundingClientRect().top <= lim + 40) cur = m.dataset.l; else break; }
     }
-    setOn(cur);
     if (!cur || wide.matches || fromScroll !== true) { el.classList.remove("show"); return; }
     const st = flState.current;
     if (cur !== st.letter) {
@@ -378,18 +366,14 @@ export function BookList({ books, loaded, onOpen }) {
             </span>
           </div>
           </div>
-          <nav className="index" id="index" aria-label={t("index")} onClick={e => {
-            const a = e.target.closest("a[data-l]");
-            if (!a) return;
-            e.preventDefault();
-            renderAll();
-            const el = document.getElementById(lid(a.dataset.l));
-            if (el) glide(el);
-          }}>
+          <div className="index" id="index" role="group" aria-label={t("index")}>
             {LETTERS.map(l => (
-              <a key={l} href={"#" + lid(l)} data-l={l} className={on === l ? "on" : undefined} aria-disabled={loaded ? String(!present.has(l)) : undefined}>{l}</a>
+              <button
+                key={l} type="button" data-l={l} className={letter === l ? "on" : undefined} aria-pressed={letter === l}
+                disabled={!loaded || (!present.has(l) && letter !== l)} onClick={() => chooseLetter(l)}
+              >{l}</button>
             ))}
-          </nav>
+          </div>
         </div>
       </div>
 
@@ -417,7 +401,7 @@ export function BookList({ books, loaded, onOpen }) {
           ) : (
             <div className="empty">
               <strong>{t(books.length ? "emptyT" : "noData")}</strong>
-              {books.length ? <span>{t(category ? "emptyC" : "emptyP")}</span> : null}
+              {books.length ? <span>{t(letter ? "emptyL" : category ? "emptyC" : "emptyP")}</span> : null}
             </div>
           )}
         </div>
