@@ -11,6 +11,9 @@ import { useLanguage } from "@/lib/language";
 
 const THEMES = ["auto", "light", "dark"];
 
+// Open-source software shipped with the pages (licenses: MIT, ISC, Apache-2.0, SIL OFL)
+const CREDITS = "Preact, Radix UI, shadcn/ui, Tailwind CSS, Lucide, Sonner, class-variance-authority, clsx, tailwind-merge, sql.js, Fira Sans";
+
 // Section with a small heading
 export function Section({ title, children }) {
   return (
@@ -56,6 +59,9 @@ export function Settings({ open, onOpenChange, children }) {
           <Option id="s-contrast" title={t("sContrast")} help={t("sContrastH")} checked={p.contrast} onCheckedChange={v => setPref("contrast", v)} />
         </Section>
         {children}
+        <p className="m-0 text-s text-muted-foreground">
+          {t("sCredits")} {CREDITS}.
+        </p>
       </div>
     </GlassDialog>
   );
