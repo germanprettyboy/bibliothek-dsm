@@ -11,6 +11,7 @@ const STRINGS = {
     sA11y: "Barrierefreiheit",
     sFont: "Größere Schrift", sFontH: "Vergrößert alle Texte der Seite.",
     sContrast: "Hoher Kontrast", sContrastH: "Schwarz-Weiß, kräftige Linien, keine durchscheinenden Flächen.",
+    sCredits: "Verwendete Open-Source-Software:",
   },
   it: {
     settings: "Impostazioni", close: "Chiudi",
@@ -18,6 +19,7 @@ const STRINGS = {
     sA11y: "Accessibilità",
     sFont: "Testo più grande", sFontH: "Ingrandisce tutti i testi della pagina.",
     sContrast: "Contrasto elevato", sContrastH: "Bianco e nero, linee marcate, nessuna superficie trasparente.",
+    sCredits: "Software open source utilizzato:",
   },
 };
 
