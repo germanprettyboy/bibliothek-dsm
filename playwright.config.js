@@ -16,7 +16,7 @@ module.exports = defineConfig({
   globalSetup: "./tests/e2e/setup.js",
   outputDir: "tests/.tmp/results",
   fullyParallel: true,
-  workers: LIVE || process.env.CI ? 2 : "50%",
+  workers: LIVE ? 2 : process.env.CI ? "100%" : "50%", // CI: one per core of the GitHub runner
   forbidOnly: !!process.env.CI,
   retries: LIVE || process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["github"]] : [["list"]], // github: failures as annotations in the Actions run
