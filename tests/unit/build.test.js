@@ -5,6 +5,7 @@ const { test, before } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
+const zlib = require("zlib");
 const { ROOT, WEB, TMP } = require("../helpers/load.js");
 
 const TARGET = path.join(TMP, "build");
@@ -21,5 +22,15 @@ test("website/ matches the build from src/ (otherwise: npm run build)", () => {
   for (const f of GENERATED) {
     const fresh = fs.readFileSync(path.join(TARGET, f)), old = fs.readFileSync(path.join(WEB, f));
     assert.ok(fresh.equals(old), `${f} is outdated: npm run build`);
+  }
+});
+
+// Size budget (gzip, as the webspace delivers via .htaccess): catches a dependency that silently doubles the bundle.
+// Raise deliberately when a feature needs it (as of 2026-10-18: library.js 71 KB, style.css 13 KB, admin.enc.js 60 KB).
+test("built files stay within the size budget (gzip)", () => {
+  const BUDGET = { "assets/library.js": 80, "assets/style.css": 16, "assets/head.js": 2, "assets/admin.enc.js": 70 };
+  for (const [f, kb] of Object.entries(BUDGET)) {
+    const size = zlib.gzipSync(fs.readFileSync(path.join(WEB, f)), { level: 9 }).length / 1024;
+    assert.ok(size <= kb, `${f}: ${size.toFixed(1)} KB gzip > budget ${kb} KB`);
   }
 });

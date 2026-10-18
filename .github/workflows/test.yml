@@ -11,6 +11,9 @@ on:
       - "anleitung/**"
       - "**.md"
       - "website/LIESMICH.txt"
+  # Weekly, so new npm advisories show up without a push (GitHub mails a failed run)
+  schedule:
+    - cron: "0 6 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -41,6 +44,27 @@ jobs:
       - run: npm test
         env:
           DSM_ADMIN_PW: ${{ secrets.DSM_ADMIN_PW }}
+      # Known vulnerabilities in npm packages (runtime ones end up in library.js); high/critical fails the run
+      - run: npm audit --audit-level=high
+
+  # save.php promises PHP >= 7.1 (webspace PHP version unknown): syntax + the full save.test on the oldest version
+  php-min:
+    name: save.php on PHP 7.1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "7.1"
+          coverage: none
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: php -l website/save.php
+      - run: node --test tests/unit/save.test.js
 
   e2e:
     name: E2E (Playwright)
