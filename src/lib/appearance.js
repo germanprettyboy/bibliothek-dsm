@@ -34,11 +34,21 @@ function loadLogos() {
   return Promise.all(imgs.map(b => b.decode().catch(() => {})));
 }
 
+// Component transitions (buttons, toggles, bar border …) must not start on the color change: they would run
+// hidden under the cross-fade, but on the main thread (color is not compositable): restyle + paint in every frame,
+// 300–700 ms frames at 4× CPU. The rule is in the DOM only from the switch until the cross-fade has finished
+// (nothing computed changes on removal, so nothing starts then either).
+const still = document.createElement("style");
+still.textContent = "*, *::before, *::after { transition: none !important; }";
+
 async function colorSwitch() {
   if (!document.startViewTransition || reduced.matches) return apply();
   const nr = ++run;
   await Promise.all([wait(GLIDE), Promise.race([loadLogos(), wait(400)])]);
-  if (nr === run) document.startViewTransition(apply); // clicked in quick succession: only the last switch
+  if (nr !== run) return; // clicked in quick succession: only the last switch
+  const vt = document.startViewTransition(() => { document.head.append(still); apply(); });
+  // Removal restyles the whole page once: only when the picture stands still, not in the last frames of the fade
+  vt.finished.catch(() => {}).then(() => wait(300)).then(() => { if (nr === run) still.remove(); });
 }
 
 export function setPref(k, v) {
