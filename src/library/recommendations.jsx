@@ -22,7 +22,7 @@ addStrings({
   de: {
     recsT: "Empfehlungen", recsClose: "Empfehlungen ausblenden",
     recsOff: "Empfehlungen ausgeblendet. Über die Einstellungen lassen sie sich wieder einschalten.",
-    askNo: "Alles klar. Empfehlungen lassen sich jederzeit in den Einstellungen einschalten.",
+    askNo: "Empfehlungen ausgeschaltet. Sie lassen sich jederzeit in den Einstellungen wieder einschalten.",
     g_middle: "Mittelstufe", g_upper: "Oberstufe", g_adult: "Erwachsenenliteratur", g_adultShort: "Erwachsene",
     "g_adult-fiction": "Romane", "g_adult-nonfiction": "Sachbücher", "g_adult-bio": "Biografien & Geschichte",
     d_middle: "Jugendromane und erste Klassiker", d_upper: "Romane und Klassiker für Fortgeschrittene", d_adult: "In drei Kernbereichen",
@@ -37,7 +37,7 @@ addStrings({
   it: {
     recsT: "Consigli di lettura", recsClose: "Nascondi i consigli",
     recsOff: "Consigli nascosti. Puoi riattivarli nelle impostazioni.",
-    askNo: "D'accordo. Puoi attivare i consigli in qualsiasi momento nelle impostazioni.",
+    askNo: "Consigli disattivati. Si possono riattivare in qualsiasi momento nelle impostazioni.",
     g_middle: "Livello intermedio", g_upper: "Livello superiore", g_adult: "Letteratura per adulti", g_adultShort: "Adulti",
     "g_adult-fiction": "Romanzi", "g_adult-nonfiction": "Saggistica", "g_adult-bio": "Biografie e storia",
     d_middle: "Romanzi per ragazzi e primi classici", d_upper: "Romanzi e classici per lettori esperti", d_adult: "In tre aree principali",
