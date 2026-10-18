@@ -555,13 +555,28 @@ test.describe("publishing directly online (save.php)", () => {
     expect(await page.evaluate(() => JSON.stringify(window.DSM_INFO))).toBe(before);
   });
 
-  test("server error without JSON: message with the status", async ({ page }) => {
+  test("server error without JSON: message with the status and the start of the answer", async ({ page }) => {
     await server(page, { post: { status: 500, body: "Internal Server Error" } });
     await unlock(page);
     await info(page);
     await expect(page.locator("#i-how")).toHaveText(ONLINE);
     await page.click("#i-dl");
-    await expect(flag(page)).toHaveText("Speichern auf der Website hat nicht geklappt (HTTP 500). Bitte noch einmal versuchen.");
+    await expect(flag(page)).toHaveText("Speichern auf der Website hat nicht geklappt (HTTP 500: Internal Server Error). Bitte noch einmal versuchen.");
+  });
+
+  test('PHP warning in front of the JSON (status 200): the warning instead of a bare "HTTP 200", nothing counts as published', async ({ page }) => {
+    // as an old save.php answered under php-wasm (npm run local) or a webspace with display_errors on
+    const body = "<br />\n<b>Warning</b>:  rename(/x/.info.js.new,/x/info.js): Is a directory in <b>/x/save.php</b> on line <b>77</b><br />\n" +
+      '{"dsm":"save","v":2,"error":"not-writable"}';
+    await server(page, { post: { status: 200, contentType: "text/html", body } });
+    await unlock(page);
+    await info(page);
+    const before = await page.evaluate(() => JSON.stringify(window.DSM_INFO));
+    await page.fill("#i-note-de", "Mit Warnung");
+    await page.click("#i-dl");
+    await expect(flag(page)).toHaveText(/^Speichern auf der Website hat nicht geklappt \(HTTP 200: Warning: rename\(\/x\/\.info\.js\.new,\/x\/info\.js\): Is a directory in \/x\/save\.php on line 77/);
+    await expect(flag(page)).toHaveClass(/warn/);
+    expect(await page.evaluate(() => JSON.stringify(window.DSM_INFO))).toBe(before);
   });
 
   test("save.php without the access file: note, folder route as before", async ({ page }) => {
