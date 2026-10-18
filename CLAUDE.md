@@ -6,6 +6,11 @@ fixed files into `website/` (plain HTML/CSS/JS). Only server file: `save.php`.
 Client/user: Johann Bucher (volunteer at the DSM). Replies in German, no filler phrases, no emojis.
 Code, comments, identifiers, data formats and docs are English (since 2026-10-17); UI texts stay German/Italian.
 
+**NEVER RUN TESTS LOCALLY (Johann, 2026-10-18, absolute).** No `npm test`, `npm run test:e2e`, `test:all`, `test:live`,
+`npx playwright …`, `node --test …` on Johann's Mac – not even a single spec, not "just quickly", not to compare. It overloads the
+Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh run watch <id> --exit-status` /
+`gh run view <id> --log-failed`. `npm run build`, `npm run books`, `encrypt` stay local (they produce committed files, they are no tests).
+
 ## Folders
 
 - `website/` – ONLY this folder will go onto the webspace (https, FTP; no webspace exists yet). Built files are committed.
@@ -45,7 +50,7 @@ npm run local          # like the webspace: PHP + real save.php, watch, password
 npm run tunnel:php     # local + public https address, writes to tests/.tmp/local/data/, random password; both live reload
 npm run ui:add -- <n>  # new shadcn component (adapt it to DSM afterwards!)
 node tools/encrypt-admin.js   # after EVERY change to tools/source/* (asks for the password without echo); = npm run encrypt
-npm test / test:e2e / test:all / test:live   # unit ~15 s / Playwright ~1.5 min / both / via its own tunnel ~3.5 min
+git push && gh run watch <id> --exit-status   # the ONLY way to test (GitHub Actions); npm test / test:e2e / test:all only run there
 ```
 
 The admin password is deliberately in no file: ask Johann, don't guess, don't write it down. Whatever the admin app imports
@@ -138,7 +143,7 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 ## Technology
 
 - `react`/`react-dom` → `preact/compat` (bundle halved, ≈205 KB / 68 KB gzip). Preact 10 fails with Radix (ref as a prop →
-  getComputedStyle error). On a Preact/Radix update run `npm run test:all`.
+  getComputedStyle error). On a Preact/Radix update push and let CI run all tests.
 - One entry per page (`src/{library,admin}/main.jsx`) as an IIFE, fixed name (no hash: FTP replaces files).
   Mounting into `#page` replaces the skeleton, first render via `flushSync`. Stores via `useSyncExternalStore` (`lib/language`,
   `lib/appearance`, `library/choice`); texts per module via `addStrings({de, it})`.
@@ -192,13 +197,21 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 
 ## Checking
 
-After every change `npm run build` + `npm run test:all`. `tests/unit/`: whitelist via SQL spy (`helpers/testdb.js`), covers,
+After every change `npm run build` (local), commit, push, CI green (tests never locally, see top). `tests/unit/`: whitelist via SQL spy (`helpers/testdb.js`), covers,
 encryption, save.php, build byte-exact against website/, data formats, data migration, hard rules (`rules.test.js`), tunnel.
 - The save test needs `php` in the PATH or `DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56"`, otherwise skipped.
-- `DSM_ADMIN_PW=… npm test` additionally checks admin.enc.js. `real-db.test` only with `data/*.winbook` (or `DSM_DB=…`; states only counts).
+- With `DSM_ADMIN_PW` (CI: repository secret) the unit tests additionally check admin.enc.js. `real-db.test` only with `data/*.winbook` (or `DSM_DB=…`; states only counts).
 - E2E: the admin tests encrypt the sources with "test-password"; admin import byte-identical to `npm run books`; cover APIs mocked.
 - Live: `brew install cloudflared`, a foreign address via `DSM_LIVE_URL=https://…`. The tunnel is public: only website/ without
   dot files, `*.php`, `backup/`; own Node server with `no-store` (Cloudflare caches `.js`/`.css` otherwise).
+- GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
+  runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` (Chromium, `CI` = 2 workers, 1 retry,
+  traces as artifact `playwright-results` on failure), `npm audit --audit-level=high` and save.test once more on PHP 7.1
+  (promised minimum). Also Mondays 06:00 UTC (only from `origin/main`). Tests only, NO deploy. `build.test` has a gzip size
+  budget per built file – raise it deliberately, not to silence it. Results: `gh run list`, `gh run watch`,
+  `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.
+  CI is the ONLY test run (no local tests, see top). `DSM_ADMIN_PW`/`real-db`/`test:live` checks therefore do not run for now.
+  E2E takes ≈5 min on the 2-core runner; under heavy parallel load the swipe/close tests can flake (retry 1 catches it).
 
 ## Integrating branches (mandatory at the end of every task)
 
@@ -206,7 +219,8 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
 `--no-ff` merge into the local `main` (main checkout). `main` is always uploadable, i.e. working.
 1. Commit in the worktree, `git merge main`, resolve conflicts **there** (never in `main`): source/CLAUDE.md/LIESMICH by content;
    `admin.enc.js` encrypt again, built files `npm run build`, `books.js` `npm run books`, `recommendations.js` by content.
-2. `npm run test:all` green, look at visible changes via `npm run serve`; `tools/source/*` changed → encrypt again. Commit.
+2. `tools/source/*` changed → encrypt again. Commit, `git push` the branch, GitHub Actions run green (`gh run watch`; never test
+   locally). Look at visible changes via `npm run serve`.
 3. ExitWorktree (`keep`), in the main checkout `npm run integrate -- worktree-<name>`. Aborts on an unclean main checkout,
    uncommitted changes, a conflict, a syntax error in `website/**.js`/`tools/**.js` → fix in the worktree, again. If ONLY the
    three data files are changed in the main checkout (admin page via folder access = intended content), it takes them over

@@ -52,20 +52,19 @@ test.describe("first visit", () => {
     expect(await pref(page)).toEqual({ want: false, group: null });
   });
 
-  for (const [g, label] of [["middle", "Mittelstufe"], ["upper", "Oberstufe"]]) {
-    test(`yes → ${label} → recommendations visible`, async ({ page }) => {
-      await open(page);
-        await ask(page).locator('[data-a="yes"]').click();
-      await expect(ask(page).locator("#ask-t")).toHaveText("Für wen?");
-      await expect(ask(page).locator(".choice b")).toHaveText(["Mittelstufe", "Oberstufe", "Erwachsenenliteratur"]);
-      await ask(page).locator(`.choice[data-g="${g}"]`).click();
-      await expect(ask(page)).toBeHidden();
-      expect(await pref(page)).toEqual({ want: true, group: g });
-      await expect(page.locator("#recs")).toBeVisible();
-      await expect(page.locator("#recs-open small")).toHaveText(label);
-      await expect(page.locator("#recs .rec .rt b")).toHaveText(R.groups[g].map(r => r.t));
-    });
-  }
+  // Oberstufe takes the same path (only data-g differs); switching groups is covered by "settings: change the group"
+  test("yes → Mittelstufe → recommendations visible", async ({ page }) => {
+    await open(page);
+    await ask(page).locator('[data-a="yes"]').click();
+    await expect(ask(page).locator("#ask-t")).toHaveText("Für wen?");
+    await expect(ask(page).locator(".choice b")).toHaveText(["Mittelstufe", "Oberstufe", "Erwachsenenliteratur"]);
+    await ask(page).locator('.choice[data-g="middle"]').click();
+    await expect(ask(page)).toBeHidden();
+    expect(await pref(page)).toEqual({ want: true, group: "middle" });
+    await expect(page.locator("#recs")).toBeVisible();
+    await expect(page.locator("#recs-open small")).toHaveText("Mittelstufe");
+    await expect(page.locator("#recs .rec .rt b")).toHaveText(R.groups.middle.map(r => r.t));
+  });
 
   test("adult literature → fiction / nonfiction / biographies, back works", async ({ page }) => {
     await open(page);

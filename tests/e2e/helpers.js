@@ -51,4 +51,34 @@ async function open(page, url = "index.html") {
   await page.locator("#list .row").first().or(page.locator("#list .empty")).waitFor();
 }
 
-module.exports = { test, expect: base.expect, open, data, hits, keyOf, TMP, IMAGE, OFF };
+// Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch)
+async function swipe(page, from, to, steps = 8) {
+  const cdp = await page.context().newCDPSession(page);
+  const point = y => [{ x: 195, y }];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from) });
+  for (let i = 1; i <= steps; i++) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(from + (to - from) * i / steps) });
+    await page.waitForTimeout(12);
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+}
+
+// Top edge of a sheet once it has come to rest, instead of a fixed wait for the spring: equal over 6 rendered frames.
+// Counted in frames, not ms: under load a transition only starts with the next frame, a pause in ms would see it unmoved.
+async function restingTop(locator) {
+  return locator.evaluate(d => new Promise(resolve => {
+    const top = () => Math.round(d.getBoundingClientRect().top);
+    let last = null, same = 0;
+    setTimeout(() => resolve(top()), 2000); // rAF may stall under heavy load: then at most as long as a fixed wait
+    const tick = () => {
+      const now = top();
+      same = now === last ? same + 1 : 0;
+      last = now;
+      if (same >= 6) resolve(now);
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
+}
+
+module.exports = { test, expect: base.expect, open, swipe, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };

@@ -1,5 +1,5 @@
 // Language DE/IT and settings (theme, larger text, high contrast)
-const { test, expect, open, data, hits } = require("./helpers.js");
+const { test, expect, open, swipe, restingTop, data, hits } = require("./helpers.js");
 
 const { B, C } = data();
 
@@ -153,30 +153,16 @@ test.describe("settings", () => {
 
 test.describe("settings sheet on the phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  async function swipe(page, from, to, steps = 8) {
-    const cdp = await page.context().newCDPSession(page);
-    const point = y => [{ x: 195, y }];
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from) });
-    for (let i = 1; i <= steps; i++) {
-      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(from + (to - from) * i / steps) });
-      await page.waitForTimeout(12);
-    }
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  }
   test("swiping: half, up = full screen, down = half, further down = closed", async ({ page }) => {
     await open(page);
     await page.click(".settings-btn");
     const sheet = page.locator(".settings[role=dialog]");
-    const top = () => sheet.evaluate(d => Math.round(d.getBoundingClientRect().top));
-    await page.waitForTimeout(700);
-    const half = await top();
+    const half = await restingTop(sheet);
     expect(half).toBeGreaterThan(100);
     await swipe(page, half + 20, 120);
-    await page.waitForTimeout(700);
-    expect(await top()).toBeLessThan(40);
+    expect(await restingTop(sheet)).toBeLessThan(40);
     await swipe(page, 200, 500);
-    await page.waitForTimeout(700);
-    expect(await top()).toBeGreaterThan(100);
+    expect(await restingTop(sheet)).toBeGreaterThan(100);
     await swipe(page, half + 20, 800);
     await expect(sheet).toBeHidden();
   });
