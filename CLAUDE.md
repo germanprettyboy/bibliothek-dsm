@@ -109,6 +109,13 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   (`useSwipe(scrimSel, onClose)`, class `swipe` on dialog + scrim; categories keep a constant height and go to full screen when
   the search field gets focus). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
   `main.books` uses `lvh` (not `dvh`) so the iOS toolbar/keyboard does not move the text while searching.
+- Announcement banner (2026-10-18, client; `src/components/announcement.jsx` view + `ColorDots`, `src/library/announcement.jsx`
+  logic): `aside#announce` above the header, full width, 1–2 lines (admin `maxLength` 140) on a cover-placeholder logo color
+  (anthracite text, on red white) or neutral (`surface` + line). Floats in 300 ms after the list arrived (grid 0fr→1fr + strip
+  from `translateY(-100%)`, .32 s `--snap`), pushes the page down; × (44 px, right) or Esc (not in a dialog/text field) collapses it
+  (`--t-base`, `--ease-in`), then removed; keyboard focus → `#q`. Closed = `dsm-announce`; new text shows again; `#preview` ignores it.
+  Admin: card `#i-ann` first in the info tab (`#i-ann-de/-it`, dots `#i-ann-color [data-color]`, `#i-ann-until`, live preview
+  `#i-ann-preview`, `#i-ann-clear`), published with info.js. Test: announcement.spec.
 - Dialogs (detail, settings, questions, opening hours, archive, categories): `Dialog` as `.glass.sheet`, scrim `.scrim` blurred +
   darker; phone bottom sheet, centered from 40rem. Blur always on, except "reduce transparency" and glass in high contrast.
 - Theme: default = device; settings automatic/light/dark, larger text, high contrast. Italian stays
@@ -184,10 +191,11 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   archive?:[{updated, topic?, groups}]}` (newest first, max. 40). Other books than published = new round (old one to the front
   of the archive, updated = today); only texts/topic → updated stays. `k` = norm(title)|norm(first author), norm: lower case,
   no accents, ß→ss, only a–z0–9 and spaces.
-- `info.js`: `{updated, hours:{mon..sat:[["HH:MM","HH:MM"]]}, notice:{de,it}, closures:[{type:"holiday"|"absent",from,to,de,it}]}`
-  (YYYY-MM-DD, to ≥ from; empty text → "Ferien" or "Bibliothek geschlossen").
+- `info.js`: `{updated, hours:{mon..sat:[["HH:MM","HH:MM"]]}, notice:{de,it}, closures:[{type:"holiday"|"absent",from,to,de,it}],
+  announcement?:{de,it,color:"neutral"|"mauve"|"yellow"|"orange"|"blue"|"red"|"green",until?}}`
+  (YYYY-MM-DD, to ≥ from; empty text → "Ferien" or "Bibliothek geschlossen"; announcement only with a text, past `until` = hidden).
 - localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-recs` (`{want, group}`), `dsm-cover-v3` (v2 is deleted),
-  `dsm-info-card`; admin: `dsm-recs-draft`, `dsm-info-draft`, `dsm-preview(-recs|-info)` (index.html#preview), IndexedDB
+  `dsm-info-card`, `dsm-announce` (FNV-1a hash of the closed announcement's de|it texts); admin: `dsm-recs-draft`, `dsm-info-draft`, `dsm-preview(-recs|-info)` (index.html#preview), IndexedDB
   `dsm-admin`/`kv`/`website` = folder handle. Log: `dsm-log` ("off"), sessionStorage `dsm-log-history` (500).
   head.js/logger.js migrate the old keys once (`dsm-empf` with group ids, `dsm-info-karte`, `dsm-protokoll`) and drop old drafts/previews.
 - logger.js captures interactions, dialogs (reported by `components/glass-dialog.jsx`), network, storage, errors. Own entries:

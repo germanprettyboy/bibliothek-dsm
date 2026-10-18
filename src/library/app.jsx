@@ -9,6 +9,7 @@ import { loadBooks, prepare, keyOf, previewRecs, previewInfo, previewBooks } fro
 import { Detail } from "@/library/detail";
 import { Recommendations, Archive, RecommendationSettings, Questions } from "@/library/recommendations";
 import { InfoCard, InfoDialog } from "@/library/info";
+import { Announcement } from "@/library/announcement";
 import { BookList } from "@/library/list";
 import { getChoice } from "@/library/choice";
 
@@ -59,6 +60,7 @@ export function App() {
           <a href="./" className="font-semibold whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
         </div>
       </div>
+      <Announcement I={I} ready={loaded} />
       <Header onSettings={() => setDialog("settings")} />
       <section className="wrap intro pt-2 pb-4 sm:pt-3 sm:pb-5">
         <h1 className="m-0 text-l font-semibold leading-[1.1] [text-wrap:balance]">{t("title")}</h1>

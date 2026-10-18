@@ -483,6 +483,37 @@ test.describe("publishing directly into the website folder", () => {
     expect(b.updated).toBe(a.updated);
   });
 
+  test("announcement: text, color dot, end date, live preview → info.js; removing it drops the field", async ({ page }) => {
+    await unlock(page);
+    await info(page);
+    await expect(page.locator("#i-ann-preview")).toHaveCount(0);
+    await expect(page.locator("#i-ann .note")).toHaveText("Ohne Text erscheint kein Banner.");
+    await page.fill("#i-ann-de", "  Heute ab 12 Uhr geschlossen.  ");
+    await page.fill("#i-ann-it", "Oggi chiusa dalle 12.");
+    // dots: neutral chosen, arrow keys move the choice (radio group)
+    await expect(page.locator('#i-ann-color [data-color="neutral"]')).toHaveAttribute("aria-checked", "true");
+    await page.locator('#i-ann-color [data-color="red"]').click();
+    await expect(page.locator('#i-ann-color [data-color="red"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator('#i-ann-color [role="radio"]')).toHaveCount(7);
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator('#i-ann-color [data-color="green"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator("#i-ann-color-t")).toContainText("Grün");
+    const bar = page.locator("#i-ann-preview .announce-bar");
+    await expect(bar).toHaveAttribute("data-color", "green");
+    await expect(bar).toContainText("Heute ab 12 Uhr geschlossen.");
+    await page.fill("#i-ann-until", "2099-12-31");
+    let d = evaluate(await save(page, "#i-dl"), "DSM_INFO");
+    expect(d.announcement).toEqual({ de: "Heute ab 12 Uhr geschlossen.", it: "Oggi chiusa dalle 12.", color: "green", until: "2099-12-31" });
+    // a past date is flagged
+    await page.fill("#i-ann-until", "2020-01-01");
+    await expect(page.locator("#i-ann .warn")).toHaveText("Datum vorbei – der Banner wird nicht mehr angezeigt.");
+    // remove: no announcement in info.js any more
+    await page.click("#i-ann-clear");
+    await expect(page.locator("#i-ann-de")).toHaveValue("");
+    await page.click("#i-dl");
+    await expect.poll(async () => { const x = await folderData(page, "info.js", "DSM_INFO"); return x && !("announcement" in x); }).toBe(true);
+  });
+
   test("Italian", async ({ page }) => {
     await unlock(page);
     await info(page);

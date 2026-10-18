@@ -1,4 +1,5 @@
-/* Tab "info": opening hours (up to two time ranges per day), notice DE/IT, holidays and absences.
+/* Tab "info": announcement banner (text DE/IT, color, optional end), opening hours (up to two time ranges per day),
+   notice DE/IT, holidays and absences.
    Draft in the browser (localStorage dsm-info-draft), published as info.js. */
 import * as React from "react";
 import { PlusIcon, XIcon } from "lucide-react";
@@ -8,6 +9,7 @@ import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/ca
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AnnouncementBar, ColorDots, ANNOUNCE_COLORS, announceColor } from "@/components/announcement";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
@@ -18,10 +20,15 @@ const IDAYS = ["mon", "tue", "wed", "thu", "fri", "sat"];
 const IDRAFT = "dsm-info-draft";
 const HHMM = /^\d{2}:\d{2}$/, YMD = /^\d{4}-\d{2}-\d{2}$/;
 const today = () => new Date().toLocaleDateString("sv-SE");
+const ANN_MAX = 140; // one or two lines on the phone
 export function normInfo(x) {
-  const o = { hours: {}, notice: { de: "", it: "" }, closures: [] };
+  const o = { hours: {}, notice: { de: "", it: "" }, closures: [], announcement: { de: "", it: "", color: "neutral", until: "" } };
   IDAYS.forEach(k => { o.hours[k] = (x && x.hours && Array.isArray(x.hours[k]) ? x.hours[k] : []).slice(0, 2).map(r => [r[0] || "", r[1] || ""]); });
   if (x && x.notice) o.notice = { de: x.notice.de || "", it: x.notice.it || "" };
+  if (x && x.announcement) {
+    const a = x.announcement;
+    o.announcement = { de: a.de || "", it: a.it || "", color: announceColor(a.color), until: YMD.test(a.until || "") ? a.until : "" };
+  }
   if (x && Array.isArray(x.closures)) {
     o.closures = x.closures.map(c => ({ type: c.type === "absent" ? "absent" : "holiday", from: c.from || "", to: c.to || "", de: c.de || "", it: c.it || "" }));
   }
@@ -44,11 +51,18 @@ function infoOut(info) {
   const closures = info.closures.filter(c => YMD.test(c.from))
     .map(c => ({ type: c.type, from: c.from, to: endOf(c), de: c.de.trim(), it: c.it.trim() }))
     .sort((a, b) => (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
-  return { updated: today(), hours, notice: { de: info.notice.de.trim(), it: info.notice.it.trim() }, closures };
+  const out = { updated: today(), hours, notice: { de: info.notice.de.trim(), it: info.notice.it.trim() }, closures };
+  // Announcement only with a text; without one there is no banner
+  const a = info.announcement, de = a.de.trim(), it = a.it.trim();
+  if (de || it) {
+    out.announcement = { de, it, color: announceColor(a.color) };
+    if (YMD.test(a.until)) out.announcement.until = a.until;
+  }
+  return out;
 }
 
 export function Info({ info, setInfo }) {
-  const { t, nf } = useLanguage();
+  const { t, nf, lang } = useLanguage();
   const [armed, setArmed] = React.useState(false);
   const [order, setOrder] = React.useState(() => sorted(info.closures));
   const focus = React.useRef(null), box = React.useRef(null), resort = React.useRef(false);
@@ -56,7 +70,7 @@ export function Info({ info, setInfo }) {
   const change = (fn, sortAgain) => {
     if (sortAgain) resort.current = true;
     setInfo(old => {
-      const n = { hours: { ...old.hours }, notice: { ...old.notice }, closures: old.closures.map(c => ({ ...c })), changed: true };
+      const n = { hours: { ...old.hours }, notice: { ...old.notice }, closures: old.closures.map(c => ({ ...c })), announcement: { ...old.announcement }, changed: true };
       IDAYS.forEach(k => { n.hours[k] = old.hours[k].map(r => r.slice()); });
       fn(n);
       return n;
@@ -100,11 +114,51 @@ export function Info({ info, setInfo }) {
       done: () => { window.DSM_INFO = out; },
     };
   };
+  const ann = info.announcement;
+  const annText = (ann[lang] || ann.de || ann.it).trim();
+  const annPast = YMD.test(ann.until) && ann.until < today();
+  const colorNames = Object.fromEntries(ANNOUNCE_COLORS.map(c => [c, t("c_" + c)]));
   const time = "h-10 w-28 px-2.5";
   const mini = "size-[34px] rounded-md";
 
   return (
     <div className="steps grid gap-3.5 pb-10" id="tab-info" ref={box}>
+      <Card id="i-ann">
+        <CardTitle>{t("iAnnT")}</CardTitle>
+        <CardDescription>{t("iAnnP")}</CardDescription>
+        <div className="mt-1 grid gap-3">
+          {["de", "it"].map(l => (
+            <Label key={l}>
+              <span>{t(l === "de" ? "eTeaserDe" : "eTeaserIt")}</span>
+              <Textarea id={"i-ann-" + l} rows={2} maxLength={ANN_MAX} value={ann[l]} onChange={e => change(d => { d.announcement[l] = e.target.value; })} />
+            </Label>
+          ))}
+          <div className="grid gap-1.5 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-4">
+            <div className="grid gap-1">
+              <span className="text-s font-medium" id="i-ann-color-t">{t("iAnnColor")} <span className="font-normal text-muted-foreground">· {colorNames[announceColor(ann.color)]}</span></span>
+              <ColorDots id="i-ann-color" className="-ml-2" aria-labelledby="i-ann-color-t" labels={colorNames} value={ann.color}
+                onValueChange={v => v && change(d => { d.announcement.color = v; })} />
+            </div>
+            <Label>{t("iAnnUntil")}
+              <Input type="date" id="i-ann-until" className="h-10 px-2.5 sm:w-44" value={ann.until} onChange={e => change(d => { d.announcement.until = e.target.value; })} />
+            </Label>
+          </div>
+          <span className="warn text-s font-medium text-red" hidden={!annPast}>{annPast ? t("iAnnPast") : ""}</span>
+          <div className="grid gap-1.5">
+            <span className="text-s font-medium text-muted-foreground">{t("iAnnPreview")}</span>
+            {annText ? (
+              <div className="overflow-hidden rounded-lg shadow-[inset_0_0_0_1px_var(--line)]" id="i-ann-preview" inert>
+                <AnnouncementBar text={annText} color={ann.color} closeLabel={t("annClose")} />
+              </div>
+            ) : <p className="note m-0 text-s text-muted-foreground">{t("iAnnNone")}</p>}
+          </div>
+        </div>
+        {annText ? (
+          <CardFooter className="mt-3">
+            <Button variant="outline" size="sm" id="i-ann-clear" onClick={() => change(d => { d.announcement.de = ""; d.announcement.it = ""; d.announcement.until = ""; })}>{t("iAnnClear")}</Button>
+          </CardFooter>
+        ) : null}
+      </Card>
       <Card>
         <CardTitle>{t("iHoursT")}</CardTitle>
         <CardDescription>{t("iHoursP")}</CardDescription>

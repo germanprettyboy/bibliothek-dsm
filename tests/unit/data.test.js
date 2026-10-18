@@ -97,4 +97,11 @@ describe("info.js", { skip: !I && "website/info.js is missing (not committed)" }
   test("notice DE/IT as text", () => {
     if (I.notice) for (const l of ["de", "it"]) assert.equal(typeof (I.notice[l] ?? ""), "string");
   });
+  test("announcement: text DE/IT, known color, optional end date", { skip: !I.announcement && "no announcement" }, () => {
+    const a = I.announcement;
+    assert.ok((a.de || a.it || "").trim(), "announcement without text");
+    for (const l of ["de", "it"]) assert.equal(typeof (a[l] ?? ""), "string");
+    assert.ok(["neutral", "mauve", "yellow", "orange", "blue", "red", "green"].includes(a.color), a.color);
+    if (a.until) assert.match(a.until, ISO);
+  });
 });
