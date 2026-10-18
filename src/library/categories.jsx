@@ -63,7 +63,7 @@ export function categoryModel(books) {
     const it = lang === "it" && PART_IT.exec(categoryName(k, lang));
     return it ? it[2] : m[2];
   };
-  // Display of the selection (chip above the list)
+  // Display of the selection (accessible name of the filter button)
   const label = (id, lang, t) => {
     if (!id) return "";
     const w = id.slice(2), g = groups.get(parentOf(w));
@@ -71,7 +71,26 @@ export function categoryModel(books) {
     if (g && real.has(g.parent) && !PART.test(w)) return `${parentName(g, lang)} – ${t("catGeneral")}`;
     return categoryName(w, lang);
   };
-  return { groups: [...groups.values()], real, test, parentName, subName, label };
+  // Short form next to the filter icon: the label if it fits, otherwise the subcategory, squeezed to one word
+  const short = (id, lang, t) => {
+    const full = label(id, lang, t), w = id ? id.slice(2) : "";
+    if (full.length <= SHORT) return full;
+    const g = groups.get(parentOf(w));
+    return oneWord(id.startsWith("c:") && g && real.has(g.parent) && PART.test(w) ? subName(w, lang, t) : full);
+  };
+  return { groups: [...groups.values()], real, test, parentName, subName, label, short };
+}
+
+// One word for a long name: its first part (before ":", ",", " - ", "/", "und"/"e", "&"), if that is still too long
+// its longest word, nouns (capitalized) preferred – "Wichtige Herrschergeschlechter im Mittelalter" → "Herrschergeschlechter"
+const SHORT = 18;
+export function oneWord(s) {
+  s = s.replace(/\s*\(.*?\)/g, "");
+  if (s.length <= SHORT) return s;
+  const first = s.split(/:\s|,\s|\s[-–]\s|\s?\/\s?|\s&\s|(?<!-)\s(?:und|e)\s/)[0];
+  if (first.length <= SHORT) return first;
+  const words = first.split(/\s+/), caps = words.filter(x => /^\p{Lu}/u.test(x));
+  return (caps.length ? caps : words).reduce((a, x) => x.length >= a.length ? x : a, "");
 }
 
 function Entry({ id, choice, onChoice, title, n, sub, parent }) {

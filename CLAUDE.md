@@ -69,7 +69,9 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 - Category filter (`src/library/categories.jsx`): `#cat-btn` next to the search (phone icon only, from 40rem "Kategorie") →
   glass dialog with search field `#cat-q`, all categories with counts (`[data-cat]` = `all` | `g:<parent>` | `c:<category>`).
   ≥2 categories sharing the part before " - "/": " = group (the parent selects all, subcategories indented, a category that is
-  only the parent term = "allgemein"). One choice, chip `.cat-chip` below the search (`#cat-clear` clears it), works together
+  only the parent term = "allgemein"). One choice: `.cat-pill.on` = dark pill [filter | divider | × `#cat-clear`], same size each; the × slides out
+  (grid 0fr→1fr, after the dialog's fade-out), the search gives way; from 40rem hover/focus on the filter reveals the category
+  (`.cat-label`, ≤18 characters, otherwise one word via `oneWord`), full name only in `aria-label`. Works together
   with the search ("n Treffer"), not saved. Books without a category (≈1,500) only under "Alle Bücher".
 - Admin page: no line "Aktuell veröffentlicht …", no "Entwurf im Browser gespeichert" (only `#i-state` for incomplete info
   data), no counters "(4)", no privacy notices. `#rec-groups` = `ToggleGroup` variant `surface` (wraps);

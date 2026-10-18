@@ -218,6 +218,36 @@
   main.books { min-height: calc(100vh - var(--bar-h)); min-height: calc(100lvh - var(--bar-h)); } /* lvh: does not change when the iOS toolbar / keyboard moves, the text no longer jumps */
   .search input::-webkit-search-cancel-button { display: none; }
 
+  /* Category filter next to the search: one button; with a choice a dark pill [filter | ×]. The × slides out from
+     under the filter once the dialog is gone, the search gives way. From 40rem the filter shows "Kategorie"; with a
+     choice the category (one word) slides out on hover/focus. Widths via grid 0fr → 1fr. */
+  .cat-pill {
+    display: flex; flex: none; height: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg);
+    transition: border-color var(--t-base), background-color var(--t-base), color var(--t-base);
+  }
+  .cat-pill:not(.on, .off):hover { border-color: var(--fg); }
+  .cat-pill.on { border-color: var(--fg); background: var(--fg); color: var(--bg); transition-delay: var(--t-out); }
+  .cat-pill.off { opacity: .5; }
+  .cat-pill button { display: flex; align-items: center; height: 46px; padding: 0; border: 0; border-radius: 11px; background: transparent; color: inherit; font: inherit; font-weight: 500; }
+  .cat-pill button:disabled { cursor: default; }
+  .cat-pill button:focus-visible { outline-offset: -4px; }
+  .cat-pill.on button:focus-visible { outline-color: currentColor; }
+  #cat-btn { padding: 0 14px; }
+  .cat-label, .cat-x { display: grid; grid-template-columns: 0fr; transition: grid-template-columns var(--t-base) var(--ease); }
+  .cat-label > span, .cat-x > span { display: flex; min-width: 0; overflow: hidden; }
+  .cat-label > span > span { padding-left: 8px; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-div { flex: none; width: 1px; margin: 11px 0; background: currentColor; opacity: .35; }
+  #cat-clear { flex: none; justify-content: center; width: 46px; opacity: 0; transform: translateX(-100%); transition: transform var(--t-base) var(--ease), opacity var(--t-fast); }
+  #cat-clear:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+  .cat-pill.on .cat-x { grid-template-columns: 1fr; transition-delay: var(--t-out); }
+  .cat-pill.on #cat-clear { opacity: 1; transform: none; transition-delay: var(--t-out); }
+  @media (min-width: 40rem) {
+    .cat-pill:not(.on) .cat-label, .cat-pill.on #cat-btn:focus-visible .cat-label { grid-template-columns: 1fr; }
+  }
+  @media (min-width: 40rem) and (hover: hover) {
+    .cat-pill.on #cat-btn:hover .cat-label { grid-template-columns: 1fr; }
+  }
+
   /* A–Z bar: only from tablet width (iPad, 768 px) */
   .index { display: none; }
   @media (min-width: 48rem) {
@@ -549,4 +579,5 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   html { scroll-behavior: auto; }
+  .cat-pill.on, .cat-pill.on .cat-x, .cat-pill.on #cat-clear { transition-delay: 0s !important; }
 }
