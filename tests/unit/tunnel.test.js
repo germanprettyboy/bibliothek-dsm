@@ -24,6 +24,8 @@ before(async () => {
   fs.writeFileSync(path.join(SITE, "save-access.php"), "<?php return 'secret';");
   fs.mkdirSync(path.join(SITE, "backup"), { recursive: true });
   fs.writeFileSync(path.join(SITE, "backup", "info.js"), "secret");
+  fs.mkdirSync(path.join(SITE, "sicherung"), { recursive: true });
+  fs.writeFileSync(path.join(SITE, "sicherung", "info.js"), "secret");
   T = await import(path.join(ROOT, "tools", "tunnel.mjs"));
   server = T.staticServer(SITE);
   await new Promise(ok => server.listen(0, "127.0.0.1", ok));
@@ -56,7 +58,7 @@ test("serves files with the right type and always no-store (Cloudflare caches .j
 test("nothing outside the folder, no dot files, no PHP source, no directory listing", async () => {
   for (const p of ["/../secret.txt", "/%2e%2e/secret.txt", "/..%2fsecret.txt", "/assets/../../secret.txt",
     "/.htaccess", "/.git/config", "/assets/%2e%2e/.htaccess", "/save-access.php", "/SAVE-ACCESS.PHP",
-    "/backup/info.js", "/assets/", "/missing.js", "/%E0%A4%A"]) {
+    "/backup/info.js", "/BACKUP/info.js", "/sicherung/info.js", "/assets/", "/missing.js", "/%E0%A4%A"]) {
     const r = await fetchRaw(p);
     assert.equal(r.status, 404, p);
     assert.doesNotMatch(r.body, /secret/, p);
