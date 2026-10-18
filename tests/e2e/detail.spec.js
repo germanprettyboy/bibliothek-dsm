@@ -1,7 +1,7 @@
 // Detail view with cover (Open Library / Google Books mocked), placeholder, closing.
 const fs = require("fs");
 const path = require("path");
-const { test, expect, open, data } = require("./helpers.js");
+const { test, expect, open, swipe, restingTop, data } = require("./helpers.js");
 
 const { B } = data();
 const WITH_ISBN = B.books.find(b => b.i && b.p && b.y && b.c && b.l && b.a);
@@ -211,31 +211,17 @@ test.describe("detail on the phone", () => {
     expect(box.x).toBeGreaterThanOrEqual(0);
   });
 
-  // Swiping via CDP touch: sheet half-high, up = full screen, down = half, further down = close
-  async function swipe(page, from, to, steps = 8) {
-    const cdp = await page.context().newCDPSession(page);
-    const point = y => [{ x: 195, y }];
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from) });
-    for (let i = 1; i <= steps; i++) {
-      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: point(from + (to - from) * i / steps) });
-      await page.waitForTimeout(12);
-    }
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  }
-  const top = page => page.locator("#detail").evaluate(d => Math.round(d.getBoundingClientRect().top));
+  // Sheet half-high, up = full screen, down = half, further down = close
   test("swiping: half, up = full screen, down = half, further down = closed", async ({ page }) => {
     await open(page);
     await openBook(page, WITH_ISBN);
-    await page.waitForTimeout(700);
-    const half = await top(page);
+    const sheet = page.locator("#detail");
+    const half = await restingTop(sheet);
     expect(half).toBeGreaterThan(150);
     await swipe(page, half + 20, 120);
-    await page.waitForTimeout(700);
-    const full = await top(page);
-    expect(full).toBeLessThan(40);
+    expect(await restingTop(sheet)).toBeLessThan(40);
     await swipe(page, 200, 500);
-    await page.waitForTimeout(700);
-    expect(await top(page)).toBeGreaterThan(150);
+    expect(await restingTop(sheet)).toBeGreaterThan(150);
     await swipe(page, half + 20, 800);
     await expect(page.locator("#detail")).toBeHidden();
   });

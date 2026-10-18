@@ -1,0 +1,89 @@
+# Tests on GitHub Actions: unit (node --test, incl. save.php with the runner's PHP) and E2E (Playwright, Chromium).
+# Runs on every push (all branches) and by hand (Actions → Tests → Run workflow).
+# Skipped as locally: real-db.test (data/*.winbook is never committed), data.test info.js (website/info.js not committed),
+# encryption "is current" (only if the repository secret DSM_ADMIN_PW exists – optional, see CLAUDE.md "Checking").
+name: Tests
+
+on:
+  push:
+    paths-ignore:
+      - "docs/**"
+      - "anleitung/**"
+      - "**.md"
+      - "website/LIESMICH.txt"
+  # Weekly, so new npm advisories show up without a push (GitHub mails a failed run)
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the older run
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  unit:
+    name: Unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: PHP version (save.test)
+        run: php -v
+      - run: npm test
+        env:
+          DSM_ADMIN_PW: ${{ secrets.DSM_ADMIN_PW }}
+      # Known vulnerabilities in npm packages (runtime ones end up in library.js); high/critical fails the run
+      - run: npm audit --audit-level=high
+      # save.php promises PHP >= 7.1 (webspace PHP version unknown): syntax + save.test again on the oldest version.
+      # Same job on purpose: GitHub bills every job rounded up to a full minute.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "7.1"
+          coverage: none
+      - name: save.php on PHP 7.1
+        run: php -l website/save.php && node --test tests/unit/save.test.js
+
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      # Browser download is skipped on a cache hit; --with-deps still installs the system libraries
+      - run: npx playwright install --with-deps chromium
+      - name: CPU cores (Playwright workers)
+        run: nproc
+      - run: npm run test:e2e
+      - name: Traces of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: tests/.tmp/results/
+          retention-days: 7
+          if-no-files-found: ignore
