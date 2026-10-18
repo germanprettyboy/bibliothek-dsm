@@ -105,9 +105,8 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   there; after 6 s "Langsame Verbindung". library.js loads BEFORE books.js; books.js reports via a setter on `window.DSM_LIBRARY`.
   Placeholders for everything that loads later: covers (until loaded), logo (`.ld-img`, `.loaded` on load/error), info card (if
   shown last time, `dsm-info-card`), unlock button (spinner until admin.js has loaded, while checking). Fonts `font-display: swap`.
-- First visit: overlay, first "Sprache · Lingua" (fixed bilingual, Deutsch/Italiano, the current one highlighted, → `dsm-lang`;
-  shelf `.shelf` in logo colors, without a baseline) → "Möchten Sie Buchempfehlungen sehen?" (from here "Zurück" at the top;
-  yes/no stacked on the phone) → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher / Biografien & Geschichte.
+- First visit: overlay, no language question (removed 2026-10-18; language = device, switch top right; shelf `.shelf` in logo
+  colors, without a baseline) "Möchten Sie Buchempfehlungen sehen?" (yes/no stacked on the phone; from the next step "Zurück" at the top) → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher / Biografien & Geschichte.
   Saved in `dsm-recs`. No progress bar (removed 2026-10-17). On opening focus goes to the dialog (`.pane`, tabIndex -1), not to a
   button – Chrome would otherwise show the focus ring right on load. Settings: the same choice as a list, blocks with spacing,
   the adult areas in one block.
