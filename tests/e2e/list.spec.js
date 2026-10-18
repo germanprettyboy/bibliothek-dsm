@@ -113,7 +113,7 @@ test.describe("search", () => {
     await search(page, "qqqxyzzz");
     await expect(page.locator("#list .empty strong")).toHaveText("Kein Buch gefunden");
     await expect(page.locator("#meta")).toHaveText("0 Treffer");
-    await expect(page.locator('#index a[aria-disabled="false"]')).toHaveCount(0);
+    await expect(page.locator("#index button:enabled")).toHaveCount(0);
   });
 
   test("the clear button and Escape reset", async ({ page }) => {
@@ -140,15 +140,36 @@ test.describe("search", () => {
 });
 
 test.describe("A–Z bar (from 768 px)", () => {
-  test("desktop: visible, jump to a letter, current letter marked", async ({ page }) => {
+  test("desktop: a letter filters the list, the same letter again lifts the filter", async ({ page }) => {
     await open(page);
     await expect(page.locator("#index")).toBeVisible();
-    await expect(page.locator("#index a")).toHaveCount(27);
-    await page.click('#index a[data-l="M"]');
-    await expect(page.locator('#index a[data-l="M"]')).toHaveClass(/on/);
-    const top = await page.locator("#L-M").evaluate(el => el.getBoundingClientRect().top);
-    const bar = await page.locator("#bar").evaluate(el => el.getBoundingClientRect().bottom);
-    expect(Math.abs(top - bar)).toBeLessThan(60);
+    await expect(page.locator("#index button")).toHaveCount(27);
+    const n = await page.evaluate(() => window.DSM_LIBRARY.books.filter(b => b._l === "M").length);
+    expect(n).toBeGreaterThan(0);
+    const m = page.locator('#index button[data-l="M"]');
+    await m.click();
+    await expect(m).toHaveClass(/on/);
+    await expect(m).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#list .row")).toHaveCount(n);
+    await expect(page.locator("#meta")).toHaveText(`${n.toLocaleString("de-DE")} Treffer`);
+    expect(await page.locator("#list ul[data-l]").evaluateAll(us => us.map(u => u.id))).toEqual(["L-M"]);
+    await m.click();
+    await expect(m).not.toHaveClass(/on/);
+    await expect(page.locator("#list .row")).toHaveCount(B.books.length);
+    await expect(page.locator("#meta")).toHaveText(`${B.books.length.toLocaleString("de-DE")} Bücher`);
+  });
+
+  test("desktop: letter and search work together, the search disables absent letters", async ({ page }) => {
+    await open(page);
+    await page.fill("#q", "harry potter");
+    await expect(page.locator("#meta")).toHaveText(/Treffer/);
+    const enabled = await page.locator("#index button:enabled").evaluateAll(bs => bs.map(b => b.dataset.l));
+    expect(enabled).toContain("H");
+    expect(enabled.length).toBeLessThan(27);
+    await page.click('#index button[data-l="H"]');
+    const n = await page.evaluate(() => window.DSM_LIBRARY.books.filter(b => b._l === "H" && b._s.includes("harry") && b._s.includes("potter")).length);
+    expect(n).toBeGreaterThan(0);
+    await expect(page.locator("#list .row")).toHaveCount(n);
   });
 
   test("visible at 768 px, not at 767 px", async ({ page }) => {

@@ -63,7 +63,9 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   large covers. The card's head opens "Bisherige Empfehlungen": timeline newest round first (date, "Aktuell", topic),
   below it the books of the chosen group with text; click → detail on top.
 - The search bar sticks opaquely at the top; while searching, hits start right below it (`main.books` at least screen-high).
-  A–Z bar only from 48rem, below that a letter floater on the right (only while scrolling).
+  A–Z bar only from 48rem, below that a letter floater on the right (only while scrolling). The A–Z bar FILTERS by initial
+  letter (2026-10-18, client; no jump): `#index button[data-l]`, `aria-pressed`/`.on`, the same letter again lifts it; works
+  together with search and category ("n Treffer"), letters absent under them disabled, not saved.
 - Category filter (`src/library/categories.jsx`): `#cat-btn` next to the search (phone icon only, from 40rem "Kategorie") →
   glass dialog with search field `#cat-q`, all categories with counts (`[data-cat]` = `all` | `g:<parent>` | `c:<category>`).
   ≥2 categories sharing the part before " - "/": " = group (the parent selects all, subcategories indented, a category that is
@@ -126,7 +128,7 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   shadcn color names (`background`, `foreground`, `muted-foreground`, `border`, `primary`, `surface` …) and logo colors (`mauve`,
   `yellow`, `orange`, `blue`, `red`, `green`; plus `anthracite`). `--spacing: 4px` (`p-3` = 12 px). No `dark:`.
 - Grid: cards (info, recommendations also on the phone, settings blocks, detail text) = `.card` (16 px radius, `surface`,
-  inner line, `p-4`); blocks above the list `pb-4`; search field 48 px, radius 12 px; logo 44 px / 60 px.
+  inner line, `p-4`); blocks above the list `pb-4`; search field 48 px, radius 12 px; logo 44 px / 60 px, square corners (no radius on `.ld-img`, client 2026-10-18).
 - Accessible: targets ≥44 px (`size="icon"` 44, `icon-sm` 40), focus 2 px in the text color (`--focus`), skip link `a[href="#q"]`,
   info card without `aria-label`, invisible list heading `#list-t`.
 - shadcn after `ui:add`: `cn` from `@/lib/utils`, no `text-sm`/`text-xs`, no `underline`, no `dark:` (rules.test checks).
@@ -148,7 +150,7 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 
 - List (~17,000 elements): `#list > .rows > ul` chunks ≤40 books, every letter starts a new one (`ul[data-l] id="L-X"`).
   `content-visibility: auto` + `contain-intrinsic-size` only in `@supports (overflow-anchor: auto)`. Arrow via CSS mask.
-  The A–Z jump re-measures the target every frame. Cover observation: first chunks, then rows (register chunks once).
+  Cover observation: first chunks, then rows (register chunks once).
 - A new list renders step by step (2 chunks at once, then 20 each via setTimeout), `Chunk` = `memo`. NO `startTransition`
   (stayed pending, tests hung). Rows are short classes (`.row`, `.t`, `.a`), one click listener for all.
 - covers.js: no permanent intervals; tick timers (300/350/600/1500 ms) only while work is pending.
