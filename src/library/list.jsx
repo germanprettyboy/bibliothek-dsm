@@ -359,28 +359,25 @@ export function BookList({ books, loaded, onOpen }) {
               <XIcon aria-hidden="true" className="size-4" />
             </button>
           </label>
-          <button
-            type="button" id="cat-btn" aria-haspopup="dialog" aria-label={t("catOpen")} aria-pressed={!!category} disabled={!loaded || !model.groups.length}
-            className={cn("cat-btn grid h-12 min-w-12 shrink-0 grid-flow-col place-items-center gap-2 rounded-lg border border-border bg-surface px-3 text-m font-medium text-foreground transition-[border-color,background-color,color] duration-200 hover:border-foreground disabled:opacity-50 sm:px-4",
-              category && "border-foreground bg-foreground text-background")}
-            onClick={() => setCatOpen(true)}
-          >
-            <ListFilterIcon aria-hidden="true" className="size-[18px]" />
-            <span className="hidden sm:inline" aria-hidden="true">{t("catBtn")}</span>
-          </button>
-          </div>
-          {category ? (
-            <div className="flex min-w-0">
-              <span className="cat-chip inline-flex h-10 min-w-0 items-center rounded-full border border-border bg-surface text-s font-medium">
-                <button type="button" className="min-w-0 truncate rounded-l-full py-2 pl-4 pr-1 text-left" aria-label={`${t("catOpen")}: ${model.label(category, lang, t)}`} onClick={() => setCatOpen(true)}>
-                  {model.label(category, lang, t)}
-                </button>
-                <button type="button" id="cat-clear" className="grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground" aria-label={t("catClear")} onClick={() => chooseCategory(null)}>
-                  <XIcon aria-hidden="true" className="size-4" />
+          <div className={cn("cat-pill", category && "on", (!loaded || !model.groups.length) && "off")}>
+            <button
+              type="button" id="cat-btn" aria-haspopup="dialog" aria-pressed={!!category} disabled={!loaded || !model.groups.length}
+              aria-label={category ? `${t("catOpen")}: ${model.label(category, lang, t)}` : t("catOpen")}
+              onClick={() => setCatOpen(true)}
+            >
+              <ListFilterIcon aria-hidden="true" className="size-[18px] shrink-0" />
+              <span className="cat-label" aria-hidden="true"><span><span>{category ? model.short(category, lang, t) : t("catBtn")}</span></span></span>
+            </button>
+            <span className="cat-x" inert={!category} aria-hidden={!category}>
+              <span>
+                <span className="cat-div" aria-hidden="true" />
+                <button type="button" id="cat-clear" aria-label={t("catClear")} tabIndex={category ? 0 : -1} onClick={() => { chooseCategory(null); document.getElementById("cat-btn").focus(); }}>
+                  <XIcon aria-hidden="true" className="size-[18px]" />
                 </button>
               </span>
-            </div>
-          ) : null}
+            </span>
+          </div>
+          </div>
           <nav className="index" id="index" aria-label={t("index")} onClick={e => {
             const a = e.target.closest("a[data-l]");
             if (!a) return;
