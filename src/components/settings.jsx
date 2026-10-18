@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAppearance, setPref } from "@/lib/appearance";
 import { useLanguage } from "@/lib/language";
+import { useSwipe } from "@/lib/swipe";
 
 const THEMES = ["auto", "light", "dark"];
 
@@ -40,9 +41,10 @@ export function Option({ id, title, help, checked, onCheckedChange }) {
 export function Settings({ open, onOpenChange, children }) {
   const { t } = useLanguage();
   const p = useAppearance();
+  const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
   return (
-    <GlassDialog open={open} onOpenChange={onOpenChange} name="Settings" titleId="s-title" className="settings">
-      <div className="pane">
+    <GlassDialog open={open} onOpenChange={onOpenChange} name="Settings" titleId="s-title" className="settings swipe" overlayClassName="swipe">
+      <div className="pane" ref={swipeRef}>
         <DialogTitle id="s-title">{t("sTitle")}</DialogTitle>
         <Section title={t("sLook")}>
           <ToggleGroup

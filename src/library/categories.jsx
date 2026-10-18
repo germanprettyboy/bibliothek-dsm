@@ -8,6 +8,7 @@ import { CheckIcon, SearchIcon } from "lucide-react";
 import { GlassDialog } from "@/components/glass-dialog";
 import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useSwipe } from "@/lib/swipe";
 import { addStrings, useLanguage } from "@/lib/language";
 import { norm } from "@/library/data";
 
@@ -112,14 +113,15 @@ export function CategoryDialog({ open, onOpenChange, model, total, choice, onCho
     const children = g.children && g.children.filter(x => matches(norm(x.name + " " + x.k)));
     return children && children.length ? { ...g, children } : null;
   }).filter(Boolean);
+  const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
   const choose = id => { onChoice(id); onOpenChange(false); };
 
   return (
     <GlassDialog
-      open={open} onOpenChange={onOpenChange} name="Categories" titleId="cat-title" className="categories"
+      open={open} onOpenChange={onOpenChange} name="Categories" titleId="cat-title" className="categories swipe" overlayClassName="swipe"
       onEscapeKeyDown={e => { if (q) { e.preventDefault(); setQ(""); } }}
     >
-      <div className="pane content-start">
+      <div className="pane content-start" ref={swipeRef}>
         <DialogTitle id="cat-title">{t("catT")}</DialogTitle>
         <label className="search relative">
           <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />

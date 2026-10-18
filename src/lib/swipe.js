@@ -1,7 +1,8 @@
-/* Swipeable phone sheet (book detail): flies in from below, stands half-high, swipe up = full screen,
+/* Swipeable phone sheet (book detail, settings, categories): flies in from below, stands half-high, swipe up = full screen,
    swipe down = close. The finger leads 1:1, on release the velocity decides; the movement afterwards
    is a spring (WAAPI, transform only). The background scrim fades with the finger.
    From 40rem (centered dialog) and with reduced motion none of this applies. */
+import * as React from "react";
 import { log } from "@/lib/storage";
 import { reduced } from "@/lib/environment";
 
@@ -114,7 +115,15 @@ export function swipe(sheet, inner, scrimSel) {
     if (v < -.45) choice = "full";                         // fast swipe upwards
     else if (v > .6) choice = target === "full" && y < half * .5 ? "half" : "close"; // fast downwards: from full screen only to half first
     log("Swipe", `detail: ${choice} (v ${v.toFixed(2)} px/ms)`);
-    if (choice === "close") { target = "close"; move("close", v).then(() => sheet.dispatchEvent(new CustomEvent("swipe-close"))); return; }
+    if (choice === "close") {
+      target = "close";
+      move("close", v).then(() => {
+        // Radix' own closing animations would start again from full opacity / position (short flash on iOS): switch them off
+        sheet.dataset.gone = "1"; const s = scrim(); if (s) { s.dataset.gone = "1"; s.style.opacity = "0"; }
+        sheet.dispatchEvent(new CustomEvent("swipe-close"));
+      });
+      return;
+    }
     target = choice; mode();
     move(choice, v);
   };
@@ -127,6 +136,13 @@ export function swipe(sheet, inner, scrimSel) {
   addEventListener("resize", resize);
   function resize() { if (!t0 && !anim && target !== "close") { measure(); setY(position(), false); } }
 
+  // Keyboard for a search field: the sheet needs the room, so it goes to full screen
+  const focusin = e => {
+    if (!e.target.matches || !e.target.matches("input, textarea") || target !== "half") return;
+    target = "full"; mode(); move("full");
+  };
+
+  sheet.addEventListener("focusin", focusin);
   sheet.addEventListener("touchstart", start, { passive: true });
   sheet.addEventListener("touchmove", drag, { passive: false });
   sheet.addEventListener("touchend", end);
@@ -136,6 +152,7 @@ export function swipe(sheet, inner, scrimSel) {
   return () => {
     ro.disconnect();
     removeEventListener("resize", resize);
+    sheet.removeEventListener("focusin", focusin);
     sheet.removeEventListener("touchstart", start);
     sheet.removeEventListener("touchmove", drag);
     sheet.removeEventListener("touchend", end);
@@ -145,4 +162,21 @@ export function swipe(sheet, inner, scrimSel) {
     inner.style.overflowY = "";
     const s = scrim(); if (s) s.style.opacity = "";
   };
+}
+
+// Hook: returns a ref callback for the scrolling content element (.inner / .pane) of a dialog;
+// onClose is called after a swipe away
+export function useSwipe(scrimSel, onClose) {
+  const [el, setEl] = React.useState(null);
+  const close = React.useRef(onClose);
+  close.current = onClose;
+  React.useEffect(() => {
+    const sheet = el && el.closest(".sheet");
+    if (!sheet) return undefined;
+    const closed = () => close.current();
+    sheet.addEventListener("swipe-close", closed);
+    const off = swipe(sheet, el, scrimSel);
+    return () => { sheet.removeEventListener("swipe-close", closed); off(); };
+  }, [el, scrimSel]);
+  return setEl;
 }

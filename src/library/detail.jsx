@@ -8,7 +8,7 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { C, reduced } from "@/lib/environment";
-import { swipe } from "@/lib/swipe";
+import { useSwipe } from "@/lib/swipe";
 import { addStrings, useLanguage, t as tx } from "@/lib/language";
 import { Cover } from "@/library/cover";
 import { categoryName } from "@/library/categories";
@@ -44,17 +44,7 @@ export function Detail({ entry, onClose }) {
   const box = React.useRef(null);
 
   // Phone: the sheet flies in from below, swipe up = full screen, down = close (lib/swipe)
-  const [innerEl, setInnerEl] = React.useState(null);
-  const close = React.useRef(onClose);
-  close.current = onClose;
-  React.useEffect(() => {
-    const sheet = innerEl && innerEl.closest("#detail");
-    if (!sheet) return undefined;
-    const closed = () => close.current();
-    sheet.addEventListener("swipe-close", closed);
-    const off = swipe(sheet, innerEl, ".scrim.detail");
-    return () => { sheet.removeEventListener("swipe-close", closed); off(); };
-  }, [innerEl]);
+  const swipeRef = useSwipe(".scrim.detail", onClose);
 
   // Fetch the cover (with priority); discard older answers
   React.useEffect(() => {
@@ -87,7 +77,7 @@ export function Detail({ entry, onClose }) {
         id="detail" titleId="d-title" overlayClassName="detail"
       >
         {b ? (
-          <div ref={setInnerEl} className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
+          <div ref={swipeRef} className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
             <Cover
               ref={box} id="d-cover" title={b.t} isbn={!!b.i} found={found} onShown={() => setZoomable(true)}
               className={cn(zoomable && "zoomable", zoom && "lifted")}

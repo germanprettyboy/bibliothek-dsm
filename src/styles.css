@@ -215,7 +215,7 @@
     background: var(--bg); pointer-events: none;
   }
   /* List at least as tall as the screen: the bar stays at the top even when the search finds little */
-  main.books { min-height: calc(100dvh - var(--bar-h)); }
+  main.books { min-height: calc(100vh - var(--bar-h)); min-height: calc(100lvh - var(--bar-h)); } /* lvh: does not change when the iOS toolbar / keyboard moves, the text no longer jumps */
   .search input::-webkit-search-cancel-button { display: none; }
 
   /* A–Z bar: only from tablet width (iPad, 768 px) */
@@ -345,18 +345,21 @@
     .scrim.detail[data-state="open"] { animation: fade .12s ease-out; }
     .scrim.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
   }
-  /* Book detail on the phone: a screen-high sheet, lib/swipe.js moves it via transform (half / full / away).
+  /* Book detail, settings, categories on the phone: a screen-high sheet, lib/swipe.js moves it via transform (half / full / away).
      Before the script's first step it lies below the screen so it doesn't flash. */
   @media (max-width: 39.999rem) {
-    #detail {
+    :is(#detail, .sheet.swipe) {
       height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px))); max-height: none; overflow: hidden;
       display: flex; flex-direction: column; transform: translateY(100%); will-change: transform; touch-action: none;
     }
-    #detail > .inner { flex: 0 1 auto; min-height: 0; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-y; }
-    #detail .grab { flex: none; width: 40px; height: 4px; margin-top: 10px; transition: width .15s var(--snap), background-color .15s; }
-    #detail.dragging .grab { width: 56px; background: var(--muted); }
-    #detail[data-state="open"] { animation: none; }
-    #detail[data-state="closed"] { animation: sheet-away var(--t-out) var(--ease-in) forwards; }
+    :is(#detail, .sheet.swipe) > :is(.inner, .pane) { flex: 0 1 auto; min-height: 0; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-y; }
+    .sheet.categories > .pane { flex: 1 1 auto; } /* constant height, otherwise the sheet jumps while searching */
+    :is(#detail, .sheet.swipe) .grab { flex: none; width: 40px; height: 4px; margin-top: 10px; transition: width .15s var(--snap), background-color .15s; }
+    :is(#detail, .sheet.swipe).dragging .grab { width: 56px; background: var(--muted); }
+    :is(#detail, .sheet.swipe)[data-state="open"] { animation: none; }
+    :is(#detail, .sheet.swipe)[data-state="closed"] { animation: sheet-away var(--t-out) var(--ease-in) forwards; }
+    /* after a swipe away: nothing more to animate */
+    .sheet[data-gone][data-state="closed"], .scrim[data-gone][data-state="closed"] { animation: none; }
   }
   /* Previous recommendations: almost as tall as the screen on phones */
   .sheet.archive { height: 92dvh; }
