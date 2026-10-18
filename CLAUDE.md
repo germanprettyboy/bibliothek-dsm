@@ -38,6 +38,8 @@ Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh r
   npx (php-wasm, browser-sync, shadcn) always with an exact version + `--prefer-offline` (one cache per package spec in
   ~/.npm/_npx, otherwise a registry request per start or a reinstall, php-wasm ≈470 MB). Deliberately not in package.json.
 - `tests/`, `docs/`: don't upload. `data/` (`*.winbook` with student data): NEVER commit/upload. `anleitung/` = generated German guide.
+  `docs/entwuerfe/` = five UI variants (2026-10-18) as a private claude.ai artifact https://claude.ai/artifact/EuCPm1eKryK64A8YD5ywNP;
+  Johann's picks per section live in its db (`ArtifactData get`, collection `picks`, doc `main`). Mockup only, no part of website/.
 
 ## Commands
 
