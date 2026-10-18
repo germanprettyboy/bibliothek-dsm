@@ -194,6 +194,11 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - E2E: the admin tests encrypt the sources with "test-password"; admin import byte-identical to `npm run books`; cover APIs mocked.
 - Live: `brew install cloudflared`, a foreign address via `DSM_LIVE_URL=https://…`. The tunnel is public: only website/ without
   dot files, `*.php`, `backup/`; own Node server with `no-store` (Cloudflare caches `.js`/`.css` otherwise).
+- GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
+  runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` (Chromium, `CI` = 2 workers, 1 retry,
+  traces as artifact `playwright-results` on failure). Tests only, NO deploy. Results: `gh run list`, `gh run watch`,
+  `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.
+  Local `npm run test:all` stays mandatory before integrating; CI is the second check after `git push`.
 
 ## Integrating branches (mandatory at the end of every task)
 
