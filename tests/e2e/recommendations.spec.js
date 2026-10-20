@@ -159,7 +159,8 @@ test.describe("recommendations", () => {
       expect(await restingTop(sheet)).toBeLessThan(40);
       // a short swipe (a third of the way to half) ends at half whatever the content height (a long fast one closes)
       await swipe(page, 200, 200 + Math.round((half - 12) * .35));
-      expect(await restingTop(sheet)).toBeGreaterThan(100);
+      const diag = await page.evaluate(() => `${DSM_LOG.asText().split("\n").filter(l => /Swipe/.test(l)).join(" | ")} || scrollTop ${document.querySelector(".archive .pane").scrollTop}, scrollHeight ${document.querySelector(".archive .pane").scrollHeight}`);
+      expect(await restingTop(sheet), `half ${half}; ${diag}`).toBeGreaterThan(100);
       await swipe(page, half + 20, 800);
       await expect(sheet).toBeHidden();
     });
