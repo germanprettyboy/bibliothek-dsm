@@ -1,4 +1,4 @@
-/* Swipeable phone sheet (book detail, settings, categories): flies in from below, stands half-high, swipe up = full screen,
+/* Swipeable phone sheet (every dialog: book detail, settings, categories, questions, opening hours, archive): flies in from below, stands half-high, swipe up = full screen,
    swipe down = close. The finger leads 1:1, on release the velocity decides; the movement afterwards
    is a spring (WAAPI, transform only). The background scrim fades with the finger.
    From 40rem (centered dialog) and with reduced motion none of this applies. */
@@ -128,9 +128,12 @@ export function swipe(sheet, inner, scrimSel) {
     move(choice, v);
   };
 
+  // Content changes its height (e.g. the next step of the questions): glide to the new half position
   const ro = new ResizeObserver(() => {
     if (t0 || anim || target === "close") return;
-    measure(); setY(position(), false);
+    measure();
+    if (target === "half" && Math.abs(half - y) > 2 && !reduced.matches) move("half");
+    else setY(position(), false);
   });
   ro.observe(inner);
   addEventListener("resize", resize);

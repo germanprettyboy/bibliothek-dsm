@@ -383,7 +383,7 @@
     .scrim.detail[data-state="open"] { animation: fade .12s ease-out; }
     .scrim.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
   }
-  /* Book detail, settings, categories on the phone: a screen-high sheet, lib/swipe.js moves it via transform (half / full / away).
+  /* All sheets on the phone (detail, settings, categories, questions, opening hours, archive): a screen-high sheet, lib/swipe.js moves it via transform (half / full / away).
      Before the script's first step it lies below the screen so it doesn't flash. */
   @media (max-width: 39.999rem) {
     :is(#detail, .sheet.swipe) {
@@ -399,9 +399,8 @@
     /* after a swipe away: nothing more to animate */
     .sheet[data-gone][data-state="closed"], .scrim[data-gone][data-state="closed"] { animation: none; }
   }
-  /* Previous recommendations: almost as tall as the screen on phones */
-  .sheet.archive { height: 92dvh; }
-  @media (min-width: 40rem) { .sheet.archive { height: auto; width: min(40rem, calc(100% - 48px)); } }
+  /* Previous recommendations: wider from 40rem */
+  @media (min-width: 40rem) { .sheet.archive { width: min(40rem, calc(100% - 48px)); } }
   /* Categories: fixed height so the dialog doesn't jump while searching */
   .sheet.categories { height: 92dvh; }
   @media (min-width: 40rem) { .sheet.categories { height: min(44rem, 88dvh); } }

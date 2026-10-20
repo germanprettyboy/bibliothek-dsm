@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { notify } from "@/lib/notice";
+import { useSwipe } from "@/lib/swipe";
 import { C, reduced } from "@/lib/environment";
 import { addStrings, useLanguage, t as tx } from "@/lib/language";
 import { Cover } from "@/library/cover";
@@ -154,13 +155,14 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive }) {
 export function Archive({ open, onOpenChange, R, byKey, onOpen }) {
   const { t, df, lang } = useLanguage();
   const p = useChoice() || {}, g = p.group;
+  const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
   const rounds = React.useMemo(() => {
     const all = [{ updated: R.updated, topic: R.topic, groups: R.groups, now: true }].concat(Array.isArray(R.archive) ? R.archive : []);
     return all.map(x => ({ ...x, recs: ((x.groups && x.groups[g]) || []).map(r => ({ r, b: byKey.get(r.k) })) })).filter(x => x.recs.length);
   }, [R, byKey, g]);
   return (
-    <GlassDialog open={open} onOpenChange={onOpenChange} name="Previous recommendations" titleId="arc-t" className="archive">
-      <div className="pane">
+    <GlassDialog open={open} onOpenChange={onOpenChange} name="Previous recommendations" titleId="arc-t" className="archive swipe" overlayClassName="swipe">
+      <div className="pane" ref={swipeRef}>
         <div>
           <DialogTitle id="arc-t" asChild><h3>{t("arcT")}</h3></DialogTitle>
           <p className="sub mt-1 mb-0 text-muted-foreground">{g ? gLabel(g) : ""}</p>
@@ -180,8 +182,11 @@ function Round({ x, n, topic, df, t, lang, onOpen }) {
   const li = React.useRef(null);
   const [visible, setVisible] = React.useState(false);
   React.useEffect(() => {
+    // Phone (swipe sheet): the pane scrolls, otherwise the dialog itself
+    const pane = li.current.closest(".pane");
+    const root = pane && getComputedStyle(pane).overflowY !== "visible" ? pane : li.current.closest("[role=dialog]");
     const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { setVisible(true); io.disconnect(); } },
-      { root: li.current.closest("[role=dialog]"), rootMargin: "200px 0px" });
+      { root, rootMargin: "200px 0px" });
     io.observe(li.current);
     return () => io.disconnect();
   }, []);
@@ -261,6 +266,8 @@ export function Questions({ open, onOpenChange }) {
   const [step, setStep] = React.useState(1);
   const finished = React.useRef(false);
   const pane = React.useRef(null);
+  const swipeRef = useSwipe(".scrim.swipe", () => change(false));
+  const paneRef = React.useCallback(el => { pane.current = el; swipeRef(el); }, [swipeRef]);
   // On opening, focus on the dialog itself (a focused button would show the focus ring right away), on every
   // further step on its main choice (the ring then only appears after keyboard use)
   const focus = () => { const f = pane.current && pane.current.querySelector(".primary, .choice"); if (f) f.focus({ preventScroll: true }); };
@@ -291,10 +298,10 @@ export function Questions({ open, onOpenChange }) {
   );
   return (
     <GlassDialog
-      open={open} onOpenChange={change} name="Questions on the first visit" titleId="ask-t" className="ask"
+      open={open} onOpenChange={change} name="Questions on the first visit" titleId="ask-t" className="ask swipe" overlayClassName="swipe"
       onOpenAutoFocus={e => { e.preventDefault(); if (pane.current) pane.current.focus({ preventScroll: true }); }}
     >
-      <div className="pane min-h-60 outline-none" ref={pane} tabIndex={-1}>
+      <div className="pane min-h-60 outline-none" ref={paneRef} tabIndex={-1}>
         <div className="step grid gap-5" key={step}>
           {/* Head: shelf on the first question, afterwards "Back" at the height of the close button */}
           {step === 1 ? <Shelf /> : (
