@@ -107,8 +107,10 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 - Tap a real cover in the detail → `#zoom` (second Radix dialog, glass scrim), FLIP flight (transform only, `--snap`, 240/180 ms)
   into the center, max. 27rem. Only then OL "L"; Google at most 2.5×. Placeholders can't be enlarged.
 - Detail on the phone (<40rem, `lib/swipe.js`): screen-high sheet, parked half-high (transform), flies in from below
-  (spring as `linear()`), the finger leads 1:1; up = full screen (content scrolls), down = half, further/fast = close, the scrim
-  follows. From 40rem / reduced motion unchanged. Test: detail.spec "swiping". EVERY dialog behaves the same (2026-10-20, client:
+  (spring as `linear()`), the finger leads 1:1; up = as high as the content, at most full screen (content scrolls), down = half,
+  further/fast = close, the scrim follows. Content that fits half-high (≤ 80 %) = ONE stage like an iOS sheet sized to its
+  content (`data-fit`, 2026-10-20, client: no empty glass, mainly the questions): no 40 % minimum, upwards a rubber band
+  (iOS formula), springs back. From 40rem / reduced motion unchanged. Tests: `swipeStages` (helpers.js) in every dialog spec. EVERY dialog behaves the same (2026-10-20, client:
   settings, categories, questions, opening hours, archive; `useSwipe(scrimSel, onClose)`, class `swipe` on dialog + scrim;
   a new dialog gets it too; categories keep a constant height and go to full screen when the search field gets focus; content
   changing its height at half glides to the new position; swiping the questions away = "no"). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
