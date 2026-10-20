@@ -108,9 +108,10 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   into the center, max. 27rem. Only then OL "L"; Google at most 2.5×. Placeholders can't be enlarged.
 - Detail on the phone (<40rem, `lib/swipe.js`): screen-high sheet, parked half-high (transform), flies in from below
   (spring as `linear()`), the finger leads 1:1; up = full screen (content scrolls), down = half, further/fast = close, the scrim
-  follows. From 40rem / reduced motion unchanged. Test: detail.spec "swiping". Settings and categories behave the same
-  (`useSwipe(scrimSel, onClose)`, class `swipe` on dialog + scrim; categories keep a constant height and go to full screen when
-  the search field gets focus). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
+  follows. From 40rem / reduced motion unchanged. Test: detail.spec "swiping". EVERY dialog behaves the same (2026-10-20, client:
+  settings, categories, questions, opening hours, archive; `useSwipe(scrimSel, onClose)`, class `swipe` on dialog + scrim;
+  a new dialog gets it too; categories keep a constant height and go to full screen when the search field gets focus; content
+  changing its height at half glides to the new position; swiping the questions away = "no"). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
   `main.books` uses `lvh` (not `dvh`) so the iOS toolbar/keyboard does not move the text while searching.
 - Dialogs (detail, settings, questions, opening hours, archive, categories): `Dialog` as `.glass.sheet`, scrim `.scrim` blurred +
   darker; phone bottom sheet, centered from 40rem. Blur always on, except "reduce transparency" and glass in high contrast.
