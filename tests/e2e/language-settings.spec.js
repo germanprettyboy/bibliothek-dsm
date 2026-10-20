@@ -1,5 +1,5 @@
 // Language DE/IT and settings (theme, larger text, high contrast)
-const { test, expect, open, swipe, restingTop, data, hits } = require("./helpers.js");
+const { test, expect, open, swipeStages, data, hits } = require("./helpers.js");
 
 const { B, C } = data();
 
@@ -165,18 +165,10 @@ test.describe("settings", () => {
 
 test.describe("settings sheet on the phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  test("swiping: half, up = full screen, down = half, further down = closed", async ({ page }) => {
+  test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
     await open(page);
     await page.click(".settings-btn");
-    const sheet = page.locator(".settings[role=dialog]");
-    const half = await restingTop(sheet);
-    expect(half).toBeGreaterThan(100);
-    await swipe(page, half + 20, 120);
-    expect(await restingTop(sheet)).toBeLessThan(40);
-    await swipe(page, 200, 500);
-    expect(await restingTop(sheet)).toBeGreaterThan(100);
-    await swipe(page, half + 20, 800);
-    await expect(sheet).toBeHidden();
+    await swipeStages(page, page.locator(".settings[role=dialog]"));
   });
 });
 

@@ -81,4 +81,28 @@ async function restingTop(locator) {
   }));
 }
 
-module.exports = { test, expect: base.expect, open, swipe, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };
+// A phone sheet through its stages (lib/swipe.js), returns {half, fit}. Content that fits half-high (data-fit): upwards it
+// springs back and the content ends at the screen bottom (no empty glass). Longer content: up as high as the content,
+// slowly down again = half. Then further down = closed.
+async function swipeStages(page, sheet, height = 844) {
+  const half = await restingTop(sheet);
+  base.expect(half).toBeGreaterThan(100);
+  const fit = await sheet.evaluate(d => d.dataset.fit === "1");
+  await swipe(page, half + 20, 40);
+  const up = await restingTop(sheet);
+  if (fit) {
+    base.expect(Math.abs(up - half)).toBeLessThan(3);
+    const bottom = await sheet.evaluate(d => d.querySelector(":scope > .inner, :scope > .pane").getBoundingClientRect().bottom);
+    base.expect(Math.abs(bottom - height)).toBeLessThan(3);
+  } else {
+    base.expect(up).toBeLessThan(half - 40);
+    // slowly (5 px per step), otherwise a fast swipe this long would close
+    await swipe(page, up + 20, half + 20, Math.ceil((half - up) / 5));
+    base.expect(Math.abs(await restingTop(sheet) - half)).toBeLessThan(3);
+  }
+  await swipe(page, half + 20, height - 44);
+  await base.expect(sheet).toBeHidden();
+  return { half, fit };
+}
+
+module.exports = { test, expect: base.expect, open, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };

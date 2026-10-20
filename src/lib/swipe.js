@@ -1,6 +1,8 @@
-/* Swipeable phone sheet (every dialog: book detail, settings, categories, questions, opening hours, archive): flies in from below, stands half-high, swipe up = full screen,
-   swipe down = close. The finger leads 1:1, on release the velocity decides; the movement afterwards
-   is a spring (WAAPI, transform only). The background scrim fades with the finger.
+/* Swipeable phone sheet (every dialog: book detail, settings, categories, questions, opening hours, archive): flies in
+   from below, stands half-high, swipe up = as high as the content (at most full screen), swipe down = close. Content that
+   fits half-high gets only that one stage (like an iOS sheet sized to its content): upwards it resists like a rubber band
+   and springs back, never showing empty glass. The finger leads 1:1, on release the velocity decides; the movement
+   afterwards is a spring (WAAPI, transform only). The background scrim fades with the finger.
    From 40rem (centered dialog) and with reduced motion none of this applies. */
 import * as React from "react";
 import { log } from "@/lib/storage";
@@ -25,7 +27,8 @@ const spring = (() => {
 export function swipe(sheet, inner, scrimSel) {
   if (!phone.matches) return () => {};
   const scrim = () => document.querySelector(scrimSel);
-  let H = 0, half = 0, target = "half", y = 0, anim = null;
+  // top = highest stage (content-high, 0 = full screen), half = resting stage; fit = only one stage
+  let H = 0, top = 0, half = 0, fit = false, target = "half", y = 0, anim = null;
 
   const setY = (value, withScrim = true) => {
     y = value;
@@ -38,10 +41,15 @@ export function swipe(sheet, inner, scrimSel) {
   const measure = () => {
     H = sheet.offsetHeight;
     const content = Math.ceil(inner.scrollHeight) + 14; // + grabber (4 px + 10 px spacing)
-    // visible height when half-high: the content, at most 80 % of the sheet, at least 40 %
-    half = H - clamp(content, H * .4, H * .8);
+    // visible height when half-high: the content, at most 80 % of the sheet; up at most the content
+    top = Math.max(0, H - content);
+    half = H - Math.min(content, H * .8);
+    fit = half - top < 1;
+    if (fit) { top = half; sheet.dataset.fit = "1"; } else delete sheet.dataset.fit;
   };
-  const position = () => (target === "full" ? 0 : half);
+  const position = () => (target === "full" ? top : half);
+  // Beyond the highest stage: rubber band (iOS formula), the further the finger, the stiffer
+  const rubber = over => (1 - 1 / (over * .55 / H + 1)) * H;
   const mode = () => {
     sheet.dataset.stage = target;
     inner.style.overflowY = target === "full" ? "auto" : "hidden";
@@ -50,7 +58,7 @@ export function swipe(sheet, inner, scrimSel) {
   // Animate to a position (or away); v in px/ms (positive = downwards)
   const move = (to, v = 0) => {
     const from = y, away = to === "close";
-    const end = away ? H : to === "full" ? 0 : half;
+    const end = away ? H : to === "full" ? top : half;
     if (anim) anim.cancel();
     if (reduced.matches) { setY(end); if (away) scrim() && (scrim().style.opacity = "0"); return Promise.resolve(); }
     const s = scrim();
@@ -86,16 +94,17 @@ export function swipe(sheet, inner, scrimSel) {
     const f = e.touches[0], dy = f.clientY - t0.y, dx = f.clientX - t0.x;
     if (t0.take === null) {
       if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
-      // Vertical intent? In full screen, upwards / with scrolled content the content itself scrolls
+      // Vertical intent? In full screen, upwards / with scrolled content the content itself scrolls (if it can)
       const vertical = Math.abs(dy) > Math.abs(dx);
-      const contentScrolls = target === "full" && !t0.head && (dy < 0 || inner.scrollTop > 0);
+      const scrollable = inner.scrollHeight > inner.clientHeight + 1;
+      const contentScrolls = target === "full" && scrollable && !t0.head && (dy < 0 || inner.scrollTop > 0);
       t0.take = vertical && !contentScrolls;
       if (t0.take) { sheet.classList.add("dragging"); log("Swipe", "detail: finger leads"); }
     }
     if (!t0.take) return;
     if (e.cancelable) e.preventDefault();
     let ny = t0.y0 + dy;
-    if (ny < 0) ny = ny * .25; // beyond full screen: viscous
+    if (ny < top) ny = top - rubber(top - ny); // beyond the highest stage: rubber band
     setY(ny);
     const now = performance.now();
     t0.samples.push([now, f.clientY]);
@@ -108,12 +117,13 @@ export function swipe(sheet, inner, scrimSel) {
     const [z0, p0] = g.samples[0], [z1, p1] = g.samples[g.samples.length - 1];
     const v = z1 > z0 ? (p1 - p0) / (z1 - z0) : 0; // px/ms
     const forecast = y + v * 220;
-    // nearest position to the forecast: full screen, half, close (close only clearly below half)
-    const positions = [["full", 0], ["half", half], ["close", half + (H - half) * .55]];
+    // nearest position to the forecast: top, half, close (close only clearly below half)
+    const positions = [["full", top], ["half", half], ["close", half + (H - half) * .55]];
     let choice = "half", best = Infinity;
     for (const [n, p] of positions) { const d = Math.abs(forecast - p); if (d < best) { best = d; choice = n; } }
     if (v < -.45) choice = "full";                         // fast swipe upwards
-    else if (v > .6) choice = target === "full" && y < half * .5 ? "half" : "close"; // fast downwards: from full screen only to half first
+    else if (v > .6) choice = target === "full" && y < top + (half - top) * .5 ? "half" : "close"; // fast downwards: from the top only to half first
+    if (fit && choice === "full") choice = "half";       // only one stage: spring back
     log("Swipe", `detail: ${choice} (v ${v.toFixed(2)} px/ms)`);
     if (choice === "close") {
       target = "close";
@@ -128,11 +138,12 @@ export function swipe(sheet, inner, scrimSel) {
     move(choice, v);
   };
 
-  // Content changes its height (e.g. the next step of the questions): glide to the new half position
+  // Content changes its height (e.g. the next step of the questions): glide to the new position
   const ro = new ResizeObserver(() => {
     if (t0 || anim || target === "close") return;
     measure();
-    if (target === "half" && Math.abs(half - y) > 2 && !reduced.matches) move("half");
+    if (fit && target === "full") { target = "half"; mode(); }
+    if (Math.abs(position() - y) > 2 && !reduced.matches) move(target);
     else setY(position(), false);
   });
   ro.observe(inner);
@@ -141,7 +152,7 @@ export function swipe(sheet, inner, scrimSel) {
 
   // Keyboard for a search field: the sheet needs the room, so it goes to full screen
   const focusin = e => {
-    if (!e.target.matches || !e.target.matches("input, textarea") || target !== "half") return;
+    if (!e.target.matches || !e.target.matches("input, textarea") || target !== "half" || fit) return;
     target = "full"; mode(); move("full");
   };
 
@@ -161,7 +172,7 @@ export function swipe(sheet, inner, scrimSel) {
     sheet.removeEventListener("touchend", end);
     sheet.removeEventListener("touchcancel", end);
     if (anim) anim.cancel();
-    sheet.style.transform = ""; sheet.classList.remove("dragging"); delete sheet.dataset.stage;
+    sheet.style.transform = ""; sheet.classList.remove("dragging"); delete sheet.dataset.stage; delete sheet.dataset.fit;
     inner.style.overflowY = "";
     const s = scrim(); if (s) s.style.opacity = "";
   };

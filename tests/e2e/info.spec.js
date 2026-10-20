@@ -2,7 +2,7 @@
  * Opening hours card above the list. Data via the preview (dsm-preview-info + #preview),
  * time fixed (Wednesday, 2026-10-14, Europe/Rome).
  */
-const { test, expect, open, swipe, restingTop, OFF } = require("./helpers.js");
+const { test, expect, open, swipeStages, OFF } = require("./helpers.js");
 
 const HOURS = { mon: [], tue: [], wed: [["08:00", "12:00"], ["13:00", "15:00"]], thu: [["10:00", "14:00"]], fri: [], sat: [] };
 const info = (extra = {}) => JSON.stringify({ updated: "2026-10-01", hours: HOURS, notice: { de: "", it: "" }, closures: [], ...extra });
@@ -103,17 +103,9 @@ test.describe("info card", () => {
 
 test.describe("opening hours on the phone", () => {
   test.use({ storage: { "dsm-recs": OFF }, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  test("swiping: half, up = full screen, down = half, further down = closed", async ({ page }) => {
+  test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
     await withInfo(page, info(), "10:00");
     await card(page).click();
-    const sheet = page.locator("[role=dialog][aria-labelledby=info-t]");
-    const half = await restingTop(sheet);
-    expect(half).toBeGreaterThan(100);
-    await swipe(page, half + 20, 120);
-    expect(await restingTop(sheet)).toBeLessThan(40);
-    await swipe(page, 200, 500);
-    expect(await restingTop(sheet)).toBeGreaterThan(100);
-    await swipe(page, half + 20, 800);
-    await expect(sheet).toBeHidden();
+    await swipeStages(page, page.locator("[role=dialog][aria-labelledby=info-t]"));
   });
 });
