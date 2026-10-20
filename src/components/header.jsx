@@ -1,4 +1,5 @@
-/* Header of both pages: logo (light/dark image, shimmer until loaded), language choice DE/IT, settings. */
+/* Header of both pages: logo (light/dark image, shimmer until loaded), language choice DE/IT, settings.
+   With `title` (index.html) the page title sits next to the logo, or below it when the row is too narrow (.hd in styles.css). */
 import * as React from "react";
 import { SettingsIcon } from "lucide-react";
 
@@ -9,7 +10,7 @@ import { useLanguage } from "@/lib/language";
 
 const ALT = "Deutsche Schule Mailand – Scuola Germanica di Milano";
 
-export function Header({ onSettings }) {
+export function Header({ onSettings, title }) {
   const { lang, t, setLang } = useLanguage();
   const [loaded, setLoaded] = React.useState(false);
   // Language switch in two steps: marker immediately (only the header re-renders, .seg[data-on]), all texts only
@@ -25,24 +26,30 @@ export function Header({ onSettings }) {
   };
   // Only the visible logo counts (the one of the other color scheme is hidden and may never load)
   const img = e => { if (e.currentTarget.getClientRects().length) setLoaded(true); };
-  return (
-    <header className="wrap flex items-center justify-between gap-3 pt-4 pb-2 sm:pt-6 sm:pb-3">
-      <a className={cn("logo ld-img", loaded && "loaded")} href="./">
-        <img className="logo-l" src="assets/logo-light.webp" width="360" height="200" decoding="async" alt={ALT} onLoad={img} onError={img} />
-        <img className="logo-d" src="assets/logo-dark.webp" width="360" height="200" loading="lazy" decoding="async" alt={ALT} onLoad={img} onError={img} />
-      </a>
-      <div className="flex items-center gap-2">
-        <div className="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" data-on={on} role="group" aria-label="Sprache · Lingua">
-          {["de", "it"].map(l => (
-            <Toggle key={l} size="sm" lang={l} data-lang={l} pressed={on === l} onPressedChange={() => choose(l)} className="h-9">
-              {l.toUpperCase()}
-            </Toggle>
-          ))}
-        </div>
-        <Button variant="icon" size="icon" className="settings-btn" aria-label={t("settings")} onClick={onSettings}>
-          <SettingsIcon aria-hidden="true" strokeWidth={1.7} />
-        </Button>
+  const logo = (
+    <a className={cn("logo ld-img", loaded && "loaded")} href="./">
+      <img className="logo-l" src="assets/logo-light.webp" width="360" height="200" decoding="async" alt={ALT} onLoad={img} onError={img} />
+      <img className="logo-d" src="assets/logo-dark.webp" width="360" height="200" loading="lazy" decoding="async" alt={ALT} onLoad={img} onError={img} />
+    </a>
+  );
+  const tools = (
+    <div className="hd-tools flex items-center gap-2">
+      <div className="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" data-on={on} role="group" aria-label="Sprache · Lingua">
+        {["de", "it"].map(l => (
+          <Toggle key={l} size="sm" lang={l} data-lang={l} pressed={on === l} onPressedChange={() => choose(l)} className="h-9">
+            {l.toUpperCase()}
+          </Toggle>
+        ))}
       </div>
+      <Button variant="icon" size="icon" className="settings-btn" aria-label={t("settings")} onClick={onSettings}>
+        <SettingsIcon aria-hidden="true" strokeWidth={1.7} />
+      </Button>
+    </div>
+  );
+  if (!title) return <header className="wrap flex items-center justify-between gap-3 pt-4 pb-2 sm:pt-6 sm:pb-3">{logo}{tools}</header>;
+  return (
+    <header className="wrap hd pt-4 sm:pt-6">
+      <div className="hd-row">{logo}<span className="hd-vr" aria-hidden="true" /><h1 className="hd-t">{title}</h1>{tools}</div>
     </header>
   );
 }
