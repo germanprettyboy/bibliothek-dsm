@@ -157,8 +157,8 @@ test.describe("recommendations", () => {
       expect(half).toBeGreaterThan(100);
       await swipe(page, half + 20, 120);
       expect(await restingTop(sheet)).toBeLessThan(40);
-      // long content: the sheet stands high, so only a short swipe ends at half
-      await swipe(page, 200, 240);
+      // a short swipe (a third of the way to half) ends at half whatever the content height (a long fast one closes)
+      await swipe(page, 200, 200 + Math.round((half - 12) * .35));
       expect(await restingTop(sheet)).toBeGreaterThan(100);
       await swipe(page, half + 20, 800);
       await expect(sheet).toBeHidden();
