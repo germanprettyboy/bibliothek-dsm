@@ -1,0 +1,681 @@
+<title>Bibliothek DSM Entwürfe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: notes column left (variant idea, per-section picks), stage right (live mockups at true widths, zoomed to fit). */
+@font-face { font-family: "Fira Sans"; font-weight: 400; font-display: swap; src: url(fonts/fira-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Fira Sans"; font-weight: 500; font-display: swap; src: url(fonts/fira-sans-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Fira Sans"; font-weight: 600; font-display: swap; src: url(fonts/fira-sans-latin-600-normal.woff2) format("woff2"); }
+
+:root {
+  --page: #f1eeeb; --panel: #ffffff; --ink: #333333; --ink-2: #6e6967; --rule: #dfd9d4;
+  --sel: #333333; --sel-ink: #ffffff; --ring: #333333; --tint: #e8e3df;
+  --frame-shadow: 0 1px 2px rgba(51, 40, 35, .08), 0 14px 36px -14px rgba(51, 40, 35, .22);
+  --orange: #db9f00; --blue: #b5c9d0; --mauve: #ba8ea7;
+  --font: "Fira Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --fs-s: .875rem; --fs-m: 1rem; --fs-l: 1.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #121110; --panel: #1d1b1a; --ink: #ece9e6; --ink-2: #a49f9b; --rule: #34312f;
+    --sel: #ece9e6; --sel-ink: #1b1a19; --ring: #ece9e6; --tint: #2a2826;
+    --frame-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 36px -14px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #121110; --panel: #1d1b1a; --ink: #ece9e6; --ink-2: #a49f9b; --rule: #34312f;
+  --sel: #ece9e6; --sel-ink: #1b1a19; --ring: #ece9e6; --tint: #2a2826;
+  --frame-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 36px -14px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--page); color: var(--ink); font: 400 var(--fs-m)/1.5 var(--font); -webkit-font-smoothing: antialiased;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+.shell { max-width: 96rem; margin: 0 auto; }
+.top { display: flex; align-items: center; gap: 16px; padding-block: 24px 16px; }
+.top img { height: 44px; width: auto; flex: none; }
+.top .ld { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .top .ll { display: none; } :root:not([data-theme="light"]) .top .ld { display: block; } }
+:root[data-theme="dark"] .top .ll { display: none; } :root[data-theme="dark"] .top .ld { display: block; }
+.top h1 { font-size: var(--fs-l); font-weight: 600; line-height: 1.15; }
+.top p { color: var(--ink-2); max-width: 62ch; margin-top: 4px; }
+
+/* Tabs: the variants, then the mix */
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; margin-inline: -2px; scrollbar-width: none; }
+.tab {
+  flex: none; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 8px;
+  border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); font-weight: 500; white-space: nowrap;
+}
+.tab .k { display: grid; place-items: center; min-width: 28px; height: 28px; padding-inline: 6px; border-radius: 8px; background: var(--tint); font-size: var(--fs-s); font-weight: 600; }
+.tab[aria-selected="true"] { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.tab[aria-selected="true"] .k { background: color-mix(in srgb, var(--sel-ink) 18%, transparent); }
+.tab.mix { margin-left: 10px; padding-left: 16px; }
+.tab.mix .n { font-size: var(--fs-s); font-weight: 500; opacity: .75; font-variant-numeric: tabular-nums; }
+
+.bar2 { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; padding-block: 8px 20px; }
+.ctl { display: flex; align-items: center; gap: 10px; }
+.ctl > span { color: var(--ink-2); font-size: var(--fs-s); }
+.sg { display: inline-flex; padding: 3px; border-radius: 999px; border: 1px solid var(--rule); background: var(--panel); }
+.sg button { height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: none; font-size: var(--fs-s); font-weight: 500; color: var(--ink-2); }
+.sg button[aria-pressed="true"] { background: var(--sel); color: var(--sel-ink); }
+
+.work { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 64rem) { .work { grid-template-columns: 20rem minmax(0, 1fr); gap: 32px; } .notes { position: sticky; top: 16px; } }
+
+.notes { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.notes h2 { font-size: var(--fs-l); font-weight: 600; line-height: 1.15; display: flex; align-items: center; gap: 10px; }
+.notes h2 .k { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--tint); font-size: var(--fs-m); }
+.idea { color: var(--ink); }
+.chg { list-style: none; margin: 0; padding: 0; display: grid; }
+.chg li { display: grid; gap: 8px; padding-block: 14px; border-top: 1px solid var(--rule); }
+.chg li:first-child { border-top: 0; padding-top: 0; }
+.chg .sec { font-weight: 600; }
+.chg p { font-size: var(--fs-s); color: var(--ink-2); }
+.take {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px;
+  border: 1px solid var(--rule); border-radius: 10px; background: none; font-size: var(--fs-s); font-weight: 500;
+}
+.take::before { content: ""; width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1.5px currentColor; }
+.take[aria-pressed="true"] { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.take[aria-pressed="true"]::before { box-shadow: none; background: currentColor; -webkit-mask: var(--tick) center / 14px no-repeat; mask: var(--tick) center / 14px no-repeat; }
+.same { font-size: var(--fs-s); color: var(--ink-2); padding-top: 12px; border-top: 1px solid var(--rule); }
+
+/* Mix panel */
+.pick { border: 0; margin: 0; padding: 14px 0 0; border-top: 1px solid var(--rule); display: grid; gap: 8px; min-width: 0; }
+.pick:first-of-type { border-top: 0; padding-top: 0; }
+.pick legend { font-weight: 600; padding: 0; float: left; width: 100%; margin-bottom: 8px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; clear: both; }
+.opts input { position: absolute; opacity: 0; pointer-events: none; }
+.opts label {
+  display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--rule);
+  font-size: var(--fs-s); font-weight: 500; cursor: pointer; white-space: nowrap;
+}
+.opts input:checked + label { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.opts input:focus-visible + label { outline: 2px solid var(--ring); outline-offset: 2px; }
+.pick .d { font-size: var(--fs-s); color: var(--ink-2); }
+.field { display: grid; gap: 6px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.field label { font-weight: 600; }
+textarea { width: 100%; min-height: 96px; resize: vertical; border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; background: var(--page); }
+.save { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.state { font-size: var(--fs-s); color: var(--ink-2); }
+.state.err { color: #a93a39; }
+.btn { height: 44px; padding: 0 16px; border-radius: 12px; border: 0; background: var(--sel); color: var(--sel-ink); font-weight: 500; }
+.copybox { width: 100%; min-height: 160px; font-size: var(--fs-s); }
+
+/* Stage: mockups at their real width, zoomed down to fit */
+.stage { min-width: 0; container: stage / inline-size; }
+.frames { display: grid; gap: 24px; align-items: start; }
+.frames.both { grid-template-columns: minmax(0, 1fr) 390px; }
+@container stage (max-width: 92rem) { .frames.both { grid-template-columns: minmax(0, 1fr); } .frames.both .fr-phone { max-width: 390px; } }
+.fr { margin: 0; min-width: 0; display: grid; gap: 8px; }
+.fr figcaption { font-size: var(--fs-s); color: var(--ink-2); }
+.scr { overflow: hidden; border-radius: 14px; box-shadow: var(--frame-shadow); outline: 1px solid var(--rule); width: max-content; max-width: 100%; }
+.fr-phone .scr { border-radius: 26px; }
+.single .fr { justify-items: start; }
+
+/* ================= Mockup of index.html (tokens from src/styles.css) ================= */
+.mock {
+  --bg: #ffffff; --fg: #333333; --muted: #6e6967; --line: #e6e2df; --surface: #f6f4f2; --strong: #d3ccc7; --cover-sh: rgba(0, 0, 0, .14);
+  --st-red-fg: #a93a39; --st-red-bg: #f7e5e4;
+  --mauve: #ba8ea7; --yellow: #ddd300; --orange: #db9f00; --blue: #b5c9d0; --red: #a93a39; --green: #b3cea1;
+  --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6'%3E%3Cpath d='M6 3.5 10.5 8 6 12.5'/%3E%3C/svg%3E");
+  container: mock / inline-size; color-scheme: light;
+  background: var(--bg); color: var(--fg); font: 400 1rem/1.5 var(--font); padding-bottom: 32px; text-align: left;
+}
+.mock.dark {
+  --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #34312f; --surface: #252322; --strong: #4a4643; --cover-sh: rgba(0, 0, 0, .45);
+  --st-red-fg: #f0a6a5; --st-red-bg: #3b2524; color-scheme: dark;
+}
+.mock * { box-sizing: border-box; }
+.mock small { display: block; font-size: .875rem; color: var(--muted); }
+.mock h1 { margin: 0; font-size: 1.5rem; font-weight: 600; line-height: 1.1; }
+.mock .wrap { max-width: calc(46rem + 32px); margin: 0 auto; padding-inline: 16px; }
+.mock svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Header */
+.hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 16px 8px; }
+.logo { display: block; flex: none; line-height: 0; }
+.logo img { height: 44px; width: auto; }
+.logo .d, .mock.dark .logo .l { display: none; }
+.mock.dark .logo .d { display: block; }
+.tools { display: flex; align-items: center; gap: 8px; }
+.seg { display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); }
+.seg b { display: grid; place-items: center; height: 36px; min-width: 42px; border-radius: 999px; font-size: .875rem; font-weight: 500; color: var(--muted); }
+.seg b.on { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--fg); }
+.ib { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); }
+.ib.sm { width: 40px; height: 40px; }
+.ttl { padding-block: 8px 16px; }
+@container mock (min-width: 40rem) {
+  .hd { padding-block: 24px 12px; }
+  .logo img { height: 60px; }
+  .ttl { padding-block: 12px 20px; }
+}
+/* Header A: title next to the logo */
+.hd.x-a { justify-content: flex-start; padding-bottom: 16px; }
+.hd.x-a .vr { width: 1px; align-self: stretch; margin-block: 4px; background: var(--line); flex: none; }
+.hd.x-a h1 { flex: 1; min-width: 0; font-size: 1rem; }
+@container mock (min-width: 40rem) { .hd.x-a { padding-bottom: 20px; gap: 16px; } .hd.x-a h1 { font-size: 1.5rem; } }
+/* Header D: language and settings in one pill */
+.tools.pill { gap: 0; padding: 2px; border: 1px solid var(--line); border-radius: 999px; }
+.tools.pill .seg { border: 0; padding: 0; }
+.tools.pill .seg b { height: 40px; }
+.tools.pill .sep { width: 1px; height: 22px; margin-inline: 4px; background: var(--line); }
+.tools.pill .ib { border: 0; width: 40px; height: 40px; }
+
+/* Cards and blocks above the list */
+.blk { padding-bottom: 16px; }
+.card { border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.tx { flex: 1; min-width: 0; }
+.tx b { display: block; font-weight: 500; }
+.chv { width: 16px !important; height: 16px !important; color: var(--muted); }
+.dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 20%, transparent); }
+.barc { width: 4px; align-self: stretch; flex: none; border-radius: 2px; background: var(--blue); }
+
+.info .ln { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.info .ln:first-child { border-top: 0; }
+/* Info A: one line, holidays as a chip */
+.info.x-a .ln { flex-wrap: wrap; row-gap: 8px; }
+.info.x-a .tx b { display: inline; margin-right: 6px; }
+.info.x-a .tx small { display: inline; }
+.info.x-a .chiprow { order: 4; flex-basis: 100%; padding-left: 22px; }
+.info.x-a .chv { order: 3; }
+.chip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); font-size: .875rem; white-space: nowrap; }
+.chip .barc { align-self: auto; width: 3px; height: 14px; }
+@container mock (min-width: 40rem) { .info.x-a .chiprow { order: 0; flex-basis: auto; padding-left: 0; } }
+/* Info B: a quiet text line, no card */
+.infoline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0; font-size: .875rem; color: var(--muted); }
+.infoline b { color: var(--fg); font-weight: 500; }
+.infoline .lnk { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; min-height: 32px; color: var(--fg); font-weight: 500; }
+.infoline span:nth-child(2) { flex: 1 1 14rem; min-width: 0; }
+/* Info C: status as a colored mark, holidays with a date tile */
+.st { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: var(--st-red-bg); color: var(--st-red-fg); font-size: .875rem; font-weight: 600; }
+.st::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.dt { flex: none; display: grid; place-content: center; width: 56px; height: 46px; border-radius: 10px; background: color-mix(in srgb, var(--blue) 45%, var(--bg)); line-height: 1.15; text-align: center; }
+.dt b { font-size: .875rem; font-weight: 600; }
+.dt small { color: var(--fg); }
+/* Info D: white card, icons */
+.card.x-d { background: var(--bg); box-shadow: inset 0 0 0 1px var(--strong); }
+.ic { position: relative; flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); }
+.ic.closed::after { content: ""; position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px var(--bg); }
+.ic svg { width: 17px; height: 17px; }
+
+/* Recommendations */
+.recs { position: relative; padding: 16px; }
+.rh { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rt { min-width: 0; }
+.rt b { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; line-height: 1.2; }
+.rt b svg { width: 14px; height: 14px; color: var(--muted); }
+.rt small { margin-top: 2px; }
+.rh .ib { margin: -4px -4px -4px 0; }
+.rr { display: grid; margin-top: 8px; }
+.rec { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 16px; padding-block: 12px; border-top: 1px solid var(--line); min-width: 0; }
+.rec:first-child { border-top: 0; }
+.rx { min-width: 0; }
+.rx b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 500; line-height: 1.3; }
+.rx small { margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rx p { margin: 6px 0 0; font-size: .875rem; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cw { display: block; min-width: 0; }
+.cw .cv { box-shadow: 0 3px 8px var(--cover-sh); }
+@container mock (min-width: 40rem) {
+  .rr { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+  .rec { display: flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; border: 0; }
+  .rec .rx b { margin-top: 9px; }
+  .rec .cw .cv { box-shadow: 0 6px 16px var(--cover-sh); }
+}
+/* Recs A: head on one line, 2×2 tiles */
+.recs.x-a .rt { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
+.recs.x-a .rt small { margin: 0; }
+@container mock (min-width: 40rem) {
+  .recs.x-a .rr { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin-top: 12px; }
+  .recs.x-a .rec { display: grid; grid-template-columns: 60px minmax(0, 1fr); align-items: center; gap: 14px; }
+  .recs.x-a .rec .rx b { margin-top: 0; }
+  .recs.x-a .rec .cw .cv { box-shadow: 0 3px 8px var(--cover-sh); }
+}
+/* Recs B: open on the page, archive as its own button */
+.recs.x-b { background: none; box-shadow: none; padding: 4px 0 8px; }
+.recs.x-b .rh .rt b { font-size: 1rem; }
+.tb { display: inline-flex; align-items: center; gap: 2px; height: 40px; padding: 0 10px 0 14px; border-radius: 999px; border: 1px solid var(--line); font-size: .875rem; font-weight: 500; white-space: nowrap; }
+.tb svg { width: 16px; height: 16px; }
+.rh .acts { display: flex; align-items: center; gap: 8px; }
+.recs.x-b .rh .ib { margin: 0; }
+/* Recs C: covers stand on a shelf board in the group color */
+.grp { display: inline-flex !important; align-items: center; gap: 6px; }
+.grp::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+@container mock (min-width: 40rem) {
+  .recs.x-c .rr { margin-top: 20px; }
+  .recs.x-c .cw { margin-inline: -8px; padding-inline: 8px; border-bottom: 5px solid var(--orange); }
+  .recs.x-c .rec:first-child .cw { border-bottom-left-radius: 3px; }
+  .recs.x-c .rec:last-child .cw { border-bottom-right-radius: 3px; }
+  .recs.x-c .rec .rx b { margin-top: 12px; }
+}
+/* Recs D: white card, first sentence of the recommendation under each book */
+.recs.x-d { background: var(--bg); box-shadow: inset 0 0 0 1px var(--strong); }
+.recs.x-d .rec { grid-template-columns: 56px minmax(0, 1fr); align-items: start; }
+/* Recs E: narrow list with small covers at every width */
+.recs.x-e .rr { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 8px; }
+.recs.x-e .rec { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 14px; padding-block: 10px; border-top: 1px solid var(--line); }
+.recs.x-e .rec:first-child { border-top: 0; }
+.recs.x-e .rec .rx b { margin-top: 0; }
+.recs.x-e .rec .cw .cv { box-shadow: 0 3px 8px var(--cover-sh); }
+
+/* Covers (placeholders standing in for the real images) */
+.cv { display: block; position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: 3px 6px 6px 3px; overflow: hidden; container-type: inline-size; font-family: Georgia, "Times New Roman", serif; line-height: 1.1; }
+.cv .ct { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 9cqi 9cqi 9cqi 12cqi; }
+.cv .au { font-size: 9cqi; }
+.cv .ti { font-size: 12cqi; margin-top: auto; }
+@container (max-width: 72px) { .cv .ct { display: none; } }
+.k1 { background: #f2f0eb; color: #2f3e86; }
+.k1 .ti { color: #3a3a3a; margin-top: 48%; }
+.k1::after { content: ""; position: absolute; left: 0; bottom: 0; width: 100%; height: 30%; background: #c9c3b6; }
+.k2 { background: #f4ecd2; color: #3b3424; }
+.k2::before { content: ""; position: absolute; inset: 7%; border: 1px solid #8a7a50; border-radius: 2px; }
+.k2 .ct { justify-content: center; text-align: center; padding-inline: 14cqi; }
+.k2 .ti { margin-top: 6cqi; }
+.k3 { background: #46525b; color: #ffffff; }
+.k3::after { content: ""; position: absolute; left: 30%; right: 30%; bottom: 0; height: 52%; background: #c9d3d9; }
+.k3 .ti { margin-top: 4cqi; }
+.k4 { background: #f6dfae; color: #222222; }
+.k4::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7%; background: #c4504d; }
+.k4 .ti { font-size: 17cqi; margin-top: 10cqi; }
+
+/* Search bar */
+.bar { background: var(--bg); }
+.barin { display: grid; gap: 8px; padding-block: 12px; }
+.srow { display: flex; gap: 8px; }
+.search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--muted); }
+.search .ph { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.catb { flex: none; display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-weight: 500; }
+.cl { display: none; }
+.az { display: none; }
+.az i { font-style: normal; min-width: 26px; height: 30px; display: grid; place-items: center; border-radius: 8px; font-size: .875rem; font-weight: 500; }
+.az i.off { color: var(--line); }
+@container mock (min-width: 40rem) { .cl { display: inline; } }
+@container mock (min-width: 48rem) { .az { display: flex; justify-content: space-between; margin: 0 -4px; } }
+/* Search A: category inside the field */
+.bar.x-a .search { padding-right: 6px; }
+.inc { flex: none; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 10px 0 12px; border-left: 1px solid var(--line); color: var(--fg); font-weight: 500; }
+/* Search C: A–Z in a quiet track */
+@container mock (min-width: 48rem) {
+  .bar.x-c .az { margin: 0; padding: 4px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .bar.x-c .az i { height: 32px; }
+}
+/* Search D: white field with a clear border */
+.bar.x-d .search, .bar.x-d .catb { background: var(--bg); border-color: var(--strong); }
+
+/* List */
+.meta { margin: 0; padding-top: 12px; font-size: .875rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { border-top: 1px solid var(--line); }
+.list li:first-child { border-top: 0; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; padding-block: 12px; }
+.row .t { grid-column: 1; line-height: 1.35; overflow-wrap: anywhere; }
+.row .a { grid-column: 1; margin-top: 2px; font-size: .875rem; color: var(--muted); }
+.row::after { content: ""; grid-column: 2; grid-row: 1 / span 2; width: 16px; height: 16px; background: var(--muted); opacity: .55; -webkit-mask: var(--chev) center / 16px 16px no-repeat; mask: var(--chev) center / 16px 16px no-repeat; }
+/* List A: denser, title and author on one line from tablet */
+.lst.x-a .row { grid-template-columns: minmax(0, 1fr); padding-block: 10px; }
+.lst.x-a .row::after { display: none; }
+@container mock (min-width: 48rem) {
+  .lst.x-a .row { grid-template-columns: minmax(0, 1fr) minmax(0, 38%); column-gap: 24px; padding-block: 9px; }
+  .lst.x-a .row .a { grid-column: 2; grid-row: 1; margin: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+/* List C: letter headings */
+.list li.lh { display: flex; align-items: center; gap: 14px; padding: 20px 0 4px; border-top: 0; font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
+.list li.lh:first-child { padding-top: 8px; }
+.list li.lh::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.list li.lh + li { border-top: 0; }
+/* List D: no arrows, slightly stronger titles */
+.lst.x-d .row::after { display: none; }
+.lst.x-d .row { grid-template-columns: minmax(0, 1fr); }
+.lst.x-d .row .t { font-weight: 500; }
+
+/* Layout E: two columns from desktop width */
+@container mock (min-width: 62rem) {
+  .lay-e { display: grid; grid-template-columns: 21rem minmax(0, 1fr); gap: 0 48px; max-width: 78rem; margin: 0 auto; padding-inline: 32px; align-items: start; }
+  .lay-e .wrap { max-width: none; padding-inline: 0; }
+  .lay-e .main .barin { padding-top: 28px; }
+  .lay-e .hd.x-a h1 { font-size: 1rem; }
+  .lay-e .side .recs .rr { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 8px; }
+  .lay-e .side .recs .rec { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 14px; padding-block: 10px; border-top: 1px solid var(--line); }
+  .lay-e .side .recs .rec:first-child { border-top: 0; }
+  .lay-e .side .recs .rec .rx b { margin-top: 0; }
+  .lay-e .side .recs .cw { margin: 0; padding: 0; border: 0; }
+  .lay-e .side .recs .cw .cv { box-shadow: 0 3px 8px var(--cover-sh); }
+  .lay-e .side .recs.x-d .rec { grid-template-columns: 56px minmax(0, 1fr); align-items: start; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="shell">
+  <header class="top">
+    <img class="ll" src="img/logo-light.webp" width="360" height="200" alt="Deutsche Schule Mailand">
+    <img class="ld" src="img/logo-dark.webp" width="360" height="200" alt="">
+    <div>
+      <h1>Bibliothek – fünf Entwürfe</h1>
+      <p>Alle nah am heutigen Stand, jede mit anderen Schwerpunkten. Bereiche, die gefallen, übernehmen. Unter „Zusammenstellen“ entsteht daraus eine Version.</p>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Entwürfe" id="tabs"></nav>
+
+  <div class="bar2">
+    <div class="ctl"><span id="w-l">Breite</span><div class="sg" role="group" aria-labelledby="w-l" id="views"></div></div>
+    <div class="ctl"><span id="t-l">Vorschau</span><div class="sg" role="group" aria-labelledby="t-l" id="themes"></div></div>
+  </div>
+
+  <main class="work">
+    <aside class="notes" id="notes" aria-live="polite"></aside>
+    <section class="stage" id="stage" aria-label="Vorschau"></section>
+  </main>
+</div>
+
+<script>
+// ---------- Content (real data from books.js / recommendations.js) ----------
+const BOOKS = [
+  { t: "Corpus Delicti", a: "Juli Zeh", k: "k1", de: "In einem Staat, der Gesundheit zur obersten Pflicht erklärt, gerät die Biologin Mia Holl ins Visier der Justiz, nachdem ihr Bruder verurteilt wurde." },
+  { t: "Der Vorleser", a: "Bernhard Schlink", k: "k2", de: "Der 15-jährige Michael verliebt sich in die ältere Hanna. Jahre später sieht er sie als Jurastudent wieder: auf der Anklagebank eines NS-Prozesses." },
+  { t: "Schöne neue Welt", a: "Aldous Huxley", k: "k3", de: "Eine Welt ohne Krieg, Armut und Schmerz, dafür mit Menschen aus der Retorte, Glückspillen und festen Kasten." },
+  { t: "Im Westen nichts Neues", a: "Erich Maria Remarque", k: "k4", de: "Paul Bäumer zieht als Schüler begeistert in den Ersten Weltkrieg und erlebt an der Westfront, wie seine Generation zerstört wird." },
+];
+const LIST = [
+  ["Aus dem Leben eines Taugenichts", "Joseph von Eichendorff, Hans Traxler"], ["Aus den Tagebüchern", "Robert Musil"],
+  ["Aus meinen späten Jahren", "Albert Einstein"], ["Auserwählt", "Patricia Schröder"], ["Ausgestorben, um zu bleiben", "Bernhard Kegel"],
+  ["Bach", "Martin Geck"], ["Bach hören", "Michael Wersin"], ["Back to blue", "Rusalka Reh"],
+  ["Back to paradise", "Simone Elkeles, Katrin Weingran"], ["Bad Girls", ""], ["Bahnwärter Thiel", "Gerhart Hauptmann"],
+];
+
+// ---------- Variants ----------
+const SECTIONS = [["aufbau", "Aufbau"], ["kopf", "Kopf"], ["info", "Öffnungszeiten"], ["recs", "Empfehlungen"], ["suche", "Suche und Filter"], ["liste", "Liste"]];
+const SEC = Object.fromEntries(SECTIONS);
+const BASE = { aufbau: "cur", kopf: "cur", info: "cur", recs: "cur", suche: "cur", liste: "cur" };
+const V = {
+  cur: { k: "–", name: "Aktuell", idea: "Der heutige Stand als Vergleich. In „Zusammenstellen“ steht jeder Bereich zunächst auf „Aktuell“.", ch: {} },
+  a: { k: "A", name: "Kompakt", idea: "Gleiche Bausteine, weniger Höhe: Auf dem ersten Bildschirm ist deutlich mehr von der Liste zu sehen.", ch: {
+    kopf: "„Bibliothek“ steht neben dem Logo statt darunter. Spart eine Zeile.",
+    info: "Öffnungszeiten in einer Zeile, die Ferien als kleiner Hinweis daneben (auf dem Handy darunter).",
+    recs: "Überschrift und Stufe in einer Zeile. Ab Tablet 2 × 2 Kacheln mit mittleren Covern statt vier großer Cover.",
+    suche: "„Kategorie“ sitzt im Suchfeld. Ein Bedienelement statt zwei.",
+    liste: "Ohne Pfeile, etwas enger. Ab Tablet Titel links, Autor rechts in einer Zeile: rund ein Drittel mehr Bücher pro Bildschirm." } },
+  b: { k: "B", name: "Suche zuerst", idea: "Die meisten kommen, um ein Buch zu finden. Die Suche steht deshalb direkt unter dem Titel, alles andere folgt darunter.", ch: {
+    aufbau: "Reihenfolge: Kopf, Suche, Öffnungszeiten, Empfehlungen, Liste.",
+    info: "Öffnungszeiten als ruhige Textzeile ohne Karte, „Öffnungszeiten“ rechts öffnet wie bisher den Dialog.",
+    recs: "Empfehlungen ohne graue Fläche. „Bisherige“ ist ein eigener Knopf statt des Pfeils neben der Überschrift." } },
+  c: { k: "C", name: "Logo-Farben", idea: "Die Logofarben bekommen eine feste Bedeutung: Farbe der Stufe bei den Empfehlungen, Rot und Grün beim Status, Blau für Ferien.", ch: {
+    info: "Status als farbige Marke („Geschlossen“ rot, „Geöffnet“ grün). Ferien mit einer Datumskachel.",
+    recs: "Ab Tablet stehen die Cover auf einem Regalbrett in der Farbe der Stufe (Oberstufe = Orange). Stufe mit Farbpunkt.",
+    suche: "A–Z in einer ruhigen Leiste, dadurch klar als eine Gruppe erkennbar.",
+    liste: "Jeder Buchstabe beginnt mit einer Überschrift (A, B …). Orientierung auch ohne den schwebenden Buchstaben." } },
+  d: { k: "D", name: "Hell und offen", idea: "Weniger graue Flächen, klarere Linien. Wirkt leichter, vor allem im Dunkelmodus, und die Empfehlungen erklären sich selbst.", ch: {
+    kopf: "Sprache und Einstellungen in einer gemeinsamen Pille.",
+    info: "Weiße Karte mit Rahmen. Symbole (Uhr, Kalender) statt Punkt und Balken.",
+    recs: "Unter jedem Buch der erste Satz der Empfehlung: zeigt sofort, warum es sich lohnt.",
+    suche: "Weißes Suchfeld mit deutlichem Rahmen, Kategorie als Umrissknopf.",
+    liste: "Ohne Pfeile, Titel etwas kräftiger (500)." } },
+  e: { k: "E", name: "Zwei Spalten", idea: "Am Schul-PC und am Laptop liegt viel Platz brach. Ab Desktop-Breite: links Kopf, Öffnungszeiten und Empfehlungen, rechts Suche und Liste. Handy und Tablet bleiben wie heute.", ch: {
+    aufbau: "Zwei Spalten ab 1000 px Breite, darunter einspaltig wie heute.",
+    recs: "Empfehlungen als schmale Liste mit kleinen Covern, in jeder Breite." } },
+};
+const ORDER = ["cur", "a", "b", "c", "d", "e"];
+const OPTS = {};
+for (const [s] of SECTIONS) OPTS[s] = ORDER.filter(v => v === "cur" || V[v].ch[s]);
+const selOf = v => ({ ...BASE, ...Object.fromEntries(Object.keys(V[v].ch).map(s => [s, v])) });
+const label = v => (v === "cur" ? "Aktuell" : V[v].k + " " + V[v].name);
+
+// ---------- Icons (lucide) ----------
+const svg = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+const I = {
+  gear: svg('<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>'),
+  search: svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+  filter: svg('<path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/>'),
+  chev: svg('<path d="m9 18 6-6-6-6"/>'),
+  x: svg('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
+  clock: svg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'),
+  cal: svg('<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>'),
+};
+const chv = I.chev.replace("<svg", '<svg class="chv"');
+
+// ---------- Mockup sections ----------
+function kopf(v) {
+  const logo = '<span class="logo"><img class="l" src="img/logo-light.webp" width="360" height="200" alt=""><img class="d" src="img/logo-dark.webp" width="360" height="200" alt=""></span>';
+  const seg = '<span class="seg"><b class="on">DE</b><b>IT</b></span>';
+  const gear = `<span class="ib">${I.gear}</span>`;
+  const title = '<div class="wrap ttl"><h1>Bibliothek</h1></div>';
+  if (v === "a") return `<header class="hd wrap x-a">${logo}<span class="vr"></span><h1>Bibliothek</h1><span class="tools">${seg}${gear}</span></header>`;
+  if (v === "d") return `<header class="hd wrap x-d">${logo}<span class="tools pill">${seg}<i class="sep"></i>${gear}</span></header>${title}`;
+  return `<header class="hd wrap">${logo}<span class="tools">${seg}${gear}</span></header>${title}`;
+}
+
+function info(v) {
+  if (v === "a") return `<section class="wrap blk"><div class="card info x-a"><div class="ln"><i class="dot"></i><span class="tx"><b>Jetzt geschlossen</b><small>Wieder morgen ab 7:45</small></span><span class="chiprow"><span class="chip"><i class="barc"></i>Herbstferien 26.–30.10.</span></span>${chv}</div></div></section>`;
+  if (v === "b") return `<section class="wrap blk"><p class="infoline"><i class="dot"></i><span><b>Jetzt geschlossen.</b> Wieder morgen ab 7:45. Herbstferien vom 26. bis 30.10.</span><span class="lnk">Öffnungszeiten${chv}</span></p></section>`;
+  if (v === "c") return `<section class="wrap blk"><div class="card info"><div class="ln"><span class="st">Geschlossen</span><span class="tx"><b>Wieder geöffnet morgen ab 7:45</b></span>${chv}</div><div class="ln"><span class="dt"><b>26.–30.</b><small>Okt.</small></span><span class="tx"><b>Herbstferien</b><small>Bibliothek geschlossen</small></span></div></div></section>`;
+  if (v === "d") return `<section class="wrap blk"><div class="card info x-d"><div class="ln"><span class="ic closed">${I.clock}</span><span class="tx"><b>Jetzt geschlossen</b><small>Wieder geöffnet morgen ab 7:45</small></span>${chv}</div><div class="ln"><span class="ic">${I.cal}</span><span class="tx"><b>Herbstferien</b><small>26.10.–30.10., geschlossen</small></span></div></div></section>`;
+  return `<section class="wrap blk"><div class="card info"><div class="ln"><i class="dot"></i><span class="tx"><b>Jetzt geschlossen</b><small>Wieder geöffnet morgen ab 7:45</small></span>${chv}</div><div class="ln"><i class="barc"></i><span class="tx"><b>Herbstferien</b><small>26.10.–30.10. · geschlossen</small></span></div></div></section>`;
+}
+
+const cover = b => `<span class="cw"><span class="cv ${b.k}"><span class="ct"><span class="au">${b.a}</span><span class="ti">${b.t}</span></span></span></span>`;
+function recs(v) {
+  const items = BOOKS.map(b => `<div class="rec">${cover(b)}<span class="rx"><b>${b.t}</b><small>${b.a}</small>${v === "d" ? `<p>${b.de}</p>` : ""}</span></div>`).join("");
+  const x = `<span class="ib sm">${I.x}</span>`;
+  let head;
+  if (v === "b") head = `<span class="rt"><b>Empfehlungen für die Oberstufe</b></span><span class="acts"><span class="tb">Bisherige${I.chev}</span>${x}</span>`;
+  else if (v === "a") head = `<span class="rt"><b>Empfehlungen${I.chev}</b><small>Oberstufe</small></span>${x}`;
+  else if (v === "c") head = `<span class="rt"><b>Empfehlungen${I.chev}</b><small class="grp">Oberstufe</small></span>${x}`;
+  else head = `<span class="rt"><b>Empfehlungen${I.chev}</b><small>Oberstufe</small></span>${x}`;
+  const card = v === "b" ? "recs" : "card recs";
+  return `<section class="wrap blk"><div class="${card} x-${v}"><div class="rh">${head}</div><div class="rr">${items}</div></div></section>`;
+}
+
+function suche(v) {
+  const az = "#ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => `<i${l === "X" ? ' class="off"' : ""}>${l}</i>`).join("");
+  const cat = `<span class="catb">${I.filter}<span class="cl">Kategorie</span></span>`;
+  const field = v === "a"
+    ? `<span class="search">${I.search}<span class="ph">Titel, Autor oder ISBN suchen</span><span class="inc">${I.filter}<span class="cl">Kategorie</span></span></span>`
+    : `<span class="search">${I.search}<span class="ph">Titel, Autor oder ISBN suchen</span></span>${cat}`;
+  return `<div class="bar x-${v}"><div class="wrap barin"><div class="srow">${field}</div><div class="az">${az}</div></div></div>`;
+}
+
+function liste(v) {
+  let prev = "";
+  const rows = LIST.map(([t, a]) => {
+    const l = t[0].toUpperCase();
+    const head = v === "c" && l !== prev ? `<li class="lh">${l}</li>` : "";
+    prev = l;
+    return `${head}<li><span class="row"><span class="t">${t}</span>${a ? `<span class="a">${a}</span>` : ""}</span></li>`;
+  }).join("");
+  return `<div class="wrap lst x-${v}"><p class="meta">4.545 Bücher</p><ul class="list">${rows}</ul></div>`;
+}
+
+function mock(sel) {
+  const h = kopf(sel.kopf), i = info(sel.info), r = recs(sel.recs), s = suche(sel.suche), l = liste(sel.liste);
+  if (sel.aufbau === "e") return `<div class="lay-e"><div class="side">${h}${i}${r}</div><div class="main">${s}${l}</div></div>`;
+  if (sel.aufbau === "b") return h + s + i + r + l;
+  return h + i + r + s + l;
+}
+
+// ---------- State ----------
+const ls = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
+};
+const darkOS = matchMedia("(prefers-color-scheme: dark)").matches;
+const state = {
+  tab: ORDER.concat("mix").includes(location.hash.slice(1)) ? location.hash.slice(1) : ls.get("tab", "a"),
+  view: ls.get("view", "both"),
+  theme: ls.get("theme", darkOS ? "dark" : "light"),
+  pick: { ...BASE, ...ls.get("pick", {}) },
+  note: ls.get("note", ""),
+};
+let save = { mode: "pending", msg: "" }; // pending | db | local | busy | error
+
+const W = { phone: 390, tablet: 768, desk: 1100 };
+const VIEWS = [["phone", "Handy"], ["tablet", "Tablet"], ["desk", "Desktop"], ["both", "Desktop und Handy"]];
+const THEMES = [["light", "Hell"], ["dark", "Dunkel"]];
+
+// ---------- Rendering ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const changed = () => SECTIONS.filter(([s]) => state.pick[s] !== "cur").length;
+
+function renderTabs() {
+  const n = changed();
+  $("tabs").innerHTML = ORDER.map(v => `<button class="tab" role="tab" id="tab-${v}" aria-selected="${state.tab === v}" data-tab="${v}"><span class="k">${V[v].k}</span>${V[v].name}</button>`).join("")
+    + `<button class="tab mix" role="tab" id="tab-mix" aria-selected="${state.tab === "mix"}" data-tab="mix">Zusammenstellen${n ? `<span class="n">${n} von 6</span>` : ""}</button>`;
+}
+function renderControls() {
+  $("views").innerHTML = VIEWS.map(([k, t]) => `<button type="button" data-view="${k}" aria-pressed="${state.view === k}">${t}</button>`).join("");
+  $("themes").innerHTML = THEMES.map(([k, t]) => `<button type="button" data-theme="${k}" aria-pressed="${state.theme === k}">${t}</button>`).join("");
+}
+function saveText() {
+  return { pending: "Auswahl wird geladen …", db: "Gespeichert. Claude kann die Auswahl direkt lesen.", local: "Nur in diesem Browser gespeichert. Zum Weitergeben „Auswahl kopieren“.",
+    busy: "Wird gespeichert …", error: "Nicht gespeichert: " + save.msg + ". Die Auswahl bleibt in diesem Browser." }[save.mode];
+}
+function renderNotes() {
+  const n = $("notes");
+  if (state.tab !== "mix") {
+    const v = V[state.tab], keys = Object.keys(v.ch);
+    const rest = SECTIONS.filter(([s]) => !v.ch[s]).map(([, t]) => t);
+    n.innerHTML = `<h2><span class="k">${v.k}</span>${v.name}</h2><p class="idea">${v.idea}</p>`
+      + (keys.length ? `<ul class="chg">${SECTIONS.filter(([s]) => v.ch[s]).map(([s, t]) => {
+        const on = state.pick[s] === state.tab;
+        return `<li><span class="sec">${t}</span><p>${v.ch[s]}</p><button type="button" class="take" data-take="${s}" aria-pressed="${on}">${on ? "Übernommen" : "Übernehmen"}</button></li>`;
+      }).join("")}</ul>` : "")
+      + (keys.length && rest.length ? `<p class="same">Wie heute: ${rest.join(", ")}.</p>` : "");
+    return;
+  }
+  n.innerHTML = `<h2>Zusammenstellen</h2><p class="idea">Pro Bereich eine Variante wählen. Die Vorschau zeigt das Ergebnis.</p>`
+    + SECTIONS.map(([s, t]) => `<fieldset class="pick"><legend>${t}</legend><div class="opts">${OPTS[s].map(v =>
+      `<input type="radio" name="p-${s}" id="p-${s}-${v}" value="${v}" data-pick="${s}"${state.pick[s] === v ? " checked" : ""}><label for="p-${s}-${v}">${v === "cur" ? "Aktuell" : V[v].k}</label>`).join("")}</div>`
+      + `<p class="d" id="d-${s}">${state.pick[s] === "cur" ? "Wie heute." : V[state.pick[s]].ch[s]}</p></fieldset>`).join("")
+    + `<div class="field"><label for="note">Notiz</label><textarea id="note" placeholder="Was soll noch anders werden?">${esc(state.note)}</textarea></div>`
+    + `<div class="save"><span class="state${save.mode === "error" ? " err" : ""}" id="save-state">${saveText()}</span><button type="button" class="btn" id="copy">Auswahl kopieren</button></div>`
+    + `<textarea class="copybox" id="copybox" readonly hidden aria-label="Auswahl als Text"></textarea>`;
+}
+function renderStage() {
+  const sel = state.tab === "mix" ? state.pick : selOf(state.tab);
+  const name = state.tab === "mix" ? "Zusammenstellung" : label(state.tab);
+  const frames = state.view === "both" ? ["desk", "phone"] : [state.view];
+  const cap = { phone: "Handy", tablet: "Tablet", desk: "Desktop" };
+  $("stage").innerHTML = `<div class="frames ${state.view === "both" ? "both" : "single"}">` + frames.map(k =>
+    `<figure class="fr fr-${k}"><figcaption>${cap[k]}, ${W[k]} px breit</figcaption><div class="scr" role="img" aria-label="Vorschau ${name}, ${cap[k]}">`
+    + `<div class="mock${state.theme === "dark" ? " dark" : ""}" inert data-w="${W[k]}" style="width:${W[k]}px">${mock(sel)}</div></div></figure>`).join("") + `</div>`;
+  fit();
+}
+function fit() {
+  for (const fr of $("stage").querySelectorAll(".fr")) {
+    const m = fr.querySelector(".mock"), w = +m.dataset.w;
+    m.style.zoom = Math.min(1, fr.clientWidth / w);
+  }
+}
+function render() { renderTabs(); renderControls(); renderNotes(); renderStage(); }
+
+// ---------- Saving: db (readable by Claude), browser storage as fallback ----------
+let ref = null, timer = null, writing = false, again = false;
+function persist() {
+  ls.set("pick", state.pick); ls.set("note", state.note);
+  if (!ref) return;
+  clearTimeout(timer);
+  timer = setTimeout(write, 700);
+}
+async function write() {
+  if (writing) { again = true; return; }
+  writing = true; setSave("busy");
+  try {
+    await ref.set({ pick: { ...state.pick }, note: state.note, updated: new Date().toISOString() });
+    setSave("db");
+  } catch (e) {
+    setSave("error", (e && (e.message || e.code)) || "unbekannter Fehler");
+  }
+  writing = false;
+  if (again) { again = false; write(); }
+}
+function setSave(mode, msg) {
+  save = { mode, msg: msg || "" };
+  const el = $("save-state");
+  if (el) { el.textContent = saveText(); el.classList.toggle("err", mode === "error"); }
+}
+(async () => {
+  const db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+  if (!db) { setSave("local"); return; }
+  ref = db.doc("picks/main");
+  try {
+    const snap = await ref.get();
+    if (snap.exists) {
+      const d = snap.data() || {};
+      state.pick = { ...BASE, ...(d.pick || {}) };
+      state.note = typeof d.note === "string" ? d.note : "";
+      ls.set("pick", state.pick); ls.set("note", state.note);
+      render();
+    }
+    setSave("db");
+  } catch (e) {
+    setSave("error", (e && (e.message || e.code)) || "unbekannter Fehler");
+  }
+})();
+
+function summary() {
+  return "Bibliothek DSM – Auswahl aus den Entwürfen\n"
+    + SECTIONS.map(([s, t]) => `${t}: ${label(state.pick[s])}${state.pick[s] === "cur" ? "" : " – " + V[state.pick[s]].ch[s]}`).join("\n")
+    + (state.note.trim() ? "\nNotiz: " + state.note.trim() : "");
+}
+
+// ---------- Events ----------
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-tab],[data-view],[data-theme],[data-take],#copy");
+  if (!t) return;
+  if (t.dataset.tab) {
+    state.tab = t.dataset.tab; ls.set("tab", state.tab);
+    try { history.replaceState(null, "", "#" + state.tab); } catch (err) { /* sandboxed */ }
+    render(); document.getElementById("tab-" + state.tab).focus();
+  } else if (t.dataset.view) {
+    state.view = t.dataset.view; ls.set("view", state.view); renderControls(); renderStage();
+  } else if (t.dataset.theme) {
+    state.theme = t.dataset.theme; ls.set("theme", state.theme); renderControls(); renderStage();
+  } else if (t.dataset.take) {
+    const s = t.dataset.take;
+    state.pick[s] = state.pick[s] === state.tab ? "cur" : state.tab;
+    persist(); renderTabs(); renderNotes();
+    const b = document.querySelector(`[data-take="${s}"]`); if (b) b.focus();
+  } else if (t.id === "copy") {
+    const text = summary(), box = $("copybox");
+    const fallback = () => { box.value = text; box.hidden = false; box.focus(); box.select(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => { t.textContent = "Kopiert"; setTimeout(() => { t.textContent = "Auswahl kopieren"; }, 1600); }, fallback);
+    } else fallback();
+  }
+});
+document.addEventListener("change", e => {
+  const s = e.target.dataset && e.target.dataset.pick;
+  if (!s) return;
+  state.pick[s] = e.target.value;
+  $("d-" + s).textContent = state.pick[s] === "cur" ? "Wie heute." : V[state.pick[s]].ch[s];
+  persist(); renderTabs(); renderStage();
+});
+document.addEventListener("input", e => {
+  if (e.target.id !== "note") return;
+  state.note = e.target.value; persist();
+});
+// Arrow keys move between tabs
+$("tabs").addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const all = ORDER.concat("mix"), i = all.indexOf(state.tab);
+  const next = all[(i + (e.key === "ArrowRight" ? 1 : all.length - 1)) % all.length];
+  document.getElementById("tab-" + next).click();
+});
+new ResizeObserver(fit).observe($("stage"));
+
+const tick = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5 6.5 11.5 12.5 4.5'/%3E%3C/svg%3E\")";
+document.documentElement.style.setProperty("--tick", tick);
+render();
+</script>

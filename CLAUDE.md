@@ -32,12 +32,15 @@ Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh r
 - `tools/` – `build.mjs` (Vite, one IIFE per page, fixed names), `source/` (extract.js + admin UI, PLAINTEXT),
   `encrypt-admin.js`, `generate-books.js` (same logic as admin.html), `migrate-data.mjs` (old German data files → English,
   one-time), `tunnel.mjs`, `branches.sh`, `build-guide.js` + `guide/template.html` (German staff guide),
-  `local.mjs`/`local-router.php`/`local-address.cjs` (php-wasm only on 127.0.0.1 – otherwise it ignores "-S" and listens on the whole network).
+  `local.mjs`/`local-router.php`/`local-address.cjs` (php-wasm only on 127.0.0.1 – otherwise it ignores "-S" and listens on the whole network;
+  it runs on a free internal port, browser-sync on PORT proxies it with live reload + `no-store`, watches website/ + local admin.enc.js, not the data files).
   local: data files from/to `tests/.tmp/local/data/` (`DSM_DATA_FOLDER`, freshly copied from website/ on every start) – testing
   never changes the committed books.js/recommendations.js/info.js (before, a changed info.js constantly blocked integration).
   npx (php-wasm, browser-sync, shadcn) always with an exact version + `--prefer-offline` (one cache per package spec in
   ~/.npm/_npx, otherwise a registry request per start or a reinstall, php-wasm ≈470 MB). Deliberately not in package.json.
 - `tests/`, `docs/`: don't upload. `data/` (`*.winbook` with student data): NEVER commit/upload. `anleitung/` = generated German guide.
+  `docs/entwuerfe/` = five UI variants (2026-10-18) as a private claude.ai artifact https://claude.ai/artifact/EuCPm1eKryK64A8YD5ywNP;
+  Johann's picks per section live in its db (`ArtifactData get`, collection `picks`, doc `main`). Mockup only, no part of website/.
 
 ## Commands
 
@@ -46,7 +49,7 @@ npm run build          # src/ → website/ (after EVERY change to src/, commit t
 npm run books          # data/*.winbook → website/books.js
 npm run serve          # :8765;  dev = watch + live reload (browser-sync);  tunnel(:dev) = https://….trycloudflare.com for phone/school PC
 npm run local          # like the webspace: PHP + real save.php, watch, password "local" → http://127.0.0.1:8765/admin.html
-npm run tunnel:php     # local + public https address, writes to tests/.tmp/local/data/, random password
+npm run tunnel:php     # local + public https address, writes to tests/.tmp/local/data/, random password; both live reload
 npm run ui:add -- <n>  # new shadcn component (adapt it to DSM afterwards!)
 node tools/encrypt-admin.js   # after EVERY change to tools/source/* (asks for the password without echo); = npm run encrypt
 git push && gh run watch <id> --exit-status   # the ONLY way to test (GitHub Actions); npm test / test:e2e / test:all only run there

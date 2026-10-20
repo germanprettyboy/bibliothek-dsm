@@ -23,7 +23,8 @@ local.mjs + local-router.php + local-address.cjs
                     PHP comes as php-wasm via npx (no installation). "Publish" writes to
                     ../tests/.tmp/local/data/ (copy of ../website, fresh on every start; website/ stays untouched). The admin app is encrypted again on start and on
                     changes to source/ (only for local use, the real admin.enc.js stays untouched).
-                    src/ is built in watch mode; reload the page after changes.
+                    src/ is built in watch mode with live reload (browser-sync as a proxy in front of PHP, also
+                    through the tunnel of npm run tunnel:php); after a reload unlock the admin page again.
                     Server only reachable at 127.0.0.1 (local-address.cjs), not from the Wi-Fi.
 
 guide/template.html + build-guide.js
