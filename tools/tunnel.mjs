@@ -63,7 +63,7 @@ export function tunnelAddress(line) {
   return m ? m[0] + "/" : null;
 }
 
-const freePort = () => new Promise((ok, no) => {
+export const freePort = () => new Promise((ok, no) => {
   const s = http.createServer().listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => ok(port)); }).on("error", no);
 });
 

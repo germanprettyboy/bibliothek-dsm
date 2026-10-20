@@ -11,7 +11,10 @@
  * - npm run local -- --tunnel: additionally a public https address in front (Cloudflare Quick Tunnel, brew install cloudflared),
  *   so that "Publish" also really writes from the phone/school PC. Because the address is public, a random
  *   password (shown) applies instead of "local"; the write target stays tests/.tmp/local/data/.
- * - src/ → website/ in watch mode (like npm run dev, without live reload: reload the page).
+ * - src/ → website/ in watch mode with live reload: browser-sync (as in npm run dev) sits on PORT as a proxy in front of
+ *   PHP (internal free port) and reloads every open page (also through the tunnel) when website/ or the local
+ *   admin.enc.js changes; style.css alone is swapped without a reload. Published data files do not trigger it
+ *   (the admin page would lock again right after "Publish"). After a reload the admin page has to be unlocked again.
  */
 import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -20,7 +23,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import readline from "node:readline";
-import { tunnel, dnsReady, reachable, cleanup } from "./tunnel.mjs";
+import { tunnel, dnsReady, reachable, cleanup, freePort } from "./tunnel.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOCAL = path.join(ROOT, "tests", ".tmp", "local");
@@ -34,6 +37,7 @@ const PORT = process.env.PORT || "8765";
 // start and reinstalls everything for every new php-wasm version (they appear almost daily). --prefer-offline: no
 // registry request even with a fixed version (otherwise ≈1 s, without network ENOTFOUND with retries instead of starting at once).
 const PHP_WASM = "@php-wasm/cli@3.1.56";
+const BROWSER_SYNC = "browser-sync@3.0.4"; // same spelling as in package.json "dev" and tunnel.mjs (one npx cache)
 
 function encrypt() {
   fs.mkdirSync(LOCAL, { recursive: true });
@@ -61,29 +65,46 @@ for (const f of FILES) if (fs.existsSync(path.join(ROOT, "website", f))) fs.copy
 
 // local-address.cjs: otherwise php-wasm listens on all interfaces despite "-S 127.0.0.1" (reachable in the Wi-Fi)
 const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "tools", "local-address.cjs"))}`.trim();
-const php = spawn("npx", ["--yes", "--prefer-offline", PHP_WASM, "-S", `127.0.0.1:${PORT}`, "-t", "website", path.join("tools", "local-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
+const PHP_PORT = await freePort();
+const php = spawn("npx", ["--yes", "--prefer-offline", PHP_WASM, "-S", `127.0.0.1:${PHP_PORT}`, "-t", "website", path.join("tools", "local-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
 // While a connection is open, php-wasm reports "Failed to accept a client (reason: Invalid argument)" dozens of times
 // and "Failed to poll event" (accept() in the WASM socket; harmless, requests go through, still so in 3.1.58).
 // Hidden together with Accepted/Closing per connection; requests, PHP errors and everything else stay visible.
 const NOISE = /\] (Failed to accept a client \(reason: Invalid argument\)|Failed to poll event|\S+ (Accepted|Closing|Closed without sending a request\b.*))$/;
 readline.createInterface({ input: php.stderr }).on("line", z => { if (!NOISE.test(z)) console.error(z); });
 
+// Live reload: browser-sync as a proxy on PORT. no-store, otherwise Cloudflare holds on to .js/.css at the edge (PHP's
+// built-in server sends no Cache-Control) and the reload through the tunnel would show the old build.
+const BS_CONFIG = path.join(LOCAL, "browser-sync.cjs");
+fs.writeFileSync(BS_CONFIG, `module.exports = {
+  proxy: { target: "http://127.0.0.1:${PHP_PORT}", proxyRes: [res => { res.headers["cache-control"] = "no-store"; }] },
+  files: ${JSON.stringify([path.join(ROOT, "website"), path.join(LOCAL, "admin.enc.js")])},
+  port: ${+PORT}, listen: "127.0.0.1", reloadDebounce: 300,
+  open: false, notify: false, ui: false, ghostMode: false, logLevel: "silent",
+};\n`);
+
 const children = [
   spawn(process.execPath, [path.join(ROOT, "tools", "build.mjs"), "--watch"], { cwd: ROOT, stdio: "inherit" }),
   php,
+  // --no-deprecation: http-proxy in browser-sync warns about util._extend (DEP0060) on the first request
+  spawn("npx", ["--yes", "--prefer-offline", BROWSER_SYNC, "start", "--config", BS_CONFIG], { cwd: ROOT, stdio: "inherit", env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS || ""} --no-deprecation`.trim() } }),
 ];
 console.log(`
 Book list:   http://127.0.0.1:${PORT}/
 Admin page:  http://127.0.0.1:${PORT}/admin.html   Password: ${PW}
 "Publish" writes to tests/.tmp/local/data/ (not to website/, reset on the next start). Stop: Ctrl+C
+Live reload: open pages reload on every build (admin page: unlock again).
 (Only on the very first start npx downloads PHP (≈470 MB), afterwards from the cache.)
 `);
 
 if (WITH_TUNNEL) {
   console.log("Opening the tunnel …");
   try {
-    const local = await reachable(`http://127.0.0.1:${PORT}/index.html`, 120);
+    // PHP first: until it answers, the proxy would hold every request open
+    const local = await reachable(`http://127.0.0.1:${PHP_PORT}/index.html`, 120);
     if (local !== true) throw new Error(`PHP server does not answer (${local})`);
+    const proxy = await reachable(`http://127.0.0.1:${PORT}/index.html`, 60);
+    if (proxy !== true) throw new Error(`browser-sync does not answer (${proxy})`);
     const address = await tunnel(PORT);
     await dnsReady(address, 60);
     const up = await reachable(address + "index.html", 120);
