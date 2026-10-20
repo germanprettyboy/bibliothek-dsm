@@ -11,45 +11,61 @@ const listeners = new Set();
 const darkMq = matchMedia("(prefers-color-scheme: dark)");
 const isDark = p => p.theme === "dark" || (p.theme === "auto" && darkMq.matches);
 
+let waiting = false; // a color switch is waiting for the marker glide: nothing else may apply the attributes before it
+
 function apply() {
+  waiting = false;
   if (prefs.theme === "light" || prefs.theme === "dark") root.dataset.theme = prefs.theme; else delete root.dataset.theme;
   if (prefs.font) root.dataset.font = "large"; else delete root.dataset.font;
   if (prefs.contrast) root.dataset.contrast = "high"; else delete root.dataset.contrast;
 }
 
-// Color switch as one cross-fade of the whole picture (View Transition, compositor only): new colors are computed
-// once. Previously body color/background was animated – that meant restyling all ~17,000 elements in every frame.
-// Sequence: the marker or switch reacts immediately (React) and finishes gliding first (--t-fast), then the whole
-// page is cross-faded in one piece. Otherwise the control would already stand in the new colors on the old page (hard
-// block) or its old position would linger as a ghost. The logo of the new color scheme (dark: loading="lazy", never
-// loaded yet) is loaded beforehand so it isn't missing from the new picture and doesn't pop in afterwards.
-// Without the API (Firefox < 144, Safari < 18) or with reduced motion: immediately.
+// Color switch (theme, contrast). Two rules, the same on every path:
+// 1. No component transition ever runs on a color change. `still` is in the DOM from the change until the new picture
+//    stands. Otherwise every button, toggle, bar border … fades at its own speed while the rest jumps (patchy), and
+//    under the cross-fade it runs hidden on the main thread (300–700 ms frames at 4× CPU). Removing the rule changes
+//    no computed value, so nothing starts then either.
+// 2. If possible the whole page cross-fades once as a picture (View Transition, compositor only), after the marker
+//    of the theme choice has finished gliding (otherwise its old position lingers as a ghost in the old picture).
+//    Without the API (Firefox < 144, Safari < 18), with reduced motion, in a hidden tab or when the device itself
+//    switches light/dark (already applied, nothing to fade from): instantly, but also without transitions.
+// Each switch takes a number; an older one that is still waiting gives up (quick clicks: only the last one counts).
 const GLIDE = 150;
-const wait = ms => new Promise(r => setTimeout(r, ms));
 let run = 0;
 
-function loadLogos() {
-  const imgs = [...document.querySelectorAll(".logo img")];
-  imgs.forEach(b => { b.loading = "eager"; });
-  return Promise.all(imgs.map(b => b.decode().catch(() => {})));
-}
-
-// Component transitions (buttons, toggles, bar border …) must not start on the color change: they would run
-// hidden under the cross-fade, but on the main thread (color is not compositable): restyle + paint in every frame,
-// 300–700 ms frames at 4× CPU. The rule is in the DOM only from the switch until the cross-fade has finished
-// (nothing computed changes on removal, so nothing starts then either).
+// The marker of the theme choice (.seg3, transform only) keeps gliding where there is no cross-fade
 const still = document.createElement("style");
-still.textContent = "*, *::before, *::after { transition: none !important; }";
+still.textContent = "*, :not(.seg3)::before, *::after { transition: none !important; }";
 
-async function colorSwitch() {
-  if (!document.startViewTransition || reduced.matches) return apply();
+// The rule must survive the next style computation: two frames (rAF runs before the style of its own frame)
+function instant() {
   const nr = ++run;
-  await Promise.all([wait(GLIDE), Promise.race([loadLogos(), wait(400)])]);
-  if (nr !== run) return; // clicked in quick succession: only the last switch
-  const vt = document.startViewTransition(() => { document.head.append(still); apply(); });
-  // Removal restyles the whole page once: only when the picture stands still, not in the last frames of the fade
-  vt.finished.catch(() => {}).then(() => wait(300)).then(() => { if (nr === run) still.remove(); });
+  document.head.append(still);
+  apply();
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (nr === run) still.remove(); }));
 }
+
+function fade() {
+  if (!document.startViewTransition || reduced.matches || document.hidden) return instant();
+  const nr = ++run;
+  waiting = true;
+  loadLogos();
+  setTimeout(() => {
+    if (nr !== run) return;
+    let vt;
+    try { vt = document.startViewTransition(() => { document.head.append(still); apply(); }); } catch { return instant(); }
+    vt.finished.catch(() => {}).then(() => { if (nr === run) still.remove(); });
+  }, GLIDE);
+}
+
+// The logo of the other color scheme is loading="lazy" and hidden, so it never loaded: load it before the switch
+// (the settings call this on opening), otherwise it is missing from the new picture and pops in afterwards
+export function loadLogos() {
+  document.querySelectorAll(".logo img").forEach(b => { b.loading = "eager"; });
+}
+
+// The device switches light/dark itself (theme "auto"): the colors are already new, only keep transitions out
+darkMq.addEventListener("change", () => { if (prefs.theme === "auto") instant(); });
 
 export function setPref(k, v) {
   const next = { ...prefs, [k]: v };
@@ -60,7 +76,8 @@ export function setPref(k, v) {
   const color = k === "contrast" || (k === "theme" && isDark(next) !== isDark(prefs));
   prefs = next;
   listeners.forEach(fn => fn());
-  if (color) colorSwitch(); else apply();
+  if (color) fade();
+  else if (!waiting) apply(); // otherwise the waiting switch applies it in a moment
 }
 
 const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
