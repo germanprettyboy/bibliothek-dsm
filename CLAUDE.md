@@ -134,6 +134,10 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   `yellow`, `orange`, `blue`, `red`, `green`; plus `anthracite`). `--spacing: 4px` (`p-3` = 12 px). No `dark:`.
 - Grid: cards (info, recommendations also on the phone, settings blocks, detail text) = `.card` (16 px radius, `surface`,
   inner line, `p-4`); blocks above the list `pb-4`; search field 48 px, radius 12 px; logo 44 px / 60 px, square corners (no radius on `.ld-img`, client 2026-10-18).
+- Header index.html (2026-10-20, client, variant A from `docs/entwuerfe/`): title `h1` next to the logo behind a 1 px divider
+  ("DSM | Bibliothek", `Header title=…`, `.hd`/`.hd-row` in styles.css). Container query `calc(260px + 4.7em)`: one row from
+  375 px phones (larger text from 390 px), otherwise the title drops below the logo as before. admin.html keeps the title below.
+  Test: header.spec.
 - Accessible: targets ≥44 px (`size="icon"` 44, `icon-sm` 40), focus 2 px in the text color (`--focus`), skip link `a[href="#q"]`,
   info card without `aria-label`, invisible list heading `#list-t`.
 - shadcn after `ui:add`: `cn` from `@/lib/utils`, no `text-sm`/`text-xs`, no `underline`, no `dark:` (rules.test checks).
