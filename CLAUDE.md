@@ -168,10 +168,14 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 - covers.js: no permanent intervals; tick timers (300/350/600/1500 ms) only while work is pending.
 - Inherited properties on `<html>`/`<body>` hit everything: NO transitions on `body`, animate nothing inherited, no class on
   `<html>` to switch off transitions. `.list { pointer-events: auto }` catches Radix' `body { pointer-events: none }`.
-- Theme/contrast (`lib/appearance.js`): marker immediately, 150 ms glide, then `document.startViewTransition` (`--t-color`
-  350 ms, `--ease-color`). Component transitions (buttons, bar, toggles) are switched off for the switch by a `<style>` element
-  (`transition: none !important`, in the DOM from the callback until 300 ms after the fade): otherwise they run hidden on the
-  main thread under the cross-fade = 300–700 ms frames at CPU 4×. Not a class on `<html>`. NO own layer for `.seg3`. Before that, logos `loading="eager"` + `decode()` (max. 400 ms).
+- Theme/contrast (`lib/appearance.js`, simplified 2026-10-20 after repeated breakage): EVERY color change (settings, device
+  switching light/dark under "auto", no View Transition API, reduced motion) adds the `<style>` `still`
+  (`transition: none !important`, except the `.seg3` marker): otherwise each component fades at its own speed while the rest
+  jumps, and under the cross-fade it runs on the main thread (300–700 ms frames at CPU 4×). Not a class on `<html>`.
+  With the API: marker glides 150 ms, then `document.startViewTransition` (`--t-color` 350 ms, `--ease-color`), `still`
+  goes on `finished`; otherwise instant, `still` goes after two frames. Quick clicks: only the last switch runs; a font
+  change while a switch waits does not apply early. The other logo is loaded when the settings open (no waiting before the fade).
+  NO own layer for `.seg3`.
   Language (`components/header.jsx`): marker first (`.seg[data-on]`, `will-change: transform`), `setLang` after the frame
   (rAF + setTimeout). Sonner toaster with `dir="ltr"` (otherwise `getComputedStyle(html)` per render).
 - Blur: scrim `blur(8px) saturate(1.15)`, glass `blur(18px) saturate(1.8)` – don't increase; glass without backdrop-filter looked
