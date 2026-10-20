@@ -185,6 +185,29 @@
   .logo .logo-d { display: none; }
   @media (min-width: 40rem) { .logo img { height: 60px; } }
 
+  /* Header with the page title (index.html): "DSM | Bibliothek" in one row, saves a row on the phone. If the row doesn't
+     fit (narrow phone, larger text) the title moves below the logo as before. Threshold in px + em: logo, gaps and
+     buttons are px, only the title grows with the text size. Measured: the row needs 256px + 4.7em (330px DE/IT, 345px with
+     larger text), plus 4px slack. Shown in one row from 375px phones on, with larger text from 390px. */
+  .hd { container-type: inline-size; }
+  .hd-row {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "logo . tools" "title title title";
+    align-items: center; column-gap: 12px; padding-bottom: 16px;
+  }
+  .hd-row > .logo { grid-area: logo; }
+  .hd-row > .hd-tools { grid-area: tools; }
+  .hd-vr { display: none; grid-area: vr; width: 1px; align-self: stretch; margin-block: 4px; background: var(--line); }
+  .hd-t { grid-area: title; margin: 0; padding-top: 16px; font-size: var(--fs-l); font-weight: 600; line-height: 1.1; text-wrap: balance; }
+  @container (min-width: calc(260px + 4.7em)) {
+    .hd-row { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "logo vr title tools"; }
+    .hd-vr { display: block; }
+    .hd-t { padding-top: 0; font-size: var(--fs-m); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+  @media (min-width: 40rem) {
+    .hd-row { column-gap: 16px; padding-bottom: 20px; }
+    .hd-t { font-size: var(--fs-l); }
+  }
+
   /* Language choice DE/IT: gliding marker. The header sets data-on immediately on click, the page texts switch
      one frame later (components/header.jsx). Own layer (will-change): it keeps gliding on the compositor
      while the main thread recomputes the page. Before React (static skeleton) lang on <html> applies. */
