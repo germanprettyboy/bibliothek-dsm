@@ -1,5 +1,5 @@
 // Language DE/IT and settings (theme, larger text, high contrast)
-const { test, expect, open, swipe, restingTop, data, hits } = require("./helpers.js");
+const { test, expect, open, swipeStages, data, hits } = require("./helpers.js");
 
 const { B, C } = data();
 
@@ -101,6 +101,18 @@ test.describe("settings", () => {
     await expect(page.locator(".logo-l")).toBeHidden();
   });
 
+  test("the device switching light/dark starts no component transitions (no patchy fade)", async ({ page }) => {
+    await open(page);
+    const running = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() =>
+      r(document.getAnimations().filter(a => a instanceof CSSTransition).length))));
+    await expect.poll(running).toBe(0); // logo fade-in after loading
+    await page.emulateMedia({ colorScheme: "dark" });
+    expect(await running()).toBe(0);
+    await page.emulateMedia({ colorScheme: "light" });
+    expect(await running()).toBe(0);
+    await expect.poll(() => page.evaluate(() => !!document.querySelector("head > style:last-child")?.textContent.includes("transition: none"))).toBe(false);
+  });
+
   test('"light" wins against a dark system', async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.addInitScript(() => localStorage.setItem("dsm-theme", "light"));
@@ -153,18 +165,10 @@ test.describe("settings", () => {
 
 test.describe("settings sheet on the phone", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-  test("swiping: half, up = full screen, down = half, further down = closed", async ({ page }) => {
+  test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
     await open(page);
     await page.click(".settings-btn");
-    const sheet = page.locator(".settings[role=dialog]");
-    const half = await restingTop(sheet);
-    expect(half).toBeGreaterThan(100);
-    await swipe(page, half + 20, 120);
-    expect(await restingTop(sheet)).toBeLessThan(40);
-    await swipe(page, 200, 500);
-    expect(await restingTop(sheet)).toBeGreaterThan(100);
-    await swipe(page, half + 20, 800);
-    await expect(sheet).toBeHidden();
+    await swipeStages(page, page.locator(".settings[role=dialog]"));
   });
 });
 

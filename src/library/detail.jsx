@@ -78,9 +78,11 @@ export function Detail({ entry, onClose }) {
       >
         {b ? (
           <div ref={swipeRef} className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
+            {/* fixed height: the row must not depend on width % + aspect-ratio (WebKit sized it from the text
+                only, so with a short title the cover ran into "Why this book?") */}
             <Cover
               ref={box} id="d-cover" title={b.t} isbn={!!b.i} found={found} onShown={() => setZoomable(true)}
-              className={cn(zoomable && "zoomable", zoom && "lifted")}
+              className={cn("h-[168px] sm:h-[225px]", zoomable && "zoomable", zoom && "lifted")}
               {...(zoomable ? { role: "button", tabIndex: 0, "aria-label": t("coverZoom") } : {})}
               onClick={zoomOpen}
               onKeyDown={e => { if ((e.key === "Enter" || e.key === " ") && zoomable) { e.preventDefault(); zoomOpen(); } }}

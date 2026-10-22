@@ -60,10 +60,7 @@ export function App() {
           <a href="./" className="font-semibold whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
         </div>
       </div>
-      <Header onSettings={settings} />
-      <section className="wrap intro pt-2 pb-4 sm:pt-3 sm:pb-5">
-        <h1 className="m-0 text-l font-semibold leading-[1.1] [text-wrap:balance]">{t("title")}</h1>
-      </section>
+      <Header onSettings={settings} title={t("title")} />
       <InfoCard I={I} onOpen={() => setDialog("info")} />
       <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} onSettings={settings} />
       <BookList books={books} loaded={loaded} onOpen={open} />

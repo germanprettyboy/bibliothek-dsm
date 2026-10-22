@@ -1,7 +1,7 @@
 // Detail view with cover (Open Library / Google Books mocked), placeholder, closing.
 const fs = require("fs");
 const path = require("path");
-const { test, expect, open, swipe, restingTop, data } = require("./helpers.js");
+const { test, expect, open, swipeStages, data } = require("./helpers.js");
 
 const { B } = data();
 const WITH_ISBN = B.books.find(b => b.i && b.p && b.y && b.c && b.l && b.a);
@@ -211,18 +211,10 @@ test.describe("detail on the phone", () => {
     expect(box.x).toBeGreaterThanOrEqual(0);
   });
 
-  // Sheet half-high, up = full screen, down = half, further down = close
-  test("swiping: half, up = full screen, down = half, further down = closed", async ({ page }) => {
+  // Sheet half-high, up = as high as the content (or springs back), down = half, further down = close
+  test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
     await open(page);
     await openBook(page, WITH_ISBN);
-    const sheet = page.locator("#detail");
-    const half = await restingTop(sheet);
-    expect(half).toBeGreaterThan(150);
-    await swipe(page, half + 20, 120);
-    expect(await restingTop(sheet)).toBeLessThan(40);
-    await swipe(page, 200, 500);
-    expect(await restingTop(sheet)).toBeGreaterThan(150);
-    await swipe(page, half + 20, 800);
-    await expect(page.locator("#detail")).toBeHidden();
+    await swipeStages(page, page.locator("#detail"));
   });
 });

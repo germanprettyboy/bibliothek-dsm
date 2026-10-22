@@ -110,10 +110,13 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 - Tap a real cover in the detail → `#zoom` (second Radix dialog, glass scrim), FLIP flight (transform only, `--snap`, 240/180 ms)
   into the center, max. 27rem. Only then OL "L"; Google at most 2.5×. Placeholders can't be enlarged.
 - Detail on the phone (<40rem, `lib/swipe.js`): screen-high sheet, parked half-high (transform), flies in from below
-  (spring as `linear()`), the finger leads 1:1; up = full screen (content scrolls), down = half, further/fast = close, the scrim
-  follows. From 40rem / reduced motion unchanged. Test: detail.spec "swiping". Settings and categories behave the same
-  (`useSwipe(scrimSel, onClose)`, class `swipe` on dialog + scrim; categories keep a constant height and go to full screen when
-  the search field gets focus). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
+  (spring as `linear()`), the finger leads 1:1; up = as high as the content, at most full screen (content scrolls), down = half,
+  further/fast = close, the scrim follows. Content that fits half-high (≤ 80 %) = ONE stage like an iOS sheet sized to its
+  content (`data-fit`, 2026-10-20, client: no empty glass, mainly the questions): no 40 % minimum, upwards a rubber band
+  (iOS formula), springs back. From 40rem / reduced motion unchanged. Tests: `swipeStages` (helpers.js) in every dialog spec. EVERY dialog behaves the same (2026-10-20, client:
+  settings, categories, questions, opening hours, archive; `useSwipe(scrimSel, onClose)`, class `swipe` on dialog + scrim;
+  a new dialog gets it too; categories keep a constant height and go to full screen when the search field gets focus; content
+  changing its height at half glides to the new position; swiping the questions away = "no"). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
   `main.books` uses `lvh` (not `dvh`) so the iOS toolbar/keyboard does not move the text while searching.
 - Dialogs (detail, settings, questions, opening hours, archive, categories): `Dialog` as `.glass.sheet`, scrim `.scrim` blurred +
   darker; phone bottom sheet, centered from 40rem. Blur always on, except "reduce transparency" and glass in high contrast.
@@ -140,6 +143,10 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   `yellow`, `orange`, `blue`, `red`, `green`; plus `anthracite`). `--spacing: 4px` (`p-3` = 12 px). No `dark:`.
 - Grid: cards (info, recommendations also on the phone, settings blocks, detail text) = `.card` (16 px radius, `surface`,
   inner line, `p-4`); blocks above the list `pb-4`; search field 48 px, radius 12 px; logo 44 px / 60 px, square corners (no radius on `.ld-img`, client 2026-10-18).
+- Header index.html (2026-10-20, client, variant A from `docs/entwuerfe/`): title `h1` next to the logo behind a 1 px divider
+  ("DSM | Bibliothek", `Header title=…`, `.hd`/`.hd-row` in styles.css). Container query `calc(260px + 4.7em)`: one row from
+  375 px phones (larger text from 390 px), otherwise the title drops below the logo as before. admin.html keeps the title below.
+  Test: header.spec.
 - Accessible: targets ≥44 px (`size="icon"` 44, `icon-sm` 40), focus 2 px in the text color (`--focus`), skip link `a[href="#q"]`,
   info card without `aria-label`, invisible list heading `#list-t`.
 - shadcn after `ui:add`: `cn` from `@/lib/utils`, no `text-sm`/`text-xs`, no `underline`, no `dark:` (rules.test checks).
@@ -171,10 +178,14 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 - covers.js: no permanent intervals; tick timers (300/350/600/1500 ms) only while work is pending.
 - Inherited properties on `<html>`/`<body>` hit everything: NO transitions on `body`, animate nothing inherited, no class on
   `<html>` to switch off transitions. `.list { pointer-events: auto }` catches Radix' `body { pointer-events: none }`.
-- Theme/contrast (`lib/appearance.js`): marker immediately, 150 ms glide, then `document.startViewTransition` (`--t-color`
-  350 ms, `--ease-color`). Component transitions (buttons, bar, toggles) are switched off for the switch by a `<style>` element
-  (`transition: none !important`, in the DOM from the callback until 300 ms after the fade): otherwise they run hidden on the
-  main thread under the cross-fade = 300–700 ms frames at CPU 4×. Not a class on `<html>`. NO own layer for `.seg3`. Before that, logos `loading="eager"` + `decode()` (max. 400 ms).
+- Theme/contrast (`lib/appearance.js`, simplified 2026-10-20 after repeated breakage): EVERY color change (settings, device
+  switching light/dark under "auto", no View Transition API, reduced motion) adds the `<style>` `still`
+  (`transition: none !important`, except the `.seg3` marker): otherwise each component fades at its own speed while the rest
+  jumps, and under the cross-fade it runs on the main thread (300–700 ms frames at CPU 4×). Not a class on `<html>`.
+  With the API: marker glides 150 ms, then `document.startViewTransition` (`--t-color` 350 ms, `--ease-color`), `still`
+  goes on `finished`; otherwise instant, `still` goes after two frames. Quick clicks: only the last switch runs; a font
+  change while a switch waits does not apply early. The other logo is loaded when the settings open (no waiting before the fade).
+  NO own layer for `.seg3`.
   Language (`components/header.jsx`): marker first (`.seg[data-on]`, `will-change: transform`), `setLang` after the frame
   (rAF + setTimeout). Sonner toaster with `dir="ltr"` (otherwise `getComputedStyle(html)` per render).
 - Blur: scrim `blur(8px) saturate(1.15)`, glass `blur(18px) saturate(1.8)` – don't increase; glass without backdrop-filter looked
