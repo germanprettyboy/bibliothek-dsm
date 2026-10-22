@@ -2,10 +2,12 @@ import * as React from "react";
 import { Toaster as Sonner } from "sonner";
 
 // notices at the bottom (shadcn/ui Sonner) as a glass surface. Text only, no icons.
+// Position and width of the list and the notice: `.toaster` in styles.css (Sonner's own CSS beats Tailwind classes)
 function Toaster(props) {
   return (
     <Sonner
       position="bottom-center"
+      className="toaster"
       // fixed instead of from getComputedStyle(<html>): Sonner would otherwise ask on every render; after a language
       // switch that forces a style recalculation of the whole page in the middle of the click
       dir="ltr"
@@ -15,7 +17,7 @@ function Toaster(props) {
         unstyled: true,
         classNames: {
           // font-sans: Sonner sets its own system font on the toaster, which would otherwise override Fira Sans
-          toast: "toast glass relative font-sans mx-auto w-max max-w-[min(30rem,calc(100vw-32px))] rounded-2xl px-[18px] py-3 text-m",
+          toast: "toast glass font-sans rounded-2xl px-[18px] py-3 text-m",
         },
       }}
       {...props}

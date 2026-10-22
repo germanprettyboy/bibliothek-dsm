@@ -48,6 +48,7 @@ export function App() {
 
   const open = React.useCallback((b, rec) => setDetail({ b, rec: rec || null }), []);
   const dialogToggle = name => on => setDialog(on ? name : null);
+  const settings = React.useCallback(() => setDialog("settings"), []);
 
   return (
     <>
@@ -59,12 +60,12 @@ export function App() {
           <a href="./" className="font-semibold whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
         </div>
       </div>
-      <Header onSettings={() => setDialog("settings")} />
+      <Header onSettings={settings} />
       <section className="wrap intro pt-2 pb-4 sm:pt-3 sm:pb-5">
         <h1 className="m-0 text-l font-semibold leading-[1.1] [text-wrap:balance]">{t("title")}</h1>
       </section>
       <InfoCard I={I} onOpen={() => setDialog("info")} />
-      <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} />
+      <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} onSettings={settings} />
       <BookList books={books} loaded={loaded} onOpen={open} />
 
       <Detail entry={detail} onClose={() => setDetail(null)} />
@@ -73,7 +74,7 @@ export function App() {
       </Settings>
       <Archive open={dialog === "archive"} onOpenChange={dialogToggle("archive")} R={R} byKey={byKey} onOpen={open} />
       <InfoDialog I={I} open={dialog === "info"} onOpenChange={dialogToggle("info")} />
-      <Questions open={dialog === "questions"} onOpenChange={dialogToggle("questions")} />
+      <Questions open={dialog === "questions"} onOpenChange={dialogToggle("questions")} onSettings={settings} />
       <Toaster />
     </>
   );

@@ -561,6 +561,17 @@
 :root[data-theme="dark"] .logo .logo-l { display: none; }
 :root[data-theme="dark"] .logo .logo-d { display: block; }
 
+/* Notices (Sonner, src/components/ui/sonner.jsx): Sonner inserts its CSS unlayered at runtime, after this file,
+   so these rules stay outside @layer and are more specific. The list spans the width; during a dialog's scroll lock
+   minus the hidden scrollbar (Radix variable), so the notice doesn't jump sideways when the dialog closes. */
+.toaster[data-sonner-toaster][data-x-position] { left: 0; right: var(--removed-body-scroll-bar-size, 0px); width: auto; transform: none; }
+.toaster[data-sonner-toaster] [data-sonner-toast] { left: 0; right: 0; margin-inline: auto; width: max-content; max-width: min(30rem, calc(100% - 32px)); }
+/* Sonner's swipe hit area (::before, three times wide and high) would stretch the glass highlight */
+.toaster[data-sonner-toaster] [data-sonner-toast].glass::before { inset: 0; height: auto; transform: none; }
+/* Notice as a button (notify(msg, onClick)): the whole surface is clickable */
+.toaster[data-sonner-toaster] .has-btn { padding: 0; }
+.toast-btn { display: block; width: 100%; padding: 12px 18px; border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: left; }
+
 @keyframes rise { from { opacity: .001; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes pop-a { 40% { transform: scale(1.18); } }
 @keyframes pop-b { 40% { transform: scale(1.18); } }
