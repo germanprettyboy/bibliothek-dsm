@@ -13,8 +13,13 @@ const { realDb, keyOf } = require("../helpers/load.js");
 const PW = "test-password";
 const { B, R } = data();
 
-test.beforeEach(async ({ context }) => {
+// Safari has no folder access (showDirectoryPicker), and WebKit's OPFS can't write in Playwright's ephemeral context:
+// in WebKit the admin page runs as in Safari, publishing = download (save() below)
+const FOLDER = ({ browserName }) => browserName !== "webkit";
+
+test.beforeEach(async ({ context, browserName }) => {
   await context.route("**/assets/admin.enc.js", r => r.fulfill({ path: path.join(TMP, "admin.enc.js"), contentType: "text/javascript" }));
+  if (!FOLDER({ browserName })) return;
   // The browser's folder dialog (native, not controllable) replaced by a folder in the private browser storage (OPFS).
   // localStorage "__test-folder": name of the chosen folder; only "website" contains index.html; "cancel" = dialog cancelled.
   await context.addInitScript(() => {
@@ -55,8 +60,9 @@ const folderFile = (page, file, folder = "website") => page.evaluate(async ([f, 
 const folderData = async (page, file, name) => { try { return evaluate(await folderFile(page, file), name) || null; } catch (e) { return null; } };
 const FILE = { "#dl": "books.js", "#rec-dl": "recommendations.js", "#i-dl": "info.js" };
 const okText = file => new RegExp(`^${file.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
-// Publish: click, success message, written file as text
+// Publish: click, success message, written file as text (WebKit: the download, as in Safari)
 async function save(page, button) {
+  if (!FOLDER({ browserName: page.context().browser().browserType().name() })) return download(page, button);
   const file = FILE[button];
   await page.click(button);
   await expect(page.locator(`.pub[data-file="${file}"] .flag`)).toHaveText(okText(file));
@@ -400,6 +406,7 @@ test.describe("admin page on the phone", () => {
 });
 
 test.describe("publishing directly into the website folder", () => {
+  test.skip(args => !FOLDER(args), "no folder access in Safari");
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const picks = page => page.evaluate(() => window.__picks);
   const folderLine = "Website-Ordner: website · Anderen Ordner wählen";
@@ -579,7 +586,8 @@ test.describe("publishing directly online (save.php)", () => {
     expect(await page.evaluate(() => JSON.stringify(window.DSM_INFO))).toBe(before);
   });
 
-  test("save.php without the access file: note, folder route as before", async ({ page }) => {
+  test("save.php without the access file: note, folder route as before", async ({ page, browserName }) => {
+    test.skip(!FOLDER({ browserName }), "no folder access in Safari");
     const requests = await server(page, { get: { ready: false, reason: "access" } });
     await unlock(page);
     await info(page);

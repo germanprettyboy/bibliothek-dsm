@@ -53,7 +53,9 @@ export const getLang = () => lang;
 
 // Number and date format per language (create the Intl objects only once)
 const NF = {};
-export const nf = n => (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE"))).format(n);
+// Grouping fixed: left to the browser, Italian 4545 depends on its CLDR version ("4545" Chrome, "4.545" Safari)
+export const nf = n => (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE",
+  { useGrouping: lang === "it" ? "min2" : "auto" }))).format(n);
 export function df(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
   if (!m) return iso || "";

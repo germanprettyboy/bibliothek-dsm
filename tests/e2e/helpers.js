@@ -34,7 +34,8 @@ const test = base.test.extend({
   page: async ({ page, storage, net }, use) => { // eslint-disable-line no-unused-vars
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
-    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
+    // blocked cover services (route.abort): Chromium/WebKit "Failed to load resource", Firefox "CORS request did not succeed"
+    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource|CORS request did not succeed/.test(m.text())) errors.push(m.text()); });
     await page.addInitScript(s => {
       if (sessionStorage.getItem("__test-init")) return; // only on the first load, a reload keeps the state
       sessionStorage.setItem("__test-init", "1");
@@ -62,18 +63,23 @@ const PHONE = {
 // built in the page instead, on the element under the finger like a real touch (lib/swipe.js only reads touches[0]).
 async function swipe(page, from, to, steps = 8) {
   if (page.context().browser().browserType().name() !== "chromium") {
-    const send = (type, y) => page.evaluate(([type, y]) => {
-      if (type === "touchstart") window.__touch = document.elementFromPoint(195, y);
-      const e = new Event(type, { bubbles: true, cancelable: true });
-      Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : [{ clientX: 195, clientY: y }] });
-      window.__touch.dispatchEvent(e);
-    }, [type, y]);
-    await send("touchstart", from);
-    for (let i = 1; i <= steps; i++) {
-      await send("touchmove", from + (to - from) * i / steps);
-      await page.waitForTimeout(12);
-    }
-    await send("touchend", to);
+    // the whole gesture in one call: a round trip per step is far slower than 12 ms in WebKit
+    await page.evaluate(([from, to, steps]) => new Promise(resolve => {
+      const target = document.elementFromPoint(195, from);
+      const send = (type, y) => {
+        const e = new Event(type, { bubbles: true, cancelable: true });
+        Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : [{ clientX: 195, clientY: y }] });
+        target.dispatchEvent(e);
+      };
+      send("touchstart", from);
+      let i = 0;
+      const step = () => {
+        if (++i > steps) { send("touchend", to); resolve(); return; }
+        send("touchmove", from + (to - from) * i / steps);
+        setTimeout(step, 12);
+      };
+      setTimeout(step, 12);
+    }), [from, to, steps]);
     return;
   }
   const cdp = await page.context().newCDPSession(page);

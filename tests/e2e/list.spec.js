@@ -199,6 +199,8 @@ test.describe("phone (390 px)", () => {
 
   test("letter floater only while scrolling, disappears afterwards", async ({ page }) => {
     await open(page);
+    // list complete first: every further render step hides the floater (slower engines are still building it up)
+    await expect(page.locator("#list .row")).toHaveCount(B.books.length);
     await expect(page.locator("#floater")).not.toHaveClass(/show/);
     await page.evaluate(() => scrollTo({ top: document.getElementById("L-K").offsetTop, behavior: "instant" }));
     await expect(page.locator("#floater")).toHaveClass(/show/);

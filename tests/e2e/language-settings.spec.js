@@ -81,6 +81,10 @@ test.describe("settings", () => {
     const light = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     expect(dark).not.toBe(light);
     await page.click('#s-theme [data-v="dark"]');
+    // switch finished (view transition over, `still` removed) before reloading: WebKit keeps the new page from
+    // rendering if a view transition starts while the reload is already under way
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark" &&
+      ![...document.head.querySelectorAll("style")].some(s => s.textContent.includes("transition: none !important")));
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await openSettings(page);
