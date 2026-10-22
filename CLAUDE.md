@@ -168,6 +168,10 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   `lib/appearance`, `library/choice`); texts per module via `addStrings({de, it})`.
 - Admin page: the lock decrypts `admin.enc.js`, `new Function(src)()` sets `window.DSM_ADMIN.App`; the app takes React and
   `@/…` from `window.DSM_SHARED` (one React). covers/logger/categories-it and the data stay classic scripts.
+- Notices (Sonner, `lib/notice.js`): Sonner injects its CSS unlayered at runtime, so Tailwind classes on the toast lose
+  (position, width, `.glass::before`). Position/width live in `styles.css` `.toaster[data-sonner-toaster] …` (unlayered, more
+  specific); list `right: var(--removed-body-scroll-bar-size)` so it doesn't jump when a dialog's scroll lock ends.
+  `notify(msg, onClick)` = the whole notice is a button `.toast-btn` (no swipe); the recommendation notices open the settings (2026-10-22, client).
 - Test hooks (`#list .row`, `#d-cover`, `.ask`, `.settings`, `#rec-res` …) must survive refactorings. Radix dialogs `[role=dialog]`,
   closed = not in the DOM.
 
