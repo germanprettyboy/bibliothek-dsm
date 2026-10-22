@@ -125,7 +125,7 @@ export function Recommendations({ draft, setDraft, catalog }) {
               {box.map(x => (
                 <ToggleGroupItem
                   key={x} value={x} data-g={x}
-                  className="group/opt h-auto min-h-12 w-full justify-start gap-3 rounded-none border-t border-border px-3.5 py-3 text-left text-m font-medium text-foreground first:border-t-0 data-[state=on]:bg-background data-[state=on]:font-semibold data-[state=on]:shadow-none"
+                  className="group/opt h-auto min-h-12 w-full justify-start gap-3 rounded-none border-t border-border px-3.5 py-3 text-left text-m font-medium text-foreground first:border-t-0 data-[state=on]:bg-background data-[state=on]:font-semibold data-[state=on]:shadow-[inset_0_0_0_1px_var(--line)]"
                 >
                   <span className="min-w-0 flex-1 whitespace-normal">{t("g_" + x)}</span>
                   <CheckIcon aria-hidden="true" className="size-[18px] shrink-0 opacity-0 transition-opacity group-data-[state=on]/opt:opacity-100" />
