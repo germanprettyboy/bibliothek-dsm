@@ -31,7 +31,10 @@ const test = base.test.extend({
     });
     await use(n);
   },
-  page: async ({ page, storage, net }, use) => { // eslint-disable-line no-unused-vars
+  page: async ({ page, storage, net, browserName }, use) => { // eslint-disable-line no-unused-vars
+    // Playwright's Linux WebKit hangs after a View Transition (no compositor; even page.evaluate stops answering):
+    // there the page takes its path without the API (instant color switch, as in Safari < 18)
+    if (browserName === "webkit") await page.addInitScript(() => { delete Document.prototype.startViewTransition; });
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
     // blocked cover services (route.abort): Chromium/WebKit "Failed to load resource", Firefox "CORS request did not succeed"

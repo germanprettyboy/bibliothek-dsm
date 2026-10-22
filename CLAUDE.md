@@ -265,7 +265,9 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
   `engines.spec.js` (2026-10-22). Phone describes use `test.use({ ...PHONE })` (Firefox knows no `isMobile`); `swipe()` uses CDP
   touch in Chromium, in-page touch events elsewhere; performance.spec (CDP, Chromium budgets) and axe (a11y.spec) only in Chromium. WebKit has no folder
   access (as Safari): the admin specs publish via the download there (`save()`/`FOLDER` in admin-helpers.js), folder-only tests skip; a download does not
-  count as published (checks of the published state only with FOLDER).
+  count as published (checks of the published state only with FOLDER). Playwright's Linux WebKit hangs after a View Transition
+  (no compositor; even page.evaluate stops answering): the WebKit tests run without `startViewTransition` (helpers.js), so the
+  instant color switch is tested there and the cross-fade in Chromium. Safari itself stays untested on real devices.
   `a11y.spec` (axe WCAG 2.1 AA, every view), `performance.spec` (CPU 4× budgets, 3× catalog stress; values as annotations),
   `publish.spec` (REAL save.php via a second webServer `php -S` + local-router.php, `DSM_LOCAL_DIR=tests/.tmp`, only if php
   exists), `engines.spec` also file:// (double-click). Wait for animations with `settled(page)`, not `waitForTimeout`
