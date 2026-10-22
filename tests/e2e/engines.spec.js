@@ -9,7 +9,8 @@ const { test, expect, open, data, TMP } = require("./helpers.js");
 const { WEB } = require("../helpers/load.js");
 
 const { B } = data();
-const BOOK = B.books.find(b => b.i && b.a && b.p);
+// with a searchable title (the catalog also has titles like "/", which the search ignores)
+const BOOK = B.books.find(b => b.i && b.a && b.p && /\p{L}{4}/u.test(b.t));
 const row = (page, b) => page.locator("#list .row").filter({ has: page.locator(".t", { hasText: b.t }) }).first();
 
 test.describe("every engine", () => {

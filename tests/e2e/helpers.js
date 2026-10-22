@@ -34,7 +34,8 @@ const test = base.test.extend({
   page: async ({ page, storage, net }, use) => { // eslint-disable-line no-unused-vars
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
-    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
+    // blocked cover services (route.abort): Chromium/WebKit "Failed to load resource", Firefox "CORS request did not succeed"
+    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource|CORS request did not succeed/.test(m.text())) errors.push(m.text()); });
     await page.addInitScript(s => {
       if (sessionStorage.getItem("__test-init")) return; // only on the first load, a reload keeps the state
       sessionStorage.setItem("__test-init", "1");
