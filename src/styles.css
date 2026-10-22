@@ -407,8 +407,10 @@
     .scrim.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
   }
   /* All sheets on the phone (detail, settings, categories, questions, opening hours, archive): a screen-high sheet, lib/swipe.js moves it via transform (half / full / away).
-     Before the script's first step it lies below the screen so it doesn't flash. */
-  @media (max-width: 39.999rem) {
+     Before the script's first step it lies below the screen so it doesn't flash. Only with a touch screen: a slim desktop
+     window (mouse) keeps the plain bottom sheet above, content-high and scrolling with the wheel, without a grabber. */
+  @media (max-width: 39.999rem) and (pointer: fine) { .sheet .grab { display: none; } }
+  @media (max-width: 39.999rem) and (pointer: coarse) {
     :is(#detail, .sheet.swipe) {
       height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px))); max-height: none; overflow: hidden;
       display: flex; flex-direction: column; transform: translateY(100%); will-change: transform; touch-action: none;
@@ -509,6 +511,7 @@
   .dot.later { background: var(--yellow); box-shadow: 0 0 0 3px color-mix(in srgb, var(--yellow) 35%, transparent); }
   .bar-c { width: 4px; align-self: stretch; flex: none; border-radius: 2px; background: var(--blue); }
   .bar-c.absent { background: var(--orange); }
+  .bar-c.special { background: var(--mauve); }
 
   /* ---------- Loading placeholders ----------
      Fixed in index.html (until React starts) and in React while books.js (large) is still loading.
@@ -573,6 +576,42 @@
 
   /* Preview notice (website from the admin page) */
   .banner { background: var(--yellow); color: #333333; }
+
+  /* Announcement (info.js "announcement", library/announcement.jsx): full-width strip above the header. It floats in from
+     the top and pushes the page down: the height opens via grid 0fr → 1fr, the strip glides along from above. Closing
+     collapses it back up, faster and with --ease-in. Reduced motion: no transition (global rule at the end). */
+  .announce { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t-base) var(--ease-in); }
+  .announce > div { min-height: 0; overflow: hidden; }
+  .announce .announce-bar { transform: translateY(-100%); transition: transform var(--t-base) var(--ease-in); }
+  .announce.open { grid-template-rows: 1fr; transition: grid-template-rows .32s var(--snap); }
+  .announce.open .announce-bar { transform: none; transition: transform .32s var(--snap); }
+  /* Colors of the cover placeholders, text in anthracite (on red white); neutral = surface with a line */
+  .announce-bar { --ann-bg: var(--surface); background: var(--ann-bg); color: var(--fg); box-shadow: inset 0 -1px 0 var(--line); }
+  .announce-bar:not([data-color="neutral"]) { color: #333333; box-shadow: none; }
+  .announce-bar[data-color="mauve"], .color-dot[data-color="mauve"] { --ann-bg: var(--mauve); }
+  .announce-bar[data-color="yellow"], .color-dot[data-color="yellow"] { --ann-bg: var(--yellow); }
+  .announce-bar[data-color="orange"], .color-dot[data-color="orange"] { --ann-bg: var(--orange); }
+  .announce-bar[data-color="blue"], .color-dot[data-color="blue"] { --ann-bg: var(--blue); }
+  .announce-bar[data-color="red"], .color-dot[data-color="red"] { --ann-bg: var(--red); }
+  .announce-bar[data-color="green"], .color-dot[data-color="green"] { --ann-bg: var(--green); }
+  .announce-bar[data-color="red"] { color: #ffffff; }
+  :root[data-contrast="high"] .announce-bar { box-shadow: inset 0 -2px 0 var(--fg); }
+  .announce-x {
+    display: inline-grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px;
+    background: transparent; color: inherit; transition: background-color var(--t-fast);
+  }
+  .announce-x:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+  .announce-bar :focus-visible { outline-color: currentColor; }
+
+  /* Admin page: color choice of the announcement as dots, the chosen one with a ring in the text color */
+  .color-dot { --ann-bg: var(--surface); display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; }
+  .color-dot > span {
+    width: 28px; height: 28px; border-radius: 999px; background: var(--ann-bg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .14);
+    transition: box-shadow var(--t-fast) var(--ease), transform var(--t-fast) var(--snap);
+  }
+  .color-dot[data-color="neutral"] > span { box-shadow: inset 0 0 0 1px var(--line); }
+  .color-dot:hover > span { transform: scale(1.08); }
+  .color-dot[data-state="checked"] > span { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
 }
 
 /* Dark logo: after @layer so it wins against .logo .logo-d */
@@ -582,6 +621,17 @@
 }
 :root[data-theme="dark"] .logo .logo-l { display: none; }
 :root[data-theme="dark"] .logo .logo-d { display: block; }
+
+/* Notices (Sonner, src/components/ui/sonner.jsx): Sonner inserts its CSS unlayered at runtime, after this file,
+   so these rules stay outside @layer and are more specific. The list spans the width; during a dialog's scroll lock
+   minus the hidden scrollbar (Radix variable), so the notice doesn't jump sideways when the dialog closes. */
+.toaster[data-sonner-toaster][data-x-position] { left: 0; right: var(--removed-body-scroll-bar-size, 0px); width: auto; transform: none; }
+.toaster[data-sonner-toaster] [data-sonner-toast] { left: 0; right: 0; margin-inline: auto; width: max-content; max-width: min(30rem, calc(100% - 32px)); }
+/* Sonner's swipe hit area (::before, three times wide and high) would stretch the glass highlight */
+.toaster[data-sonner-toaster] [data-sonner-toast].glass::before { inset: 0; height: auto; transform: none; }
+/* Notice as a button (notify(msg, onClick)): the whole surface is clickable */
+.toaster[data-sonner-toaster] .has-btn { padding: 0; }
+.toast-btn { display: block; width: 100%; padding: 12px 18px; border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: left; }
 
 @keyframes rise { from { opacity: .001; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes pop-a { 40% { transform: scale(1.18); } }
@@ -605,6 +655,13 @@
 @keyframes ld-slow { from { opacity: 0; } to { opacity: 1; visibility: visible; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+/* Admin page, tab "Pflege": printing shows only the location list (data-print while printing), dark on white also in dark mode */
+@media print {
+  body:has([data-print]) * { visibility: hidden; }
+  [data-print], [data-print] * { visibility: visible; color: var(--color-anthracite); border-color: var(--color-anthracite); }
+  [data-print] { position: absolute; inset: 0 0 auto 0; overflow: visible; background: var(--color-white); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }

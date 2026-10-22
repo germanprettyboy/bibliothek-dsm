@@ -3,12 +3,14 @@
    fits half-high gets only that one stage (like an iOS sheet sized to its content): upwards it resists like a rubber band
    and springs back, never showing empty glass. The finger leads 1:1, on release the velocity decides; the movement
    afterwards is a spring (WAAPI, transform only). The background scrim fades with the finger.
-   From 40rem (centered dialog) and with reduced motion none of this applies. */
+   From 40rem (centered dialog) and with reduced motion none of this applies. Only with a touch screen: in a slim desktop
+   window the mouse can't drag, and a half-high sheet with hidden overflow would cut off its content (styles.css keeps the
+   plain bottom sheet there, it scrolls with the wheel). */
 import * as React from "react";
 import { log } from "@/lib/storage";
 import { reduced } from "@/lib/environment";
 
-const phone = matchMedia("(max-width: 39.999rem)");
+const phone = matchMedia("(max-width: 39.999rem) and (pointer: coarse)"); // same query as the sheet block in styles.css
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
 // Spring as CSS linear(): slight overshoot (about 5 %), in ~24 points

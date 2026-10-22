@@ -20,13 +20,14 @@ Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh r
   - `info.js` NOT committed (`.gitignore`, since 2026-10-17, client): once a webspace exists, the original lives only there. If it is missing,
     the page loads without an info card and the admin page starts empty; tests supply their own info.js or skip the check.
   - By hand: `save.php`, `assets/logger.js` (DSM_LOG, loaded before everything else), `assets/covers.js` (covers, cache,
-    coverage survey), `assets/categories-it.js`, `LIESMICH.txt` (German guide), `.htaccess` (gzip + cache + security headers via IfModule, no full CSP; delete on Error 500).
+    coverage survey), `assets/categories-it.js`, `LIESMICH.txt` (German guide), `.htaccess` (gzip + cache + security headers via IfModule, no full CSP, no listings, HSTS only via https,
+    admin.html/save.php → https; delete on Error 500).
   - `assets/admin.enc.js` ENCRYPTED (source/extract.js + built source/admin/). `vendor/sql-asm.js` = sql.js 1.10.3
     (asm.js, no WASM). `fonts/` = Fira Sans 400/500/600 local (GDPR). `backup/` only on the server (save.php).
 - `src/` – source. `index.html`/`admin.html` = templates with a static loading skeleton (`#page`), only copied. `head.js` = classic
   script in `<head>` (theme/language before the first paint, placeholder flags, one-time migration of the old German
   localStorage keys). `styles.css` = tokens/theme/building blocks. `library/`: main, app, data, list, detail (+zoom), cover,
-  recommendations (+archive, questions), categories, info, choice. `admin/`: main, lock, shared (`window.DSM_SHARED`).
+  recommendations (+archive, questions), categories, info, choice. `admin/`: main, lock, shared (`window.DSM_SHARED`); admin.html also loads categories-it.js (`#cat-it`).
   `lib/`: utils (`cn`), storage (localStorage, `log`), language (`t()`), appearance, notice (toast), swipe,
   environment (`reduced` = reduced motion, `C()` = covers.js). `components/`: glass-dialog, header, settings, `ui/` (shadcn).
 - `tools/` – `build.mjs` (Vite, one IIFE per page, fixed names), `source/` (extract.js + admin UI, PLAINTEXT),
@@ -46,7 +47,8 @@ Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh r
 
 ```bash
 npm run build          # src/ → website/ (after EVERY change to src/, commit the result)
-npm run books          # data/*.winbook → website/books.js
+npm run books          # data/*.winbook → website/books.js; STOP (exit 2, titles listed) on a reader name in a public field → check, then -- --names-checked
+npm run pack           # upload/website/ = committed website/ only (git archive); aborts on a stale admin.enc.js. Upload THIS, not website/
 npm run serve          # :8765;  dev = watch + live reload (browser-sync);  tunnel(:dev) = https://….trycloudflare.com for phone/school PC
 npm run local          # like the webspace: PHP + real save.php, watch, password "local" → http://127.0.0.1:8765/admin.html
 npm run tunnel:php     # local + public https address, writes to tests/.tmp/local/data/, random password; both live reload
@@ -62,7 +64,11 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 
 - **No student data, no loan status in public.** Extraction = whitelist: title, subtitle, author, publisher, year, ISBN,
   category, location. Reader/loan/fee/user/session tables only counted; loan columns of the `books` table
-  (verliehenan, verliehenanklasse, bverliehen, …) never read. Additionally a name check reader file ↔ public fields.
+  (verliehenan, verliehenanklasse, bverliehen, …) never read. Additionally a name check reader file ↔ public fields
+  (generate-books.js stops on a hit or without name columns, 2026-10-22).
+  Maintenance analysis (`inspect()` in extract.js, admin tab "Pflege", 2026-10-22, client: "the website as a tool to keep the
+  real stock and WinBIAP up to date") reads its own whitelist `INSPECT_COLUMNS` = public columns + `bsignatur`, `bzugang`
+  (no loan/price/note columns, SQL spy test); nothing of it is published; category/location names with a reader name only as `#id`.
 - Only books (media type Buch/Graphic Novel), multiple copies merged (title + first author).
 - **No ISBN completion.** Covers only via an existing ISBN, otherwise a designed placeholder (without author).
 - List = plain text (title + author); covers only in the detail and recommendations. No "as of" date in public (admin only), no footer.
@@ -83,16 +89,30 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   with the search ("n Treffer"), not saved. Books without a category (≈1,500) only under "Alle Bücher".
 - Admin page: no line "Aktuell veröffentlicht …", no "Entwurf im Browser gespeichert" (only `#i-state` for incomplete info
   data), no counters "(4)", no privacy notices. `#rec-groups` = `ToggleGroup` variant `surface` (wraps);
-  tabs ≤420 px full width, switching without a transition (no `transition-*` on `TabsTrigger`). `#lock-btn` = padlock, the text
+  four tabs Bestand | Pflege | Empfehlungen | Info (`data-tab` catalog/care/recs/info), ≤420 px full width in two rows, switching without a transition (no `transition-*` on `TabsTrigger`). `#lock-btn` = padlock, the text
   slides out on hover/focus (grid 0fr→1fr, without under `motion-reduce`), `aria-label` always. `App` only gets `lock`.
-  Editor: group full (4) → search disabled, note centered; already contained hits greyed out.
+  Editor: group full (4) → search disabled, note centered; already contained hits greyed out; red notes `.warn-de`/`.warn-it`
+  for empty texts. `#rec-archive` "Bisherige Runden": open a round (`.arc-h` aria-expanded), edit topic/texts, remove books,
+  delete the round; archive[0] "Als aktuelle Runde zurückholen" (`[data-op=restore]`) = undo an accidental new round (the
+  current one is discarded); both two clicks within 4 s.
+  Tab Bestand: import → report (+ "Titel anzeigen": new/dropped titles `#r-diff`), coverage, `#cat-it` Italian names of
+  categories missing in categories-it.js (only shown if any), `#nocover` hide a wrong cover (search, "Cover ansehen",
+  "Ausblenden"), publish. Without an import (`#current`) the same cards for the published list; the publish card appears
+  once something changed (keeps date/books, refreshes coverage) and then stays. Draft `dsm-books-draft` = `{catIt, noCover}`.
+  Tab Pflege (`tools/source/admin/maintenance.jsx`, only after an import): `#m-sum`, `#m-checks` lists by group
+  (`.check[data-check]`, rows with WinBIAP number `bid`, first 100 shown, `[data-csv]`), `#m-all` everything as CSV,
+  `#m-types` media types, `#m-shelf` location list for the inventory (`#m-loc`, `#m-print` prints only the list via
+  `[data-print]` in styles.css, `#m-shelf-csv`, `#m-shelf-all`). CSV = UTF-8 BOM, `;`, CRLF, cells starting with = + - @ get `'`.
 - Only HTML/CSS/JS: no push/deploy services, no database, no further server code. Exception `save.php` (2026-10-17,
   "one button, change content directly"): one file, no framework, writes only the three data files. Vite build locally allowed.
   Pages run via double-click (file://): classic scripts, no `type="module"`.
 - "Publish" in this order: (1) online with save.php → POST, live at once; (2) Chrome/Edge: File System Access
   into the website folder (chosen once, must contain index.html, handle in IndexedDB); (3) otherwise download = the main button
   (no separate "Stattdessen herunterladen" link). Locally without PHP, FTP stays manual work.
-- save.php: GET → `{dsm:"save",v:2,ready,reason?}` (no JSON → old route). POST `?file=` with `X-DSM-Key`, body = the finished
+- save.php: GET → `{dsm:"save",v:3,ready,reason?}` (no JSON → old route). GET `?backups` (X-DSM-Key) → `{ok,backups:{file:
+  [{name,size,time}]}}` newest first; POST `?restore=<backup name>` (key, no body): strict name regex per data file, content
+  checked like an upload (`dsm_check`), written like one (`dsm_write`: current → backup/, rotation, flock, atomic) → `{ok,file}`.
+  Admin: "Frühere Versionen" (`data-pub-backups`) per publish card only online with key and v ≥ 3, restore two clicks. POST `?file=` with `X-DSM-Key`, body = the finished
   file; only exactly header comment + `window.DSM_… = ` + JSON object with the required field (books/groups/hours) + `;\n`.
   Old version → `backup/` (10 per file, `backup/.htaccess` denies access, written if missing), atomic (temp + rename, flock). PHP ≥7.1 (no str_starts_with/array_is_list/match).
   PHP warnings never into the answer (`display_errors` off, `log_errors` on, output buffer): php-wasm and many webspaces display
@@ -100,12 +120,18 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   shows status + start of an answer without an error code.
   Key = PBKDF2(password, salt "dsm-library/save.php", 310,000), only in the encrypted plaintext
   (`var DSM_SAVE_KEY`, function scope, not window).
-- Admin lock only "student-proof": PBKDF2-SHA-256 (310,000) + AES-GCM 256, logic only encrypted.
+- Admin lock only "student-proof": PBKDF2-SHA-256 (310,000) + AES-GCM 256, logic only encrypted. admin.enc.js is public, so
+  the password's strength is the only barrier (offline guessing; the save key comes from it too): long passphrase.
+  Session key in sessionStorage expires 4 h after the page was last left (`dsm-admin-seen`, set on `pagehide`):
+  Chrome restores sessionStorage with "continue where you left off" (shared school PC).
+- Opening hours status (`src/library/info.jsx`) in Milan time (`Intl` Europe/Rome), also on devices in another time zone.
 - Cover sources in this order: (1) ekz `cover.ekz.de/<ISBN>.jpg` (404 = none). Substitute image "leider kein aktuelles Bild"
   = 170×270, always 9977 bytes: check such images via `fetch` (CORS `*`), length + FNV-1a; can't be checked = substitute; real
   170×270 covers stay. (2) Open Library only for ekz misses, always `/api/books?jscmd=viewapi` → cover ID, NEVER `/b/isbn/`
   (100 requests/5 min/IP, school network = one IP). (3) `books.google.com/books/content?vid=ISBN…`, discard substitute images
   128×184/128×170 (no CORS, dimensions only). NOT the Google Books API (429), NOT portal.dnb.de (Anubis → ERR_BLOCKED_BY_ORB).
+  ISBNs in books.js `noCover` (hidden in admin.html because the image is wrong) are skipped everywhere (`usable()` in covers.js),
+  also from the cache; survey's `miss` = books without any cover (Pflege list).
   Staggered in the background for books in view, small (OL "M" ≈180 px, Google ≈128 px, ekz fixed 170–440 px).
 - Tap a real cover in the detail → `#zoom` (second Radix dialog, glass scrim), FLIP flight (transform only, `--snap`, 240/180 ms)
   into the center, max. 27rem. Only then OL "L"; Google at most 2.5×. Placeholders can't be enlarged.
@@ -118,6 +144,13 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   a new dialog gets it too; categories keep a constant height and go to full screen when the search field gets focus; content
   changing its height at half glides to the new position; swiping the questions away = "no"). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
   `main.books` uses `lvh` (not `dvh`) so the iOS toolbar/keyboard does not move the text while searching.
+- Announcement banner (2026-10-18, client; `src/components/announcement.jsx` view + `ColorDots`, `src/library/announcement.jsx`
+  logic): `aside#announce` above the header, full width, 1–2 lines (admin `maxLength` 140) on a cover-placeholder logo color
+  (anthracite text, on red white) or neutral (`surface` + line). Floats in 300 ms after the list arrived (grid 0fr→1fr + strip
+  from `translateY(-100%)`, .32 s `--snap`), pushes the page down; × (44 px, right) or Esc (not in a dialog/text field) collapses it
+  (`--t-base`, `--ease-in`), then removed; keyboard focus → `#q`. Closed = `dsm-announce`; new text shows again; `#preview` ignores it.
+  Admin: card `#i-ann` first in the info tab (`#i-ann-de/-it`, dots `#i-ann-color [data-color]`, `#i-ann-until`, live preview
+  `#i-ann-preview`, `#i-ann-clear`), published with info.js. Test: announcement.spec.
 - Dialogs (detail, settings, questions, opening hours, archive, categories): `Dialog` as `.glass.sheet`, scrim `.scrim` blurred +
   darker; phone bottom sheet, centered from 40rem. Blur always on, except "reduce transparency" and glass in high contrast.
 - Theme: default = device; settings automatic/light/dark, larger text, high contrast. Italian stays
@@ -161,6 +194,10 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   `lib/appearance`, `library/choice`); texts per module via `addStrings({de, it})`.
 - Admin page: the lock decrypts `admin.enc.js`, `new Function(src)()` sets `window.DSM_ADMIN.App`; the app takes React and
   `@/…` from `window.DSM_SHARED` (one React). covers/logger/categories-it and the data stay classic scripts.
+- Notices (Sonner, `lib/notice.js`): Sonner injects its CSS unlayered at runtime, so Tailwind classes on the toast lose
+  (position, width, `.glass::before`). Position/width live in `styles.css` `.toaster[data-sonner-toaster] …` (unlayered, more
+  specific); list `right: var(--removed-body-scroll-bar-size)` so it doesn't jump when a dialog's scroll lock ends.
+  `notify(msg, onClick)` = the whole notice is a button `.toast-btn` (no swipe); the recommendation notices open the settings (2026-10-22, client).
 - Test hooks (`#list .row`, `#d-cover`, `.ask`, `.settings`, `#rec-res` …) must survive refactorings. Radix dialogs `[role=dialog]`,
   closed = not in the DOM.
 
@@ -194,17 +231,23 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 
 ## Data formats
 
-- `books.js`: `{updated, count, coverage?, history?, books:[{t,s?,a?[],p?,y?,i?[],c?,l?[]}]}` (t title, s subtitle, a authors,
+- `books.js`: `{updated, count, coverage?, history?, catIt?, noCover?, books:[{t,s?,a?[],p?,y?,i?[],c?,l?[]}]}` (t title, s subtitle, a authors,
   p publisher, y year, i = checked ISBN-13, c category, l locations; coverage/history = cover coverage from admin.html:
-  `{updated, books, isbn, cover?, ekz?, ol?, gb?, none?, checked?, complete?}`).
+  `{updated, books, isbn, cover?, ekz?, ol?, gb?, none?, checked?, complete?}`; catIt = `{German: Italian}` for categories
+  missing in categories-it.js (merged in `prepare()`); noCover = ISBNs with a wrong cover; both kept by `npm run books`).
 - `recommendations.js`: `{updated, topic?:{de,it}, groups:{middle|upper|adult-fiction|adult-nonfiction|adult-bio:[{k,t,a,de,it}]},
   archive?:[{updated, topic?, groups}]}` (newest first, max. 40). Other books than published = new round (old one to the front
   of the archive, updated = today); only texts/topic → updated stays. `k` = norm(title)|norm(first author), norm: lower case,
   no accents, ß→ss, only a–z0–9 and spaces.
-- `info.js`: `{updated, hours:{mon..sat:[["HH:MM","HH:MM"]]}, notice:{de,it}, closures:[{type:"holiday"|"absent",from,to,de,it}]}`
-  (YYYY-MM-DD, to ≥ from; empty text → "Ferien" or "Bibliothek geschlossen").
+- `info.js`: `{updated, hours:{mon..sun:[["HH:MM","HH:MM"]]}, notice:{de,it,from?,to?}, contact?:{email?,phone?,de?,it?},
+  closures:[{type:"holiday"|"absent"|"special",from,to,de,it,hours?}],
+  announcement?:{de,it,color:"neutral"|"mauve"|"yellow"|"orange"|"blue"|"red"|"green",until?}}` (YYYY-MM-DD, to ≥ from; notice only within from..to,
+  a missing bound = open; contact only if filled in, e-mail → `mailto:`, phone → `tel:`, shown in the opening hours dialog
+  `#info-contact`; `special` + 1–2 valid `hours`: on those days open ONLY then, a holiday/absence on the same day wins;
+  empty text → "Ferien", "Bibliothek geschlossen" or "Geänderte Öffnungszeiten"; announcement only with a text, past `until` = hidden).
 - localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-recs` (`{want, group}`), `dsm-cover-v3` (v2 is deleted),
-  `dsm-info-card`; admin: `dsm-recs-draft`, `dsm-info-draft`, `dsm-preview(-recs|-info)` (index.html#preview), IndexedDB
+  `dsm-info-card`, `dsm-announce` (FNV-1a hash of the closed announcement's de|it texts); admin: `dsm-recs-draft` (+ `archive` = edited archive, `restored` = round taken back as the base of the
+  new-round comparison; both dropped after publishing), `dsm-info-draft`, `dsm-books-draft`, `dsm-preview(-recs|-info)` (index.html#preview), IndexedDB
   `dsm-admin`/`kv`/`website` = folder handle. Log: `dsm-log` ("off"), sessionStorage `dsm-log-history` (500).
   head.js/logger.js migrate the old keys once (`dsm-empf` with group ids, `dsm-info-karte`, `dsm-protokoll`) and drop old drafts/previews.
 - logger.js captures interactions, dialogs (reported by `components/glass-dialog.jsx`), network, storage, errors. Own entries:
@@ -218,6 +261,13 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - The save test needs `php` in the PATH or `DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56"`, otherwise skipped.
 - With `DSM_ADMIN_PW` (CI: repository secret) the unit tests additionally check admin.enc.js. `real-db.test` only with `data/*.winbook` (or `DSM_DB=…`; states only counts).
 - E2E: the admin tests encrypt the sources with "test-password"; admin import byte-identical to `npm run books`; cover APIs mocked.
+  Chromium runs every spec; Firefox, WebKit and an iPhone viewport (WebKit) only `engines.spec.js` (others use CDP).
+  `a11y.spec` (axe WCAG 2.1 AA, every view), `performance.spec` (CPU 4× budgets, 3× catalog stress; values as annotations),
+  `publish.spec` (REAL save.php via a second webServer `php -S` + local-router.php, `DSM_LOCAL_DIR=tests/.tmp`, only if php
+  exists), `engines.spec` also file:// (double-click). Wait for animations with `settled(page)`, not `waitForTimeout`
+  (a fixed wait only to prove that something does NOT happen). `books.js` size budget in data.test (1000 KB / 250 KB gzip).
+  Shared admin helpers in `tests/e2e/admin-helpers.js` (`adminSetup()`, `unlock`, `importTest`, `tab`, `save`, `server`, …);
+  specs `admin.spec` (lock, import, publish), `admin-care` (Pflege, names, covers), `admin-recs`, `admin-info`, `admin-backups`.
 - Live: `brew install cloudflared`, a foreign address via `DSM_LIVE_URL=https://…`. The tunnel is public: only website/ without
   dot files, `*.php`, `backup/`; own Node server with `no-store` (Cloudflare caches `.js`/`.css` otherwise).
 - GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
@@ -228,6 +278,11 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
   `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.
   CI is the ONLY test run (no local tests, see top). `DSM_ADMIN_PW`/`real-db`/`test:live` checks therefore do not run for now.
   E2E takes ≈5 min on the 2-core runner; under heavy parallel load the swipe/close tests can flake (retry 1 catches it).
+  Since 2026-10-22: `TZ=Europe/Rome` in CI; flaky tests (passed on the retry) listed as warnings + job summary
+  (`tests/helpers/flaky-report.js`); job `apache`: the pack folder on Docker `php:7.1-apache` (`tests/apache/`, only with
+  `DSM_APACHE=1`): .htaccess, save.php end to end, backup/ locked, 16 parallel POSTs. Flakiness under load on demand:
+  `gh workflow run stress.yml -f repeat=5 -f workers=4 [-f grep=…]` (no retry, failure rate per test in the summary).
+  Third-party actions pinned to a commit SHA.
 
 ## Integrating branches (mandatory at the end of every task)
 
@@ -254,12 +309,15 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
 - **THERE IS NO WEBSPACE YET (as of 2026-10-18).** Nothing has ever been uploaded; no live data exists anywhere. The site
   only runs locally (`npm run serve` / `npm run local` / tunnel). Don't plan migrations of live data, don't assume a server
   copy is "the original", don't tell Johann to download or delete anything on a server. When a webspace exists (likely
-  Aruba, see docs/), upload `website/` once and set up save.php: admin.enc.js, save.php, save-access.php are current
+  Aruba, see docs/), upload `upload/website/` from `npm run pack` once (never the working folder website/: it holds a test
+  info.js, .DS_Store, sicherung/) and set up save.php: admin.enc.js, save.php, save-access.php are current
   (encrypted 2026-10-18). Unknown then: PHP version, write permissions, WAF. Only from that moment on the server copies of
   books.js/recommendations.js/info.js and backup/ become the original.
 - `tools/migrate-data.mjs` (old German data format → English) only matters for stray old local files; nothing live to migrate.
 - `website/info.js` is not committed and currently doesn't exist: the page shows no opening hours until the admin page publishes one.
 - Covers: run "Cover-Abdeckung prüfen" completely in admin.html; clarify the terms of use of cover.ekz.de.
-- Untested: blur in Safari; school PC with Windows 7 (Tailwind v4 needs Chrome 111+, Safari 16.4+, Firefox 128+).
+- Untested on real devices: iPhone Safari (CI only has Playwright WebKit on Linux); school PC with Windows 7 (last versions
+  Chrome 109 / Firefox ESR 115; style.css has `@supports` fallbacks for color-mix and old Firefox, build target es2020) – check by hand.
+- Covers load directly from Google/Open Library/ekz (visitor IP + ISBN to third parties): clarify with the school's data protection officer.
 - 20 initial recommendation texts (DE/IT) by Claude – Johann should proofread them. Remote `origin` (GitHub) must stay private (plaintext).
 - School website: `docs/dsmailand-techstack.md`. Adopt nothing (no GTM, no Google Fonts); Aruba `.htaccess` unclear → `IfModule`.

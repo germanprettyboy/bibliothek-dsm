@@ -25,6 +25,15 @@ describe("books.js", () => {
       assert.ok(b.t, "title missing");
     }
   });
+  // Parsing books.js is the largest block on the phone (≈0.9 s at CPU 4×), without mod_deflate it travels uncompressed.
+  // Catches coverage/history growing without limit. As of 2026-10-22: 705 KB, 185 KB gzip. Raise deliberately.
+  test("size budget: 1000 KB, 250 KB gzip", () => {
+    const raw = require("fs").readFileSync(require("path").join(__dirname, "..", "..", "website", "books.js"));
+    const kb = n => n / 1024;
+    assert.ok(kb(raw.length) <= 1000, `books.js ${kb(raw.length).toFixed(0)} KB > 1000 KB`);
+    const gz = kb(require("zlib").gzipSync(raw, { level: 9 }).length);
+    assert.ok(gz <= 250, `books.js ${gz.toFixed(0)} KB gzip > 250 KB`);
+  });
   test("ISBN: always 13 digits with a valid check digit", () => {
     for (const b of B.books) for (const i of b.i || []) assert.equal(X.isbn13(i), i, b.t);
   });
@@ -91,10 +100,26 @@ describe("info.js", { skip: !I && "website/info.js is missing (not committed)" }
     for (const c of I.closures || []) {
       assert.match(c.from, ISO);
       if (c.to) { assert.match(c.to, ISO); assert.ok(c.to >= c.from); }
-      if (c.type) assert.ok(["holiday", "absent"].includes(c.type), c.type);
+      if (c.type) assert.ok(["holiday", "absent", "special"].includes(c.type), c.type);
+      if (c.type === "special") {
+        assert.ok(Array.isArray(c.hours) && c.hours.length >= 1 && c.hours.length <= 2, "special: 1–2 ranges");
+        for (const r of c.hours) { assert.match(r[0], /^\d{2}:\d{2}$/); assert.match(r[1], /^\d{2}:\d{2}$/); assert.ok(r[0] < r[1], String(r)); }
+      } else assert.equal(c.hours, undefined, "hours only with type special");
     }
   });
-  test("notice DE/IT as text", () => {
+  test("notice DE/IT as text, optional period", () => {
     if (I.notice) for (const l of ["de", "it"]) assert.equal(typeof (I.notice[l] ?? ""), "string");
+    for (const k of ["from", "to"]) if (I.notice && I.notice[k] !== undefined) assert.match(I.notice[k], ISO);
+    if (I.notice && I.notice.from && I.notice.to) assert.ok(I.notice.to >= I.notice.from);
+  });
+  test("contact: optional strings", () => {
+    if (I.contact) for (const k of ["email", "phone", "de", "it"]) assert.equal(typeof (I.contact[k] ?? ""), "string");
+  });
+  test("announcement: text DE/IT, known color, optional end date", { skip: !I.announcement && "no announcement" }, () => {
+    const a = I.announcement;
+    assert.ok((a.de || a.it || "").trim(), "announcement without text");
+    for (const l of ["de", "it"]) assert.equal(typeof (a[l] ?? ""), "string");
+    assert.ok(["neutral", "mauve", "yellow", "orange", "blue", "red", "green"].includes(a.color), a.color);
+    if (a.until) assert.match(a.until, ISO);
   });
 });

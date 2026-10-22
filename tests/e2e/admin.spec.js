@@ -1,74 +1,19 @@
 /*
- * Admin page (admin.html). The real admin.enc.js needs the real password, which is written nowhere.
- * So here it is replaced by a version of the current sources encrypted with "test-password".
+ * Admin page (admin.html): lock, import, recommendations, publishing. Shared helpers: admin-helpers.js.
  */
 const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
 const { test, expect, PHONE, data, TMP } = require("./helpers.js");
+const { PW, FOLDER, adminSetup, unlock, load, download, folderFile, folderData, evaluate, save, server } = require("./admin-helpers.js");
 const X = require("../../tools/source/extract.js");
 const T = require("../helpers/testdb.js");
 const { realDb, keyOf } = require("../helpers/load.js");
 
-const PW = "test-password";
 const { B, R } = data();
 
-// Safari has no folder access (showDirectoryPicker), and WebKit's OPFS can't write in Playwright's ephemeral context:
-// in WebKit the admin page runs as in Safari, publishing = download (save() below)
-const FOLDER = ({ browserName }) => browserName !== "webkit";
+adminSetup();
 
-test.beforeEach(async ({ context, browserName }) => {
-  await context.route("**/assets/admin.enc.js", r => r.fulfill({ path: path.join(TMP, "admin.enc.js"), contentType: "text/javascript" }));
-  if (!FOLDER({ browserName })) return;
-  // The browser's folder dialog (native, not controllable) replaced by a folder in the private browser storage (OPFS).
-  // localStorage "__test-folder": name of the chosen folder; only "website" contains index.html; "cancel" = dialog cancelled.
-  await context.addInitScript(() => {
-    window.__picks = 0;
-    window.showDirectoryPicker = async () => {
-      window.__picks++;
-      const name = localStorage.getItem("__test-folder") || "website";
-      if (name === "cancel") throw new DOMException("Selection cancelled", "AbortError");
-      const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(name, { create: true });
-      if (name === "website") await (await (await dir.getFileHandle("index.html", { create: true })).createWritable()).close();
-      return dir;
-    };
-  });
-});
-
-async function unlock(page) {
-  await page.goto("admin.html");
-  await page.fill("#pw", PW);
-  await page.click("#unlock");
-  await expect(page.locator("#app")).toBeVisible({ timeout: 15000 });
-}
-async function load(page, file) {
-  await page.setInputFiles("#file", file);
-}
-// Download as text (browser without folder access)
-async function download(page, button) {
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click(button)]);
-  return fs.readFileSync(await dl.path(), "utf8");
-}
-// Read a file in the (test) website folder, null = not present
-const folderFile = (page, file, folder = "website") => page.evaluate(async ([f, o]) => {
-  try {
-    const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(o);
-    return await (await (await dir.getFileHandle(f)).getFile()).text();
-  } catch (e) { return null; }
-}, [file, folder]);
-// Content as data; null while the file is missing or being written
-const folderData = async (page, file, name) => { try { return evaluate(await folderFile(page, file), name) || null; } catch (e) { return null; } };
-const FILE = { "#dl": "books.js", "#rec-dl": "recommendations.js", "#i-dl": "info.js" };
-const okText = file => new RegExp(`^${file.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
-// Publish: click, success message, written file as text (WebKit: the download, as in Safari)
-async function save(page, button) {
-  if (!FOLDER({ browserName: page.context().browser().browserType().name() })) return download(page, button);
-  const file = FILE[button];
-  await page.click(button);
-  await expect(page.locator(`.pub[data-file="${file}"] .flag`)).toHaveText(okText(file));
-  return folderFile(page, file);
-}
-const evaluate = (s, name) => { const w = {}; new Function("window", s)(w); return w[name]; };
 // Books of the test database (as after importing)
 async function testCatalog() {
   const SQL = await initSqlJs();
@@ -132,6 +77,16 @@ test.describe("lock", () => {
     expect(await page.content()).not.toContain(PW);
     const everything = await page.evaluate(() => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }));
     expect(everything).not.toContain(PW);
+  });
+
+  test("session restored by the browser more than 4 hours later: locked again", async ({ page }) => {
+    await unlock(page);
+    // what Chrome's "continue where you left off" restores: the key, the page last left 5 hours ago
+    await page.addInitScript(() => sessionStorage.setItem("dsm-admin-seen", String(Date.now() - 5 * 3600e3)));
+    await page.reload();
+    await expect(page.locator("#lock")).toBeVisible();
+    await expect(page.locator("#app")).toBeHidden();
+    expect(await page.evaluate(() => sessionStorage.getItem("dsm-admin-key"))).toBeNull();
   });
 
   test("a new tab is locked again", async ({ page, context }) => {
@@ -280,7 +235,7 @@ test.describe("importing the database", () => {
     await expect(page.locator("#r-books")).toHaveText(B.books.length.toLocaleString("de-DE"));
     const s = await save(page, "#dl");
     const d = evaluate(s, "DSM_LIBRARY");
-    const node = await nodeScript(fs.readFileSync(db), { updated: d.updated, coverage: d.coverage, history: d.history });
+    const node = await nodeScript(fs.readFileSync(db), { updated: d.updated, coverage: d.coverage, history: d.history, catIt: d.catIt, noCover: d.noCover });
     expect(s === node, "books.js differs from npm run books").toBe(true);
     expect(JSON.stringify(d.books)).toBe(JSON.stringify(B.books));
   });
@@ -302,7 +257,7 @@ test.describe("editing recommendations", () => {
   test("switching tabs without a transition", async ({ page }) => {
     await unlock(page);
     const duration = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => getComputedStyle(e).transitionDuration));
-    expect(duration).toEqual(["0s", "0s", "0s"]);
+    expect(duration).toEqual(["0s", "0s", "0s", "0s"]);
   });
 
   test("full group: adding disabled; remove, add, sort, text – draft saved", async ({ page }) => {
@@ -406,7 +361,7 @@ test.describe("admin page on the phone", () => {
 });
 
 test.describe("publishing directly into the website folder", () => {
-  test.skip(args => !FOLDER(args), "no folder access in Safari");
+  test.skip(({ browserName }) => !FOLDER({ browserName }), "no folder access in Safari");
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const picks = page => page.evaluate(() => window.__picks);
   const folderLine = "Website-Ordner: website · Anderen Ordner wählen";
@@ -481,13 +436,46 @@ test.describe("publishing directly into the website folder", () => {
     const a = evaluate(await save(page, "#rec-dl"), "DSM_RECOMMENDATIONS");
     const before = (R.archive || []).length;
     expect(a.archive.length).toBe(before + 1);
-    expect(a.updated).toBe(new Date().toLocaleDateString("sv-SE"));
+    // today in the browser's time zone (Europe/Rome), not in Node's (UTC on the runner: differs after midnight in Italy)
+    expect(a.updated).toBe(await page.evaluate(() => new Date().toLocaleDateString("sv-SE")));
     await page.locator('#rec-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("Nur der Text ist neu.");
     await page.click("#rec-dl");
     await expect.poll(async () => (await folderData(page, "recommendations.js", "DSM_RECOMMENDATIONS"))?.groups.middle[0].de).toBe("Nur der Text ist neu.");
     const b = evaluate(await folderFile(page, "recommendations.js"), "DSM_RECOMMENDATIONS");
     expect(b.archive.length).toBe(before + 1);
     expect(b.updated).toBe(a.updated);
+  });
+
+  test("announcement: text, color dot, end date, live preview → info.js; removing it drops the field", async ({ page }) => {
+    await unlock(page);
+    await info(page);
+    await expect(page.locator("#i-ann-preview")).toHaveCount(0);
+    await expect(page.locator("#i-ann .note")).toHaveText("Ohne Text erscheint kein Banner.");
+    await page.fill("#i-ann-de", "  Heute ab 12 Uhr geschlossen.  ");
+    await page.fill("#i-ann-it", "Oggi chiusa dalle 12.");
+    // dots (radio group): neutral chosen at first
+    await expect(page.locator('#i-ann-color [role="radio"]')).toHaveCount(7);
+    await expect(page.locator('#i-ann-color [data-color="neutral"]')).toHaveAttribute("aria-checked", "true");
+    await page.locator('#i-ann-color [data-color="red"]').click();
+    await expect(page.locator('#i-ann-color [data-color="red"]')).toHaveAttribute("aria-checked", "true");
+    await page.locator('#i-ann-color [data-color="green"]').click();
+    await expect(page.locator('#i-ann-color [data-color="green"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator('#i-ann-color [data-color="red"]')).toHaveAttribute("aria-checked", "false");
+    await expect(page.locator("#i-ann-color-t")).toContainText("Grün");
+    const bar = page.locator("#i-ann-preview .announce-bar");
+    await expect(bar).toHaveAttribute("data-color", "green");
+    await expect(bar).toContainText("Heute ab 12 Uhr geschlossen.");
+    await page.fill("#i-ann-until", "2099-12-31");
+    let d = evaluate(await save(page, "#i-dl"), "DSM_INFO");
+    expect(d.announcement).toEqual({ de: "Heute ab 12 Uhr geschlossen.", it: "Oggi chiusa dalle 12.", color: "green", until: "2099-12-31" });
+    // a past date is flagged
+    await page.fill("#i-ann-until", "2020-01-01");
+    await expect(page.locator("#i-ann .warn")).toHaveText("Datum vorbei – der Banner wird nicht mehr angezeigt.");
+    // remove: no announcement in info.js any more
+    await page.click("#i-ann-clear");
+    await expect(page.locator("#i-ann-de")).toHaveValue("");
+    await page.click("#i-dl");
+    await expect.poll(async () => { const x = await folderData(page, "info.js", "DSM_INFO"); return x && !("announcement" in x); }).toBe(true);
   });
 
   test("Italian", async ({ page }) => {
@@ -502,18 +490,6 @@ test.describe("publishing directly into the website folder", () => {
 });
 
 test.describe("publishing directly online (save.php)", () => {
-  // save.php simulated: GET reports the state, POST answers as wished and records the requests
-  async function server(page, { get = { ready: true }, post = null } = {}) {
-    const requests = [];
-    await page.route("**/save.php*", async r => {
-      const q = r.request();
-      if (q.method() === "GET") return r.fulfill({ json: { dsm: "save", v: 2, ...get } });
-      requests.push({ file: new URL(q.url()).searchParams.get("file"), key: q.headers()["x-dsm-key"], text: q.postData() });
-      if (post) return r.fulfill(post);
-      return r.fulfill({ json: { dsm: "save", v: 2, ok: true } });
-    });
-    return requests;
-  }
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const flag = page => page.locator('.pub[data-file="info.js"] .flag');
   const ONLINE = "Ein Klick speichert info.js direkt auf der Website – sofort online, nichts hochladen.";

@@ -1,5 +1,5 @@
 // Blur always stays on: also at 30 fps (iPhone in low power mode) and very slow frames, no switching off by measuring.
-const { test, expect, open, OFF } = require("./helpers.js");
+const { test, expect, open, settled, OFF } = require("./helpers.js");
 
 const frames = (page, ms) => page.addInitScript(ms => {
   const real = window.requestAnimationFrame.bind(window);
@@ -17,7 +17,7 @@ test.describe("blur", () => {
     for (let i = 0; i < 2; i++) {
       await page.locator("#list .row").nth(2).click();
       await expect(page.locator("#detail")).toBeVisible();
-      await page.waitForTimeout(300);
+      await settled(page);
       await page.keyboard.press("Escape");
       await expect(page.locator("#detail")).toHaveCount(0);
     }

@@ -27,6 +27,7 @@ concurrency:
 
 env:
   CI: "true"
+  TZ: Europe/Rome # as on Johann's Mac and in the browser tests (timezoneId): "today" is the same day everywhere
 
 jobs:
   unit:
@@ -49,7 +50,7 @@ jobs:
       - run: npm audit --audit-level=high
       # save.php promises PHP >= 7.1 (webspace PHP version unknown): syntax + save.test again on the oldest version.
       # Same job on purpose: GitHub bills every job rounded up to a full minute.
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0; third-party: pinned to the commit
         with:
           php-version: "7.1"
           coverage: none
@@ -59,7 +60,7 @@ jobs:
   e2e:
     name: E2E (${{ matrix.browser }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false # one browser failing must not cancel the others
       matrix:
@@ -81,9 +82,16 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-${{ matrix.browser }}
       # Browser download is skipped on a cache hit; --with-deps still installs the system libraries
       - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: PHP version (publish.spec.js, real save.php)
+        run: php -v
       - name: CPU cores (Playwright workers)
         run: nproc
-      - run: npm run test:e2e -- --project=${{ matrix.browser }}
+      # The WebKit job also runs the iPhone viewport (WebKit device, only engines.spec.js)
+      - run: npm run test:e2e -- --project=${{ matrix.browser }} ${{ matrix.browser == 'webkit' && '--project=iphone' || '' }}
+      # retries: 1 lets a test pass on the second attempt – list those, so flakiness doesn't stay invisible
+      - name: Flaky tests (passed only on the retry)
+        if: always()
+        run: node tests/helpers/flaky-report.js tests/.tmp/report.json
       - name: Traces of failed tests
         if: failure()
         uses: actions/upload-artifact@v4
@@ -92,3 +100,19 @@ jobs:
           path: tests/.tmp/results/
           retention-days: 7
           if-no-files-found: ignore
+
+  # The upload folder (npm run pack) on a real Apache with PHP 7.1 in Docker, as on a typical webspace:
+  # .htaccess (headers, compression, no listings, https redirect), save.php end to end, backup/ locked, parallel POSTs.
+  apache:
+    name: Apache + PHP 7.1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+      - run: docker pull php:7.1-apache
+      - run: node --test tests/apache/apache.test.js
+        env:
+          DSM_APACHE: "1"

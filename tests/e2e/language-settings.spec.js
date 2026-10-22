@@ -176,6 +176,31 @@ test.describe("settings sheet on the phone", () => {
   });
 });
 
+// Slim desktop window (mouse, no touch): no swipe stages, a plain bottom sheet that scrolls with the wheel to its end
+test.describe("sheets in a slim desktop window", () => {
+  test.use({ viewport: { width: 390, height: 560 } });
+  for (const [name, button, sel] of [["settings", ".settings-btn", ".settings"], ["categories", "#cat-btn", ".categories"]]) {
+    test(`${name}: whole content reachable with the wheel`, async ({ page }) => {
+      await open(page);
+      await page.click(button);
+      const d = page.locator(`${sel}[role=dialog]`);
+      await expect(d).toBeVisible();
+      expect(await d.evaluate(e => e.dataset.stage)).toBeUndefined();
+      expect(await d.locator(".grab").isVisible()).toBe(false);
+      const box = await d.boundingBox();
+      expect(box.y + box.height).toBeLessThanOrEqual(561);
+      expect(await d.evaluate(e => e.scrollHeight > e.clientHeight)).toBe(true);
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      for (let i = 0; i < 40 && await d.evaluate(e => e.scrollTop + e.clientHeight < e.scrollHeight - 1); i++) await page.mouse.wheel(0, 2000);
+      const last = await d.evaluate(e => {
+        const pane = e.querySelector(":scope > .pane");
+        return pane.lastElementChild.getBoundingClientRect().bottom - e.getBoundingClientRect().bottom;
+      });
+      expect(last).toBeLessThanOrEqual(1);
+    });
+  }
+});
+
 test.describe("reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
   test("the dialog closes immediately", async ({ page }) => {

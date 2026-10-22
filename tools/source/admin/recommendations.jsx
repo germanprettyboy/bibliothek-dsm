@@ -1,6 +1,8 @@
 /* Tab "recommendations": per group up to four books from the catalog with text DE/IT, topic of the round.
    Draft in the browser (localStorage dsm-recs-draft). Publish: other books than published = new round,
-   the published round moves to the front of the archive; only texts/topic changed = same round. */
+   the published round moves to the front of the archive; only texts/topic changed = same round.
+   Draft extras (only after the first edit of the archive / undo): archive = edited archive, restored = round taken back
+   from the archive as the current one (replaces the published round as base of the comparison). */
 import * as React from "react";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 
@@ -36,16 +38,30 @@ export function loadDraft() {
   return d;
 }
 
+// Archive as edited in the draft: trimmed texts, empty topic dropped
+function cleanArchive(arc) {
+  return arc.map(a => {
+    const o = { updated: a.updated };
+    const topic = a.topic ? { de: (a.topic.de || "").trim(), it: (a.topic.it || "").trim() } : null;
+    if (topic && (topic.de || topic.it)) o.topic = topic;
+    o.groups = {};
+    Object.keys(a.groups || {}).forEach(g => { o.groups[g] = a.groups[g].map(r => ({ ...r, de: (r.de || "").trim(), it: (r.it || "").trim() })); });
+    return o;
+  });
+}
+
 function recsOut(draft) {
   const pub = window.DSM_RECOMMENDATIONS || { groups: {} };
+  const base = draft.restored || pub;
   const groups = {};
   GROUPS.forEach(g => { groups[g] = draft.groups[g].map(r => ({ k: r.k, t: r.t, a: r.a, de: (r.de || "").trim(), it: (r.it || "").trim() })); });
   const sig = gr => GROUPS.map(g => ((gr && gr[g]) || []).map(r => r.k).join(",")).join(";");
-  const pubHas = !!pub.updated && GROUPS.some(g => ((pub.groups && pub.groups[g]) || []).length);
-  const isNew = !pubHas || sig(pub.groups) !== sig(groups);
-  const archive = Array.isArray(pub.archive) ? pub.archive.slice() : [];
-  if (isNew && pubHas) archive.unshift(Object.assign({ updated: pub.updated }, pub.topic ? { topic: pub.topic } : {}, { groups: pub.groups }));
-  const out = { updated: isNew ? new Date().toLocaleDateString("sv-SE") : pub.updated };
+  const baseHas = !!base.updated && GROUPS.some(g => ((base.groups && base.groups[g]) || []).length);
+  const isNew = !baseHas || sig(base.groups) !== sig(groups);
+  const arc = draft.archive ? cleanArchive(draft.archive) : pub.archive;
+  const archive = Array.isArray(arc) ? arc.slice() : [];
+  if (isNew && baseHas) archive.unshift(Object.assign({ updated: base.updated }, base.topic ? { topic: base.topic } : {}, { groups: base.groups }));
+  const out = { updated: isNew ? new Date().toLocaleDateString("sv-SE") : base.updated };
   const topic = { de: (draft.topic.de || "").trim(), it: (draft.topic.it || "").trim() };
   if (topic.de || topic.it) out.topic = topic;
   out.groups = groups;
@@ -54,10 +70,11 @@ function recsOut(draft) {
 }
 
 export function Recommendations({ draft, setDraft, catalog }) {
-  const { t } = useLanguage();
+  const { t, df, lang } = useLanguage();
   const [g, setG] = React.useState("middle");
   const [q, setQ] = React.useState("");
   const [armed, setArmed] = React.useState(false);
+  const [open, setOpen] = React.useState(null), [armedDel, setArmedDel] = React.useState(false), [armedBack, setArmedBack] = React.useState(false);
   const listRef = React.useRef(null), focusNew = React.useRef(false);
   const list = draft.groups[g], full = list.length >= 4;
 
@@ -85,6 +102,32 @@ export function Recommendations({ draft, setDraft, catalog }) {
   }, [q, catalog, full]);
   const have = new Set(list.map(r => r.k));
 
+  // Archive: the first edit clones the published archive into the draft
+  const pubArchive = () => (window.DSM_RECOMMENDATIONS && window.DSM_RECOMMENDATIONS.archive) || [];
+  const archive = draft.archive || pubArchive();
+  const changeArc = fn => setDraft(d => { const n = { ...d, archive: clone(d.archive || pubArchive()) }; fn(n); n.changed = true; return n; });
+  const arm = (on, set) => { if (!on) { set(true); setTimeout(() => set(false), 4000); return false; } set(false); return true; };
+  const delRound = i => {
+    if (!arm(armedDel, setArmedDel)) return;
+    setOpen(null);
+    changeArc(n => { n.archive.splice(i, 1); });
+  };
+  // Undo an accidental new round: archive[0] becomes the current round, the current one is discarded
+  const restore = () => {
+    if (!arm(armedBack, setArmedBack)) return;
+    setOpen(null);
+    setDraft(d => {
+      const arc = clone(d.archive || pubArchive());
+      const r = arc.shift();
+      if (!r) return d;
+      const groups = {};
+      GROUPS.forEach(x => { groups[x] = clone((r.groups && r.groups[x]) || []); });
+      return {
+        ...d, groups, topic: r.topic ? clone(r.topic) : { de: "", it: "" }, archive: arc, changed: true,
+        restored: { updated: r.updated, ...(r.topic ? { topic: clone(r.topic) } : {}), groups: clone(r.groups || {}) },
+      };
+    });
+  };
   const discard = () => {
     if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 4000); return; }
     setArmed(false);
@@ -97,7 +140,11 @@ export function Recommendations({ draft, setDraft, catalog }) {
       text: "/* Book recommendations of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
         "window.DSM_RECOMMENDATIONS = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n",
       // afterwards the new state counts as published (otherwise the round would move into the archive twice next time)
-      done: () => { window.DSM_RECOMMENDATIONS = out; },
+      done: () => {
+        window.DSM_RECOMMENDATIONS = out;
+        // restored round and edited archive are published now
+        setDraft(d => { if (!d.restored && !d.archive) return d; const { restored, archive, ...n } = d; n.changed = true; return n; }); // eslint-disable-line no-unused-vars
+      },
     };
   };
   const op = "size-[34px] rounded-md";
@@ -125,7 +172,7 @@ export function Recommendations({ draft, setDraft, catalog }) {
               {box.map(x => (
                 <ToggleGroupItem
                   key={x} value={x} data-g={x}
-                  className="group/opt h-auto min-h-12 w-full justify-start gap-3 rounded-none border-t border-border px-3.5 py-3 text-left text-m font-medium text-foreground first:border-t-0 data-[state=on]:bg-background data-[state=on]:font-semibold data-[state=on]:shadow-none"
+                  className="group/opt h-auto min-h-12 w-full justify-start gap-3 rounded-none border-t border-border px-3.5 py-3 text-left text-m font-medium text-foreground first:border-t-0 data-[state=on]:bg-background data-[state=on]:font-semibold data-[state=on]:shadow-[inset_0_0_0_1px_var(--line)]"
                 >
                   <span className="min-w-0 flex-1 whitespace-normal">{t("g_" + x)}</span>
                   <CheckIcon aria-hidden="true" className="size-[18px] shrink-0 opacity-0 transition-opacity group-data-[state=on]/opt:opacity-100" />
@@ -142,6 +189,8 @@ export function Recommendations({ draft, setDraft, catalog }) {
                   <b className="font-semibold">{r.t}</b>
                   <small className="block text-s text-muted-foreground">{r.a || ""}</small>
                   {keys.has(r.k) ? null : <small className="warn block text-s font-medium text-red">{t("eMissing")}</small>}
+                  {(r.de || "").trim() ? null : <small className="warn warn-de block text-s font-medium text-red">{t("eNoDe")}</small>}
+                  {(r.it || "").trim() ? null : <small className="warn warn-it block text-s font-medium text-red">{t("eNoIt")}</small>}
                 </span>
                 <span className="ops flex shrink-0 gap-1.5">
                   <Button variant="outline" size="icon-sm" className={op} data-op="up" aria-label={t("eUp")} disabled={i === 0}
@@ -185,6 +234,70 @@ export function Recommendations({ draft, setDraft, catalog }) {
               );
             }) : <li className="border-t border-border py-2"><span className="note text-s text-muted-foreground">{t("eNoResults")}</span></li>) : null}
           </ul>
+        </div>
+      </Card>
+      <Card id="rec-archive">
+        <CardTitle>{t("aArcT")}</CardTitle>
+        <CardDescription>{t("aArcP")}</CardDescription>
+        <div className="mt-2">
+          {archive.length ? archive.map((a, i) => {
+            const isOpen = open === i, topic = (a.topic && (a.topic[lang] || a.topic.de)) || "";
+            return (
+              <div key={a.updated + "|" + i} className="arc-r border-t border-border first:border-t-0" data-n={i}>
+                <button
+                  type="button" aria-expanded={isOpen} onClick={() => { setOpen(isOpen ? null : i); setArmedDel(false); setArmedBack(false); }}
+                  className="arc-h flex min-h-12 w-full cursor-pointer items-center justify-between gap-2.5 border-0 bg-transparent p-0 text-left text-m text-foreground"
+                >
+                  <span className="min-w-0">
+                    <b className="font-semibold">{df(a.updated)}</b>
+                    {topic ? <small className="block text-s text-muted-foreground">{topic}</small> : null}
+                  </span>
+                  <ChevronDownIcon aria-hidden="true" className={cn("size-[18px] shrink-0 transition-transform", isOpen && "rotate-180")} />
+                </button>
+                {isOpen ? (
+                  <div className="arc-body grid gap-3 pb-3.5">
+                    <div className="grid gap-2.5 sm:grid-cols-2">
+                      {["de", "it"].map(l => (
+                        <Label key={l}>
+                          <span>{t(l === "de" ? "eTopicDe" : "eTopicIt")}</span>
+                          <Input className="h-10" data-f={l} value={(a.topic && a.topic[l]) || ""}
+                            onChange={e => changeArc(n => { const x = n.archive[i]; x.topic = { de: "", it: "", ...x.topic, [l]: e.target.value }; })} />
+                        </Label>
+                      ))}
+                    </div>
+                    {GROUPS.filter(x => a.groups && (a.groups[x] || []).length).map(x => (
+                      <div key={x} className="arc-g grid gap-0" data-g={x}>
+                        <b className="font-semibold">{t("g_" + x)}</b>
+                        {a.groups[x].map((r, j) => (
+                          <div key={r.k + j} className="rec-ed grid gap-3 border-t border-border py-3.5" data-n={j}>
+                            <div className="hd flex items-start justify-between gap-2.5">
+                              <span>
+                                <b className="font-semibold">{r.t}</b>
+                                <small className="block text-s text-muted-foreground">{r.a || ""}</small>
+                              </span>
+                              <Button variant="outline" size="icon-sm" className={op} data-op="del" aria-label={t("eRemove")}
+                                onClick={() => changeArc(n => { n.archive[i].groups[x].splice(j, 1); })}><XIcon aria-hidden="true" /></Button>
+                            </div>
+                            {["de", "it"].map(l => (
+                              <Label key={l}>
+                                {t(l === "de" ? "eTeaserDe" : "eTeaserIt")}
+                                <Textarea data-f={l} rows={3} value={r[l] || ""} onChange={e => changeArc(n => { n.archive[i].groups[x][j][l] = e.target.value; })} />
+                              </Label>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    <div className="flex flex-wrap gap-2.5">
+                      {i === 0 ? <Button variant="outline" data-op="restore" onClick={restore}><span>{t(armedBack ? "aRestoreSure" : "aRestore")}</span></Button> : null}
+                      <Button variant="outline" data-op="del-round" onClick={() => delRound(i)}><span>{t(armedDel ? "aDelSure" : "aDel")}</span></Button>
+                    </div>
+                    {i === 0 ? <p className="note m-0 text-s text-muted-foreground">{t("aRestoreP")}</p> : null}
+                  </div>
+                ) : null}
+              </div>
+            );
+          }) : <p className="note m-0 text-s text-muted-foreground" id="rec-arc-none">{t("aArcNone")}</p>}
         </div>
       </Card>
       <Publish
