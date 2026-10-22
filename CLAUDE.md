@@ -277,7 +277,7 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
   runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` (one job per browser: chromium,
   firefox, webkit + iphone; `CI` = 2 workers, 1 retry, traces as artifact `playwright-results-<browser>` on failure; the browser
-  install: apt timeouts/retries, 4 min per attempt, 3 attempts – apt on the runner sometimes stalls on a download), `npm audit --audit-level=high` and save.test once more on PHP 7.1
+  install: apt timeouts/retries, 8 min per attempt, 3 attempts, job limit 40 min – apt on the runner sometimes stalls), `npm audit --audit-level=high` and save.test once more on PHP 7.1
   (promised minimum). Also Mondays 06:00 UTC (only from `origin/main`). Tests only, NO deploy. `build.test` has a gzip size
   budget per built file – raise it deliberately, not to silence it. Results: `gh run list`, `gh run watch`,
   `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.
