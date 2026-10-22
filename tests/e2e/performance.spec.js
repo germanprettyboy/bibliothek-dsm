@@ -43,6 +43,8 @@ test.describe("performance", () => {
 
   test("search at CPU 4×: hits within a second", async ({ page }) => {
     await open(page);
+    // list complete first: otherwise the search competes with the step-by-step first render (3–4 s on the runner)
+    await expect(page.locator("#list .row")).toHaveCount(B.books.length, { timeout: 15000 });
     const cdp = await page.context().newCDPSession(page);
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
     const t0 = Date.now();
