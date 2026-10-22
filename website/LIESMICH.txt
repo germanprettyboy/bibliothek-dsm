@@ -20,7 +20,10 @@ Inhalt
   Klartext der Verwaltung und das Werkzeug zum Verschlüsseln (siehe tools/README.txt).
 
 Veröffentlichen
-  Den ganzen Ordner auf den Webspace laden (z. B. DSM-Server).
+  Mit „npm run pack“ den Upload-Ordner „upload/website“ erzeugen und DESSEN Inhalt auf den Webspace
+  laden (z. B. DSM-Server) – nicht den Arbeitsordner „website“: Dort liegen lokale Dateien, die nicht
+  online gehören (info.js aus Tests, .DS_Store, alte Sicherungen). Der Upload-Ordner enthält genau den
+  committeten Stand; ist die Verwaltung (admin.enc.js) nicht aktuell verschlüsselt, bricht pack ab.
   Funktioniert auch lokal per Doppelklick auf index.html und auf Servern ohne PHP – dann nur ohne
   Online-Speichern (siehe unten).
   ACHTUNG, sobald online gespeichert wird: Auf dem Webspace liegen dann die neuesten books.js,

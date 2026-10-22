@@ -128,6 +128,16 @@ test.describe("lock", () => {
     expect(everything).not.toContain(PW);
   });
 
+  test("session restored by the browser more than 4 hours later: locked again", async ({ page }) => {
+    await unlock(page);
+    // what Chrome's "continue where you left off" restores: the key, the page last left 5 hours ago
+    await page.addInitScript(() => sessionStorage.setItem("dsm-admin-seen", String(Date.now() - 5 * 3600e3)));
+    await page.reload();
+    await expect(page.locator("#lock")).toBeVisible();
+    await expect(page.locator("#app")).toBeHidden();
+    expect(await page.evaluate(() => sessionStorage.getItem("dsm-admin-key"))).toBeNull();
+  });
+
   test("a new tab is locked again", async ({ page, context }) => {
     await unlock(page);
     const p2 = await context.newPage();
@@ -474,7 +484,8 @@ test.describe("publishing directly into the website folder", () => {
     const a = evaluate(await save(page, "#rec-dl"), "DSM_RECOMMENDATIONS");
     const before = (R.archive || []).length;
     expect(a.archive.length).toBe(before + 1);
-    expect(a.updated).toBe(new Date().toLocaleDateString("sv-SE"));
+    // today in the browser's time zone (Europe/Rome), not in Node's (UTC on the runner: differs after midnight in Italy)
+    expect(a.updated).toBe(await page.evaluate(() => new Date().toLocaleDateString("sv-SE")));
     await page.locator('#rec-list .rec-ed[data-n="0"] textarea[data-f=de]').fill("Nur der Text ist neu.");
     await page.click("#rec-dl");
     await expect.poll(async () => (await folderData(page, "recommendations.js", "DSM_RECOMMENDATIONS"))?.groups.middle[0].de).toBe("Nur der Text ist neu.");

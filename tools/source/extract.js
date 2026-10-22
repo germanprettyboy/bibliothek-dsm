@@ -221,5 +221,5 @@
       "window.DSM_LIBRARY = " + JSON.stringify(data).replace(/</g, "\\u003c") + ";\n";
   }
 
-  return { extract, toScript, isbn13 };
+  return { extract, toScript, isbn13, norm };
 });

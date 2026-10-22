@@ -1,7 +1,7 @@
 // Detail view with cover (Open Library / Google Books mocked), placeholder, closing.
 const fs = require("fs");
 const path = require("path");
-const { test, expect, open, swipeStages, data } = require("./helpers.js");
+const { test, expect, open, settled, swipeStages, data } = require("./helpers.js");
 
 const { B } = data();
 const WITH_ISBN = B.books.find(b => b.i && b.p && b.y && b.c && b.l && b.a);
@@ -56,7 +56,7 @@ test.describe("detail", () => {
     await open(page);
     await openBook(page, WITHOUT_ISBN);
     // measure the dialog and the scrim (overlay of the shadcn dialog) only after the fade-in animation
-    await page.waitForTimeout(300);
+    await settled(page);
     const st = await page.locator("#detail").evaluate(d => {
       const a = getComputedStyle(d), b = getComputedStyle(document.querySelector(".scrim.detail"));
       return { dialog: a.backdropFilter, behind: b.backdropFilter, color: b.backgroundColor };
