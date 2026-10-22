@@ -20,10 +20,8 @@ function Page() {
   const App = admin && admin.App;
   return (
     <>
-      <Header onSettings={() => setSettings(true)} />
-      <section className="wrap intro pt-[18px] pb-3">
-        <h1 className="m-0 text-l font-semibold leading-[1.1]">{t("admTitle")}</h1>
-      </section>
+      <Header onSettings={() => setSettings(true)} title={t("admTitle")} />
+      <div className="pb-3" aria-hidden="true" />
       <main className="wrap">
         {App ? <div id="app"><App lock={lock} /></div> : <Lock onStart={v => setAdmin(v)} />}
       </main>

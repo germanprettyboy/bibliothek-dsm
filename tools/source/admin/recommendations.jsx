@@ -2,7 +2,7 @@
    Draft in the browser (localStorage dsm-recs-draft). Publish: other books than published = new round,
    the published round moves to the front of the archive; only texts/topic changed = same round. */
 import * as React from "react";
-import { ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -115,20 +115,26 @@ export function Recommendations({ draft, setDraft, catalog }) {
             </Label>
           ))}
         </div>
+        {/* Same segregated list as the settings/questions (middle, upper, adults in one block), without the color bars */}
         <ToggleGroup
           type="single" variant="surface" id="rec-groups" value={g} onValueChange={v => v && setG(v)}
-          className="mt-3 flex flex-wrap gap-1"
+          className="mt-3 grid gap-2.5 rounded-none bg-transparent p-0 shadow-none grid-flow-row auto-cols-auto"
         >
-          {GROUPS.map(x => (
-            <ToggleGroupItem
-              key={x} value={x} data-g={x}
-              className="h-auto min-h-10 grow px-3.5 py-2 text-m"
-            >
-              {t("g_" + x)}
-            </ToggleGroupItem>
+          {[["middle"], ["upper"], ["adult-fiction", "adult-nonfiction", "adult-bio"]].map(box => (
+            <div key={box[0]} className="card grid overflow-hidden">
+              {box.map(x => (
+                <ToggleGroupItem
+                  key={x} value={x} data-g={x}
+                  className="group/opt h-auto min-h-12 w-full justify-start gap-3 rounded-none border-t border-border px-3.5 py-3 text-left text-m font-medium text-foreground first:border-t-0 data-[state=on]:bg-background data-[state=on]:font-semibold data-[state=on]:shadow-none"
+                >
+                  <span className="min-w-0 flex-1 whitespace-normal">{t("g_" + x)}</span>
+                  <CheckIcon aria-hidden="true" className="size-[18px] shrink-0 opacity-0 transition-opacity group-data-[state=on]/opt:opacity-100" />
+                </ToggleGroupItem>
+              ))}
+            </div>
           ))}
         </ToggleGroup>
-        <div className="mt-2" id="rec-list" ref={listRef}>
+        <div className="mt-3" id="rec-list" ref={listRef}>
           {list.length ? list.map((r, i) => (
             <div key={r.k} className="rec-ed grid gap-3 border-t border-border py-3.5 first:border-t-0" data-n={i}>
               <div className="hd flex items-start justify-between gap-2.5">
