@@ -218,7 +218,9 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   With the API: marker glides 150 ms, then `document.startViewTransition` (`--t-color` 350 ms, `--ease-color`), `still`
   goes on `finished`; otherwise instant, `still` goes after two frames. Quick clicks: only the last switch runs; a font
   change while a switch waits does not apply early. The other logo is loaded when the settings open (no waiting before the fade).
-  NO own layer for `.seg3`.
+  NO own layer for `.seg3`. NO View Transition in WebKit (Safari, every iPhone browser; UA check, 2026-10-22, client: on the
+  iPhone parts switched one after another and the glass lost its blur during the cross-fade; Playwright's WebKit hung):
+  there instant (as without the API). Don't switch `meta[name=theme-color]` by script: Playwright's WebKit froze on it.
   Language (`components/header.jsx`): marker first (`.seg[data-on]`, `will-change: transform`), `setLang` after the frame
   (rAF + setTimeout). Sonner toaster with `dir="ltr"` (otherwise `getComputedStyle(html)` per render).
 - Blur: scrim `blur(8px) saturate(1.15)`, glass `blur(18px) saturate(1.8)` – don't increase; glass without backdrop-filter looked
@@ -261,7 +263,13 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - The save test needs `php` in the PATH or `DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56"`, otherwise skipped.
 - With `DSM_ADMIN_PW` (CI: repository secret) the unit tests additionally check admin.enc.js. `real-db.test` only with `data/*.winbook` (or `DSM_DB=…`; states only counts).
 - E2E: the admin tests encrypt the sources with "test-password"; admin import byte-identical to `npm run books`; cover APIs mocked.
-  Chromium runs every spec; Firefox, WebKit and an iPhone viewport (WebKit) only `engines.spec.js` (others use CDP).
+  Every spec runs in Chromium (Chrome/Edge) and Firefox; WebKit (≈ Safari) desktop and an iPhone viewport only
+  `engines.spec.js` (2026-10-22: the full suite hung in Playwright's Linux WebKit – the page stopped answering after color
+  switches, dialogs vanished – which Safari doesn't do; the admin/phone specs are WebKit-ready, see below). Phone describes use `test.use({ ...PHONE })` (Firefox knows no `isMobile`); `swipe()` uses CDP
+  touch in Chromium, in-page touch events elsewhere; performance.spec (CDP, Chromium budgets) and axe (a11y.spec) only in Chromium. WebKit has no folder
+  access (as Safari): the admin specs publish via the download there (`save()`/`FOLDER` in admin-helpers.js), folder-only tests skip; a download does not
+  count as published (checks of the published state only with FOLDER). WebKit switches colors without a View Transition (lib/appearance.js):
+  the instant switch is tested there, the cross-fade in Chromium/Firefox. Safari itself stays untested on real devices.
   `a11y.spec` (axe WCAG 2.1 AA, every view), `performance.spec` (CPU 4× budgets, 3× catalog stress; values as annotations),
   `publish.spec` (REAL save.php via a second webServer `php -S` + local-router.php, `DSM_LOCAL_DIR=tests/.tmp`, only if php
   exists), `engines.spec` also file:// (double-click). Wait for animations with `settled(page)`, not `waitForTimeout`
@@ -271,13 +279,17 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - Live: `brew install cloudflared`, a foreign address via `DSM_LIVE_URL=https://…`. The tunnel is public: only website/ without
   dot files, `*.php`, `backup/`; own Node server with `no-store` (Cloudflare caches `.js`/`.css` otherwise).
 - GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
-  runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` (Chromium, `CI` = 2 workers, 1 retry,
-  traces as artifact `playwright-results` on failure), `npm audit --audit-level=high` and save.test once more on PHP 7.1
+  runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` sharded over 5 parallel jobs
+  (`--shard`: chromium 2, firefox 2, webkit + iphone 1; `CI` = 2 workers, 1 retry, traces as artifact
+  `playwright-results-<browser>-<job>` on failure). Browser + its apt .deb files cached per browser/Playwright version/runner
+  image, saved right after the install (uncached WebKit = 117 MB from a sometimes very slow mirror); apt timeouts/retries,
+  8 min per install attempt, 3 attempts – apt on the runner sometimes stalls. More shards = shorter, but more billed minutes
+  (every job ≥ 1 min plus ≈1 min setup)., `npm audit --audit-level=high` and save.test once more on PHP 7.1
   (promised minimum). Also Mondays 06:00 UTC (only from `origin/main`). Tests only, NO deploy. `build.test` has a gzip size
   budget per built file – raise it deliberately, not to silence it. Results: `gh run list`, `gh run watch`,
   `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.
   CI is the ONLY test run (no local tests, see top). `DSM_ADMIN_PW`/`real-db`/`test:live` checks therefore do not run for now.
-  E2E takes ≈5 min on the 2-core runner; under heavy parallel load the swipe/close tests can flake (retry 1 catches it).
+  E2E (sharded) takes ≈4–5 min on the 2-core runners; under heavy parallel load the swipe/close tests can flake (retry 1 catches it).
   Since 2026-10-22: `TZ=Europe/Rome` in CI; flaky tests (passed on the retry) listed as warnings + job summary
   (`tests/helpers/flaky-report.js`); job `apache`: the pack folder on Docker `php:7.1-apache` (`tests/apache/`, only with
   `DSM_APACHE=1`): .htaccess, save.php end to end, backup/ locked, 16 parallel POSTs. Flakiness under load on demand:

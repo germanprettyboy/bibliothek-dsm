@@ -15,7 +15,9 @@ let php = false;
 try { execFileSync("php", ["-v"], { stdio: "ignore" }); php = true; } catch (e) { /* no PHP: publish.spec.js is skipped */ }
 const PHP_PORT = PORT + 1000;
 process.env.DSM_PHP_URL = php ? `http://127.0.0.1:${PHP_PORT}/` : "";
-const ENGINES = /engines\.spec\.js/; // Firefox/WebKit: only the basics, the other specs use CDP
+// WebKit (≈ Safari) and the iPhone project: only the basics. The full suite hung in Playwright's Linux WebKit in ways
+// Safari doesn't (page stopped answering after color switches, 2026-10-22); Chromium and Firefox run every spec.
+const ENGINES = /engines\.spec\.js/;
 
 // DSM_LIVE_URL=https://… : test against a running address (npm run test:live, Cloudflare tunnel) instead of an own server.
 // Real network in between: less parallel, more time, a second attempt.
@@ -41,9 +43,11 @@ module.exports = defineConfig({
     colorScheme: "light",
     trace: "retain-on-failure",
   },
+  // Chrome/Edge (Chromium), Firefox: every spec. Safari (WebKit) on the desktop and as iPhone: the basics (engines.spec.js).
+  // CI shards each browser over parallel jobs (--project=… --shard=…; the WebKit job also runs iphone).
   projects: [
     { name: "chromium", use: { browserName: "chromium" } },
-    { name: "firefox", use: { browserName: "firefox" }, testMatch: ENGINES },
+    { name: "firefox", use: { browserName: "firefox" } },
     { name: "webkit", use: { browserName: "webkit" }, testMatch: ENGINES },
     { name: "iphone", use: { ...devices["iPhone 13"], browserName: "webkit" }, testMatch: ENGINES },
   ],

@@ -1,6 +1,6 @@
 /*
  * The basics in every browser engine: Chromium, Firefox, WebKit (≈ Safari) on the desktop and in an iPhone viewport
- * (projects in playwright.config.js). The other specs run only in Chromium: they use CDP (touch swiping, CPU throttling).
+ * (projects in playwright.config.js). The other specs run in the three desktop engines, this one also as iPhone and file://.
  */
 const path = require("path");
 const { pathToFileURL } = require("url");
@@ -56,8 +56,11 @@ test.describe("every engine", () => {
     await page.click(".settings-btn");
     await expect(page.locator(".settings[role=dialog]")).toBeVisible();
     await page.click('#s-theme [data-v="dark"]');
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await page.reload();
+    // switch finished (view transition over, `still` removed); then reload without waiting for "load":
+    // after a view transition WebKit sometimes never fires it on the reloaded page
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark" &&
+      ![...document.head.querySelectorAll("style")].some(s => s.textContent.includes("transition: none !important")));
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   });
 

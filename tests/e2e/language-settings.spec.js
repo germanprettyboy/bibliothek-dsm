@@ -1,5 +1,5 @@
 // Language DE/IT and settings (theme, larger text, high contrast)
-const { test, expect, open, swipeStages, data, hits } = require("./helpers.js");
+const { test, expect, PHONE, open, swipeStages, data, hits } = require("./helpers.js");
 
 const { B, C } = data();
 
@@ -81,7 +81,12 @@ test.describe("settings", () => {
     const light = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
     expect(dark).not.toBe(light);
     await page.click('#s-theme [data-v="dark"]');
-    await page.reload();
+    // switch finished (view transition over, `still` removed) before reloading: WebKit keeps the new page from
+    // rendering if a view transition starts while the reload is already under way
+    await page.waitForFunction(() => document.documentElement.dataset.theme === "dark" &&
+      ![...document.head.querySelectorAll("style")].some(s => s.textContent.includes("transition: none !important")));
+    // without waiting for "load": after a view transition WebKit sometimes never fires it on the reloaded page
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await openSettings(page);
     await page.click('#s-theme [data-v="auto"]');
@@ -164,7 +169,7 @@ test.describe("settings", () => {
 });
 
 test.describe("settings sheet on the phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
   test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
     await open(page);
     await page.click(".settings-btn");

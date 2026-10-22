@@ -1,5 +1,5 @@
 // Filter by category: dialog with groups (parent term before " - "/": "), filter pill [filter | ×] next to the search, together with the search.
-const { test, expect, open, data, hits, OFF } = require("./helpers.js");
+const { test, expect, PHONE, open, data, hits, OFF } = require("./helpers.js");
 
 const { B, C } = data();
 const parent = k => (/^(.+?)(?: - |: )(.+)$/.exec(k) || [, k])[1];
@@ -121,7 +121,7 @@ test.describe("categories", () => {
   });
 
   test.describe("phone", () => {
-    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test.use({ ...PHONE });
     test("button next to the search without text, × beside it in the same size, no horizontal scrolling", async ({ page }) => {
       await open(page);
       const button = await page.locator(".cat-pill").boundingBox();

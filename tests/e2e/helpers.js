@@ -34,8 +34,9 @@ const test = base.test.extend({
   page: async ({ page, storage, net }, use) => { // eslint-disable-line no-unused-vars
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
-    // blocked cover services (route.abort): Chromium/WebKit "Failed to load resource", Firefox "CORS request did not succeed"
-    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource|CORS request did not succeed/.test(m.text())) errors.push(m.text()); });
+    // blocked cover services (route.abort): Chromium/WebKit "Failed to load resource" or "… due to access control checks",
+    // Firefox "CORS request did not succeed"
+    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource|due to access control checks|CORS request did not succeed/.test(m.text())) errors.push(m.text()); });
     await page.addInitScript(s => {
       if (sessionStorage.getItem("__test-init")) return; // only on the first load, a reload keeps the state
       sessionStorage.setItem("__test-init", "1");
@@ -59,8 +60,36 @@ async function settled(page) {
     .map(a => a.finished.catch(() => null))));
 }
 
-// Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch)
+// Phone (test.use({ ...PHONE })): Firefox knows no isMobile (Playwright throws), there only viewport + touch
+const PHONE = {
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: async ({ browserName }, use) => use(browserName !== "firefox"),
+};
+
+// Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch). Firefox/WebKit have no CDP: touch events
+// built in the page instead, on the element under the finger like a real touch (lib/swipe.js only reads touches[0]).
 async function swipe(page, from, to, steps = 8) {
+  if (page.context().browser().browserType().name() !== "chromium") {
+    // the whole gesture in one call: a round trip per step is far slower than 12 ms in WebKit
+    await page.evaluate(([from, to, steps]) => new Promise(resolve => {
+      const target = document.elementFromPoint(195, from);
+      const send = (type, y) => {
+        const e = new Event(type, { bubbles: true, cancelable: true });
+        Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : [{ clientX: 195, clientY: y }] });
+        target.dispatchEvent(e);
+      };
+      send("touchstart", from);
+      let i = 0;
+      const step = () => {
+        if (++i > steps) { send("touchend", to); resolve(); return; }
+        send("touchmove", from + (to - from) * i / steps);
+        setTimeout(step, 12);
+      };
+      setTimeout(step, 12);
+    }), [from, to, steps]);
+    return;
+  }
   const cdp = await page.context().newCDPSession(page);
   const point = y => [{ x: 195, y }];
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from) });
@@ -113,4 +142,4 @@ async function swipeStages(page, sheet, height = 844) {
   return { half, fit };
 }
 
-module.exports = { test, expect: base.expect, open, settled, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };
+module.exports = { test, expect: base.expect, open, settled, PHONE, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };

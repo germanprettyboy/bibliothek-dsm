@@ -3,7 +3,7 @@
  * Shared helpers: admin-helpers.js. The published info.js is read back from the (test) website folder.
  */
 const { test, expect } = require("./helpers.js");
-const { adminSetup, unlock, tab, save, evaluate, folderData } = require("./admin-helpers.js");
+const { FOLDER, browserOf, adminSetup, unlock, tab, save, download, evaluate, folderData } = require("./admin-helpers.js");
 
 adminSetup();
 
@@ -12,8 +12,12 @@ async function open(page) {
   await tab(page, "info");
 }
 const published = async page => evaluate(await save(page, "#i-dl"), "DSM_INFO");
-// Publishing again: the success message is already there, so wait for the written content itself
+// Publishing again: the success message is already there, so wait for the written content itself (WebKit: the download)
 const republished = async (page, pick, value) => {
+  if (!FOLDER({ browserName: browserOf(page) })) {
+    expect(pick(evaluate(await download(page, "#i-dl"), "DSM_INFO"))).toEqual(value);
+    return;
+  }
   await page.click("#i-dl");
   await expect.poll(async () => { const d = await folderData(page, "info.js", "DSM_INFO"); return d && pick(d); }).toEqual(value);
 };

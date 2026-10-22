@@ -29,9 +29,14 @@ function apply() {
 //    of the theme choice has finished gliding (otherwise its old position lingers as a ghost in the old picture).
 //    Without the API (Firefox < 144, Safari < 18), with reduced motion, in a hidden tab or when the device itself
 //    switches light/dark (already applied, nothing to fade from): instantly, but also without transitions.
+//    Not in WebKit (Safari, every browser on the iPhone): its View Transition is no single picture – on the iPhone
+//    parts switched one after another and the glass lost its blur for the duration (2026-10-22, client), Playwright's
+//    WebKit even hung. There all colors switch at once, in one frame.
 // Each switch takes a number; an older one that is still waiting gives up (quick clicks: only the last one counts).
 const GLIDE = 150;
 let run = 0;
+const UA = navigator.userAgent;
+const WEBKIT = /AppleWebKit/.test(UA) && !/Chrome\/|Chromium\/|Edg\//.test(UA);
 
 // The marker of the theme choice (.seg3, transform only) keeps gliding where there is no cross-fade
 const still = document.createElement("style");
@@ -46,7 +51,7 @@ function instant() {
 }
 
 function fade() {
-  if (!document.startViewTransition || reduced.matches || document.hidden) return instant();
+  if (!document.startViewTransition || WEBKIT || reduced.matches || document.hidden) return instant();
   const nr = ++run;
   waiting = true;
   loadLogos();

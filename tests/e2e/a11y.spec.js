@@ -4,7 +4,7 @@
  */
 const path = require("path");
 const AxeBuilder = require("@axe-core/playwright").default;
-const { test, expect, open, settled, TMP } = require("./helpers.js");
+const { test, expect, open, settled, PHONE, TMP } = require("./helpers.js");
 
 async function violations(page) {
   await settled(page); // contrast is measured on the final colors, not in the middle of a fade-in
@@ -17,6 +17,8 @@ const INFO = JSON.stringify({ updated: "2026-10-01", hours: { mon: [["08:00", "1
   notice: { de: "Hinweis", it: "Avviso" }, closures: [{ type: "holiday", from: "2026-12-21", to: "2027-01-06", de: "", it: "" }] });
 
 test.describe("accessibility", () => {
+  // axe checks DOM, ARIA and computed colors – the same in every engine; in Firefox/WebKit it only exceeds the timeout
+  test.skip(({ browserName }) => browserName !== "chromium", "axe once, in Chromium");
   test.use({ storage: { "dsm-recs": RECS } });
 
   for (const [name, extra] of [["light", {}], ["dark", { "dsm-theme": "dark" }], ["high contrast", { "dsm-contrast": "high" }],
@@ -62,7 +64,7 @@ test.describe("accessibility", () => {
   });
 
   test.describe("phone", () => {
-    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test.use({ ...PHONE });
     test("list and detail sheet", async ({ page }) => {
       await open(page);
       expect(await violations(page), "list").toEqual([]);

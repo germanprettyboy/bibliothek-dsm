@@ -1,5 +1,5 @@
 // Questions on the first visit and book recommendations above the list
-const { test, expect, open, swipeStages, restingTop, data, OFF } = require("./helpers.js");
+const { test, expect, PHONE, open, swipeStages, restingTop, data, OFF } = require("./helpers.js");
 
 const { R } = data();
 const pref = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-recs")));
@@ -35,10 +35,10 @@ test.describe("first visit", () => {
   test("no → saved, notice, no recommendations, no repeated question", async ({ page }) => {
     await open(page);
     await ask(page).locator('[data-a="no"]').click();
-    await expect(ask(page)).toBeHidden();
+    // the notice disappears after 3.6 s: hovered at once, Sonner pauses that (slower engines need the time)
+    await page.locator(".toast").hover();
     await expect(page.locator(".toast")).toContainText("Einstellungen");
-    expect(await pref(page)).toEqual({ want: false, group: null });
-    await expect(page.locator("#recs")).toBeHidden();
+    await expect(ask(page)).toBeHidden();
     // notice centered (also once the scroll lock has released the scrollbar); a click opens the settings
     const box = await page.locator(".toast").boundingBox();
     const mid = await page.evaluate(() => document.documentElement.clientWidth / 2);
@@ -46,6 +46,8 @@ test.describe("first visit", () => {
     await page.locator(".toast-btn").click();
     await expect(page.locator(".settings[role=dialog]")).toBeVisible();
     await expect(page.locator(".toast")).toHaveCount(0);
+    expect(await pref(page)).toEqual({ want: false, group: null });
+    await expect(page.locator("#recs")).toBeHidden();
     await page.reload();
     await page.waitForTimeout(800);
     await expect(ask(page)).toHaveCount(0);
@@ -91,7 +93,7 @@ test.describe("first visit", () => {
   });
 
   test.describe("phone", () => {
-    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test.use({ ...PHONE });
     test("the questions sheet rests half-high with the whole question visible, on every step", async ({ page }) => {
       await open(page);
       await expect(ask(page)).toBeVisible();
@@ -149,7 +151,7 @@ test.describe("recommendations", () => {
   });
 
   test.describe("archive on the phone", () => {
-    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test.use({ ...PHONE });
     test("swiping: the long archive goes up to full screen, down = half, further down = closed", async ({ page }) => {
       await open(page);
       await page.click("#recs-open");

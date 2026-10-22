@@ -4,8 +4,8 @@
 const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
-const { test, expect, data, TMP } = require("./helpers.js");
-const { PW, adminSetup, unlock, load, download, folderFile, folderData, evaluate, save, server } = require("./admin-helpers.js");
+const { test, expect, PHONE, data, TMP } = require("./helpers.js");
+const { PW, FOLDER, browserOf, adminSetup, unlock, load, download, folderFile, folderData, evaluate, save, server } = require("./admin-helpers.js");
 const X = require("../../tools/source/extract.js");
 const T = require("../helpers/testdb.js");
 const { realDb, keyOf } = require("../helpers/load.js");
@@ -164,7 +164,8 @@ test.describe("importing the database", () => {
     expect(d.history.at(-1)).toEqual(d.coverage);
     const node = await nodeScript(fs.readFileSync(path.join(TMP, "test.winbook")), { updated: d.updated, coverage: d.coverage, history: d.history });
     expect(s === node, "books.js differs from the Node generation").toBe(true);
-    await expect(page.locator("#r-taken")).toContainText("Gegenüber der aktuellen Liste+0 neu · −0 entfallen");
+    // the published list is now the comparison base (WebKit = download: not published yet, the base stays)
+    if (FOLDER({ browserName: browserOf(page) })) await expect(page.locator("#r-taken")).toContainText("Gegenüber der aktuellen Liste+0 neu · −0 entfallen");
   });
 
   test("preview: index.html#preview shows the imported list", async ({ page, context }) => {
@@ -351,7 +352,7 @@ test.describe("editing recommendations", () => {
 });
 
 test.describe("admin page on the phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
   test("no horizontal scrolling", async ({ page }) => {
     await unlock(page);
     await load(page, path.join(TMP, "test.winbook"));
@@ -361,6 +362,7 @@ test.describe("admin page on the phone", () => {
 });
 
 test.describe("publishing directly into the website folder", () => {
+  test.skip(({ browserName }) => !FOLDER({ browserName }), "no folder access in Safari");
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const picks = page => page.evaluate(() => window.__picks);
   const folderLine = "Website-Ordner: website · Anderen Ordner wählen";
@@ -508,7 +510,7 @@ test.describe("publishing directly online (save.php)", () => {
     expect(requests[0].file).toBe("info.js");
     expect(requests[0].key).toBe(await saveKey(PW));
     expect(evaluate(requests[0].text, "DSM_INFO").notice.de).toBe("Online-Hinweis");
-    expect(await page.evaluate(() => window.__picks)).toBe(0);
+    expect(await page.evaluate(() => window.__picks || 0)).toBe(0); // WebKit: no folder dialog at all
     // counts as published afterwards
     expect(await page.evaluate(() => window.DSM_INFO.notice.de)).toBe("Online-Hinweis");
   });
@@ -561,7 +563,8 @@ test.describe("publishing directly online (save.php)", () => {
     expect(await page.evaluate(() => JSON.stringify(window.DSM_INFO))).toBe(before);
   });
 
-  test("save.php without the access file: note, folder route as before", async ({ page }) => {
+  test("save.php without the access file: note, folder route as before", async ({ page, browserName }) => {
+    test.skip(!FOLDER({ browserName }), "no folder access in Safari");
     const requests = await server(page, { get: { ready: false, reason: "access" } });
     await unlock(page);
     await info(page);

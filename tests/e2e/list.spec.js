@@ -1,5 +1,5 @@
 // Book list: display, search, A–Z bar (from 768 px), letter floater (below), preview.
-const { test, expect, open, data, hits } = require("./helpers.js");
+const { test, expect, PHONE, open, data, hits } = require("./helpers.js");
 
 const { B } = data();
 
@@ -29,6 +29,8 @@ test.describe("list", () => {
   test("letter chunks with anchors", async ({ page }) => {
     await open(page);
     await expect(page.locator("#L-K")).toHaveAttribute("data-l", "K");
+    // the list renders step by step (2 chunks, then 20 per step): count once it is complete
+    await expect(page.locator("#list .row")).toHaveCount(B.books.length);
     const n = await page.locator("#list ul[data-l]").count();
     expect(n).toBeGreaterThan(20);
   });
@@ -189,7 +191,7 @@ test.describe("A–Z bar (from 768 px)", () => {
 });
 
 test.describe("phone (390 px)", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
 
   test("no A–Z bar, only the search", async ({ page }) => {
     await open(page);
@@ -199,6 +201,8 @@ test.describe("phone (390 px)", () => {
 
   test("letter floater only while scrolling, disappears afterwards", async ({ page }) => {
     await open(page);
+    // list complete first: every further render step hides the floater (slower engines are still building it up)
+    await expect(page.locator("#list .row")).toHaveCount(B.books.length);
     await expect(page.locator("#floater")).not.toHaveClass(/show/);
     await page.evaluate(() => scrollTo({ top: document.getElementById("L-K").offsetTop, behavior: "instant" }));
     await expect(page.locator("#floater")).toHaveClass(/show/);

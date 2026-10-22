@@ -8,11 +8,17 @@ const { test, expect, TMP } = require("./helpers.js");
 
 const PW = "test-password";
 
+// Safari has no folder access (showDirectoryPicker), and WebKit's OPFS can't write in Playwright's ephemeral context:
+// in WebKit the admin page runs as in Safari, publishing = download (save() below)
+const FOLDER = ({ browserName }) => browserName !== "webkit";
+const browserOf = page => page.context().browser().browserType().name();
+
 // Call once per spec file: encrypted test app, folder dialog replaced by the private browser storage (OPFS).
 // localStorage "__test-folder": name of the chosen folder; only "website" contains index.html; "cancel" = dialog cancelled.
 function adminSetup() {
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context, browserName }) => {
     await context.route("**/assets/admin.enc.js", r => r.fulfill({ path: path.join(TMP, "admin.enc.js"), contentType: "text/javascript" }));
+    if (!FOLDER({ browserName })) return;
     await context.addInitScript(() => {
       window.__picks = 0;
       window.showDirectoryPicker = async () => {
@@ -67,8 +73,9 @@ const evaluate = (s, name) => { const w = {}; new Function("window", s)(w); retu
 const folderData = async (page, file, name) => { try { return evaluate(await folderFile(page, file), name) || null; } catch (e) { return null; } };
 const FILE = { "#dl": "books.js", "#rec-dl": "recommendations.js", "#i-dl": "info.js" };
 const okText = file => new RegExp(`^${file.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
-// Publish: click, success message, written file as text
+// Publish: click, success message, written file as text (WebKit: the download, as in Safari)
 async function save(page, button) {
+  if (!FOLDER({ browserName: browserOf(page) })) return download(page, button);
   const file = FILE[button];
   await page.click(button);
   await expect(page.locator(`.pub[data-file="${file}"] .flag`)).toHaveText(okText(file));
@@ -89,4 +96,4 @@ async function server(page, { get = { ready: true }, post = null, backups = null
   return requests;
 }
 
-module.exports = { PW, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };
+module.exports = { PW, FOLDER, browserOf, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };
