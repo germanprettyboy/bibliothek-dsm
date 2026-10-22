@@ -263,7 +263,7 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - E2E: the admin tests encrypt the sources with "test-password"; admin import byte-identical to `npm run books`; cover APIs mocked.
   Every spec runs in Chromium (Chrome/Edge), Firefox and WebKit (≈ Safari), an iPhone viewport (WebKit device) only
   `engines.spec.js` (2026-10-22). Phone describes use `test.use({ ...PHONE })` (Firefox knows no `isMobile`); `swipe()` uses CDP
-  touch in Chromium, in-page touch events elsewhere; CPU throttling (performance.spec) only in Chromium. WebKit has no folder
+  touch in Chromium, in-page touch events elsewhere; CPU throttling (performance.spec) and axe (a11y.spec) only in Chromium. WebKit has no folder
   access (as Safari): the admin specs publish via the download there (`save()`/`FOLDER` in admin-helpers.js), folder-only tests skip.
   `a11y.spec` (axe WCAG 2.1 AA, every view), `performance.spec` (CPU 4× budgets, 3× catalog stress; values as annotations),
   `publish.spec` (REAL save.php via a second webServer `php -S` + local-router.php, `DSM_LOCAL_DIR=tests/.tmp`, only if php
@@ -275,7 +275,8 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
   dot files, `*.php`, `backup/`; own Node server with `no-store` (Cloudflare caches `.js`/`.css` otherwise).
 - GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
   runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` (one job per browser: chromium,
-  firefox, webkit + iphone; `CI` = 2 workers, 1 retry, traces as artifact `playwright-results-<browser>` on failure), `npm audit --audit-level=high` and save.test once more on PHP 7.1
+  firefox, webkit + iphone; `CI` = 2 workers, 1 retry, traces as artifact `playwright-results-<browser>` on failure; the browser
+  install has 4 min per attempt, 3 attempts – apt on the runner sometimes hangs), `npm audit --audit-level=high` and save.test once more on PHP 7.1
   (promised minimum). Also Mondays 06:00 UTC (only from `origin/main`). Tests only, NO deploy. `build.test` has a gzip size
   budget per built file – raise it deliberately, not to silence it. Results: `gh run list`, `gh run watch`,
   `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.

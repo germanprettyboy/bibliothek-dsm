@@ -37,15 +37,16 @@ test.describe("first visit", () => {
     await ask(page).locator('[data-a="no"]').click();
     await expect(ask(page)).toBeHidden();
     await expect(page.locator(".toast")).toContainText("Einstellungen");
-    expect(await pref(page)).toEqual({ want: false, group: null });
-    await expect(page.locator("#recs")).toBeHidden();
-    // notice centered (also once the scroll lock has released the scrollbar); a click opens the settings
+    // notice centered (also once the scroll lock has released the scrollbar); a click opens the settings.
+    // Right away: the notice disappears after 3.6 s (slower engines spend that on the checks below)
     const box = await page.locator(".toast").boundingBox();
     const mid = await page.evaluate(() => document.documentElement.clientWidth / 2);
     expect(Math.abs(box.x + box.width / 2 - mid)).toBeLessThan(2);
     await page.locator(".toast-btn").click();
     await expect(page.locator(".settings[role=dialog]")).toBeVisible();
     await expect(page.locator(".toast")).toHaveCount(0);
+    expect(await pref(page)).toEqual({ want: false, group: null });
+    await expect(page.locator("#recs")).toBeHidden();
     await page.reload();
     await page.waitForTimeout(800);
     await expect(ask(page)).toHaveCount(0);

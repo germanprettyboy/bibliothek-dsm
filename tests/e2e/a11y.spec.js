@@ -17,6 +17,8 @@ const INFO = JSON.stringify({ updated: "2026-10-01", hours: { mon: [["08:00", "1
   notice: { de: "Hinweis", it: "Avviso" }, closures: [{ type: "holiday", from: "2026-12-21", to: "2027-01-06", de: "", it: "" }] });
 
 test.describe("accessibility", () => {
+  // axe checks DOM, ARIA and computed colors – the same in every engine; in Firefox/WebKit it only exceeds the timeout
+  test.skip(({ browserName }) => browserName !== "chromium", "axe once, in Chromium");
   test.use({ storage: { "dsm-recs": RECS } });
 
   for (const [name, extra] of [["light", {}], ["dark", { "dsm-theme": "dark" }], ["high contrast", { "dsm-contrast": "high" }],

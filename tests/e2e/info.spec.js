@@ -182,6 +182,7 @@ test.describe("special opening hours, Sunday, notice period, contact", () => {
   });
 
   test("notice only within its period", async ({ page }) => {
+    test.slow(); // five page loads (Firefox/WebKit need more than 30 s for them)
     const n = (from, to) => info({ notice: { de: "Hinweistext", it: "", ...(from && { from }), ...(to && { to }) } });
     const check = async (data, shown) => {
       await withInfo(page, data, "10:00");
