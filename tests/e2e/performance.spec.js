@@ -1,9 +1,9 @@
 /*
- * Performance and stress, Chromium only (CDP CPU throttling). Budgets are generous on purpose (shared 2-core runner):
+ * Performance (CPU throttling via CDP: Chromium only) and stress (every engine). Budgets are generous on purpose (shared 2-core runner):
  * they catch a regression by a factor, not by percent. Measured values appear as annotations in the report.
  * Reference (CLAUDE.md, 390 px, CPU 4×, Mac): DOMContentLoaded ≈0.5 s, longest task ≈0.9 s (parsing books.js).
  */
-const { test, expect, open, data } = require("./helpers.js");
+const { test, expect, open, PHONE, data } = require("./helpers.js");
 
 const { B } = data();
 const note = (type, description) => test.info().annotations.push({ type, description });
@@ -22,7 +22,8 @@ const results = page => page.evaluate(() => {
 });
 
 test.describe("performance", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
+  test.skip(({ browserName }) => browserName !== "chromium", "CPU throttling needs CDP (Chromium)");
 
   test("loading at CPU 4×: list visible, no endless block", async ({ page }) => {
     test.setTimeout(60000);

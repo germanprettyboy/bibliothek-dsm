@@ -4,7 +4,7 @@
  */
 const path = require("path");
 const AxeBuilder = require("@axe-core/playwright").default;
-const { test, expect, open, settled, TMP } = require("./helpers.js");
+const { test, expect, open, settled, PHONE, TMP } = require("./helpers.js");
 
 async function violations(page) {
   await settled(page); // contrast is measured on the final colors, not in the middle of a fade-in
@@ -63,7 +63,7 @@ test.describe("accessibility", () => {
   });
 
   test.describe("phone", () => {
-    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test.use({ ...PHONE });
     test("list and detail sheet", async ({ page }) => {
       await open(page);
       expect(await violations(page), "list").toEqual([]);

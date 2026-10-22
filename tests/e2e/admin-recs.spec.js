@@ -3,7 +3,7 @@
  * Shared helpers: admin-helpers.js. The published file gets a fixed archive (route), the test data has none.
  */
 const { test, expect, data } = require("./helpers.js");
-const { adminSetup, unlock, tab, folderData, save } = require("./admin-helpers.js");
+const { FOLDER, browserOf, adminSetup, unlock, tab, folderData, save, download, evaluate } = require("./admin-helpers.js");
 
 const { R } = data();
 
@@ -26,6 +26,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 const rec = page => folderData(page, "recommendations.js", "DSM_RECOMMENDATIONS");
+const published = async page => evaluate(await save(page, "#rec-dl"), "DSM_RECOMMENDATIONS");
+// Publishing again: the success message is already there, so wait for the written content itself (WebKit: the download)
+async function republished(page, done) {
+  if (!FOLDER({ browserName: browserOf(page) })) return evaluate(await download(page, "#rec-dl"), "DSM_RECOMMENDATIONS");
+  await page.click("#rec-dl");
+  await expect.poll(async () => { const d = await rec(page); return !!d && done(d); }).toBe(true);
+  return rec(page);
+}
 const draft = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-recs-draft") || "null"));
 const row = (page, n) => page.locator(`#rec-archive .arc-r[data-n="${n}"]`);
 const expand = async (page, n) => {
@@ -61,7 +69,7 @@ test.describe("archive of previous rounds", () => {
     await expect.poll(async () => (await draft(page))?.archive?.[0].groups.middle.length).toBe(1);
     const s = await save(page, "#rec-dl");
     expect(s).toContain("Korrigierter Text.");
-    const d = await rec(page);
+    const d = evaluate(s, "DSM_RECOMMENDATIONS");
     expect(d.archive.length).toBe(2);
     expect(d.archive[0].groups.middle.length).toBe(1);
     expect(d.archive[0].groups.middle[0].de).toBe("Korrigierter Text.");
@@ -83,8 +91,7 @@ test.describe("archive of previous rounds", () => {
     await expect(page.locator("#rec-archive .arc-r")).toHaveCount(2);
     await del.click();
     await expect(page.locator("#rec-archive .arc-r")).toHaveCount(1);
-    await save(page, "#rec-dl");
-    const d = await rec(page);
+    const d = await published(page);
     expect(d.archive).toEqual([ARC[0]]);
     expect(d.updated).toBe(R.updated);
     // the oldest round is gone: the note appears after deleting the last one too
@@ -108,7 +115,7 @@ test.describe("archive of previous rounds", () => {
     await expect(page.locator("#rec-list .rec-ed b")).toHaveText(ARC[0].groups.middle.map(r => r.t));
     await expect(page.locator('#rec-topic input[data-f="de"]')).toHaveValue("Herbstlektüre");
     const s = await save(page, "#rec-dl");
-    const d = await rec(page);
+    const d = evaluate(s, "DSM_RECOMMENDATIONS");
     expect(d.groups.middle).toEqual(ARC[0].groups.middle);
     expect(d.groups["adult-fiction"]).toEqual(ARC[0].groups["adult-fiction"]);
     expect(d.groups.upper).toEqual([]);
@@ -119,9 +126,9 @@ test.describe("archive of previous rounds", () => {
     expect(s).not.toContain(R.updated);
     await expect.poll(async () => (await draft(page))?.restored).toBeUndefined();
     // published again: nothing moves any more
-    await page.click("#rec-dl");
-    await expect.poll(async () => (await rec(page)).updated).toBe("2026-09-01");
-    expect((await rec(page)).archive).toEqual([ARC[1]]);
+    const again = await republished(page, x => x.updated === "2026-09-01");
+    expect(again.updated).toBe("2026-09-01");
+    expect(again.archive).toEqual([ARC[1]]);
   });
 
   test("undo, then change a book: new round, the restored one is at archive[0]", async ({ page }) => {
@@ -130,8 +137,7 @@ test.describe("archive of previous rounds", () => {
     await row(page, 0).locator('[data-op="restore"]').click();
     await row(page, 0).locator('[data-op="restore"]').click();
     await page.locator('#rec-list .rec-ed[data-n="0"] [data-op="del"]').click();
-    await save(page, "#rec-dl");
-    const d = await rec(page);
+    const d = await published(page);
     expect(d.updated).toBe(TODAY);
     expect(d.groups.middle.length).toBe(1);
     expect(d.archive.length).toBe(2);

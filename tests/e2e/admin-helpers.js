@@ -96,4 +96,4 @@ async function server(page, { get = { ready: true }, post = null, backups = null
   return requests;
 }
 
-module.exports = { PW, FOLDER, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };
+module.exports = { PW, FOLDER, browserOf, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };
