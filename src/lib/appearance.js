@@ -30,8 +30,10 @@ function apply() {
 //    Without the API (Firefox < 144, Safari < 18), with reduced motion, in a hidden tab or when the device itself
 //    switches light/dark (already applied, nothing to fade from): instantly, but also without transitions.
 // Each switch takes a number; an older one that is still waiting gives up (quick clicks: only the last one counts).
+// A new cross-fade only starts once the running one has finished: two overlapping ones froze the page in WebKit.
 const GLIDE = 150;
 let run = 0;
+let fading = null; // the View Transition still running
 
 // The marker of the theme choice (.seg3, transform only) keeps gliding where there is no cross-fade
 const still = document.createElement("style");
@@ -50,12 +52,14 @@ function fade() {
   const nr = ++run;
   waiting = true;
   loadLogos();
-  setTimeout(() => {
+  const start = () => {
     if (nr !== run) return;
     let vt;
     try { vt = document.startViewTransition(() => { document.head.append(still); apply(); }); } catch { return instant(); }
-    vt.finished.catch(() => {}).then(() => { if (nr === run) still.remove(); });
-  }, GLIDE);
+    fading = vt;
+    vt.finished.catch(() => {}).then(() => { if (fading === vt) fading = null; if (nr === run) still.remove(); });
+  };
+  setTimeout(() => { if (fading) fading.finished.catch(() => {}).then(start); else start(); }, GLIDE);
 }
 
 // The logo of the other color scheme is loading="lazy" and hidden, so it never loaded: load it before the switch

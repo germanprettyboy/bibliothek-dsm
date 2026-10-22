@@ -38,7 +38,8 @@ test.describe("first visit", () => {
     await expect(ask(page)).toBeHidden();
     await expect(page.locator(".toast")).toContainText("Einstellungen");
     // notice centered (also once the scroll lock has released the scrollbar); a click opens the settings.
-    // Right away: the notice disappears after 3.6 s (slower engines spend that on the checks below)
+    // The notice disappears after 3.6 s: hovering pauses that (Sonner), slower engines need the time
+    await page.locator(".toast").hover();
     const box = await page.locator(".toast").boundingBox();
     const mid = await page.evaluate(() => document.documentElement.clientWidth / 2);
     expect(Math.abs(box.x + box.width / 2 - mid)).toBeLessThan(2);
