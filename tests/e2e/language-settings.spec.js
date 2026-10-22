@@ -85,7 +85,8 @@ test.describe("settings", () => {
     // rendering if a view transition starts while the reload is already under way
     await page.waitForFunction(() => document.documentElement.dataset.theme === "dark" &&
       ![...document.head.querySelectorAll("style")].some(s => s.textContent.includes("transition: none !important")));
-    await page.reload();
+    // without waiting for "load": after a view transition WebKit sometimes never fires it on the reloaded page
+    await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await openSettings(page);
     await page.click('#s-theme [data-v="auto"]');

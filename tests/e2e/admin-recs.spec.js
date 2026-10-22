@@ -77,8 +77,8 @@ test.describe("archive of previous rounds", () => {
     expect(d.archive[1]).toEqual(ARC[1]);
     expect(d.groups).toEqual(R.groups);
     expect(d.updated).toBe(R.updated);
-    // published: the draft does not carry the archive any more
-    await expect.poll(async () => (await draft(page))?.archive).toBeUndefined();
+    // published: the draft does not carry the archive any more (WebKit = download, which is not published yet)
+    if (FOLDER({ browserName: browserOf(page) })) await expect.poll(async () => (await draft(page))?.archive).toBeUndefined();
   });
 
   test("delete a round: second click within 4 s", async ({ page }) => {
@@ -124,7 +124,7 @@ test.describe("archive of previous rounds", () => {
     expect(d.archive).toEqual([ARC[1]]);
     expect(s).not.toContain(R.groups.middle[0].k);
     expect(s).not.toContain(R.updated);
-    await expect.poll(async () => (await draft(page))?.restored).toBeUndefined();
+    if (FOLDER({ browserName: browserOf(page) })) await expect.poll(async () => (await draft(page))?.restored).toBeUndefined();
     // published again: nothing moves any more
     const again = await republished(page, x => x.updated === "2026-09-01");
     expect(again.updated).toBe("2026-09-01");

@@ -81,12 +81,18 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-${{ matrix.browser }}
       # Browser download is skipped on a cache hit; --with-deps still installs the system libraries.
-      # apt on the runner sometimes hangs for the whole job timeout: at most 4 min per attempt, three attempts
+      # apt on the runner sometimes stalls on a download for the whole job timeout: apt gives up a stalled transfer
+      # after 30 s and retries it; besides at most 4 min per attempt, three attempts. apt runs as root, so `timeout`
+      # can't stop it: pkill, otherwise it keeps the dpkg lock for the next attempt.
       - name: Install ${{ matrix.browser }}
         run: |
+          printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/80-dsm-retries >/dev/null
           for i in 1 2 3; do
             timeout 240 npx playwright install --with-deps ${{ matrix.browser }} && exit 0
             echo "::warning::playwright install attempt $i failed or hung"
+            sudo pkill -9 -x apt-get || true
+            sleep 3
+            sudo dpkg --configure -a || true
           done
           exit 1
       - name: PHP version (publish.spec.js, real save.php)

@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
 const { test, expect, PHONE, data, TMP } = require("./helpers.js");
-const { PW, FOLDER, adminSetup, unlock, load, download, folderFile, folderData, evaluate, save, server } = require("./admin-helpers.js");
+const { PW, FOLDER, browserOf, adminSetup, unlock, load, download, folderFile, folderData, evaluate, save, server } = require("./admin-helpers.js");
 const X = require("../../tools/source/extract.js");
 const T = require("../helpers/testdb.js");
 const { realDb, keyOf } = require("../helpers/load.js");
@@ -164,7 +164,8 @@ test.describe("importing the database", () => {
     expect(d.history.at(-1)).toEqual(d.coverage);
     const node = await nodeScript(fs.readFileSync(path.join(TMP, "test.winbook")), { updated: d.updated, coverage: d.coverage, history: d.history });
     expect(s === node, "books.js differs from the Node generation").toBe(true);
-    await expect(page.locator("#r-taken")).toContainText("Gegenüber der aktuellen Liste+0 neu · −0 entfallen");
+    // the published list is now the comparison base (WebKit = download: not published yet, the base stays)
+    if (FOLDER({ browserName: browserOf(page) })) await expect(page.locator("#r-taken")).toContainText("Gegenüber der aktuellen Liste+0 neu · −0 entfallen");
   });
 
   test("preview: index.html#preview shows the imported list", async ({ page, context }) => {
@@ -509,7 +510,7 @@ test.describe("publishing directly online (save.php)", () => {
     expect(requests[0].file).toBe("info.js");
     expect(requests[0].key).toBe(await saveKey(PW));
     expect(evaluate(requests[0].text, "DSM_INFO").notice.de).toBe("Online-Hinweis");
-    expect(await page.evaluate(() => window.__picks)).toBe(0);
+    expect(await page.evaluate(() => window.__picks || 0)).toBe(0); // WebKit: no folder dialog at all
     // counts as published afterwards
     expect(await page.evaluate(() => window.DSM_INFO.notice.de)).toBe("Online-Hinweis");
   });
