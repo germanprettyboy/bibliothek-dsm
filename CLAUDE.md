@@ -275,14 +275,17 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - Live: `brew install cloudflared`, a foreign address via `DSM_LIVE_URL=https://…`. The tunnel is public: only website/ without
   dot files, `*.php`, `backup/`; own Node server with `no-store` (Cloudflare caches `.js`/`.css` otherwise).
 - GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
-  runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` (one job per browser: chromium,
-  firefox, webkit + iphone; `CI` = 2 workers, 1 retry, traces as artifact `playwright-results-<browser>` on failure; the browser
-  install: apt timeouts/retries, 8 min per attempt, 3 attempts, job limit 40 min – apt on the runner sometimes stalls), `npm audit --audit-level=high` and save.test once more on PHP 7.1
+  runs `npm test` (with the runner's PHP, so save.test really runs) and `npm run test:e2e` sharded over 7 parallel jobs
+  (`--shard`: chromium 2, firefox 2, webkit + iphone 3; `CI` = 2 workers, 1 retry, traces as artifact
+  `playwright-results-<browser>-<job>` on failure). Browser + its apt .deb files cached per browser/Playwright version/runner
+  image, saved right after the install (uncached WebKit = 117 MB from a sometimes very slow mirror); apt timeouts/retries,
+  8 min per install attempt, 3 attempts – apt on the runner sometimes stalls. More shards = shorter, but more billed minutes
+  (every job ≥ 1 min plus ≈1 min setup)., `npm audit --audit-level=high` and save.test once more on PHP 7.1
   (promised minimum). Also Mondays 06:00 UTC (only from `origin/main`). Tests only, NO deploy. `build.test` has a gzip size
   budget per built file – raise it deliberately, not to silence it. Results: `gh run list`, `gh run watch`,
   `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.
   CI is the ONLY test run (no local tests, see top). `DSM_ADMIN_PW`/`real-db`/`test:live` checks therefore do not run for now.
-  E2E takes ≈5 min on the 2-core runner; under heavy parallel load the swipe/close tests can flake (retry 1 catches it).
+  E2E (sharded) takes ≈4–5 min on the 2-core runners; under heavy parallel load the swipe/close tests can flake (retry 1 catches it).
   Since 2026-10-22: `TZ=Europe/Rome` in CI; flaky tests (passed on the retry) listed as warnings + job summary
   (`tests/helpers/flaky-report.js`); job `apache`: the pack folder on Docker `php:7.1-apache` (`tests/apache/`, only with
   `DSM_APACHE=1`): .htaccess, save.php end to end, backup/ locked, 16 parallel POSTs. Flakiness under load on demand:
