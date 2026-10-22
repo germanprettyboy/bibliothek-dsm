@@ -218,7 +218,11 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   With the API: marker glides 150 ms, then `document.startViewTransition` (`--t-color` 350 ms, `--ease-color`), `still`
   goes on `finished`; otherwise instant, `still` goes after two frames. Quick clicks: only the last switch runs; a font
   change while a switch waits does not apply early. The other logo is loaded when the settings open (no waiting before the fade).
-  NO own layer for `.seg3`.
+  NO own layer for `.seg3`. NO View Transition in WebKit (Safari, every iPhone browser; UA check, 2026-10-22, client: on the
+  iPhone parts switched one after another and the glass lost its blur during the cross-fade; Playwright's WebKit hung):
+  there instant, as soon as the other logo is decoded (`img.decode()`, at most 150 ms). `meta[name=theme-color]` follows
+  the chosen theme (media → `all`/`not all`, own media in `data-media`; head.js on load, `apply()` on a switch), otherwise
+  the iPhone status bar keeps the device's color.
   Language (`components/header.jsx`): marker first (`.seg[data-on]`, `will-change: transform`), `setLang` after the frame
   (rAF + setTimeout). Sonner toaster with `dir="ltr"` (otherwise `getComputedStyle(html)` per render).
 - Blur: scrim `blur(8px) saturate(1.15)`, glass `blur(18px) saturate(1.8)` – don't increase; glass without backdrop-filter looked
@@ -265,9 +269,8 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
   `engines.spec.js` (2026-10-22). Phone describes use `test.use({ ...PHONE })` (Firefox knows no `isMobile`); `swipe()` uses CDP
   touch in Chromium, in-page touch events elsewhere; performance.spec (CDP, Chromium budgets) and axe (a11y.spec) only in Chromium. WebKit has no folder
   access (as Safari): the admin specs publish via the download there (`save()`/`FOLDER` in admin-helpers.js), folder-only tests skip; a download does not
-  count as published (checks of the published state only with FOLDER). Playwright's Linux WebKit hangs after a View Transition
-  (no compositor; even page.evaluate stops answering): the WebKit tests run without `startViewTransition` (helpers.js), so the
-  instant color switch is tested there and the cross-fade in Chromium. Safari itself stays untested on real devices.
+  count as published (checks of the published state only with FOLDER). WebKit switches colors without a View Transition (lib/appearance.js):
+  the instant switch is tested there, the cross-fade in Chromium/Firefox. Safari itself stays untested on real devices.
   `a11y.spec` (axe WCAG 2.1 AA, every view), `performance.spec` (CPU 4× budgets, 3× catalog stress; values as annotations),
   `publish.spec` (REAL save.php via a second webServer `php -S` + local-router.php, `DSM_LOCAL_DIR=tests/.tmp`, only if php
   exists), `engines.spec` also file:// (double-click). Wait for animations with `settled(page)`, not `waitForTimeout`

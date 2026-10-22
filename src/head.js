@@ -19,7 +19,16 @@
     ["dsm-empf-entwurf", "dsm-info-entwurf", "dsm-vorschau", "dsm-vorschau-empf", "dsm-vorschau-info"].forEach(function (k) { localStorage.removeItem(k); });
   } catch (err) { /* */ }
   var theme = get("dsm-theme");
-  if (theme === "light" || theme === "dark") root.setAttribute("data-theme", theme);
+  if (theme === "light" || theme === "dark") {
+    root.setAttribute("data-theme", theme);
+    // Browser bar (iPhone status bar) in the chosen scheme, not the device's; own media kept for lib/appearance.js
+    var metas = document.querySelectorAll('meta[name="theme-color"]');
+    for (var i = 0; i < metas.length; i++) {
+      var own = metas[i].getAttribute("media") || "";
+      metas[i].setAttribute("data-media", own);
+      metas[i].setAttribute("media", /dark/.test(own) === (theme === "dark") ? "all" : "not all");
+    }
+  }
   if (get("dsm-font") === "large") root.setAttribute("data-font", "large");
   if (get("dsm-contrast") === "high") root.setAttribute("data-contrast", "high");
   var lang = get("dsm-lang");
