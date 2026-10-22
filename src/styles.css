@@ -407,8 +407,10 @@
     .scrim.detail[data-state="closed"] { animation: fade-out .11s var(--ease-in) forwards; }
   }
   /* All sheets on the phone (detail, settings, categories, questions, opening hours, archive): a screen-high sheet, lib/swipe.js moves it via transform (half / full / away).
-     Before the script's first step it lies below the screen so it doesn't flash. */
-  @media (max-width: 39.999rem) {
+     Before the script's first step it lies below the screen so it doesn't flash. Only with a touch screen: a slim desktop
+     window (mouse) keeps the plain bottom sheet above, content-high and scrolling with the wheel, without a grabber. */
+  @media (max-width: 39.999rem) and (pointer: fine) { .sheet .grab { display: none; } }
+  @media (max-width: 39.999rem) and (pointer: coarse) {
     :is(#detail, .sheet.swipe) {
       height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px))); max-height: none; overflow: hidden;
       display: flex; flex-direction: column; transform: translateY(100%); will-change: transform; touch-action: none;
