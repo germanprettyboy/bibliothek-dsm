@@ -133,7 +133,8 @@ export function Info({ info, setInfo }) {
   const build = () => {
     const out = infoOut(info);
     return {
-      text: "/* Announcement, opening hours, notice, contact, holidays, absences and special hours of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
+      // Header line exactly as save.php expects it (DSM_FILES), otherwise publishing online fails with "format"
+      text: "/* Opening hours, holidays and absences of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
         "window.DSM_INFO = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n",
       done: () => { window.DSM_INFO = out; },
     };
