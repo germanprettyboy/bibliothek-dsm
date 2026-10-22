@@ -1,0 +1,57 @@
+# Flakiness under load, by hand (Actions → Stress → Run workflow) or: gh workflow run stress.yml -f repeat=5 -f grep=swip
+# Every test N times, no retry, more workers than cores (CPU contention like a busy runner). Counts how often a test fails
+# by chance – the normal run hides that behind retries: 1. Never locally (CLAUDE.md).
+name: Stress
+
+on:
+  workflow_dispatch:
+    inputs:
+      repeat:
+        description: "Repetitions per test"
+        default: "5"
+      workers:
+        description: "Parallel workers (the runner has 2 cores in a private repository)"
+        default: "4"
+      grep:
+        description: "Only tests whose title matches (empty = all)"
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+  TZ: Europe/Rome
+
+jobs:
+  stress:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Stress run
+        run: >
+          npx playwright test --project=chromium --retries=0 --repeat-each="$REPEAT" --workers="$WORKERS"
+          ${GREP:+--grep="$GREP"} --reporter=list,json
+        env:
+          REPEAT: ${{ inputs.repeat }}
+          WORKERS: ${{ inputs.workers }}
+          GREP: ${{ inputs.grep }}
+          PLAYWRIGHT_JSON_OUTPUT_NAME: tests/.tmp/stress.json
+      - name: Failures per test
+        if: always()
+        run: node tests/helpers/stress-report.js tests/.tmp/stress.json
+      - name: Traces of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-results
+          path: tests/.tmp/results/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -25,6 +25,15 @@ describe("books.js", () => {
       assert.ok(b.t, "title missing");
     }
   });
+  // Parsing books.js is the largest block on the phone (≈0.9 s at CPU 4×), without mod_deflate it travels uncompressed.
+  // Catches coverage/history growing without limit. As of 2026-10-22: 705 KB, 185 KB gzip. Raise deliberately.
+  test("size budget: 1000 KB, 250 KB gzip", () => {
+    const raw = require("fs").readFileSync(require("path").join(__dirname, "..", "..", "website", "books.js"));
+    const kb = n => n / 1024;
+    assert.ok(kb(raw.length) <= 1000, `books.js ${kb(raw.length).toFixed(0)} KB > 1000 KB`);
+    const gz = kb(require("zlib").gzipSync(raw, { level: 9 }).length);
+    assert.ok(gz <= 250, `books.js ${gz.toFixed(0)} KB gzip > 250 KB`);
+  });
   test("ISBN: always 13 digits with a valid check digit", () => {
     for (const b of B.books) for (const i of b.i || []) assert.equal(X.isbn13(i), i, b.t);
   });

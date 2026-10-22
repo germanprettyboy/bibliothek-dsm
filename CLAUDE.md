@@ -20,7 +20,8 @@ Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh r
   - `info.js` NOT committed (`.gitignore`, since 2026-10-17, client): once a webspace exists, the original lives only there. If it is missing,
     the page loads without an info card and the admin page starts empty; tests supply their own info.js or skip the check.
   - By hand: `save.php`, `assets/logger.js` (DSM_LOG, loaded before everything else), `assets/covers.js` (covers, cache,
-    coverage survey), `assets/categories-it.js`, `LIESMICH.txt` (German guide), `.htaccess` (gzip + cache + security headers via IfModule, no full CSP; delete on Error 500).
+    coverage survey), `assets/categories-it.js`, `LIESMICH.txt` (German guide), `.htaccess` (gzip + cache + security headers via IfModule, no full CSP, no listings, HSTS only via https,
+    admin.html/save.php → https; delete on Error 500).
   - `assets/admin.enc.js` ENCRYPTED (source/extract.js + built source/admin/). `vendor/sql-asm.js` = sql.js 1.10.3
     (asm.js, no WASM). `fonts/` = Fira Sans 400/500/600 local (GDPR). `backup/` only on the server (save.php).
 - `src/` – source. `index.html`/`admin.html` = templates with a static loading skeleton (`#page`), only copied. `head.js` = classic
@@ -46,7 +47,8 @@ Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh r
 
 ```bash
 npm run build          # src/ → website/ (after EVERY change to src/, commit the result)
-npm run books          # data/*.winbook → website/books.js
+npm run books          # data/*.winbook → website/books.js; STOP (exit 2, titles listed) on a reader name in a public field → check, then -- --names-checked
+npm run pack           # upload/website/ = committed website/ only (git archive); aborts on a stale admin.enc.js. Upload THIS, not website/
 npm run serve          # :8765;  dev = watch + live reload (browser-sync);  tunnel(:dev) = https://….trycloudflare.com for phone/school PC
 npm run local          # like the webspace: PHP + real save.php, watch, password "local" → http://127.0.0.1:8765/admin.html
 npm run tunnel:php     # local + public https address, writes to tests/.tmp/local/data/, random password; both live reload
@@ -62,7 +64,8 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 
 - **No student data, no loan status in public.** Extraction = whitelist: title, subtitle, author, publisher, year, ISBN,
   category, location. Reader/loan/fee/user/session tables only counted; loan columns of the `books` table
-  (verliehenan, verliehenanklasse, bverliehen, …) never read. Additionally a name check reader file ↔ public fields.
+  (verliehenan, verliehenanklasse, bverliehen, …) never read. Additionally a name check reader file ↔ public fields
+  (generate-books.js stops on a hit or without name columns, 2026-10-22).
 - Only books (media type Buch/Graphic Novel), multiple copies merged (title + first author).
 - **No ISBN completion.** Covers only via an existing ISBN, otherwise a designed placeholder (without author).
 - List = plain text (title + author); covers only in the detail and recommendations. No "as of" date in public (admin only), no footer.
@@ -100,7 +103,11 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   shows status + start of an answer without an error code.
   Key = PBKDF2(password, salt "dsm-library/save.php", 310,000), only in the encrypted plaintext
   (`var DSM_SAVE_KEY`, function scope, not window).
-- Admin lock only "student-proof": PBKDF2-SHA-256 (310,000) + AES-GCM 256, logic only encrypted.
+- Admin lock only "student-proof": PBKDF2-SHA-256 (310,000) + AES-GCM 256, logic only encrypted. admin.enc.js is public, so
+  the password's strength is the only barrier (offline guessing; the save key comes from it too): long passphrase.
+  Session key in sessionStorage expires 4 h after the page was last left (`dsm-admin-seen`, set on `pagehide`):
+  Chrome restores sessionStorage with "continue where you left off" (shared school PC).
+- Opening hours status (`src/library/info.jsx`) in Milan time (`Intl` Europe/Rome), also on devices in another time zone.
 - Cover sources in this order: (1) ekz `cover.ekz.de/<ISBN>.jpg` (404 = none). Substitute image "leider kein aktuelles Bild"
   = 170×270, always 9977 bytes: check such images via `fetch` (CORS `*`), length + FNV-1a; can't be checked = substitute; real
   170×270 covers stay. (2) Open Library only for ekz misses, always `/api/books?jscmd=viewapi` → cover ID, NEVER `/b/isbn/`
@@ -218,6 +225,11 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 - The save test needs `php` in the PATH or `DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56"`, otherwise skipped.
 - With `DSM_ADMIN_PW` (CI: repository secret) the unit tests additionally check admin.enc.js. `real-db.test` only with `data/*.winbook` (or `DSM_DB=…`; states only counts).
 - E2E: the admin tests encrypt the sources with "test-password"; admin import byte-identical to `npm run books`; cover APIs mocked.
+  Chromium runs every spec; Firefox, WebKit and an iPhone viewport (WebKit) only `engines.spec.js` (others use CDP).
+  `a11y.spec` (axe WCAG 2.1 AA, every view), `performance.spec` (CPU 4× budgets, 3× catalog stress; values as annotations),
+  `publish.spec` (REAL save.php via a second webServer `php -S` + local-router.php, `DSM_LOCAL_DIR=tests/.tmp`, only if php
+  exists), `engines.spec` also file:// (double-click). Wait for animations with `settled(page)`, not `waitForTimeout`
+  (a fixed wait only to prove that something does NOT happen). `books.js` size budget in data.test (1000 KB / 250 KB gzip).
 - Live: `brew install cloudflared`, a foreign address via `DSM_LIVE_URL=https://…`. The tunnel is public: only website/ without
   dot files, `*.php`, `backup/`; own Node server with `no-store` (Cloudflare caches `.js`/`.css` otherwise).
 - GitHub Actions (`.github/workflows/test.yml`, since 2026-10-18): every push (any branch, not for docs/anleitung/`*.md` only)
@@ -228,6 +240,11 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
   `gh run view --log-failed`. Optional repository secret `DSM_ADMIN_PW` (only Johann sets it) enables the admin.enc.js check.
   CI is the ONLY test run (no local tests, see top). `DSM_ADMIN_PW`/`real-db`/`test:live` checks therefore do not run for now.
   E2E takes ≈5 min on the 2-core runner; under heavy parallel load the swipe/close tests can flake (retry 1 catches it).
+  Since 2026-10-22: `TZ=Europe/Rome` in CI; flaky tests (passed on the retry) listed as warnings + job summary
+  (`tests/helpers/flaky-report.js`); job `apache`: the pack folder on Docker `php:7.1-apache` (`tests/apache/`, only with
+  `DSM_APACHE=1`): .htaccess, save.php end to end, backup/ locked, 16 parallel POSTs. Flakiness under load on demand:
+  `gh workflow run stress.yml -f repeat=5 -f workers=4 [-f grep=…]` (no retry, failure rate per test in the summary).
+  Third-party actions pinned to a commit SHA.
 
 ## Integrating branches (mandatory at the end of every task)
 
@@ -254,12 +271,15 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
 - **THERE IS NO WEBSPACE YET (as of 2026-10-18).** Nothing has ever been uploaded; no live data exists anywhere. The site
   only runs locally (`npm run serve` / `npm run local` / tunnel). Don't plan migrations of live data, don't assume a server
   copy is "the original", don't tell Johann to download or delete anything on a server. When a webspace exists (likely
-  Aruba, see docs/), upload `website/` once and set up save.php: admin.enc.js, save.php, save-access.php are current
+  Aruba, see docs/), upload `upload/website/` from `npm run pack` once (never the working folder website/: it holds a test
+  info.js, .DS_Store, sicherung/) and set up save.php: admin.enc.js, save.php, save-access.php are current
   (encrypted 2026-10-18). Unknown then: PHP version, write permissions, WAF. Only from that moment on the server copies of
   books.js/recommendations.js/info.js and backup/ become the original.
 - `tools/migrate-data.mjs` (old German data format → English) only matters for stray old local files; nothing live to migrate.
 - `website/info.js` is not committed and currently doesn't exist: the page shows no opening hours until the admin page publishes one.
 - Covers: run "Cover-Abdeckung prüfen" completely in admin.html; clarify the terms of use of cover.ekz.de.
-- Untested: blur in Safari; school PC with Windows 7 (Tailwind v4 needs Chrome 111+, Safari 16.4+, Firefox 128+).
+- Untested on real devices: iPhone Safari (CI only has Playwright WebKit on Linux); school PC with Windows 7 (last versions
+  Chrome 109 / Firefox ESR 115; style.css has `@supports` fallbacks for color-mix and old Firefox, build target es2020) – check by hand.
+- Covers load directly from Google/Open Library/ekz (visitor IP + ISBN to third parties): clarify with the school's data protection officer.
 - 20 initial recommendation texts (DE/IT) by Claude – Johann should proofread them. Remote `origin` (GitHub) must stay private (plaintext).
 - School website: `docs/dsmailand-techstack.md`. Adopt nothing (no GTM, no Google Fonts); Aruba `.htaccess` unclear → `IfModule`.

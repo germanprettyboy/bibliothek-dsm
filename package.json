@@ -6,6 +6,7 @@
     "build": "node tools/build.mjs",
     "books": "node tools/generate-books.js data/BIBLIOTHEK_DSM_2024.winbook",
     "encrypt": "node tools/encrypt-admin.js",
+    "pack": "node tools/pack.mjs",
     "serve": "python3 -m http.server 8765 -d website",
     "dev": "node tools/build.mjs --watch & npx --yes --prefer-offline browser-sync@3.0.4 start --server website --files website --port 8765 --no-open --no-notify --no-ui",
     "local": "node tools/local.mjs",
@@ -21,6 +22,7 @@
     "integrate": "bash tools/branches.sh integrate"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.1",
     "@tailwindcss/vite": "4.3.3",
     "@vitejs/plugin-react": "6.1.2",

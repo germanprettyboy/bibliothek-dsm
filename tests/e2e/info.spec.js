@@ -31,6 +31,14 @@ test.describe("info card", () => {
     await expect(card(page)).toContainText("Heute 8:00–12:00, 13:00–15:00");
   });
 
+  test.describe("device in another time zone", () => {
+    test.use({ timezoneId: "America/New_York" });
+    test("status in Milan time (10:00 there = 4:00 in New York)", async ({ page }) => {
+      await withInfo(page, info(), "10:00");
+      await expect(card(page)).toContainText("Jetzt geöffnet");
+    });
+  });
+
   test("lunch break: today from 13:00", async ({ page }) => {
     await withInfo(page, info(), "12:30");
     await expect(card(page)).toContainText("Heute ab 13:00 geöffnet");

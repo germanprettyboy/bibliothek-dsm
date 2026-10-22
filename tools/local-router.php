@@ -7,7 +7,8 @@
  * and save.php writes there: "Publish" while testing never changes the committed files in website/.
  * Everything else: website/ as on the webspace.
  */
-$local = dirname(__DIR__) . '/tests/.tmp/local';
+// DSM_LOCAL_DIR: only for the browser tests (playwright.config.js, admin.enc.js with the test password in tests/.tmp/)
+$local = getenv('DSM_LOCAL_DIR') ?: dirname(__DIR__) . '/tests/.tmp/local';
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 if (in_array($path, ['/books.js', '/recommendations.js', '/info.js'], true) && is_file($local . '/data' . $path)) {

@@ -51,6 +51,13 @@ async function open(page, url = "index.html") {
   await page.locator("#list .row").first().or(page.locator("#list .empty")).waitFor();
 }
 
+// All finite animations of the page have ended (instead of a fixed wait for fade-ins; endless ones like the cover shimmer don't count)
+async function settled(page) {
+  await page.evaluate(() => Promise.all(document.getAnimations()
+    .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity)
+    .map(a => a.finished.catch(() => null))));
+}
+
 // Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch)
 async function swipe(page, from, to, steps = 8) {
   const cdp = await page.context().newCDPSession(page);
@@ -105,4 +112,4 @@ async function swipeStages(page, sheet, height = 844) {
   return { half, fit };
 }
 
-module.exports = { test, expect: base.expect, open, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };
+module.exports = { test, expect: base.expect, open, settled, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };

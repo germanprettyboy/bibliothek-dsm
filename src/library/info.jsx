@@ -102,6 +102,20 @@ function evaluate(I, lang) {
   return { dayRanges, hasHours, notice, closures, closedOn, label, rangeText, closedText, status };
 }
 
+// The library is in Milan: "open now" in Italian time, also on a device set to another time zone.
+// Returns the wall-clock time there as a local Date (everything here reads the local fields). Old browser: device time.
+let milan;
+function milanNow() {
+  const d = new Date();
+  try {
+    milan = milan || new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Rome", hourCycle: "h23",
+      year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
+    const p = {};
+    for (const x of milan.formatToParts(d)) p[x.type] = +x.value;
+    return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  } catch (e) { return d; }
+}
+
 // Recompute every minute (and on returning to the tab)
 function useNow() {
   const [, setN] = React.useState(0);
@@ -111,7 +125,7 @@ function useNow() {
     document.addEventListener("visibilitychange", tick);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", tick); };
   }, []);
-  return new Date();
+  return milanNow();
 }
 
 export function InfoCard({ I, onOpen }) {
