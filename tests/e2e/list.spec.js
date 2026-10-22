@@ -1,5 +1,5 @@
 // Book list: display, search, A–Z bar (from 768 px), letter floater (below), preview.
-const { test, expect, open, data, hits } = require("./helpers.js");
+const { test, expect, PHONE, open, data, hits } = require("./helpers.js");
 
 const { B } = data();
 
@@ -189,7 +189,7 @@ test.describe("A–Z bar (from 768 px)", () => {
 });
 
 test.describe("phone (390 px)", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
 
   test("no A–Z bar, only the search", async ({ page }) => {
     await open(page);

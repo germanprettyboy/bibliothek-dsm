@@ -1,4 +1,5 @@
-# Tests on GitHub Actions: unit (node --test, incl. save.php with the runner's PHP) and E2E (Playwright, Chromium).
+# Tests on GitHub Actions: unit (node --test, incl. save.php with the runner's PHP) and E2E (Playwright: Chromium = Chrome/Edge,
+# Firefox, WebKit = Safari; one parallel job per browser).
 # Runs on every push (all branches) and by hand (Actions → Tests → Run workflow).
 # Skipped as locally: real-db.test (data/*.winbook is never committed), data.test info.js (website/info.js not committed),
 # encryption "is current" (only if the repository secret DSM_ADMIN_PW exists – optional, see CLAUDE.md "Checking").
@@ -56,9 +57,13 @@ jobs:
         run: php -l website/save.php && node --test tests/unit/save.test.js
 
   e2e:
-    name: E2E (Playwright)
+    name: E2E (${{ matrix.browser }})
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false # one browser failing must not cancel the others
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -73,17 +78,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-${{ matrix.browser }}
       # Browser download is skipped on a cache hit; --with-deps still installs the system libraries
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - name: CPU cores (Playwright workers)
         run: nproc
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --project=${{ matrix.browser }}
       - name: Traces of failed tests
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results
+          name: playwright-results-${{ matrix.browser }}
           path: tests/.tmp/results/
           retention-days: 7
           if-no-files-found: ignore

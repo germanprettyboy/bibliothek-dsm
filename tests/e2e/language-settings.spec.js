@@ -1,5 +1,5 @@
 // Language DE/IT and settings (theme, larger text, high contrast)
-const { test, expect, open, swipeStages, data, hits } = require("./helpers.js");
+const { test, expect, PHONE, open, swipeStages, data, hits } = require("./helpers.js");
 
 const { B, C } = data();
 
@@ -164,7 +164,7 @@ test.describe("settings", () => {
 });
 
 test.describe("settings sheet on the phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
   test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
     await open(page);
     await page.click(".settings-btn");

@@ -30,7 +30,8 @@ module.exports = defineConfig({
     colorScheme: "light",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { browserName: "chromium" } }],
+  // Chrome/Edge (Chromium), Firefox, Safari (WebKit). CI runs one job per browser (--project=…).
+  projects: ["chromium", "firefox", "webkit"].map(name => ({ name, use: { browserName: name } })),
   webServer: LIVE ? undefined : {
     command: `python3 -m http.server ${PORT} -b 127.0.0.1 -d website`,
     url: `http://localhost:${PORT}/index.html`,

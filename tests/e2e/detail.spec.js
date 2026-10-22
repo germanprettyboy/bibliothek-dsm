@@ -1,7 +1,7 @@
 // Detail view with cover (Open Library / Google Books mocked), placeholder, closing.
 const fs = require("fs");
 const path = require("path");
-const { test, expect, open, swipeStages, data } = require("./helpers.js");
+const { test, expect, PHONE, open, swipeStages, data } = require("./helpers.js");
 
 const { B } = data();
 const WITH_ISBN = B.books.find(b => b.i && b.p && b.y && b.c && b.l && b.a);
@@ -202,7 +202,7 @@ test.describe("cover", () => {
 });
 
 test.describe("detail on the phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
   test("the dialog fits the width", async ({ page }) => {
     await open(page);
     await openBook(page, WITH_ISBN);

@@ -5,7 +5,7 @@
 const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
-const { test, expect, data, TMP } = require("./helpers.js");
+const { test, expect, PHONE, data, TMP } = require("./helpers.js");
 const X = require("../../tools/source/extract.js");
 const T = require("../helpers/testdb.js");
 const { realDb, keyOf } = require("../helpers/load.js");
@@ -390,7 +390,7 @@ test.describe("editing recommendations", () => {
 });
 
 test.describe("admin page on the phone", () => {
-  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test.use({ ...PHONE });
   test("no horizontal scrolling", async ({ page }) => {
     await unlock(page);
     await load(page, path.join(TMP, "test.winbook"));

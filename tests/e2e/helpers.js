@@ -51,8 +51,31 @@ async function open(page, url = "index.html") {
   await page.locator("#list .row").first().or(page.locator("#list .empty")).waitFor();
 }
 
-// Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch)
+// Phone (test.use({ ...PHONE })): Firefox knows no isMobile (Playwright throws), there only viewport + touch
+const PHONE = {
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: async ({ browserName }, use) => use(browserName !== "firefox"),
+};
+
+// Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch). Firefox/WebKit have no CDP: touch events
+// built in the page instead, on the element under the finger like a real touch (lib/swipe.js only reads touches[0]).
 async function swipe(page, from, to, steps = 8) {
+  if (page.context().browser().browserType().name() !== "chromium") {
+    const send = (type, y) => page.evaluate(([type, y]) => {
+      if (type === "touchstart") window.__touch = document.elementFromPoint(195, y);
+      const e = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(e, "touches", { value: type === "touchend" ? [] : [{ clientX: 195, clientY: y }] });
+      window.__touch.dispatchEvent(e);
+    }, [type, y]);
+    await send("touchstart", from);
+    for (let i = 1; i <= steps; i++) {
+      await send("touchmove", from + (to - from) * i / steps);
+      await page.waitForTimeout(12);
+    }
+    await send("touchend", to);
+    return;
+  }
   const cdp = await page.context().newCDPSession(page);
   const point = y => [{ x: 195, y }];
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(from) });
@@ -105,4 +128,4 @@ async function swipeStages(page, sheet, height = 844) {
   return { half, fit };
 }
 
-module.exports = { test, expect: base.expect, open, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };
+module.exports = { test, expect: base.expect, open, PHONE, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };

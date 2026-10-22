@@ -1,5 +1,5 @@
 // Questions on the first visit and book recommendations above the list
-const { test, expect, open, swipeStages, restingTop, data, OFF } = require("./helpers.js");
+const { test, expect, PHONE, open, swipeStages, restingTop, data, OFF } = require("./helpers.js");
 
 const { R } = data();
 const pref = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-recs")));
@@ -84,7 +84,7 @@ test.describe("first visit", () => {
   });
 
   test.describe("phone", () => {
-    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test.use({ ...PHONE });
     test("the questions sheet rests half-high with the whole question visible, on every step", async ({ page }) => {
       await open(page);
       await expect(ask(page)).toBeVisible();
@@ -142,7 +142,7 @@ test.describe("recommendations", () => {
   });
 
   test.describe("archive on the phone", () => {
-    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test.use({ ...PHONE });
     test("swiping: the long archive goes up to full screen, down = half, further down = closed", async ({ page }) => {
       await open(page);
       await page.click("#recs-open");
