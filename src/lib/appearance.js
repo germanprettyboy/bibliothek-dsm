@@ -18,18 +18,6 @@ function apply() {
   if (prefs.theme === "light" || prefs.theme === "dark") root.dataset.theme = prefs.theme; else delete root.dataset.theme;
   if (prefs.font) root.dataset.font = "large"; else delete root.dataset.font;
   if (prefs.contrast) root.dataset.contrast = "high"; else delete root.dataset.contrast;
-  barColor();
-}
-
-// Browser bar (iPhone status bar, Safari toolbar) in the chosen scheme, not the device's – otherwise it switches
-// separately from the page. The meta tags keep their own media in data-media (head.js does the same on load).
-function barColor() {
-  document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
-    if (!m.dataset.media) m.dataset.media = m.getAttribute("media") || "";
-    const own = m.dataset.media, dark = /dark/.test(own);
-    const media = prefs.theme === "auto" ? own : dark === (prefs.theme === "dark") ? "all" : "not all";
-    if (m.getAttribute("media") !== media) m.setAttribute("media", media);
-  });
 }
 
 // Color switch (theme, contrast). Two rules, the same on every path:

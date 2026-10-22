@@ -68,21 +68,6 @@ test.describe("language", () => {
 test.describe("settings", () => {
   const openSettings = async page => { await page.click(".settings-btn"); await expect(page.locator(".settings[role=dialog]")).toBeVisible(); };
 
-  test("browser bar color (theme-color) follows the chosen theme, also after a reload", async ({ page }) => {
-    await open(page);
-    const bar = () => page.evaluate(() => [...document.querySelectorAll('meta[name="theme-color"]')]
-      .find(m => matchMedia(m.getAttribute("media") || "all").matches)?.content);
-    expect(await bar()).toBe("#ffffff"); // light device
-    await openSettings(page);
-    await page.click('#s-theme [data-v="dark"]');
-    await expect.poll(bar).toBe("#1b1a19");
-    await page.reload({ waitUntil: "domcontentloaded" });
-    expect(await bar()).toBe("#1b1a19");
-    await openSettings(page);
-    await page.click('#s-theme [data-v="auto"]');
-    await expect.poll(bar).toBe("#ffffff");
-  });
-
   test("theme: automatic / light / dark, saved", async ({ page }) => {
     await open(page);
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);

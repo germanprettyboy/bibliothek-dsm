@@ -35,11 +35,11 @@ test.describe("first visit", () => {
   test("no → saved, notice, no recommendations, no repeated question", async ({ page }) => {
     await open(page);
     await ask(page).locator('[data-a="no"]').click();
-    await expect(ask(page)).toBeHidden();
-    await expect(page.locator(".toast")).toContainText("Einstellungen");
-    // notice centered (also once the scroll lock has released the scrollbar); a click opens the settings.
-    // The notice disappears after 3.6 s: hovering pauses that (Sonner), slower engines need the time
+    // the notice disappears after 3.6 s: hovered at once, Sonner pauses that (slower engines need the time)
     await page.locator(".toast").hover();
+    await expect(page.locator(".toast")).toContainText("Einstellungen");
+    await expect(ask(page)).toBeHidden();
+    // notice centered (also once the scroll lock has released the scrollbar); a click opens the settings
     const box = await page.locator(".toast").boundingBox();
     const mid = await page.evaluate(() => document.documentElement.clientWidth / 2);
     expect(Math.abs(box.x + box.width / 2 - mid)).toBeLessThan(2);
