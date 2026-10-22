@@ -29,13 +29,13 @@ async function library() {
     INSERT INTO medientyp VALUES (1,'Buch',28),(2,'DVD',7),(3,'Graphic Novel',28),(4,'Hörbuch',14);
     CREATE TABLE autor (aid INTEGER, aname TEXT, email TEXT);
     INSERT INTO autor VALUES (1,'Preußler, Otfried',''),(2,'Herrndorf, Wolfgang',''),(3,'Kästner, Erich',''),
-      (4,'Max Mustermann',''),(5,'keine Angabe','');
+      (4,'Max Mustermann',''),(5,'keine Angabe',''),(6,' preussler,  Otfried','');
     CREATE TABLE verlage (vid INTEGER, vname TEXT, iban TEXT);
-    INSERT INTO verlage VALUES (1,'Thienemann','DE00 GEHEIM'),(2,'Rowohlt',''),(3,'  k. A. ','');
+    INSERT INTO verlage VALUES (1,'Thienemann','DE00 GEHEIM'),(2,'Rowohlt',''),(3,'  k. A. ',''),(4,'thienemann','');
     CREATE TABLE bereiche (bid INTEGER, bname TEXT);
-    INSERT INTO bereiche VALUES (1,'Jugendbuch'),(2,'Sammlung Erika Musterfrau'),(3,'Sachbuch');
+    INSERT INTO bereiche VALUES (1,'Jugendbuch'),(2,'Sammlung Erika Musterfrau'),(3,'Sachbuch'),(4,'Ungenutzt');
     CREATE TABLE standorte (stid INTEGER, stname TEXT);
-    INSERT INTO standorte VALUES (1,'Jugendbücher 6 Brett 5'),(2,'Regal von Erika Musterfrau'),(3,'Geschichte Regal 2 Brett 4');
+    INSERT INTO standorte VALUES (1,'Jugendbücher 6 Brett 5'),(2,'Regal von Erika Musterfrau'),(3,'Geschichte Regal 2 Brett 4'),(4,'Leeres Regal');
     CREATE TABLE leiher (lid INTEGER, lname TEXT, lvorname TEXT, lemail TEXT, lgebtag TEXT, lpassword TEXT);
     CREATE TABLE vorgaenge (vid INTEGER, lid INTEGER, bid INTEGER);
     INSERT INTO vorgaenge VALUES (1,1,1),(2,2,3);
@@ -48,7 +48,7 @@ async function library() {
       bid INTEGER, btitel TEXT, butitel TEXT, bautor INT, bautor2 INT, bautor3 INT, bverlag INT,
       bisbn TEXT, bisbn13 TEXT, bjahr TEXT, bbereich INT, bstandort INT, bmedientyp INT,
       deleted INT, abgang INT, verlust INT, verkauft INT,
-      bverliehen INT, verliehenan TEXT, verliehenanklasse TEXT, vorgemerktan TEXT, bdonatedby TEXT, bnotiz TEXT
+      bverliehen INT, verliehenan TEXT, verliehenanklasse TEXT, vorgemerktan TEXT, bdonatedby TEXT, bnotiz TEXT, bsignatur TEXT, bzugang TEXT, bpreis TEXT
     );
   `);
   const ins = db.prepare("INSERT INTO leiher VALUES (?,?,?,?,?,?)");
@@ -78,6 +78,9 @@ async function library() {
   book({ bid: 15, t: "Verlorenes Buch", a1: 1, verl: 1 });
   book({ bid: 16, t: "Verkauftes Buch", a1: 1, verk: 1 });
   B.free();
+  // Shelf mark and accession date (maintenance lists only), a price that is never read
+  db.run(`UPDATE books SET bsignatur='JB 6 Pre', bzugang='2025-09-01 10:00:00.123', bpreis='12,90' WHERE bid=1;
+    UPDATE books SET bzugang='2026-03-15 08:30:00' WHERE bid=3;`);
   return db;
 }
 

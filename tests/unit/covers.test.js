@@ -104,6 +104,15 @@ describe("get(): tap, with priority", () => {
     assert.equal(s.calls.length + s.images.length, 0);
   });
 
+  test("ISBN with a wrong cover (books.js noCover): placeholder, no request, also not from the cache", async () => {
+    const s = sandbox({ image: only("ekz.de"), cache: { [K1]: { src: EKZ + K1 + ".jpg", by: "coverEKZ", t: Date.now() } } });
+    s.ctx.DSM_LIBRARY = { noCover: [K1] };
+    assert.equal(await s.C.get(book(K1)), null);
+    assert.equal(s.calls.length + s.images.length, 0);
+    s.C.want(book(K1));
+    assert.equal(s.timers(), 0);
+  });
+
   test("ekz first: image directly via the ISBN", async () => {
     const s = sandbox({ image: only("ekz.de"), ol: OLHIT(42) });
     const r = await s.C.get(book(K1));
@@ -445,6 +454,15 @@ describe("survey(): measure coverage (admin.html)", () => {
     assert.equal(s.ol().length, 1, "one batch request");
     assert.ok(!decodeURIComponent(s.ol()[0].url).includes(K4), "ekz hits not sent to Open Library");
     assert.ok(progress.every((v, n) => n === 0 || v.done >= progress[n - 1].done), "progress increases");
+    assert.deepEqual(st.miss.map(b => b.t), ["Book " + K3], "books without a cover for the maintenance list");
+  });
+  test("blocked ISBNs (books.js noCover) are skipped as if missing", async () => {
+    const s = sandbox({ image: only("ekz.de") });
+    s.ctx.DSM_LIBRARY = { noCover: [K1] };
+    const st = await s.C.survey([book(K1), book(K2), { t: "both", i: [K1, K3] }]).done;
+    assert.equal(st.total, 2);
+    assert.equal(st.ekz, 2);
+    assert.ok(!s.ekz().some(u => u.includes(K1)), "no request for the blocked ISBN");
   });
   test("an ekz substitute image doesn't count as an ekz cover", async () => {
     const SUBSTITUTE = fs.readFileSync(path.join(__dirname, "..", "helpers", "ekz-placeholder.jpg"));

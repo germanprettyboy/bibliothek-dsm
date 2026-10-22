@@ -101,6 +101,119 @@ test.describe("info card", () => {
   });
 });
 
+test.describe("special opening hours, Sunday, notice period, contact", () => {
+  test.use({ storage: { "dsm-recs": OFF } });
+  const dialog = page => page.locator("[role=dialog][aria-labelledby=info-t]");
+  const sp = (from, to, hours, extra = {}) => ({ type: "special", from, to, hours, de: "", it: "", ...extra });
+
+  test("special hours replace the regular hours of today", async ({ page }) => {
+    await withInfo(page, info({ closures: [sp("2026-10-14", "2026-10-14", [["09:00", "10:00"]])] }), "09:30");
+    await expect(card(page)).toContainText("Jetzt geöffnet");
+    await expect(card(page)).toContainText("bis 10:00");
+  });
+
+  test("after the special hours today: closed, regular hours do not apply", async ({ page }) => {
+    await withInfo(page, info({ closures: [sp("2026-10-14", "2026-10-14", [["09:00", "10:00"]])] }), "13:30");
+    await expect(card(page)).toContainText("Jetzt geschlossen");
+    await expect(card(page)).toContainText("Wieder geöffnet morgen ab 10:00");
+  });
+
+  test("a day without regular hours opens with special hours (next opening)", async ({ page }) => {
+    const c = [{ from: "2026-10-15", to: "2026-10-15", type: "holiday", de: "Brückentag" }, sp("2026-10-16", "2026-10-16", [["09:00", "11:00"]])];
+    await withInfo(page, info({ closures: c }), "16:00");
+    await expect(card(page)).toContainText("Wieder geöffnet am Freitag ab 9:00");
+  });
+
+  test("a holiday on the same day wins over special hours", async ({ page }) => {
+    const c = [sp("2026-10-14", "2026-10-14", [["09:00", "17:00"]]), { from: "2026-10-14", to: "2026-10-14", type: "holiday", de: "Fest" }];
+    await withInfo(page, info({ closures: c }), "10:00");
+    await expect(card(page)).toContainText("Heute geschlossen");
+  });
+
+  test("special hours without a valid range are ignored", async ({ page }) => {
+    await withInfo(page, info({ closures: [sp("2026-10-14", "2026-10-14", [["12:00", "09:00"]])] }), "10:00");
+    await expect(card(page)).toContainText("Jetzt geöffnet");
+    await expect(card(page)).toContainText("Heute 8:00–12:00, 13:00–15:00");
+  });
+
+  test("upcoming special hours on the card and in the dialog", async ({ page }) => {
+    await withInfo(page, info({ closures: [sp("2026-10-23", "2026-10-23", [["08:00", "11:00"]])] }), "10:00");
+    await expect(card(page)).toContainText("Geänderte Öffnungszeiten");
+    await expect(card(page)).toContainText("Fr, 23.10. · 8:00–11:00");
+    await card(page).click();
+    const d = dialog(page);
+    await expect(d.locator("h4").first()).toHaveText("Ferien, Schließtage und geänderte Zeiten");
+    await expect(d.locator(".closures li")).toHaveCount(1);
+    await expect(d.locator(".closures li")).toContainText("Fr, 23.10. · 8:00–11:00 · Andere Zeiten");
+    await expect(d.locator(".week dd").nth(2)).toHaveText("8:00–12:00, 13:00–15:00"); // the weekly table stays regular
+  });
+
+  test("own label and Italian type", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("dsm-lang", "it"));
+    await withInfo(page, info({ closures: [sp("2026-10-23", "2026-10-23", [["08:00", "11:00"]], { it: "Giornata aperta" })] }), "10:00");
+    await expect(card(page)).toContainText("Giornata aperta");
+    await card(page).click();
+    await expect(dialog(page).locator(".closures li")).toContainText("Altri orari");
+  });
+
+  test("without special entries the heading stays", async ({ page }) => {
+    await withInfo(page, info(), "10:00");
+    await card(page).click();
+    await expect(dialog(page).locator("h4").first()).toHaveText("Ferien und Schließtage");
+  });
+
+  test("Sunday with hours is shown in the weekly table", async ({ page }) => {
+    await withInfo(page, info({ hours: { ...HOURS, sun: [["10:00", "12:00"]] } }), "10:00");
+    await card(page).click();
+    await expect(dialog(page).locator(".week dt")).toHaveText(["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Sonntag"]);
+    await expect(dialog(page).locator(".week dd").nth(5)).toHaveText("10:00–12:00");
+  });
+
+  test("notice only within its period", async ({ page }) => {
+    const n = (from, to) => info({ notice: { de: "Hinweistext", it: "", ...(from && { from }), ...(to && { to }) } });
+    const check = async (data, shown) => {
+      await withInfo(page, data, "10:00");
+      await card(page).click();
+      await expect(dialog(page).locator(".hint")).toHaveCount(shown ? 1 : 0);
+      await page.keyboard.press("Escape");
+    };
+    await check(n("2026-10-14", "2026-10-14"), true); // both bounds inclusive
+    await check(n("2026-10-01", null), true);
+    await check(n(null, "2026-10-20"), true);
+    await check(n("2026-10-15", null), false);
+    await check(n(null, "2026-10-13"), false);
+  });
+
+  test("a notice outside its period does not make the card appear", async ({ page }) => {
+    const e = JSON.parse(EMPTY);
+    await withInfo(page, JSON.stringify({ ...e, notice: { de: "Später", it: "", from: "2026-11-01" } }), "10:00");
+    await expect(page.locator("#info")).toBeHidden();
+  });
+
+  test("contact in the dialog: text, mail and phone as links", async ({ page }) => {
+    const contact = { email: "bibliothek@example.org", phone: "+39 02 123 4567", de: "Raum 12, Frau Beispiel", it: "Aula 12" };
+    await withInfo(page, info({ contact }), "10:00");
+    await card(page).click();
+    const c = dialog(page).locator("#info-contact");
+    await expect(c.locator("h4")).toHaveText("Kontakt");
+    await expect(c).toContainText("Raum 12, Frau Beispiel");
+    await expect(c.locator('a[href="mailto:bibliothek@example.org"]')).toHaveText("bibliothek@example.org");
+    await expect(c.locator('a[href="tel:+390211234567"]')).toHaveText("+39 02 123 4567");
+    expect(await c.locator("a").first().evaluate(a => getComputedStyle(a).textDecorationLine)).toBe("none");
+  });
+
+  test("without contact no section; contact only: card titled Kontakt", async ({ page }) => {
+    await withInfo(page, info(), "10:00");
+    await card(page).click();
+    await expect(dialog(page).locator("#info-contact")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await withInfo(page, JSON.stringify({ ...JSON.parse(EMPTY), contact: { email: "a@b.de" } }), "10:00");
+    await expect(card(page)).toContainText("Kontakt");
+    await card(page).click();
+    await expect(dialog(page).locator("#info-contact a")).toHaveAttribute("href", "mailto:a@b.de");
+  });
+});
+
 test.describe("opening hours on the phone", () => {
   test.use({ storage: { "dsm-recs": OFF }, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {

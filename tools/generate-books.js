@@ -5,7 +5,7 @@
  *   node tools/generate-books.js data/BIBLIOTHEK_DSM_2024.winbook [YYYY-MM-DD]
  *
  * Prints the report (discarded personal data, counts) to the console.
- * Coverage and history are taken over from the existing books.js, not measured again.
+ * Coverage, history, Italian category names and hidden covers are taken over from the existing books.js.
  */
 "use strict";
 const fs = require("fs");
@@ -27,6 +27,8 @@ const X = require("./source/extract.js");
   const meta = { updated };
   if (prev && prev.history) meta.history = prev.history;
   if (prev && prev.coverage) meta.coverage = prev.coverage;
+  if (prev && prev.catIt) meta.catIt = prev.catIt;
+  if (prev && prev.noCover) meta.noCover = prev.noCover;
   fs.writeFileSync(out, X.toScript(r, meta));
   console.log(JSON.stringify(r.report, null, 1));
   console.log("written:", out, "–", r.books.length, "books");

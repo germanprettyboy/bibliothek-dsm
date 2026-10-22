@@ -91,10 +91,19 @@ describe("info.js", { skip: !I && "website/info.js is missing (not committed)" }
     for (const c of I.closures || []) {
       assert.match(c.from, ISO);
       if (c.to) { assert.match(c.to, ISO); assert.ok(c.to >= c.from); }
-      if (c.type) assert.ok(["holiday", "absent"].includes(c.type), c.type);
+      if (c.type) assert.ok(["holiday", "absent", "special"].includes(c.type), c.type);
+      if (c.type === "special") {
+        assert.ok(Array.isArray(c.hours) && c.hours.length >= 1 && c.hours.length <= 2, "special: 1–2 ranges");
+        for (const r of c.hours) { assert.match(r[0], /^\d{2}:\d{2}$/); assert.match(r[1], /^\d{2}:\d{2}$/); assert.ok(r[0] < r[1], String(r)); }
+      } else assert.equal(c.hours, undefined, "hours only with type special");
     }
   });
-  test("notice DE/IT as text", () => {
+  test("notice DE/IT as text, optional period", () => {
     if (I.notice) for (const l of ["de", "it"]) assert.equal(typeof (I.notice[l] ?? ""), "string");
+    for (const k of ["from", "to"]) if (I.notice && I.notice[k] !== undefined) assert.match(I.notice[k], ISO);
+    if (I.notice && I.notice.from && I.notice.to) assert.ok(I.notice.to >= I.notice.from);
+  });
+  test("contact: optional strings", () => {
+    if (I.contact) for (const k of ["email", "phone", "de", "it"]) assert.equal(typeof (I.contact[k] ?? ""), "string");
   });
 });

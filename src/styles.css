@@ -509,6 +509,7 @@
   .dot.later { background: var(--yellow); box-shadow: 0 0 0 3px color-mix(in srgb, var(--yellow) 35%, transparent); }
   .bar-c { width: 4px; align-self: stretch; flex: none; border-radius: 2px; background: var(--blue); }
   .bar-c.absent { background: var(--orange); }
+  .bar-c.special { background: var(--mauve); }
 
   /* ---------- Loading placeholders ----------
      Fixed in index.html (until React starts) and in React while books.js (large) is still loading.
@@ -605,6 +606,13 @@
 @keyframes ld-slow { from { opacity: 0; } to { opacity: 1; visibility: visible; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+/* Admin page, tab "Pflege": printing shows only the location list (data-print while printing), dark on white also in dark mode */
+@media print {
+  body:has([data-print]) * { visibility: hidden; }
+  [data-print], [data-print] * { visibility: visible; color: var(--color-anthracite); border-color: var(--color-anthracite); }
+  [data-print] { position: absolute; inset: 0 0 auto 0; overflow: visible; background: var(--color-white); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }

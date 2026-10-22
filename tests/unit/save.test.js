@@ -34,7 +34,7 @@ define('DSM_SAVE_TEST', true);
 require ${JSON.stringify(path.join(WEB, "save.php"))};
 $out = [];
 foreach (json_decode(file_get_contents(${JSON.stringify(input)}), true) as $c) {
-  $out[] = dsm_save($c['method'], $c['file'], $c['key'], function () use ($c) { return $c['text']; }, $c['folder']);
+  $out[] = dsm_save($c['method'], $c['file'], $c['key'], function () use ($c) { return $c['text']; }, $c['folder'], $c['query'] ?? []);
 }
 echo json_encode($out);
 `);
@@ -59,6 +59,11 @@ describe("save.php", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, ()
   const books = fs.readFileSync(path.join(WEB, "books.js"), "utf8");
   const OLD = HEAD["info.js"] + '{"updated":"2020-01-01","hours":{}};\n';
   const OBJECT = HEAD["info.js"] + '{"updated":{"x":1},"hours":{}};\n';
+  const infoV = u => HEAD["info.js"] + `{"updated":"${u}","hours":{}};\n`;
+  const [CUR, INFO_A, INFO_B, INFO_C] = ["2026-10-20", "2026-01-01", "2026-01-02", "2026-01-02b"].map(infoV);
+  const BOOKS_OLD = HEAD["books.js"] + '{"updated":"2026-10-20","books":[]};\n';
+  const BOOKS_A = HEAD["books.js"] + '{"updated":"2026-01-05","books":[]};\n';
+  const q = (query, extra = {}) => ({ folder: o.bk, query, text: "", ...extra });
   let o = {}, r = [];
 
   before(() => {
@@ -70,6 +75,14 @@ describe("save.php", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, ()
       Array.from({ length: 12 }, (_, i) => [`backup/info-20200101-0000${String(i).padStart(2, "0")}.js`, "old"]))) });
     o.twice = folder("twice", { files: { "info.js": OLD } });
     o.object = folder("object", { files: { "info.js": OLD } });
+    o.bk = folder("bk", { files: {
+      "info.js": CUR, "books.js": BOOKS_OLD,
+      "backup/info-20200101-100000.js": INFO_A, "backup/info-20200102-100000.js": INFO_B, "backup/info-20200102-100000b.js": INFO_C,
+      "backup/info-20200102.js": INFO_A, "backup/info-20200101-100000.js.bak": INFO_A, "backup/infox-20260101-100000.js": INFO_A,
+      "backup/books-20200105-090000.js": BOOKS_A, "backup/books-20200106-090000.js": INFO_A, // second one: wrong format for books.js
+    } });
+    o.rot = folder("rot", { files: Object.fromEntries([["info.js", CUR]].concat(
+      Array.from({ length: 10 }, (_, i) => [`backup/info-20200101-0000${String(i).padStart(2, "0")}.js`, i === 5 ? INFO_A : INFO_B]))) });
     const cases = [
       { method: "GET", folder: o.none },                                    // 0
       { folder: o.none, text: info },                                       // 1
@@ -92,6 +105,21 @@ describe("save.php", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, ()
       { folder: o.twice, text: HEAD["info.js"] + '{"updated":"2020-02-02","hours":{}};\n' }, // 18 twice in the same second
       { folder: o.twice, text: info },                                      // 19
       { folder: o.object, text: OBJECT },                                   // 20 updated not a string
+      q({ backups: "" }, { method: "GET" }),                                // 21 list
+      q({ backups: "" }, { method: "GET", key: "b".repeat(64) }),           // 22 list, wrong key
+      q({ backups: "" }, { method: "GET", key: "" }),                       // 23 list, no key
+      q({ backups: "" }, { method: "GET", folder: o.none }),                // 24 list, no save-access.php
+      q({ restore: "info-20200101-100000.js" }),                            // 25 restore
+      q({ restore: "../info.js" }),                                         // 26 traversal
+      q({ restore: "../backup/info-20200101-100000.js" }),                  // 27 traversal with a valid ending
+      q({ restore: "x-20260101-100000.js" }),                               // 28 wrong prefix
+      q({ restore: "info-20200101-100000.js\n" }),                          // 29 trailing newline
+      q({ restore: "info-20990101-000000.js" }),                            // 30 not there
+      q({ restore: "books-20200106-090000.js" }),                           // 31 content does not fit the file
+      q({ restore: "info-20200102-100000.js" }, { key: "b".repeat(64) }),   // 32 wrong key
+      q({ restore: "" }),                                                   // 33 empty name
+      q({ restore: "books-20200105-090000.js" }, { method: "PUT" }),        // 34 wrong method
+      { folder: o.rot, query: { restore: "info-20200101-000005.js" } },     // 35 restore with 10 backups present
     ];
     r = php(cases);
   });
@@ -152,6 +180,49 @@ describe("save.php", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, ()
     assert.equal(fs.readFileSync(path.join(o.twice, "backup", s[0]), "utf8"), OLD);
     assert.match(fs.readFileSync(path.join(o.twice, "backup", s[1]), "utf8"), /2020-02-02/);
   });
+  test("backup list: key required, only the exact naming of each file, newest first", () => {
+    const e = n => ({ name: n, size: Buffer.byteLength(n.startsWith("books") ? BOOKS_A : INFO_A) });
+    assert.equal(r[21][0], 200);
+    assert.equal(r[21][1].ok, true);
+    const b = r[21][1].backups;
+    assert.deepEqual(Object.keys(b), ["books.js", "recommendations.js", "info.js"]);
+    assert.deepEqual(b["info.js"].map(x => x.name), ["info-20200102-100000b.js", "info-20200102-100000.js", "info-20200101-100000.js"]);
+    assert.deepEqual(b["info.js"][2], { name: "info-20200101-100000.js", size: Buffer.byteLength(INFO_A), time: "2020-01-01T10:00:00" });
+    assert.deepEqual(b["books.js"].map(x => x.name), ["books-20200106-090000.js", "books-20200105-090000.js"]);
+    assert.equal(b["books.js"][1].size, e("books-20200105-090000.js").size);
+    assert.deepEqual(b["recommendations.js"], []);
+    assert.deepEqual(r[22], [403, { error: "key" }]);
+    assert.deepEqual(r[23], [403, { error: "key" }]);
+    assert.deepEqual(r[24], [503, { error: "access" }]);
+  });
+  test("restore: strict name check, key, method; rejected requests change nothing", () => {
+    assert.deepEqual(r[26], [400, { error: "name" }]);
+    assert.deepEqual(r[27], [400, { error: "name" }]);
+    assert.deepEqual(r[28], [400, { error: "name" }]);
+    assert.deepEqual(r[29], [400, { error: "name" }]);
+    assert.deepEqual(r[30], [404, { error: "missing" }]);
+    assert.deepEqual(r[31], [422, { error: "format" }]);
+    assert.deepEqual(r[32], [403, { error: "key" }]);
+    assert.deepEqual(r[33], [400, { error: "name" }]);
+    assert.equal(r[34][0], 405);
+    assert.equal(fs.readFileSync(path.join(o.bk, "books.js"), "utf8"), BOOKS_OLD);
+  });
+  test("restore: content restored, the current version lands in backup/ first", () => {
+    assert.deepEqual(r[25], [200, { ok: true, file: "info.js" }]);
+    assert.equal(fs.readFileSync(path.join(o.bk, "info.js"), "utf8"), INFO_A);
+    const s = fs.readdirSync(path.join(o.bk, "backup")).filter(n => /^info-\d{8}-\d{6}[a-z]?\.js$/.test(n)).sort();
+    assert.equal(s.length, 4);
+    assert.equal(fs.readFileSync(path.join(o.bk, "backup", s[s.length - 1]), "utf8"), CUR);
+    assert.deepEqual(fs.readdirSync(o.bk).filter(n => n.endsWith(".new")), []);
+  });
+  test("restore: at most 10 backups, the oldest goes", () => {
+    assert.deepEqual(r[35], [200, { ok: true, file: "info.js" }]);
+    assert.equal(fs.readFileSync(path.join(o.rot, "info.js"), "utf8"), INFO_A);
+    const s = fs.readdirSync(path.join(o.rot, "backup")).filter(n => n.endsWith(".js")).sort();
+    assert.equal(s.length, 10);
+    assert.ok(!s.includes("info-20200101-000000.js"));
+    assert.equal(fs.readFileSync(path.join(o.rot, "backup", s[9]), "utf8"), CUR);
+  });
   test("updated not a string: saved, response without an error", () => {
     assert.deepEqual(r[20][1], { ok: true, file: "info.js", bytes: Buffer.byteLength(OBJECT), updated: "" });
     assert.equal(fs.readFileSync(path.join(o.object, "info.js"), "utf8"), OBJECT);
@@ -191,13 +262,13 @@ require ${JSON.stringify(path.join(WEB, "save.php"))};
     const r = await post("info.js", info);
     assert.equal(r.status, 500);
     assert.match(r.headers.get("content-type"), /^application\/json/);
-    assert.deepEqual(await r.json(), { dsm: "save", v: 2, error: "not-writable" });
+    assert.deepEqual(await r.json(), { dsm: "save", v: 3, error: "not-writable" });
   });
   test("valid: 200 with ok", async () => {
     const text = HEAD["books.js"] + '{"updated":"2026-10-18","books":[]};\n';
     const r = await post("books.js", text);
     assert.equal(r.status, 200);
-    assert.deepEqual(await r.json(), { dsm: "save", v: 2, ok: true, file: "books.js", bytes: Buffer.byteLength(text), updated: "2026-10-18" });
+    assert.deepEqual(await r.json(), { dsm: "save", v: 3, ok: true, file: "books.js", bytes: Buffer.byteLength(text), updated: "2026-10-18" });
     assert.equal(fs.readFileSync(path.join(o, "books.js"), "utf8"), text);
   });
 });

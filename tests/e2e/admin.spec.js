@@ -225,7 +225,7 @@ test.describe("importing the database", () => {
     await expect(page.locator("#r-books")).toHaveText(B.books.length.toLocaleString("de-DE"));
     const s = await save(page, "#dl");
     const d = evaluate(s, "DSM_LIBRARY");
-    const node = await nodeScript(fs.readFileSync(db), { updated: d.updated, coverage: d.coverage, history: d.history });
+    const node = await nodeScript(fs.readFileSync(db), { updated: d.updated, coverage: d.coverage, history: d.history, catIt: d.catIt, noCover: d.noCover });
     expect(s === node, "books.js differs from npm run books").toBe(true);
     expect(JSON.stringify(d.books)).toBe(JSON.stringify(B.books));
   });
@@ -247,7 +247,7 @@ test.describe("editing recommendations", () => {
   test("switching tabs without a transition", async ({ page }) => {
     await unlock(page);
     const duration = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => getComputedStyle(e).transitionDuration));
-    expect(duration).toEqual(["0s", "0s", "0s"]);
+    expect(duration).toEqual(["0s", "0s", "0s", "0s"]);
   });
 
   test("full group: adding disabled; remove, add, sort, text – draft saved", async ({ page }) => {

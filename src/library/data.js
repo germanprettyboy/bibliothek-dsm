@@ -28,6 +28,8 @@ export const previewInfo = () => preview("dsm-preview-info", p => !!p.hours);
 // Prepare books for list and search: running number, initial letter, search text
 export function prepare(data) {
   const books = (data && data.books) || [];
+  // Italian names of new categories, maintained in admin.html, complete categories-it.js
+  if (data && data.catIt) window.DSM_CATEGORIES_IT = Object.assign({}, window.DSM_CATEGORIES_IT, data.catIt);
   books.forEach((b, i) => {
     b._i = i;
     b._l = letterOf(b.t);
