@@ -2,7 +2,7 @@
  * Opening hours card above the list. Data via the preview (dsm-preview-info + #preview),
  * time fixed (Wednesday, 2026-10-14, Europe/Rome).
  */
-const { test, expect, open, OFF } = require("./helpers.js");
+const { test, expect, open, swipeStages, OFF } = require("./helpers.js");
 
 const HOURS = { mon: [], tue: [], wed: [["08:00", "12:00"], ["13:00", "15:00"]], thu: [["10:00", "14:00"]], fri: [], sat: [] };
 const info = (extra = {}) => JSON.stringify({ updated: "2026-10-01", hours: HOURS, notice: { de: "", it: "" }, closures: [], ...extra });
@@ -98,5 +98,14 @@ test.describe("info card", () => {
     const h = { wed: [["8:00", "12:00"], ["15:00", "13:00"], ["14:00", "16:00"]] };
     await withInfo(page, info({ hours: h }), "10:00");
     await expect(card(page)).toContainText("Heute ab 14:00 geöffnet");
+  });
+});
+
+test.describe("opening hours on the phone", () => {
+  test.use({ storage: { "dsm-recs": OFF }, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
+    await withInfo(page, info(), "10:00");
+    await card(page).click();
+    await swipeStages(page, page.locator("[role=dialog][aria-labelledby=info-t]"));
   });
 });

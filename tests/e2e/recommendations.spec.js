@@ -1,5 +1,5 @@
 // Questions on the first visit and book recommendations above the list
-const { test, expect, open, data, OFF } = require("./helpers.js");
+const { test, expect, open, swipeStages, restingTop, data, OFF } = require("./helpers.js");
 
 const { R } = data();
 const pref = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-recs")));
@@ -85,12 +85,27 @@ test.describe("first visit", () => {
 
   test.describe("phone", () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
-    test("the questions dialog fits the screen", async ({ page }) => {
+    test("the questions sheet rests half-high with the whole question visible, on every step", async ({ page }) => {
       await open(page);
-      const box = await ask(page).boundingBox();
-      expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(390);
-      expect(box.y + box.height).toBeLessThanOrEqual(844 + 1);
+      await expect(ask(page)).toBeVisible();
+      expect(await restingTop(ask(page))).toBeGreaterThan(100);
+      const fits = async sel => {
+        const box = await ask(page).locator(sel).boundingBox();
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(390);
+        expect(box.y + box.height).toBeLessThanOrEqual(844);
+      };
+      await fits('[data-a="no"]');
+      await ask(page).locator('[data-a="yes"]').click();
+      await restingTop(ask(page));
+      await fits('.choice[data-g="adult"]');
+    });
+
+    test("swiping: the short question has one stage (springs back upwards), down = closed (= no)", async ({ page }) => {
+      await open(page);
+      await expect(ask(page)).toBeVisible();
+      expect((await swipeStages(page, ask(page))).fit).toBe(true);
+      expect(await pref(page)).toEqual({ want: false, group: null });
     });
   });
 });
@@ -124,6 +139,15 @@ test.describe("recommendations", () => {
     await expect(page.locator("#recs .rec .cover img").first()).toBeVisible();
     const first = net.requests.find(u => u.includes("api/books"));
     expect(decodeURIComponent(first).match(/ISBN:\d{13}/g).length).toBeGreaterThan(1);
+  });
+
+  test.describe("archive on the phone", () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    test("swiping: the long archive goes up to full screen, down = half, further down = closed", async ({ page }) => {
+      await open(page);
+      await page.click("#recs-open");
+      expect((await swipeStages(page, page.locator(".archive[role=dialog]"))).fit).toBe(false);
+    });
   });
 
   test("hide → saved, notice", async ({ page }) => {

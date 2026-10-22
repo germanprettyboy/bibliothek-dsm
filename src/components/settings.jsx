@@ -6,7 +6,7 @@ import { GlassDialog } from "@/components/glass-dialog";
 import { DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useAppearance, setPref } from "@/lib/appearance";
+import { useAppearance, setPref, loadLogos } from "@/lib/appearance";
 import { useLanguage } from "@/lib/language";
 import { useSwipe } from "@/lib/swipe";
 
@@ -42,6 +42,7 @@ export function Settings({ open, onOpenChange, children }) {
   const { t } = useLanguage();
   const p = useAppearance();
   const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
+  React.useEffect(() => { if (open) loadLogos(); }, [open]); // the logo of the other color scheme is ready before a switch
   return (
     <GlassDialog open={open} onOpenChange={onOpenChange} name="Settings" titleId="s-title" className="settings swipe" overlayClassName="swipe">
       <div className="pane" ref={swipeRef}>

@@ -9,6 +9,7 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
 import { addStrings, useLanguage, t } from "@/lib/language";
+import { useSwipe } from "@/lib/swipe";
 import { PREVIEW } from "@/library/data";
 
 addStrings({
@@ -156,14 +157,15 @@ const Text = ({ b, small }) => (
 export function InfoDialog({ I, open, onOpenChange }) {
   const { lang } = useLanguage();
   const now = useNow();
+  const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
   if (!I) return null;
   const A = evaluate(I, lang), today = iso(now), tk = keyOf(now);
   const shown = DAYS.filter((k, n) => n < 5 || A.dayRanges(k).length);
   const fut = A.closures.filter(c => c.to >= today).slice(0, 10);
   const cell = "m-0 border-t border-border py-[9px] tabular-nums";
   return (
-    <GlassDialog open={open} onOpenChange={onOpenChange} name="Opening hours" titleId="info-t" className="info-dialog">
-      <div className="pane">
+    <GlassDialog open={open} onOpenChange={onOpenChange} name="Opening hours" titleId="info-t" className="info-dialog swipe" overlayClassName="swipe">
+      <div className="pane" ref={swipeRef}>
         <DialogTitle id="info-t" asChild><h3>{t("infoT")}</h3></DialogTitle>
         {A.notice ? <p className="hint m-0">{A.notice}</p> : null}
         {A.hasHours ? (
