@@ -95,6 +95,9 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
 - save.php: GET → `{dsm:"save",v:2,ready,reason?}` (no JSON → old route). POST `?file=` with `X-DSM-Key`, body = the finished
   file; only exactly header comment + `window.DSM_… = ` + JSON object with the required field (books/groups/hours) + `;\n`.
   Old version → `backup/` (10 per file, `backup/.htaccess` denies access, written if missing), atomic (temp + rename, flock). PHP ≥7.1 (no str_starts_with/array_is_list/match).
+  PHP warnings never into the answer (`display_errors` off, `log_errors` on, output buffer): php-wasm and many webspaces display
+  them, printed before the JSON they force status 200 + text/html = "HTTP 200" in the admin page (2026-10-18). The admin page
+  shows status + start of an answer without an error code.
   Key = PBKDF2(password, salt "dsm-library/save.php", 310,000), only in the encrypted plaintext
   (`var DSM_SAVE_KEY`, function scope, not window).
 - Admin lock only "student-proof": PBKDF2-SHA-256 (310,000) + AES-GCM 256, logic only encrypted.

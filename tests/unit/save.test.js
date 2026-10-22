@@ -2,12 +2,13 @@
    Needs PHP: "php" in the PATH or DSM_PHP (e.g. DSM_PHP="npx --yes --prefer-offline @php-wasm/cli@3.1.56" npm test – same cache
    as npm run local), otherwise skipped. */
 "use strict";
-const { test, describe, before } = require("node:test");
+const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
+const net = require("net");
 const path = require("path");
 const crypto = require("crypto");
-const { execFileSync, execSync } = require("child_process");
+const { execFileSync, execSync, spawn } = require("child_process");
 const { WEB, TMP } = require("../helpers/load.js");
 
 function phpCommand() {
@@ -154,5 +155,49 @@ describe("save.php", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, ()
   test("updated not a string: saved, response without an error", () => {
     assert.deepEqual(r[20][1], { ok: true, file: "info.js", bytes: Buffer.byteLength(OBJECT), updated: "" });
     assert.equal(fs.readFileSync(path.join(o.object, "info.js"), "utf8"), OBJECT);
+  });
+});
+
+// The answer as the admin page gets it, through PHP's web server with display_errors on (php-wasm in npm run local and
+// many webspaces): a PHP warning printed before the JSON sent the headers early – status 200, no JSON, "HTTP 200".
+describe("save.php over HTTP", { skip: !PHP && "no PHP (php in the PATH or DSM_PHP)" }, () => {
+  const info = HEAD["info.js"] + '{"updated":"2026-10-18","hours":{}};\n';
+  let server, base, o;
+
+  before(async () => {
+    fs.mkdirSync(path.join(TMP, "save"), { recursive: true });
+    o = folder("http", { files: { "info.js/x": "" } }); // info.js is a folder: rename() fails with a warning
+    const router = path.join(TMP, "save", "router.php");
+    fs.writeFileSync(router, `<?php
+ini_set('display_errors', '1');
+define('DSM_DATA_FOLDER', ${JSON.stringify(o)});
+require ${JSON.stringify(path.join(WEB, "save.php"))};
+`);
+    const port = await new Promise(ok => { const s = net.createServer().listen(0, "127.0.0.1", () => { const p = s.address().port; s.close(() => ok(p)); }); });
+    base = `http://127.0.0.1:${port}/`;
+    // own process group: kill() also reaches php-wasm behind npx
+    const [cmd, ...args] = PHP.split(" ");
+    server = spawn(cmd, [...args, "-S", `127.0.0.1:${port}`, router], { cwd: o, stdio: "ignore", detached: true });
+    for (let i = 0; i < 600; i++) {
+      try { await fetch(base + "save.php"); return; } catch (e) { await new Promise(ok => setTimeout(ok, 100)); }
+    }
+    throw new Error("PHP web server does not answer");
+  });
+  after(() => { try { process.kill(-server.pid); } catch (e) { /* already gone */ } });
+
+  const post = (file, text) => fetch(base + "save.php?file=" + file, { method: "POST", headers: { "X-DSM-Key": KEY }, body: text });
+
+  test("a PHP warning stays out of the answer: real status, JSON", async () => {
+    const r = await post("info.js", info);
+    assert.equal(r.status, 500);
+    assert.match(r.headers.get("content-type"), /^application\/json/);
+    assert.deepEqual(await r.json(), { dsm: "save", v: 2, error: "not-writable" });
+  });
+  test("valid: 200 with ok", async () => {
+    const text = HEAD["books.js"] + '{"updated":"2026-10-18","books":[]};\n';
+    const r = await post("books.js", text);
+    assert.equal(r.status, 200);
+    assert.deepEqual(await r.json(), { dsm: "save", v: 2, ok: true, file: "books.js", bytes: Buffer.byteLength(text), updated: "2026-10-18" });
+    assert.equal(fs.readFileSync(path.join(o, "books.js"), "utf8"), text);
   });
 });
