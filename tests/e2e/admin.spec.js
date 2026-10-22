@@ -1,68 +1,19 @@
 /*
- * Admin page (admin.html). The real admin.enc.js needs the real password, which is written nowhere.
- * So here it is replaced by a version of the current sources encrypted with "test-password".
+ * Admin page (admin.html): lock, import, recommendations, publishing. Shared helpers: admin-helpers.js.
  */
 const fs = require("fs");
 const path = require("path");
 const initSqlJs = require("sql.js");
 const { test, expect, data, TMP } = require("./helpers.js");
+const { PW, adminSetup, unlock, load, download, folderFile, folderData, evaluate, save, server } = require("./admin-helpers.js");
 const X = require("../../tools/source/extract.js");
 const T = require("../helpers/testdb.js");
 const { realDb, keyOf } = require("../helpers/load.js");
 
-const PW = "test-password";
 const { B, R } = data();
 
-test.beforeEach(async ({ context }) => {
-  await context.route("**/assets/admin.enc.js", r => r.fulfill({ path: path.join(TMP, "admin.enc.js"), contentType: "text/javascript" }));
-  // The browser's folder dialog (native, not controllable) replaced by a folder in the private browser storage (OPFS).
-  // localStorage "__test-folder": name of the chosen folder; only "website" contains index.html; "cancel" = dialog cancelled.
-  await context.addInitScript(() => {
-    window.__picks = 0;
-    window.showDirectoryPicker = async () => {
-      window.__picks++;
-      const name = localStorage.getItem("__test-folder") || "website";
-      if (name === "cancel") throw new DOMException("Selection cancelled", "AbortError");
-      const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(name, { create: true });
-      if (name === "website") await (await (await dir.getFileHandle("index.html", { create: true })).createWritable()).close();
-      return dir;
-    };
-  });
-});
+adminSetup();
 
-async function unlock(page) {
-  await page.goto("admin.html");
-  await page.fill("#pw", PW);
-  await page.click("#unlock");
-  await expect(page.locator("#app")).toBeVisible({ timeout: 15000 });
-}
-async function load(page, file) {
-  await page.setInputFiles("#file", file);
-}
-// Download as text (browser without folder access)
-async function download(page, button) {
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.click(button)]);
-  return fs.readFileSync(await dl.path(), "utf8");
-}
-// Read a file in the (test) website folder, null = not present
-const folderFile = (page, file, folder = "website") => page.evaluate(async ([f, o]) => {
-  try {
-    const dir = await (await navigator.storage.getDirectory()).getDirectoryHandle(o);
-    return await (await (await dir.getFileHandle(f)).getFile()).text();
-  } catch (e) { return null; }
-}, [file, folder]);
-// Content as data; null while the file is missing or being written
-const folderData = async (page, file, name) => { try { return evaluate(await folderFile(page, file), name) || null; } catch (e) { return null; } };
-const FILE = { "#dl": "books.js", "#rec-dl": "recommendations.js", "#i-dl": "info.js" };
-const okText = file => new RegExp(`^${file.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
-// Publish: click, success message, written file as text
-async function save(page, button) {
-  const file = FILE[button];
-  await page.click(button);
-  await expect(page.locator(`.pub[data-file="${file}"] .flag`)).toHaveText(okText(file));
-  return folderFile(page, file);
-}
-const evaluate = (s, name) => { const w = {}; new Function("window", s)(w); return w[name]; };
 // Books of the test database (as after importing)
 async function testCatalog() {
   const SQL = await initSqlJs();
@@ -284,7 +235,7 @@ test.describe("importing the database", () => {
     await expect(page.locator("#r-books")).toHaveText(B.books.length.toLocaleString("de-DE"));
     const s = await save(page, "#dl");
     const d = evaluate(s, "DSM_LIBRARY");
-    const node = await nodeScript(fs.readFileSync(db), { updated: d.updated, coverage: d.coverage, history: d.history });
+    const node = await nodeScript(fs.readFileSync(db), { updated: d.updated, coverage: d.coverage, history: d.history, catIt: d.catIt, noCover: d.noCover });
     expect(s === node, "books.js differs from npm run books").toBe(true);
     expect(JSON.stringify(d.books)).toBe(JSON.stringify(B.books));
   });
@@ -306,7 +257,7 @@ test.describe("editing recommendations", () => {
   test("switching tabs without a transition", async ({ page }) => {
     await unlock(page);
     const duration = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => getComputedStyle(e).transitionDuration));
-    expect(duration).toEqual(["0s", "0s", "0s"]);
+    expect(duration).toEqual(["0s", "0s", "0s", "0s"]);
   });
 
   test("full group: adding disabled; remove, add, sort, text – draft saved", async ({ page }) => {
@@ -506,18 +457,6 @@ test.describe("publishing directly into the website folder", () => {
 });
 
 test.describe("publishing directly online (save.php)", () => {
-  // save.php simulated: GET reports the state, POST answers as wished and records the requests
-  async function server(page, { get = { ready: true }, post = null } = {}) {
-    const requests = [];
-    await page.route("**/save.php*", async r => {
-      const q = r.request();
-      if (q.method() === "GET") return r.fulfill({ json: { dsm: "save", v: 2, ...get } });
-      requests.push({ file: new URL(q.url()).searchParams.get("file"), key: q.headers()["x-dsm-key"], text: q.postData() });
-      if (post) return r.fulfill(post);
-      return r.fulfill({ json: { dsm: "save", v: 2, ok: true } });
-    });
-    return requests;
-  }
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const flag = page => page.locator('.pub[data-file="info.js"] .flag');
   const ONLINE = "Ein Klick speichert info.js direkt auf der Website – sofort online, nichts hochladen.";

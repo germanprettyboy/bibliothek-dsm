@@ -197,4 +197,104 @@ describe("toScript", () => {
     const w = {}; new Function("window", X.toScript(res))(w);
     assert.match(w.DSM_LIBRARY.updated, /^\d{4}-\d{2}-\d{2}$/);
   });
+  test("Italian category names and blocked covers: after history, only when not empty", () => {
+    const w = {};
+    new Function("window", X.toScript(res, { updated: "2026-01-02", history: [], catIt: { Krimi: "Gialli" }, noCover: ["9783522202107"] }))(w);
+    assert.deepEqual(Object.keys(w.DSM_LIBRARY), ["updated", "count", "history", "catIt", "noCover", "books"]);
+    const v = {};
+    new Function("window", X.toScript(res, { updated: "2026-01-02", catIt: {}, noCover: [] }))(v);
+    assert.deepEqual(Object.keys(v.DSM_LIBRARY), ["updated", "count", "books"]);
+  });
+});
+
+describe("inspect: maintenance lists (admin page only)", () => {
+  let r, log;
+  const INSPECT = ["bid", "btitel", "bautor", "bautor2", "bautor3", "bverlag", "bisbn", "bisbn13", "bjahr", "bbereich",
+    "bstandort", "bmedientyp", "bsignatur", "bzugang", "deleted", "abgang", "verlust", "verkauft"];
+  const check = key => r.checks.find(c => c.key === key).rows;
+  const ids = key => check(key).map(x => x.r.id);
+  before(async () => {
+    const db = await T.library();
+    log = spy(db);
+    try { r = X.inspect(db); } finally { db.close(); }
+  });
+
+  test("reads only maintenance columns of the books table: no loan, reader, price or note columns", () => {
+    const sel = log.filter(s => /^SELECT .* FROM books$/.test(s));
+    assert.equal(sel.length, 1);
+    const cols = sel[0].slice(7, sel[0].indexOf(" FROM")).split(",").map(c => c.replace(/"/g, ""));
+    for (const c of cols) assert.ok(INSPECT.includes(c), "column " + c);
+    for (const s of log) {
+      const lc = s.toLowerCase();
+      assert.ok(!LOAN.some(c => new RegExp('"' + c + '"|\\b' + c + "\\b").test(lc)), s);
+      assert.ok(!/bnotiz|bpreis|SELECT \*/i.test(s), s);
+      const m = /FROM "?(\w+)"?/i.exec(s);
+      if (m && PERSONAL.includes(m[1].toLowerCase())) assert.equal(s, "SELECT lname AS n, lvorname AS v FROM leiher");
+    }
+  });
+
+  test("one record per copy that the public list is built from (books and graphic novels, not withdrawn)", () => {
+    assert.deepEqual(r.records.map(x => x.id).sort((a, b) => a - b), [1, 2, 3, 4, 8, 9, 10, 11, 13, 14]);
+    assert.deepEqual(r.records.find(x => x.id === 1), { id: 1, t: "Krabat", a: "Otfried Preußler", p: "Thienemann", y: "1981",
+      c: "Jugendbuch", l: "Jugendbücher 6 Brett 5", sig: "JB 6 Pre", z: "2025-09-01" });
+    assert.equal(r.latest, "2026-03-15");
+    assert.deepEqual(r.types, [{ name: "Buch", n: 9, book: true }, { name: "DVD", n: 1, book: false },
+      { name: "Graphic Novel", n: 1, book: true }, { name: "Hörbuch", n: 1, book: false }]);
+  });
+
+  test("no reader names: category and location names with a name only as their number", () => {
+    const json = JSON.stringify(r);
+    for (const s of ["Erika", "Musterfrau", "7a", "GEHEIME-NOTIZ", "geheim", "12,90", "DE00"]) assert.ok(!json.includes(s), "contains " + s);
+    const t = r.records.find(x => x.id === 3);
+    assert.equal(t.c, "");
+    assert.equal(t.l, "");
+    assert.deepEqual(check("namedCategory"), [{ v: "#2", n: 1 }]);
+    assert.deepEqual(check("namedLocation"), [{ v: "#2", n: 1 }]);
+  });
+
+  test("ISBN: invalid value reported as it is, missing ISBN, no completion", () => {
+    assert.deepEqual(check("isbnBad").map(x => [x.r.id, x.v]), [[4, "9783522202100"]]);
+    assert.deepEqual(ids("isbnNone").sort((a, b) => a - b), [8, 9, 10, 13, 14]);
+    assert.deepEqual(check("isbnShared"), []);
+  });
+
+  test('year: missing (also "o. J.") or not written as a plain year', () => {
+    assert.deepEqual(check("yearOdd").map(x => [x.r.id, x.v]), [[11, "um 1929"], [3, "2010 (1. Aufl.)"]]);
+    assert.equal(check("yearNone").find(x => x.r.id === 13).v, "o. J.");
+    assert.ok(!ids("yearNone").includes(1));
+  });
+
+  test("authors, titles, category, location", () => {
+    assert.deepEqual(ids("authorNone"), [13]);
+    assert.deepEqual(check("authorFormat"), [{ v: "Max Mustermann", n: 1 }]);
+    assert.deepEqual(ids("titleNone"), [8]);
+    assert.deepEqual(check("titleSpaces").map(x => [x.r.id, x.v]), [[2, "„  Krabat “"]]);
+    assert.deepEqual(check("titleCaps"), []);
+    assert.ok(ids("categoryNone").includes(2));
+    assert.ok(!ids("categoryNone").includes(3), "a category hidden by the name check still exists in WinBIAP");
+    assert.ok(ids("locationNone").includes(11));
+  });
+
+  test("copies of one book with different category or location", () => {
+    assert.deepEqual(check("copiesCategory").map(x => [x.r.id, x.v]), [[1, "Jugendbuch"], [2, ""]]);
+    assert.deepEqual(check("copiesLocation").map(x => [x.r.id, x.v]), [[1, "Jugendbücher 6 Brett 5"], [2, "Geschichte Regal 2 Brett 4"]]);
+  });
+
+  test("master data: spelling duplicates with their copies, unused entries", () => {
+    assert.deepEqual(check("authorDup"), [{ v: "Preußler, Otfried · preussler, Otfried", n: 3 }]);
+    assert.deepEqual(check("publisherDup"), [{ v: "Thienemann · thienemann", n: 1 }]);
+    assert.deepEqual(check("categoryDup"), []);
+    assert.deepEqual(check("categoryUnused"), [{ v: "Ungenutzt" }]);
+    assert.deepEqual(check("locationUnused"), [{ v: "Leeres Regal" }]);
+  });
+
+  test("every check present, in a fixed order", () => {
+    assert.equal(r.checks.length, 22);
+    assert.equal(r.checks[0].key, "isbnBad");
+  });
+
+  test("not a library database → not_library_db", async () => {
+    const db = await T.noLibrary();
+    try { assert.throws(() => X.inspect(db), e => e.code === "not_library_db"); } finally { db.close(); }
+  });
 });
