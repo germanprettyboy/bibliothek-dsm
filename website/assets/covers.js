@@ -143,6 +143,14 @@
     for (const c of cands) if (await loadImg(c.src)) return c;
     return null;
   }
+  // ISBNs with a wrong cover (books.js noCover, chosen in admin.html): treated as if the book had no such ISBN
+  let blockList = null, blockSet = new Set();
+  function usable(b) {
+    const l = root.DSM_LIBRARY && root.DSM_LIBRARY.noCover;
+    if (!b || !b.i || !Array.isArray(l) || !l.length) return b;
+    if (l !== blockList) { blockList = l; blockSet = new Set(l); }
+    return b.i.some(i => blockSet.has(i)) ? Object.assign({}, b, { i: b.i.filter(i => !blockSet.has(i)) }) : b;
+  }
   const ekzCands = b => b.i.map(i => ({ src: SRC.ekz(i), by: "coverEKZ" }));
   const gbCands = b => b.i.map(i => ({ src: SRC.gb(i), by: "coverGB" }));
 
@@ -174,6 +182,7 @@
   const inflight = new Map();
   // olHit: optional promise of the Open Library result from a batch request (prime)
   function get(b, olHit) {
+    b = usable(b);
     if (!b || !b.i || !b.i.length) return Promise.resolve(null);
     const key = keyOf(b);
     if (inflight.has(key)) return inflight.get(key);
@@ -212,6 +221,7 @@
   const pending = key => inflight.has(key) || queue.has(key) || olQueue.has(key) || tail.some(j => j.key === key);
 
   function want(b) {
+    b = usable(b);
     if (!enabled || !b || !b.i || !b.i.length) return;
     const key = keyOf(b);
     if (pending(key)) return;
@@ -220,6 +230,7 @@
     else if (c === undefined) { queue.set(key, b); kickEkz(); }
   }
   function unwant(b) {
+    b = usable(b);
     if (!b || !b.i) return;
     const key = keyOf(b);
     queue.delete(key);
@@ -278,8 +289,9 @@
   // stop() aborts. Results end up in the cache.
   function survey(books, onProgress) {
     let stopped = false;
-    const list = books.filter(b => b.i && b.i.length);
-    const st = { total: list.length, done: 0, ekz: 0, ol: 0, gb: 0, none: 0, err: 0, complete: false };
+    const list = books.map(usable).filter(b => b.i && b.i.length);
+    // miss: the books without any cover (for the maintenance list in admin.html)
+    const st = { total: list.length, done: 0, ekz: 0, ol: 0, gb: 0, none: 0, err: 0, complete: false, miss: [] };
     const report = () => onProgress && onProgress(Object.assign({}, st));
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const COUNT = { coverEKZ: "ekz", coverOL: "ol", coverGB: "gb" };
@@ -309,7 +321,7 @@
           const v = await firstImg((h ? [h] : []).concat(gbCands(b)));
           if (v) { st[COUNT[v.by]]++; store(keyOf(b), v); }
           else if (h === undefined) st.err++;
-          else { st.none++; store(keyOf(b), null); }
+          else { st.none++; st.miss.push(b); store(keyOf(b), null); }
           st.done++;
         }
         report();
@@ -324,6 +336,7 @@
 
   // Several books at once (e.g. recommendations): one Open Library batch request for the unknown ones
   function prime(books) {
+    books = books.map(usable);
     const todo = books.filter(b => b && b.i && b.i.length && cached(keyOf(b)) === undefined && !inflight.has(keyOf(b))).slice(0, BATCH);
     const m = todo.length > 1 ? olLookup(todo) : null;
     return Promise.all(books.map(b => get(b, m && todo.includes(b) ? m.then(x => x ? x.get(keyOf(b)) : undefined) : undefined)));

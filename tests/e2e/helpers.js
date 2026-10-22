@@ -34,7 +34,8 @@ const test = base.test.extend({
   page: async ({ page, storage, net }, use) => { // eslint-disable-line no-unused-vars
     const errors = [];
     page.on("pageerror", e => errors.push(e.message));
-    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource/.test(m.text())) errors.push(m.text()); });
+    // blocked cover services (route.abort): Chromium/WebKit "Failed to load resource", Firefox "CORS request did not succeed"
+    page.on("console", m => { if (m.type() === "error" && !/ERR_FAILED|Failed to load resource|CORS request did not succeed/.test(m.text())) errors.push(m.text()); });
     await page.addInitScript(s => {
       if (sessionStorage.getItem("__test-init")) return; // only on the first load, a reload keeps the state
       sessionStorage.setItem("__test-init", "1");
@@ -49,6 +50,13 @@ const test = base.test.extend({
 async function open(page, url = "index.html") {
   await page.goto(url);
   await page.locator("#list .row").first().or(page.locator("#list .empty")).waitFor();
+}
+
+// All finite animations of the page have ended (instead of a fixed wait for fade-ins; endless ones like the cover shimmer don't count)
+async function settled(page) {
+  await page.evaluate(() => Promise.all(document.getAnimations()
+    .filter(a => a.effect && a.effect.getComputedTiming().iterations !== Infinity)
+    .map(a => a.finished.catch(() => null))));
 }
 
 // Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch)
@@ -105,4 +113,4 @@ async function swipeStages(page, sheet, height = 844) {
   return { half, fit };
 }
 
-module.exports = { test, expect: base.expect, open, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };
+module.exports = { test, expect: base.expect, open, settled, swipe, swipeStages, restingTop, data, hits, keyOf, TMP, IMAGE, OFF };

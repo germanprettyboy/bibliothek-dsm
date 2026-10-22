@@ -70,7 +70,7 @@ function useCoverList(books, on = true) {
 }
 
 // ---------- Card above the list ----------
-export function Recommendations({ R, byKey, loaded, onOpen, onArchive }) {
+export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSettings }) {
   const { t } = useLanguage();
   const p = useChoice();
   const [gone, setGone] = React.useState(false);
@@ -89,7 +89,7 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive }) {
   const hide = () => {
     setGone(true);
     setTimeout(() => setChoice({ want: false, group: (getChoice() || {}).group || null }), reduced.matches ? 0 : 300);
-    notify(t("recsOff"));
+    notify(t("recsOff"), onSettings);
   };
 
   // While books.js loads: placeholder in place of the recommendations (only if some are chosen)
@@ -261,7 +261,7 @@ const Shelf = () => (
   </div>
 );
 
-export function Questions({ open, onOpenChange }) {
+export function Questions({ open, onOpenChange, onSettings }) {
   const { t } = useLanguage();
   const [step, setStep] = React.useState(1);
   const finished = React.useRef(false);
@@ -274,7 +274,7 @@ export function Questions({ open, onOpenChange }) {
   React.useEffect(() => { if (open && step > 1) focus(); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const change = on => {
-    if (!on && !finished.current) { setChoice({ want: false, group: null }); notify(t("askNo")); }
+    if (!on && !finished.current) { setChoice({ want: false, group: null }); notify(t("askNo"), onSettings); }
     onOpenChange(on);
   };
   const choose = g => {

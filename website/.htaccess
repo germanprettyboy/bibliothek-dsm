@@ -10,7 +10,25 @@
 # cover hosts only learn the origin, never the full address.
 # Caching: briefly revalidate pages, scripts and data on every visit (a new book list is visible immediately),
 # fonts and images practically never change.
+# No directory listings (e.g. assets/); backup/ is locked completely by its own .htaccess (written by save.php)
+<IfModule mod_autoindex.c>
+  Options -Indexes
+</IfModule>
+
+# The admin page only works via https (Web Crypto), and its key travels in a header: never via http.
+# Webspaces behind a TLS proxy see HTTPS=off internally – X-Forwarded-Proto prevents a redirect loop there.
+# The whole site via https: remove the "#" in front of the second RewriteRule once https works on the webspace.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^(admin\.html|save\.php)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+  # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
 <IfModule mod_headers.c>
+  # Browsers that once saw the page via https stay on https (only sent over https; no includeSubDomains: school domain)
+  Header always set Strict-Transport-Security "max-age=15552000" env=HTTPS
   Header always set X-Frame-Options "DENY"
   Header always set Content-Security-Policy "frame-ancestors 'none'"
   Header always set X-Content-Type-Options "nosniff"

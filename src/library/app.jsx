@@ -9,6 +9,7 @@ import { loadBooks, prepare, keyOf, previewRecs, previewInfo, previewBooks } fro
 import { Detail } from "@/library/detail";
 import { Recommendations, Archive, RecommendationSettings, Questions } from "@/library/recommendations";
 import { InfoCard, InfoDialog } from "@/library/info";
+import { Announcement } from "@/library/announcement";
 import { BookList } from "@/library/list";
 import { getChoice } from "@/library/choice";
 
@@ -48,6 +49,7 @@ export function App() {
 
   const open = React.useCallback((b, rec) => setDetail({ b, rec: rec || null }), []);
   const dialogToggle = name => on => setDialog(on ? name : null);
+  const settings = React.useCallback(() => setDialog("settings"), []);
 
   return (
     <>
@@ -59,9 +61,10 @@ export function App() {
           <a href="./" className="font-semibold whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
         </div>
       </div>
-      <Header onSettings={() => setDialog("settings")} title={t("title")} />
+      <Announcement I={I} ready={loaded} />
+      <Header onSettings={settings} title={t("title")} />
       <InfoCard I={I} onOpen={() => setDialog("info")} />
-      <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} />
+      <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} onSettings={settings} />
       <BookList books={books} loaded={loaded} onOpen={open} />
 
       <Detail entry={detail} onClose={() => setDetail(null)} />
@@ -70,7 +73,7 @@ export function App() {
       </Settings>
       <Archive open={dialog === "archive"} onOpenChange={dialogToggle("archive")} R={R} byKey={byKey} onOpen={open} />
       <InfoDialog I={I} open={dialog === "info"} onOpenChange={dialogToggle("info")} />
-      <Questions open={dialog === "questions"} onOpenChange={dialogToggle("questions")} />
+      <Questions open={dialog === "questions"} onOpenChange={dialogToggle("questions")} onSettings={settings} />
       <Toaster />
     </>
   );

@@ -31,6 +31,9 @@ addStrings({
 });
 
 const SKEY = "dsm-admin-key";
+// Chrome/Edge restore sessionStorage with "continue where you left off": on a shared PC the admin page would stay
+// unlocked after a browser restart. So the key only counts if the page was last left at most 4 hours ago.
+const SEEN = "dsm-admin-seen", MAX_AWAY = 4 * 3600e3;
 const b64 = {
   dec: s => Uint8Array.from(atob(s), c => c.charCodeAt(0)),
   enc: u => btoa(String.fromCharCode(...new Uint8Array(u))),
@@ -53,12 +56,15 @@ async function decrypt(enc, key) {
 // Start the admin page: the decrypted source registers itself as window.DSM_ADMIN
 function start(src) {
   log("Lock", "unlocked, admin page starting");
+  const seen = () => session.set(SEEN, String(Date.now()));
+  seen();
+  window.addEventListener("pagehide", seen); // reload, closing the tab or the browser
   new Function(src)(); // the source comes from our own encrypted file
   return window.DSM_ADMIN;
 }
 export function lock() {
   log("Lock", "locked");
-  session.del(SKEY);
+  session.del(SKEY); session.del(SEEN);
   location.reload();
 }
 
@@ -76,6 +82,11 @@ export function Lock({ onStart }) {
   // Stay unlocked within the same browser session
   React.useEffect(() => {
     const raw = session.get(SKEY);
+    if (raw && !(Date.now() - (+session.get(SEEN) || 0) <= MAX_AWAY)) {
+      log("Lock", "key of this browser session expired (page left more than 4 hours ago)");
+      session.del(SKEY); session.del(SEEN);
+      pw.current.focus(); return;
+    }
     if (!raw || !enc || !window.crypto || !crypto.subtle) { pw.current.focus(); return; }
     (async () => {
       try {

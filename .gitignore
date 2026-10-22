@@ -9,6 +9,9 @@ node_modules/
 .pruefung/
 *.bak
 
+# Upload folder (npm run pack)
+upload/
+
 # Test runs (Playwright results, test databases, test encryption, npm run local)
 tests/.tmp/
 

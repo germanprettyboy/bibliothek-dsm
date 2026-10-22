@@ -18,8 +18,9 @@ export const FS = typeof window.showDirectoryPicker === "function";
 const KEY = typeof DSM_SAVE_KEY === "string" ? DSM_SAVE_KEY : "";
 
 // Shared state of all publish cards: chosen folder, last message per file, file in progress,
-// save.php on the webspace (null = none, "ready", otherwise the reason: "access" | "not-writable")
-let state = { folder: null, message: {}, running: null, server: null };
+// save.php on the webspace (null = none, "ready", otherwise the reason: "access" | "not-writable"),
+// v = its protocol version (3 and up: list and restore backups)
+let state = { folder: null, message: {}, running: null, server: null, v: 0 };
 const listeners = new Set();
 const update = next => { state = { ...state, ...next }; listeners.forEach(fn => fn()); };
 const message = (file, m) => update({ message: { ...state.message, [file]: m } });
@@ -43,7 +44,7 @@ if (FS) kv("readonly", st => st.get("website")).then(h => { if (h && !state.fold
 if (/^https?:$/.test(location.protocol)) {
   fetch("save.php", { cache: "no-store" }).then(r => r.json()).then(j => {
     if (!j || j.dsm !== "save") return;
-    update({ server: j.ready ? "ready" : j.reason || "access" });
+    update({ server: j.ready ? "ready" : j.reason || "access", v: Number(j.v) || 0 });
     log("Publish", j.ready ? (KEY ? "save.php ready: directly online" : "save.php ready, admin app without key (encrypt again)") : `save.php not set up: ${j.reason}`);
   }).catch(() => {});
 }
@@ -87,6 +88,78 @@ async function upload(file, text) {
   // Without an error code: status plus the start of the answer (PHP warning, host error page …), not just "HTTP 200"
   const start = answer.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
   throw Object.assign(new Error(f || `HTTP ${r.status}` + (start ? `: ${start}` : "")), { code: f === "key" ? "pubLiveKey" : "pubLiveErr" });
+}
+
+// save.php backup calls: answer as JSON, otherwise an error with code (like upload)
+async function api(url, init) {
+  let r, j = null, answer = "";
+  try {
+    r = await fetch(url, { cache: "no-store", ...init, headers: { "X-DSM-Key": KEY } });
+  } catch (e) { throw Object.assign(new Error("website not reachable"), { code: "pubLiveErr" }); }
+  try { answer = await r.text(); j = JSON.parse(answer); } catch (e) { /* no answer from save.php */ }
+  if (r.ok && j && j.ok) return j;
+  const f = j && j.error;
+  const start = answer.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 160);
+  throw Object.assign(new Error(f || `HTTP ${r.status}` + (start ? `: ${start}` : "")), { code: f === "key" ? "pubLiveKey" : "pubLiveErr" });
+}
+const when = (time, lang) => new Date(time).toLocaleString(lang === "it" ? "it-IT" : "de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+// "Earlier versions" (save.php v3): list of this file's server backups, restoring needs a second click within 4 s
+function Backups({ file }) {
+  const { t, lang } = useLanguage();
+  const [open, setOpen] = React.useState(false);
+  const [items, setItems] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [sure, setSure] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const timer = React.useRef(0);
+  React.useEffect(() => () => clearTimeout(timer.current), []);
+  const load = async () => {
+    setError("");
+    try {
+      const j = await api("save.php?backups");
+      setItems((j.backups && j.backups[file]) || []);
+      log("Publish", `${file}: ${((j.backups && j.backups[file]) || []).length} earlier versions on the website`);
+    } catch (e) { setItems([]); setError(t("pubBackupsErr", { m: (e && e.message) || String(e) })); log("Publish", `${file}: list of earlier versions failed: ${(e && e.message) || e}`); }
+  };
+  const toggle = () => { if (open) { setOpen(false); return; } setOpen(true); setItems(null); load(); };
+  const restore = async b => {
+    if (sure !== b.name) {
+      setSure(b.name);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setSure(""), 4000);
+      return;
+    }
+    clearTimeout(timer.current);
+    setSure(""); setBusy(true);
+    try {
+      await api("save.php?restore=" + encodeURIComponent(b.name), { method: "POST" });
+      message(file, { key: "pubRestored", vars: { d: when(b.time, lang) }, reload: true });
+      log("Publish", `${file} restored from ${b.name}`);
+      await load();
+    } catch (e) {
+      message(file, failure(Object.assign(e, { code: e && e.code === "pubLiveKey" ? "pubLiveKey" : "pubRestoreErr" })));
+      log("Publish", `${file} not restored: ${(e && e.message) || e}`);
+    } finally { setBusy(false); }
+  };
+  return (
+    <div className="mt-3 grid gap-2.5" data-pub-backup-list={file}>
+      <div><Button variant="ghost" size="text" className="p-0 h-auto text-[length:inherit] font-normal text-foreground" data-pub-backups aria-expanded={open} onClick={toggle}>{t("pubBackups")}</Button></div>
+      {open && items === null ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-loading>{t("pubBackupsLoading")}</p> : null}
+      {open && error ? <p className="flag warn m-0" role="status">{error}</p> : null}
+      {open && items && !items.length && !error ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-none>{t("pubBackupsNone")}</p> : null}
+      {open && items && items.length ? (
+        <ul className="m-0 grid list-none gap-1 p-0">
+          {items.map(b => (
+            <li key={b.name} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1" data-backup={b.name}>
+              <span className="text-s">{when(b.time, lang)}<span className="text-muted-foreground">{" · "}{Math.max(1, Math.round(b.size / 1024)).toLocaleString(lang === "it" ? "it-IT" : "de-DE")} KB</span></span>
+              <Button variant="outline" size="sm" disabled={busy} data-restore onClick={() => restore(b)}>{t(sure === b.name ? "pubRestoreSure" : "pubRestore")}</Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
 // build() returns { text, done }: done() runs after a successful write (the new state counts as published)
@@ -149,6 +222,7 @@ export function Publish({ file, build, ids, alt, howKey, preview, onPreview, chi
       </CardFooter>
       <div className={cn("pub", (m || setup || (z.folder && !online)) && "mt-3 grid gap-2.5")} data-file={file}>
         {m ? <p className={cn("flag m-0", m.type)} role="status">{t(m.key, m.vars)}</p> : null}
+        {m && m.reload ? <div><Button variant="outline" size="sm" data-pub-reload onClick={() => location.reload()}>{t("pubReload")}</Button></div> : null}
         {setup ? <p className="note m-0 text-s text-muted-foreground" data-pub-setup>{t(setup)}</p> : null}
         {z.folder && !online ? (
           <p className="note m-0 text-s text-muted-foreground">
@@ -156,6 +230,7 @@ export function Publish({ file, build, ids, alt, howKey, preview, onPreview, chi
           </p>
         ) : null}
       </div>
+      {online && z.v >= 3 ? <Backups file={file} /> : null}
       {after}
     </Card>
   );

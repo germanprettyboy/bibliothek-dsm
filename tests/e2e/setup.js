@@ -11,4 +11,9 @@ module.exports = async () => {
   fs.writeFileSync(path.join(TMP, "test.winbook"), await T.bytes());
   fs.writeFileSync(path.join(TMP, "no-library.sqlite"), await T.bytes(T.noLibrary));
   fs.writeFileSync(path.join(TMP, "no-sqlite.winbook"), "Das ist keine Datenbank, nur Text.");
+  // Real save.php (php -S + tools/local-router.php, publish.spec.js): it writes here, never into website/
+  const dataDir = path.join(TMP, "data");
+  fs.rmSync(dataDir, { recursive: true, force: true });
+  fs.mkdirSync(dataDir, { recursive: true });
+  for (const f of ["books.js", "recommendations.js"]) fs.copyFileSync(path.join(ROOT, "website", f), path.join(dataDir, f));
 };

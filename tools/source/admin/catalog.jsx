@@ -1,10 +1,13 @@
-/* Tab "catalog": choose the WinBIAP database, discard personal data (source/extract.js), report,
-   check cover coverage, publish a new books.js. Everything runs locally in the browser. */
+/* Tab "catalog": choose the WinBIAP database, discard personal data (source/extract.js), report, maintenance
+   analysis (tab "Pflege"), check cover coverage, Italian category names, hide wrong covers, publish a new books.js.
+   Without an import the published books.js can be published again with new coverage, names or hidden covers.
+   Everything runs locally in the browser. */
 import * as React from "react";
-import { DatabaseIcon } from "lucide-react";
+import { ChevronDownIcon, DatabaseIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language";
 import { Publish } from "./publish";
@@ -24,7 +27,9 @@ function loadSql() {
 }
 
 const keyOf = b => (b.t + "|" + ((b.a && b.a[0]) || "")).toLowerCase();
-const Lines = ({ id, lines }) => (
+const normE = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
+const coll = new Intl.Collator("de", { sensitivity: "base", numeric: true });
+export const Lines = ({ id, lines }) => (
   <ul className="lines mt-2 mb-0 list-none p-0" id={id}>
     {lines.map(([label, value, color], n) => (
       <li key={n} className="flex justify-between gap-3 border-t border-border py-2">
@@ -34,7 +39,7 @@ const Lines = ({ id, lines }) => (
     ))}
   </ul>
 );
-const Big = props => <div className="big text-l leading-none font-semibold tabular-nums" {...props} />;
+export const Big = props => <div className="big text-l leading-none font-semibold tabular-nums" {...props} />;
 
 export function Catalog({ B }) {
   const { t, nf } = useLanguage();
@@ -52,6 +57,9 @@ export function Catalog({ B }) {
     return () => { removeEventListener("dragover", no); removeEventListener("drop", no); };
   }, []);
 
+  // The publish card without an import stays once it appeared (its message must stay visible after publishing)
+  const [pubShown, setPubShown] = React.useState(false);
+  if (B.changed && !pubShown) setPubShown(true);
   const fail = (key, vars) => { setStatus(null); setError([key, vars]); setPhase("choose"); };
   async function handle(file) {
     if (!file) return;
@@ -65,9 +73,14 @@ export function Catalog({ B }) {
       setStatus("reading");
       await new Promise(r => setTimeout(r, 30)); // let the status display render
       const db = new SQL.Database(buf);
-      let r;
-      try { r = window.DSMExtract.extract(db); } finally { db.close(); }
-      B.imported(r);
+      let r, ins;
+      try {
+        r = window.DSMExtract.extract(db);
+        setStatus("inspecting");
+        await new Promise(res => setTimeout(res, 30));
+        ins = window.DSMExtract.inspect(db);
+      } finally { db.close(); }
+      B.imported(r, ins);
       setStatus(null);
       setPhase("report");
     } catch (e) {
@@ -86,12 +99,12 @@ export function Catalog({ B }) {
     const taken = [[t("records"), nf(r.records)], [t("nonBook"), nf(r.nonBook)]];
     if (r.gone) taken.push([t("gone"), nf(r.gone)]);
     taken.push([t("merged"), nf(r.merged)], [t("withIsbn"), nf(r.withIsbn)]);
+    let diff = null;
     if (cur && cur.books) {
       const before = new Set(cur.books.map(keyOf)), after = new Set(result.books.map(keyOf));
-      let a = 0, rm = 0;
-      after.forEach(k => { if (!before.has(k)) a++; });
-      before.forEach(k => { if (!after.has(k)) rm++; });
-      taken.push([t("diff"), t("diffV", { a: nf(a), r: nf(rm) })]);
+      const added = result.books.filter(b => !before.has(keyOf(b))), gone = cur.books.filter(b => !after.has(keyOf(b)));
+      taken.push([t("diff"), t("diffV", { a: nf(added.length), r: nf(gone.length) })]);
+      if (added.length || gone.length) diff = <Diff added={added} gone={gone} />;
     }
     const agg = new Map();
     for (const x of r.removedTables) agg.set(x.key, (agg.get(x.key) || 0) + x.rows);
@@ -108,6 +121,7 @@ export function Catalog({ B }) {
           <Big id="r-books">{nf(r.books)}</Big>
           <CardDescription>{t("takenP")}</CardDescription>
           <Lines id="r-taken" lines={taken} />
+          {diff}
         </Card>
         <Card>
           <CardTitle>{t("removedT")}</CardTitle>
@@ -115,6 +129,8 @@ export function Catalog({ B }) {
         </Card>
         <div className={cn("flag", r.nameHits && "mid")} id="r-check">{msg}</div>
         <Coverage B={B} />
+        <CategoriesIt B={B} />
+        <HiddenCovers B={B} />
         <Publish
           file="books.js" build={B.booksFile} ids={{ button: "dl", how: "r-howto", preview: "preview" }} alt="download" howKey="howto" preview
         >
@@ -122,6 +138,21 @@ export function Catalog({ B }) {
             <span>{t("again")}</span>
           </Button>
         </Publish>
+      </div>
+    );
+  } else if (!result && B.books.length) {
+    // Without an import: the published list – check coverage, names, hidden covers, publish again if something changed
+    report = (
+      <div className="grid gap-3" id="current">
+        <Coverage B={B} />
+        <CategoriesIt B={B} />
+        <HiddenCovers B={B} />
+        {B.changed || pubShown ? (
+          <Publish
+            file="books.js" build={B.booksFile} ids={{ button: "dl", how: "r-howto", preview: "preview" }} alt="download" howKey="howto"
+            after={<p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="r-again">{t("pubBooksP")}</p>}
+          />
+        ) : null}
       </div>
     );
   }
@@ -155,9 +186,9 @@ export function Catalog({ B }) {
 // ---------- Cover coverage ----------
 function Coverage({ B }) {
   const { t, nf, df, lang } = useLanguage();
-  const { result, cov, survey } = B;
+  const { cov, survey } = B;
   const pct = x => new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE", { style: "percent", maximumFractionDigits: 1 }).format(x || 0);
-  const n = result.books.length, e = B.entry();
+  const n = B.books.length, e = B.entry();
   const segs = { ekz: 0, ol: 0, gb: 0, none: 0 };
   let big, sub, lines = [];
   if (cov) {
@@ -211,6 +242,138 @@ function Coverage({ B }) {
           </table>
         </div>
       </div>
+    </Card>
+  );
+}
+
+// Row that opens a part below it (diff titles); whole row as target, chevron turns
+export function Opener({ open, onClick, children, ...props }) {
+  return (
+    <button type="button" aria-expanded={open} onClick={onClick} className="flex min-h-11 w-full items-center gap-3 py-2 text-left" {...props}>
+      <span className="min-w-0 flex-1">{children}</span>
+      <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform duration-150 ease-dsm motion-reduce:transition-none", open && "rotate-180")} />
+    </button>
+  );
+}
+
+// ---------- New and dropped titles compared with the published list ----------
+const DIFF_MAX = 200;
+function Diff({ added, gone }) {
+  const { t, nf } = useLanguage();
+  const [open, setOpen] = React.useState(false);
+  const list = (id, head, books) => (books.length ? (
+    <div id={id}>
+      <h3 className="m-0 mb-1 text-s font-medium text-muted-foreground">{head}</h3>
+      <ul className="m-0 list-none p-0">
+        {books.slice().sort((x, y) => coll.compare(x.t, y.t)).slice(0, DIFF_MAX).map((b, i) => (
+          <li key={i} className="border-t border-border py-1.5 first:border-t-0">
+            {b.t}<small className="block text-s text-muted-foreground">{(b.a || []).join(", ")}</small>
+          </li>
+        ))}
+      </ul>
+      {books.length > DIFF_MAX ? <p className="m-0 mt-1 text-s text-muted-foreground">{t("diffMore", { n: nf(books.length - DIFF_MAX) })}</p> : null}
+    </div>
+  ) : null);
+  return (
+    <div className="border-t border-border" id="r-diff">
+      <Opener open={open} onClick={() => setOpen(o => !o)}>{t("diffShow")}</Opener>
+      {open ? <div className="grid gap-3 pb-1">{list("r-added", t("diffAdded"), added)}{list("r-gone", t("diffGone"), gone)}</div> : null}
+    </div>
+  );
+}
+
+// ---------- Italian names of categories that categories-it.js doesn't know (new in WinBIAP) ----------
+function CategoriesIt({ B }) {
+  const { t } = useLanguage();
+  const own = B.extra.catIt;
+  const cats = React.useMemo(() => {
+    const file = window.DSM_CATEGORIES_IT || {};
+    return [...new Set(B.books.map(b => b.c).filter(Boolean))].filter(c => !file[c]).sort(coll.compare);
+  }, [B.books]);
+  if (!cats.length) return null;
+  return (
+    <Card id="cat-it">
+      <CardTitle>{t("ciT")}</CardTitle>
+      <CardDescription>{t("ciP")}</CardDescription>
+      <div className="mt-2 grid">
+        {cats.map(c => (
+          <label key={c} className="grid gap-1.5 border-t border-border py-2.5 first:border-t-0 sm:grid-cols-2 sm:items-center sm:gap-3" data-cat={c}>
+            <span className="min-w-0">{c}</span>
+            <Input className="h-10" lang="it" value={own[c] || ""} placeholder={c} onChange={e => B.setCatIt(c, e.target.value)} />
+          </label>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// ---------- Hide a wrong cover: its ISBNs go into books.js noCover, covers.js then shows the placeholder ----------
+const SOURCE = { coverEKZ: "lEkz", coverOL: "lOl", coverGB: "lGb" };
+function HiddenCovers({ B }) {
+  const { t } = useLanguage();
+  const [q, setQ] = React.useState("");
+  const [sel, setSel] = React.useState(null); // { b, found: undefined = searching | null | {src, by} }
+  const withIsbn = React.useMemo(() => B.books.filter(b => b.i && b.i.length), [B.books]);
+  const byIsbn = React.useMemo(() => new Map(withIsbn.flatMap(b => b.i.map(i => [i, b]))), [withIsbn]);
+  const hits = React.useMemo(() => {
+    const s = normE(q);
+    if (s.length < 2) return null;
+    const terms = s.split(" ");
+    return withIsbn.filter(b => { const x = normE([b.t, (b.a || []).join(" "), b.i.join(" ")].join(" ")); return terms.every(w => x.includes(w)); }).slice(0, 8);
+  }, [q, withIsbn]);
+  const hidden = new Set(B.extra.noCover);
+  const show = b => {
+    setSel({ b, found: undefined });
+    window.DSMCovers.get(b).then(f => setSel(s => (s && s.b === b ? { b, found: f || null } : s)));
+  };
+  const row = "flex items-center justify-between gap-2.5 border-t border-border py-2 first:border-t-0";
+  return (
+    <Card id="nocover">
+      <CardTitle>{t("ncT")}</CardTitle>
+      <CardDescription>{t("ncP")}</CardDescription>
+      <Input id="nc-q" type="search" className="mt-2" autoComplete="off" placeholder={t("ncFind")} value={q} onChange={e => setQ(e.target.value)} />
+      {hits ? (
+        <ul className="mt-2 mb-0 list-none p-0" id="nc-res">
+          {hits.length ? hits.map(b => (
+            <li key={b.i.join()} className={row}>
+              <span className="min-w-0"><b>{b.t}</b><small className="block text-s text-muted-foreground">{(b.a || []).concat(b.i).join(" · ")}</small></span>
+              <Button variant="outline" size="sm" onClick={() => show(b)}>{t("ncShow")}</Button>
+            </li>
+          )) : <li className="border-t border-border py-2 text-s text-muted-foreground">{t("eNoResults")}</li>}
+        </ul>
+      ) : null}
+      {sel ? (
+        <div className="mt-3 flex items-start gap-3.5 rounded-lg bg-surface p-3" id="nc-sel">
+          <div className="grid h-[150px] w-[100px] shrink-0 place-items-center overflow-hidden bg-border">
+            {sel.found && !sel.b.i.every(i => hidden.has(i)) ? <img src={sel.found.src} alt="" referrerPolicy="no-referrer" className="max-h-full max-w-full object-contain" /> : null}
+          </div>
+          <div className="grid min-w-0 gap-1.5">
+            <b>{sel.b.t}</b>
+            <small className="text-s text-muted-foreground" id="nc-state">
+              {sel.found === undefined ? t("ncLoading") : sel.found ? t("ncFrom", { s: t(SOURCE[sel.found.by] || "lNone") }) : t("ncNone")}
+            </small>
+            <div>
+              {sel.b.i.every(i => hidden.has(i))
+                ? <Button variant="outline" size="sm" id="nc-unhide" onClick={() => B.hideCover(sel.b.i, false)}>{t("ncUnhide")}</Button>
+                : <Button variant="outline" size="sm" id="nc-hide" disabled={!sel.found} onClick={() => B.hideCover(sel.b.i, true)}>{t("ncHide")}</Button>}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      <h3 className="m-0 mt-3.5 mb-1 text-s font-medium text-muted-foreground">{t("ncHidden")}</h3>
+      {B.extra.noCover.length ? (
+        <ul className="m-0 list-none p-0" id="nc-list">
+          {B.extra.noCover.map(i => {
+            const b = byIsbn.get(i);
+            return (
+              <li key={i} className={row} data-isbn={i}>
+                <span className="min-w-0"><b>{b ? b.t : i}</b><small className="block text-s text-muted-foreground tabular-nums">{i}</small></span>
+                <Button variant="outline" size="sm" onClick={() => B.hideCover([i], false)}>{t("ncUnhide")}</Button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : <p className="note m-0 text-s text-muted-foreground">{t("ncEmpty")}</p>}
     </Card>
   );
 }
