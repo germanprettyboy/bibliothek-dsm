@@ -19,6 +19,7 @@ import * as textarea from "@/components/ui/textarea";
 import * as toggle from "@/components/ui/toggle";
 import * as toggleGroup from "@/components/ui/toggle-group";
 import * as glassDialog from "@/components/glass-dialog";
+import * as announcement from "@/components/announcement";
 import * as notice from "@/lib/notice";
 import * as storage from "@/lib/storage";
 import * as language from "@/lib/language";
@@ -42,6 +43,7 @@ export const SHARED = {
   "@/components/ui/toggle": toggle,
   "@/components/ui/toggle-group": toggleGroup,
   "@/components/glass-dialog": glassDialog,
+  "@/components/announcement": announcement,
   "@/lib/notice": notice,
   "@/lib/storage": storage,
   "@/lib/language": language,

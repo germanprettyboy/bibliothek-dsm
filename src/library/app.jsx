@@ -9,6 +9,7 @@ import { loadBooks, prepare, keyOf, previewRecs, previewInfo, previewBooks } fro
 import { Detail } from "@/library/detail";
 import { Recommendations, Archive, RecommendationSettings, Questions } from "@/library/recommendations";
 import { InfoCard, InfoDialog } from "@/library/info";
+import { Announcement } from "@/library/announcement";
 import { BookList } from "@/library/list";
 import { getChoice } from "@/library/choice";
 
@@ -60,6 +61,7 @@ export function App() {
           <a href="./" className="font-semibold whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
         </div>
       </div>
+      <Announcement I={I} ready={loaded} />
       <Header onSettings={settings} title={t("title")} />
       <InfoCard I={I} onOpen={() => setDialog("info")} />
       <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} onSettings={settings} />

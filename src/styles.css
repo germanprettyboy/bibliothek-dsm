@@ -576,6 +576,42 @@
 
   /* Preview notice (website from the admin page) */
   .banner { background: var(--yellow); color: #333333; }
+
+  /* Announcement (info.js "announcement", library/announcement.jsx): full-width strip above the header. It floats in from
+     the top and pushes the page down: the height opens via grid 0fr → 1fr, the strip glides along from above. Closing
+     collapses it back up, faster and with --ease-in. Reduced motion: no transition (global rule at the end). */
+  .announce { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t-base) var(--ease-in); }
+  .announce > div { min-height: 0; overflow: hidden; }
+  .announce .announce-bar { transform: translateY(-100%); transition: transform var(--t-base) var(--ease-in); }
+  .announce.open { grid-template-rows: 1fr; transition: grid-template-rows .32s var(--snap); }
+  .announce.open .announce-bar { transform: none; transition: transform .32s var(--snap); }
+  /* Colors of the cover placeholders, text in anthracite (on red white); neutral = surface with a line */
+  .announce-bar { --ann-bg: var(--surface); background: var(--ann-bg); color: var(--fg); box-shadow: inset 0 -1px 0 var(--line); }
+  .announce-bar:not([data-color="neutral"]) { color: #333333; box-shadow: none; }
+  .announce-bar[data-color="mauve"], .color-dot[data-color="mauve"] { --ann-bg: var(--mauve); }
+  .announce-bar[data-color="yellow"], .color-dot[data-color="yellow"] { --ann-bg: var(--yellow); }
+  .announce-bar[data-color="orange"], .color-dot[data-color="orange"] { --ann-bg: var(--orange); }
+  .announce-bar[data-color="blue"], .color-dot[data-color="blue"] { --ann-bg: var(--blue); }
+  .announce-bar[data-color="red"], .color-dot[data-color="red"] { --ann-bg: var(--red); }
+  .announce-bar[data-color="green"], .color-dot[data-color="green"] { --ann-bg: var(--green); }
+  .announce-bar[data-color="red"] { color: #ffffff; }
+  :root[data-contrast="high"] .announce-bar { box-shadow: inset 0 -2px 0 var(--fg); }
+  .announce-x {
+    display: inline-grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px;
+    background: transparent; color: inherit; transition: background-color var(--t-fast);
+  }
+  .announce-x:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+  .announce-bar :focus-visible { outline-color: currentColor; }
+
+  /* Admin page: color choice of the announcement as dots, the chosen one with a ring in the text color */
+  .color-dot { --ann-bg: var(--surface); display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; }
+  .color-dot > span {
+    width: 28px; height: 28px; border-radius: 999px; background: var(--ann-bg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .14);
+    transition: box-shadow var(--t-fast) var(--ease), transform var(--t-fast) var(--snap);
+  }
+  .color-dot[data-color="neutral"] > span { box-shadow: inset 0 0 0 1px var(--line); }
+  .color-dot:hover > span { transform: scale(1.08); }
+  .color-dot[data-state="checked"] > span { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
 }
 
 /* Dark logo: after @layer so it wins against .logo .logo-d */
