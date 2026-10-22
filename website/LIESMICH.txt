@@ -3,12 +3,13 @@ Bibliothek DSM – Website
 
 Inhalt
   index.html        Bücherliste (öffentlich)
-  admin.html        Verwaltung (passwortgeschützt): Bestand, Empfehlungen, Öffnungszeiten/Ferien
+  admin.html        Verwaltung (passwortgeschützt): Bestand, Pflege, Empfehlungen, Öffnungszeiten/Ferien
   books.js          Daten der Bücherliste (wird von admin.html erzeugt)
   recommendations.js  Buchempfehlungen (wird von admin.html erzeugt)
   info.js           Öffnungszeiten, Ferien, Abwesenheiten (wird von admin.html erzeugt; liegt nur auf dem
                     Webspace, fehlt im Download des Projekts – ohne die Datei zeigt die Seite keine Öffnungszeiten)
-  save.php          lässt die Verwaltung diese drei Dateien direkt auf dem Webspace speichern
+  save.php          lässt die Verwaltung diese drei Dateien direkt auf dem Webspace speichern,
+                    die früheren Versionen (backup) auflisten und zurückholen
   save-access.php   Zugang dafür (wird beim Verschlüsseln der Verwaltung erzeugt)
   assets/          Stil, Skripte, Logos, Schrift Fira Sans (lokal), sql.js,
                     library.js (Bücherliste), admin.js (Sperre),
@@ -37,7 +38,11 @@ Veröffentlichen aus der Verwaltung – online (Normalfall)
   Die Änderung ist sofort für alle sichtbar – nichts herunterladen, nichts hochladen. Geht in jedem
   Browser, auch am Schul-PC, Tablet oder Handy. Meldung: „info.js ist online, 10:42 Uhr.“
   Jede ersetzte Fassung bleibt im Ordner „backup“ auf dem Webspace (die letzten 10 je Datei);
-  zum Zurückholen die gewünschte Sicherung per FTP herunterladen, umbenennen (z. B. info.js) und hochladen.
+  Zurückholen geht in der Verwaltung: Unter jedem Knopf „Veröffentlichen“ zeigt „Frühere Versionen“ die
+  letzten 10 Fassungen der Datei; „Wiederherstellen“ (zweimal klicken) holt eine zurück, danach die Seite
+  neu laden. save.php listet dafür die Sicherungen auf (GET ?backups) und spielt eine zurück (POST ?restore=…);
+  die bisherige Fassung wird dabei selbst wieder gesichert. Alternativ per FTP die Sicherung herunterladen,
+  umbenennen (z. B. info.js) und hochladen.
   Die versteckte Datei backup/.htaccess (legt save.php selbst an) sperrt den Ordner für Besucher –
   nicht löschen.
   Nur für den Bestand braucht es weiter die .winbook-Datei aus WinBIAP (siehe „Bestand aktualisieren“).
@@ -127,18 +132,30 @@ Buchempfehlungen
   Antippen öffnet ein Fenster mit allen Zeiten der Woche und allen geplanten Schließtagen.
   Ohne Einträge bleibt das Feld unsichtbar.
   Pflege: admin.html, Reiter „Info“:
-    1. Öffnungszeiten je Wochentag (bis zu zwei Zeiträume, z. B. 8:00–10:00 und 12:00–15:00).
+    1. Öffnungszeiten je Wochentag, Montag bis Sonntag (bis zu zwei Zeiträume, z. B. 8:00–10:00 und 12:00–15:00).
        „Zeiten vom Montag … übertragen“ füllt Dienstag bis Freitag.
-    2. Optional ein Hinweis (Deutsch/Italienisch), erscheint im Fenster.
-    3. „+ Ferien“ oder „+ Abwesenheit“: ersten und letzten Tag wählen (letzter leer = ein Tag),
+    2. Optional ein Hinweis (Deutsch/Italienisch), erscheint im Fenster; „Anzeigen ab/bis“ begrenzt ihn
+       zeitlich. Optional ein Kontakt (E-Mail, Telefon, Text), erscheint am Ende des Fensters.
+    3. „+ Ferien“, „+ Abwesenheit“ oder „+ Andere Zeiten“ (nur zu den angegebenen Zeiten geöffnet, z. B.
+       verkürzt vor den Ferien): ersten und letzten Tag wählen (letzter leer = ein Tag),
        Text optional (sonst „Ferien“ bzw. „Bibliothek geschlossen“).
     4. „Vorschau ansehen“, dann „Veröffentlichen“ (siehe oben).
   Vergangene Einträge verschwinden auf der Website von selbst; im Editor räumt
   „Vergangene entfernen“ sie weg. Der Entwurf bleibt im Browser gespeichert.
   Die Uhrzeit für „geöffnet/geschlossen“ kommt vom Gerät des Besuchers.
 
+Bestand pflegen (Reiter „Pflege“)
+  Nach dem Einlesen der WinBIAP-Datei zeigt der Reiter „Pflege“ Listen, was in WinBIAP korrigiert werden
+  sollte (ungültige oder fehlende ISBN, Jahr, Autor, Kategorie, Standort, mehrere Schreibweisen,
+  ungenutzte Kategorien/Standorte, Namen aus der Leserdatei), jeweils mit der Nummer in WinBIAP;
+  „Als CSV“ bzw. „Alle Listen als CSV“ für Excel. „Medientypen“ zeigt, was ausgelassen wurde. Die
+  „Standortliste für die Inventur“ gibt es zum Drucken (mit Spalte „Vorhanden“) und als CSV.
+  Nichts davon wird veröffentlicht.
+
 Kategorien auf Italienisch
-  assets/categories-it.js. Neue Kategorien ohne Eintrag erscheinen auf Deutsch.
+  assets/categories-it.js. Neue Kategorien ohne Eintrag erscheinen auf Deutsch. Fehlende Namen lassen sich
+  im Reiter „Bestand“ (Kasten „Kategorien auf Italienisch“) eintragen; sie werden mit books.js veröffentlicht.
+  Ebenfalls dort: „Falsches Cover ausblenden“ (Platzhalter statt Bild, mit books.js veröffentlicht).
 
 Protokoll in der Browser-Konsole
   Jede Bedienung (Klicks, Suche, Fenster, Einstellungen, Netzabfragen, Fehler) erscheint

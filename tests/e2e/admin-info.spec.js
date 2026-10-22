@@ -3,7 +3,7 @@
  * Shared helpers: admin-helpers.js. The published info.js is read back from the (test) website folder.
  */
 const { test, expect } = require("./helpers.js");
-const { adminSetup, unlock, tab, save, evaluate } = require("./admin-helpers.js");
+const { adminSetup, unlock, tab, save, evaluate, folderData } = require("./admin-helpers.js");
 
 adminSetup();
 
@@ -12,6 +12,11 @@ async function open(page) {
   await tab(page, "info");
 }
 const published = async page => evaluate(await save(page, "#i-dl"), "DSM_INFO");
+// Publishing again: the success message is already there, so wait for the written content itself
+const republished = async (page, pick, value) => {
+  await page.click("#i-dl");
+  await expect.poll(async () => { const d = await folderData(page, "info.js", "DSM_INFO"); return d && pick(d); }).toEqual(value);
+};
 const clo = (page, n) => page.locator(`#i-clo .clo[data-n="${n}"]`);
 
 test.describe("Sunday", () => {
@@ -94,9 +99,8 @@ test.describe("special opening hours", () => {
     await clo(page, 0).locator('input[data-f="from"]').fill("2099-12-23");
     await clo(page, 0).locator('.range input[data-f="1"]').fill("11:30");
     await page.waitForTimeout(500);
-    await page.reload();
-    await page.fill("#pw", "test-password");
-    await page.click("#unlock");
+    await page.reload(); // stays unlocked in this tab
+    await expect(page.locator("#app")).toBeVisible({ timeout: 15000 });
     await tab(page, "info");
     await expect(clo(page, 0).locator('[data-type="special"]')).toHaveAttribute("data-state", "on");
     await expect(clo(page, 0).locator('.range input[data-f="1"]')).toHaveValue("11:30");
@@ -112,14 +116,12 @@ test.describe("notice with a period", () => {
     await expect(page.locator("#i-note-warn")).toBeHidden();
     await page.fill("#i-note-from", "2099-01-10");
     await page.fill("#i-note-to", "2099-01-20");
-    d = await published(page);
-    expect(d.notice).toEqual({ de: "Hinweis", it: "", from: "2099-01-10", to: "2099-01-20" });
+    await republished(page, x => x.notice, { de: "Hinweis", it: "", from: "2099-01-10", to: "2099-01-20" });
     await page.fill("#i-note-to", "2020-01-01");
     await expect(page.locator("#i-note-warn")).toBeVisible(); // ends before it starts
     await page.fill("#i-note-from", "");
     await expect(page.locator("#i-note-warn")).toHaveText("Vorbei – wird nicht mehr angezeigt.");
-    d = await published(page);
-    expect(d.notice).toEqual({ de: "Hinweis", it: "", to: "2020-01-01" });
+    await republished(page, x => x.notice, { de: "Hinweis", it: "", to: "2020-01-01" });
   });
 });
 
@@ -137,8 +139,7 @@ test.describe("contact", () => {
     await page.fill("#i-contact-phone", "+39 02 1234567");
     await page.fill("#i-contact-de", "Raum 12, Frau Beispiel");
     await page.fill("#i-contact-it", "   ");
-    d = await published(page);
-    expect(d.contact).toEqual({ email: "bibliothek@example.org", phone: "+39 02 1234567", de: "Raum 12, Frau Beispiel" });
+    await republished(page, x => x.contact, { email: "bibliothek@example.org", phone: "+39 02 1234567", de: "Raum 12, Frau Beispiel" });
   });
 
   test("Italian labels", async ({ page }) => {

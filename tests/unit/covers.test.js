@@ -454,7 +454,7 @@ describe("survey(): measure coverage (admin.html)", () => {
     assert.equal(s.ol().length, 1, "one batch request");
     assert.ok(!decodeURIComponent(s.ol()[0].url).includes(K4), "ekz hits not sent to Open Library");
     assert.ok(progress.every((v, n) => n === 0 || v.done >= progress[n - 1].done), "progress increases");
-    assert.deepEqual(st.miss.map(b => b.t), ["Book " + K3], "books without a cover for the maintenance list");
+    assert.deepEqual(Array.from(st.miss, b => b.t), ["Book " + K3], "books without a cover for the maintenance list");
   });
   test("blocked ISBNs (books.js noCover) are skipped as if missing", async () => {
     const s = sandbox({ image: only("ekz.de") });

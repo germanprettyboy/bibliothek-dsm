@@ -11,6 +11,8 @@ const at = async (page, hhmm) => page.clock.setFixedTime(new Date(`2026-10-14T${
 const card = page => page.locator("#info .info-card");
 
 async function withInfo(page, data, hhmm) {
+  // a second call in the same test: leave the page first, "#preview" again would only change the hash
+  if (page.url() !== "about:blank") await page.goto("about:blank");
   await page.addInitScript(d => localStorage.setItem("dsm-preview-info", d), data);
   await at(page, hhmm);
   await open(page, "index.html#preview");
@@ -198,7 +200,7 @@ test.describe("special opening hours, Sunday, notice period, contact", () => {
     await expect(c.locator("h4")).toHaveText("Kontakt");
     await expect(c).toContainText("Raum 12, Frau Beispiel");
     await expect(c.locator('a[href="mailto:bibliothek@example.org"]')).toHaveText("bibliothek@example.org");
-    await expect(c.locator('a[href="tel:+390211234567"]')).toHaveText("+39 02 123 4567");
+    await expect(c.locator('a[href="tel:+39021234567"]')).toHaveText("+39 02 123 4567");
     expect(await c.locator("a").first().evaluate(a => getComputedStyle(a).textDecorationLine)).toBe("none");
   });
 
