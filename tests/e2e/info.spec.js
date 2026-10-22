@@ -11,11 +11,13 @@ const at = async (page, hhmm) => page.clock.setFixedTime(new Date(`2026-10-14T${
 const card = page => page.locator("#info .info-card");
 
 async function withInfo(page, data, hhmm) {
-  // a second call in the same test: leave the page first, "#preview" again would only change the hash
-  if (page.url() !== "about:blank") await page.goto("about:blank");
+  // a second call in the same test reloads: "#preview" again would only change the hash
+  const again = page.url().includes("index.html");
   await page.addInitScript(d => localStorage.setItem("dsm-preview-info", d), data);
   await at(page, hhmm);
-  await open(page, "index.html#preview");
+  if (!again) return open(page, "index.html#preview");
+  await page.reload();
+  await page.locator("#list .row").first().or(page.locator("#list .empty")).waitFor();
 }
 
 test.describe("info card", () => {
