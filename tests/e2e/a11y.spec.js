@@ -39,20 +39,18 @@ test.describe("accessibility", () => {
     expect(await violations(page)).toEqual([]);
   });
 
-  test("dialogs: detail, settings, categories", async ({ page }) => {
-    await open(page);
-    await page.locator("#list .row").nth(2).click();
-    await expect(page.locator("#detail")).toBeVisible();
-    expect(await violations(page), "detail").toEqual([]);
-    await page.keyboard.press("Escape");
-    await page.click(".settings-btn");
-    await expect(page.locator(".settings[role=dialog]")).toBeVisible();
-    expect(await violations(page), "settings").toEqual([]);
-    await page.keyboard.press("Escape");
-    await page.click("#cat-btn");
-    await expect(page.getByRole("dialog")).toBeVisible();
-    expect(await violations(page), "categories").toEqual([]);
-  });
+  // one test per dialog: three axe runs next to the list did not fit into one test timeout on the 2-core runner
+  for (const [name, show] of [
+    ["detail", async page => { await page.locator("#list .row").nth(2).click(); await expect(page.locator("#detail")).toBeVisible(); }],
+    ["settings", async page => { await page.click(".settings-btn"); await expect(page.locator(".settings[role=dialog]")).toBeVisible(); }],
+    ["categories", async page => { await page.click("#cat-btn"); await expect(page.getByRole("dialog")).toBeVisible(); }],
+  ]) {
+    test(`dialog: ${name}`, async ({ page }) => {
+      await open(page);
+      await show(page);
+      expect(await violations(page)).toEqual([]);
+    });
+  }
 
   test.describe("first visit", () => {
     test.use({ storage: {} });
