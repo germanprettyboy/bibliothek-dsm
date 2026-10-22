@@ -29,6 +29,8 @@ test.describe("list", () => {
   test("letter chunks with anchors", async ({ page }) => {
     await open(page);
     await expect(page.locator("#L-K")).toHaveAttribute("data-l", "K");
+    // the list renders step by step (2 chunks, then 20 per step): count once it is complete
+    await expect(page.locator("#list .row")).toHaveCount(B.books.length);
     const n = await page.locator("#list ul[data-l]").count();
     expect(n).toBeGreaterThan(20);
   });
