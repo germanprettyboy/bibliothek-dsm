@@ -83,7 +83,7 @@ describe("Apache + PHP 7.1", { skip: !process.env.DSM_APACHE && "only on GitHub 
   });
   test("save.php: ready, wrong key 403, wrong format 422", async () => {
     const g = await (await get("/save.php", HTTPS)).json();
-    assert.deepEqual(g, { dsm: "save", v: 2, ready: true });
+    assert.deepEqual(g, { dsm: "save", v: 3, ready: true });
     assert.equal((await post("/save.php?file=info.js", info("x"), { "X-DSM-Key": "wrong" })).status, 403);
     assert.equal((await post("/save.php?file=info.js", "window.DSM_INFO = {};\n", { "X-DSM-Key": KEY })).status, 422);
     assert.equal((await post("/save.php?file=evil.php", info("x"), { "X-DSM-Key": KEY })).status, 400);

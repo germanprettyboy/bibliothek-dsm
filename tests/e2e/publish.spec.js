@@ -65,7 +65,7 @@ test.describe("publishing via the real save.php", () => {
     const before = fs.readFileSync(path.join(DATA, "info.js"), "utf8");
     const r = await request.post("save.php?file=info.js", { headers: { "X-DSM-Key": "wrong" }, data: before });
     expect(r.status()).toBe(403);
-    expect(await r.json()).toEqual({ dsm: "save", v: 2, error: "key" });
+    expect(await r.json()).toEqual({ dsm: "save", v: 3, error: "key" });
     expect(fs.readFileSync(path.join(DATA, "info.js"), "utf8")).toBe(before);
   });
 });
