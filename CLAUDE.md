@@ -220,7 +220,7 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   change while a switch waits does not apply early. The other logo is loaded when the settings open (no waiting before the fade).
   NO own layer for `.seg3`. NO View Transition in WebKit (Safari, every iPhone browser; UA check, 2026-10-22, client: on the
   iPhone parts switched one after another and the glass lost its blur during the cross-fade; Playwright's WebKit hung):
-  there instant, as soon as the other logo is decoded (`img.decode()`, at most 150 ms). `meta[name=theme-color]` follows
+  there instant (as without the API). `meta[name=theme-color]` follows
   the chosen theme (media → `all`/`not all`, own media in `data-media`; head.js on load, `apply()` on a switch), otherwise
   the iPhone status bar keeps the device's color.
   Language (`components/header.jsx`): marker first (`.seg[data-on]`, `will-change: transform`), `setLang` after the frame

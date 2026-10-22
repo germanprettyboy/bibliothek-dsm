@@ -27,7 +27,8 @@ function barColor() {
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => {
     if (!m.dataset.media) m.dataset.media = m.getAttribute("media") || "";
     const own = m.dataset.media, dark = /dark/.test(own);
-    m.setAttribute("media", prefs.theme === "auto" ? own : dark === (prefs.theme === "dark") ? "all" : "not all");
+    const media = prefs.theme === "auto" ? own : dark === (prefs.theme === "dark") ? "all" : "not all";
+    if (m.getAttribute("media") !== media) m.setAttribute("media", media);
   });
 }
 
@@ -42,7 +43,7 @@ function barColor() {
 //    switches light/dark (already applied, nothing to fade from): instantly, but also without transitions.
 //    Not in WebKit (Safari, every browser on the iPhone): its View Transition is no single picture – on the iPhone
 //    parts switched one after another and the glass lost its blur for the duration (2026-10-22, client), Playwright's
-//    WebKit even hung. There all colors switch at once, in one frame, as soon as the other logo is decoded.
+//    WebKit even hung. There all colors switch at once, in one frame.
 // Each switch takes a number; an older one that is still waiting gives up (quick clicks: only the last one counts).
 const GLIDE = 150;
 let run = 0;
@@ -61,18 +62,11 @@ function instant() {
   requestAnimationFrame(() => requestAnimationFrame(() => { if (nr === run) still.remove(); }));
 }
 
-// The logo of the new scheme decoded (otherwise it pops in a moment after the colors), waiting at most GLIDE
-function logosReady() {
-  const all = [...document.querySelectorAll(".logo img")].map(img => (img.decode ? img.decode().catch(() => {}) : null));
-  return Promise.race([Promise.all(all), new Promise(res => setTimeout(res, GLIDE))]);
-}
-
 function fade() {
-  if (reduced.matches || document.hidden) return instant();
+  if (!document.startViewTransition || WEBKIT || reduced.matches || document.hidden) return instant();
   const nr = ++run;
   waiting = true;
   loadLogos();
-  if (!document.startViewTransition || WEBKIT) return void logosReady().then(() => { if (nr === run) instant(); });
   setTimeout(() => {
     if (nr !== run) return;
     let vt;
