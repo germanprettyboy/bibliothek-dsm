@@ -19,6 +19,8 @@ const INFO = JSON.stringify({ updated: "2026-10-01", hours: { mon: [["08:00", "1
 test.describe("accessibility", () => {
   // axe checks DOM, ARIA and computed colors – the same in every engine; in Firefox/WebKit it only exceeds the timeout
   test.skip(({ browserName }) => browserName !== "chromium", "axe once, in Chromium");
+  // axe takes 8–15 s per run on the shared 2-core runner, several tests run it twice: more than the default 30 s
+  test.describe.configure({ timeout: 90000 });
   test.use({ storage: { "dsm-recs": RECS } });
 
   for (const [name, extra] of [["light", {}], ["dark", { "dsm-theme": "dark" }], ["high contrast", { "dsm-contrast": "high" }],
