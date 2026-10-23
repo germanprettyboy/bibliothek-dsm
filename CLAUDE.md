@@ -190,10 +190,10 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
 ## Open
 
 - **NO WEBSPACE YET.** Nothing uploaded, no live data. Don't plan migrations or tell Johann to change anything on a server. Once
-  one exists (likely Aruba, see docs/): upload `upload/website/` from `npm run pack` once; from then on the server copies of the data
+  one exists (likely Aruba): upload `upload/website/` from `npm run pack` once; from then on the server copies of the data
   files and `backup/` are the original – a later code upload must not overwrite them. Unknown: PHP version, write permissions, WAF.
 - GitHub repo `germanprettyboy/bibliothek-dsm` is PUBLIC on purpose (Johann, 2026-10-23: free Actions minutes; private would use up
   the free quota in days). So never commit secrets, the password, student data or `data/`. Plaintext admin source is public.
 - Covers: run "Cover-Abdeckung prüfen" completely; terms of use of cover.ekz.de. Proofread the 20 recommendation texts and Italian UI.
 - Untested on real devices: iPhone Safari; school PC Windows 7 (Chrome 109 / Firefox ESR 115; `@supports` fallbacks, es2020).
-  `docs/dsmailand-techstack.md` (school website): adopt nothing (no GTM, no Google Fonts); Aruba `.htaccess` → `IfModule`.
+  School website: adopt nothing (no GTM, no Google Fonts); Aruba `.htaccess` → `IfModule`. No analyses of school systems here (public).

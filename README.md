@@ -23,7 +23,7 @@ protection. Never commit the password, secrets or anything from `data/`. Privacy
 | `src/` | source of the pages (React, Tailwind, shadcn/ui) | no |
 | `tools/` | build, encryption of the admin app, extraction, data migration, local server, tunnel | no |
 | `tests/` | unit tests (`node:test`) and browser tests (Playwright) | no |
-| `docs/`, `anleitung/` | background analyses, German staff guide | no |
+| `docs/`, `anleitung/` | UI drafts, German staff guide | no |
 | `data/` | original database with student data | never |
 
 ## Getting started
