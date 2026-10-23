@@ -17,13 +17,13 @@ addStrings({
   de: {
     coverZoom: "Cover vergrößern", coverBig: "Cover",
     publisher: "Verlag", year: "Jahr", isbn: "ISBN", category: "Kategorie", location: "Standort",
-    coverEKZ: "Cover: ekz-Bibliotheksservice", coverOL: "Cover: Open Library", coverGB: "Cover: Google Books",
+    coverEKZ: "Cover: ekz-Bibliotheksservice", coverOL: "Cover: Open Library",
     why: "Warum dieses Buch?",
   },
   it: {
     coverZoom: "Ingrandisci copertina", coverBig: "Copertina",
     publisher: "Editore", year: "Anno", isbn: "ISBN", category: "Categoria", location: "Collocazione",
-    coverEKZ: "Copertina: ekz-Bibliotheksservice", coverOL: "Copertina: Open Library", coverGB: "Copertina: Google Books",
+    coverEKZ: "Copertina: ekz-Bibliotheksservice", coverOL: "Copertina: Open Library",
     why: "Perché questo libro?",
   },
 });
@@ -124,7 +124,7 @@ function Zoom({ open, box, onClosed }) {
   const snap = () => getComputedStyle(document.documentElement).getPropertyValue("--snap").trim() || "ease-out";
 
   // Target: as large as possible, aspect ratio like .cover (2:3), at most 27rem wide
-  // (small Google images without a larger version only a good two and a half times as large, otherwise blurry),
+  // (small images without a larger version (ekz) only a good two and a half times as large, otherwise blurry),
   // centered in the visible part of the page. With pinch zoom (trackpad, two fingers) that is only a section of the
   // window: sized and centered by innerWidth/innerHeight the image landed at the bottom right, partly outside.
   const place = () => {
