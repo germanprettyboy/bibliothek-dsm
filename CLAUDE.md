@@ -134,7 +134,9 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   also from the cache; survey's `miss` = books without any cover (Pflege list).
   Staggered in the background for books in view, small (OL "M" ≈180 px, Google ≈128 px, ekz fixed 170–440 px).
 - Tap a real cover in the detail → `#zoom` (second Radix dialog, glass scrim), FLIP flight (transform only, `--snap`, 240/180 ms)
-  into the center, max. 27rem. Only then OL "L"; Google at most 2.5×. Placeholders can't be enlarged.
+  into the center of the VISIBLE section (`visualViewport`, not innerWidth/innerHeight: with pinch zoom the window center lay
+  bottom right, 2026-10-23), max. 27rem. Only then OL "L"; Google at most 2.5×. Placeholders can't be enlarged.
+  Enlargeable only once the image is shown (`onShown` in the frame that adds `.in`); a new book resets found/zoomable in render.
 - Detail on the phone (<40rem, `lib/swipe.js`): screen-high sheet, parked half-high (transform), flies in from below
   (spring as `linear()`), the finger leads 1:1; up = as high as the content, at most full screen (content scrolls), down = half,
   further/fast = close, the scrim follows. Content that fits half-high (≤ 80 %) = ONE stage like an iOS sheet sized to its
