@@ -1,9 +1,9 @@
 /* Tab "Pflege": automatic corrections of simple formatting inconsistencies in the PUBLIC list (fixes-core.js), not in
-   WinBIAP. Each applicable fix is a row (checkbox, count, before → after examples, the full list on demand). One run
+   WinBook. Each applicable fix is a row (checkbox, count, before → after examples, the full list on demand). One run
    button: Play → spinner while the list is corrected in chunks (at least MIN ms of progress) → green with a drawn check.
    Result = B.setFixed({ books, applied, counts, changed }); undo = B.setFixed(null). It is published with books.js.
    Below: what the list already cleans by itself on every import (yearOdd, titleSpaces from inspect), with a jump to the
-   correction list for WinBIAP. Props: B (app state), ins (inspect result or null).
+   correction list for WinBook. Props: B (app state), ins (inspect result or null).
    Test hooks: #fixes, #fix-run[data-state=idle|running|done], #fix-undo, #fix-sum, #fix-none, [data-fix], #fix-on-<key>,
    [data-auto]. */
 import "./strings-fixes";

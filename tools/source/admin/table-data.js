@@ -65,7 +65,7 @@ const ORDER = {};
 LISTS.forEach(([, keys]) => keys.forEach(k => { ORDER[k] = Object.keys(ORDER).length; }));
 const byList = (x, y) => ORDER[x.key] - ORDER[y.key];
 
-/* Rows of the copies (WinBIAP records): { n, id, t, a, p, y, c, l, sig, z, probs:[{key, v}], cs:[c], ls:[l], q } and of the
+/* Rows of the copies (WinBook records): { n, id, t, a, p, y, c, l, sig, z, probs:[{key, v}], cs:[c], ls:[l], q } and of the
    public list: { n, t, s, a, p, y, i, c, l, cover, probs, ids, cs, ls, q } (q = search text, cs/ls = values for the filters). */
 export function buildData(ins, books, report, cov) {
   const hits = new Set((report && report.nameHitTitles) || []);

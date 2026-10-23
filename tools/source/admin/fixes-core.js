@@ -1,14 +1,15 @@
 /* Automatic corrections of the public list (pure logic for fixes.jsx, no React; also runs in Node).
-   Only deterministic normalizations of the list built from WinBIAP (books.js entries { t, s?, a?, p?, y?, i?, c?, l? }).
+   Only deterministic normalizations of the list built from WinBook (books.js entries { t, s?, a?, p?, y?, i?, c?, l? }).
    The input list is never changed: a changed book is a new object, an unchanged one keeps its reference.
-   WinBIAP itself is never written. Not done on purpose: titles in capitals (not consistent in German), ISBN completion,
+   WinBook itself is never written. Not done on purpose: titles in capitals (not consistent in German), ISBN completion,
    merging different books, anything that needs a guess. Steps run in this order, each on the result of the steps before:
      chars      NFC (letters with accents stored as two characters) and invisible characters (soft hyphen, zero width)
      punct      separators left over from library cataloguing (ISBD): "Rowohlt,", "Flix,", "= Parallel title", "Titel , Teil"
      subtitle   subtitle equal to the title (apart from case/punctuation) or without any letter or digit
      category, location, publisher, author
                 spelling variants that differ only in case, accents, ß/ss (and, except for authors, spaces): one spelling
-                per group. Canonical = known Italian name (categories) > proper case > more accents > more frequent; a group
+                per group. Canonical = known Italian name (categories) > lower-case abbreviation ("bpb", "dtv") > proper
+                case > more accents > more frequent; a group
                 where the best two tie on all of these is left alone (not unambiguous). */
 
 export const STEPS = ["chars", "punct", "subtitle", "category", "location", "publisher", "author"];
@@ -69,9 +70,12 @@ function mapFields(b, fs, f, note) {
 }
 
 const letters = s => s.replace(/[^\p{L}]/gu, "");
+// Lower-case abbreviation without a vowel ("bpb", "dtv"): written that way on purpose, it wins over every other spelling
+const LOWER_ABBR = /^[b-df-hj-np-tv-z]{2,5}$/;
 function caseScore(s) {
   const l = letters(s);
   if (!l) return 0;
+  if (LOWER_ABBR.test(s.trim())) return 3;
   const first = l[0] !== l[0].toLowerCase() ? 1 : 0;
   const caps = l.length >= 2 && l === l.toUpperCase() && l !== l.toLowerCase();
   return first + (caps ? 0 : 1);

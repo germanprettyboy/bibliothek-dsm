@@ -1,5 +1,5 @@
 /*
- * extract.js – reads a WinBIAP library database (SQLite) and produces
+ * extract.js – reads a WinBook library database (SQLite) and produces
  * the public book list. Works on the whitelist principle:
  * only core bibliographic data is read. Reader, loan, fee, user and
  * session data are never read, only counted, so the report can show
@@ -14,7 +14,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  // Tables with personal or transaction data: only counted, never read (WinBIAP table name, report key).
+  // Tables with personal or transaction data: only counted, never read (WinBook table name, report key).
   const PERSONAL_TABLES = [
     ["leiher", "readers"],
     ["leihergruppen_leiher", "readerGroups"],
@@ -46,7 +46,7 @@
   // Columns with reader names (counted for the report).
   const NAME_COLUMNS = ["verliehenan", "vorgemerktan", "bdonatedby"];
 
-  // Media types that count as a book (WinBIAP values).
+  // Media types that count as a book (WinBook values).
   const BOOK_TYPES = ["buch", "graphic novel", "comic", "manga", "taschenbuch", "sachbuch"];
   const EMPTY = /^\s*(keine angabe|k\.\s*a\.|unbekannt|-+|\?+)?\s*$/i;
 
@@ -235,9 +235,9 @@
 
   /*
    * Maintenance analysis for the admin page (tab "Pflege"): every copy that the public list is built from (same
-   * rules as extract, but not merged) and what should be fixed in WinBIAP. Never published, only shown and
+   * rules as extract, but not merged) and what should be fixed in WinBook. Never published, only shown and
    * exported as CSV. Returns { records, checks: [{ key, rows }], types, latest }:
-   *   records: one per copy { id, t, a, p, y, c, l, sig, z } (id = WinBIAP number, z = accession date YYYY-MM-DD)
+   *   records: one per copy { id, t, a, p, y, c, l, sig, z } (id = WinBook number, z = accession date YYYY-MM-DD)
    *   rows: { r: record, v? } for a copy (v = the value to fix) or { v, n } for a master data entry (n = copies)
    * Category and location names that contain a reader name are never shown, only their number (#id).
    */
@@ -331,7 +331,7 @@
     dups("publisherDup", publisher, refs.p);
     dups("categoryDup", category, refs.c, true);
     dups("locationDup", location, refs.l, true);
-    // Never used by any record (also not by other media or withdrawn copies): can be deleted in WinBIAP
+    // Never used by any record (also not by other media or withdrawn copies): can be deleted in WinBook
     for (const [id, name] of category) if (name && !used.c.has(id)) add("categoryUnused", { v: contains(name) ? "#" + id : name });
     for (const [id, name] of location) if (name && !used.l.has(id)) add("locationUnused", { v: contains(name) ? "#" + id : name });
     namedCat.forEach(id => add("namedCategory", { v: "#" + id, n: refs.c.get(id) || 0 }));

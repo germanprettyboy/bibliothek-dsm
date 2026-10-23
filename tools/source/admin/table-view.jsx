@@ -1,4 +1,4 @@
-/* Table viewer for all admin data (opened from tab "Pflege"): the WinBIAP copies of the import (ins.records) or the public
+/* Table viewer for all admin data (opened from tab "Pflege"): the WinBook copies of the import (ins.records) or the public
    list (books), searchable, filterable by maintenance list, category and location, sortable by every column, exportable
    as CSV / Excel. Large glass dialog (#table-view): from 40rem nearly the whole window, on phones a screen-high sheet
    with swipe stages and cards instead of table rows. Only the visible rows are rendered (fixed row height, one scroll
@@ -438,7 +438,7 @@ const Row = React.memo(function Row({ r, i, ds, cols, wide, h, on, tab }) {
   );
 });
 
-// Detail panel over the table: all fields, the copies in WinBIAP (public list) and the lists with their hints
+// Detail panel over the table: all fields, the copies in WinBook (public list) and the lists with their hints
 function Detail({ r, ds, cov, onClose }) {
   const { t, df } = useLanguage();
   const ref = React.useRef(null);

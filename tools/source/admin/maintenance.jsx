@@ -1,4 +1,4 @@
-/* Tab "Pflege": maintenance lists from the WinBIAP file (source/extract.js inspect) – what should be fixed in WinBIAP,
+/* Tab "Pflege": maintenance lists from the WinBook file (source/extract.js inspect) – what should be fixed in WinBook,
    media types, a location list for the inventory at the shelf. Every list: table view (table-view.jsx), download as
    Excel (xlsx.js, formatted, one sheet per list) or CSV, printing (print.jsx). Nothing here is published. */
 import * as React from "react";

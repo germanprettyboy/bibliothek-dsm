@@ -4,7 +4,7 @@ import { addStrings } from "@/lib/language";
 addStrings({
   de: {
     fxT: "Automatische Korrekturen",
-    fxP: "Vereinheitlicht einfache Schreibweisen in der öffentlichen Liste – nur wo die Korrektur eindeutig ist. WinBIAP selbst bleibt unverändert.",
+    fxP: "Vereinheitlicht einfache Schreibweisen in der öffentlichen Liste – nur wo die Korrektur eindeutig ist. WinBook selbst bleibt unverändert.",
     fxRun: "Korrekturen anwenden", fxRunning: "Wird korrigiert …", fxDone: "Korrekturen angewendet",
     fxNone: "Nichts zu korrigieren: Die öffentliche Liste ist einheitlich geschrieben.",
     fxSum: "{n} Einträge in der öffentlichen Liste vereinheitlicht.",
@@ -28,7 +28,7 @@ addStrings({
     fx_author: "Autorinnen und Autoren in mehreren Schreibweisen",
     fxh_author: "Unterscheiden sich nur in Groß- und Kleinschreibung, Akzenten oder ß/ss (z. B. „Horvath“ und „Horváth“). Übernommen wird die Schreibweise mit Großbuchstaben am Anfang, mit Akzenten oder die häufigere.",
     fxAutoT: "Bereits automatisch bereinigt",
-    fxAutoP: "Diese Fälle bereinigt die Liste bei jedem Einlesen selbst. In WinBIAP stehen weiter die ursprünglichen Werte – die Korrekturliste zeigt, was dort zu ändern ist.",
+    fxAutoP: "Diese Fälle bereinigt die Liste bei jedem Einlesen selbst. In WinBook stehen weiter die ursprünglichen Werte – die Korrekturliste zeigt, was dort zu ändern ist.",
     fxa_yearOdd: "Erscheinungsjahr mit Monat, Tag oder Zusatz",
     fxah_yearOdd: "Übernommen wird nur die vierstellige Jahreszahl, z. B. „2010 (1. Aufl.)“ → 2010.",
     fxa_titleSpaces: "Überzählige Leerzeichen in Titeln",
@@ -37,7 +37,7 @@ addStrings({
   },
   it: {
     fxT: "Correzioni automatiche",
-    fxP: "Uniforma le grafie semplici nell'elenco pubblico – solo dove la correzione è univoca. WinBIAP resta invariato.",
+    fxP: "Uniforma le grafie semplici nell'elenco pubblico – solo dove la correzione è univoca. WinBook resta invariato.",
     fxRun: "Applica correzioni", fxRunning: "Correzione in corso …", fxDone: "Correzioni applicate",
     fxNone: "Niente da correggere: l'elenco pubblico è scritto in modo uniforme.",
     fxSum: "{n} voci uniformate nell'elenco pubblico.",
@@ -61,7 +61,7 @@ addStrings({
     fx_author: "Autrici e autori scritti in più modi",
     fxh_author: "Differiscono solo per maiuscole e minuscole, accenti o ß/ss (p. es. «Horvath» e «Horváth»). Si adotta la grafia con l'iniziale maiuscola, con gli accenti o la più frequente.",
     fxAutoT: "Già corretto automaticamente",
-    fxAutoP: "L'elenco corregge questi casi da solo a ogni importazione. In WinBIAP restano i valori originali – la lista di correzione mostra cosa modificare lì.",
+    fxAutoP: "L'elenco corregge questi casi da solo a ogni importazione. In WinBook restano i valori originali – la lista di correzione mostra cosa modificare lì.",
     fxa_yearOdd: "Anno di pubblicazione con mese, giorno o aggiunte",
     fxah_yearOdd: "Si riprende solo l'anno a quattro cifre, p. es. «2010 (1. Aufl.)» → 2010.",
     fxa_titleSpaces: "Spazi superflui nei titoli",

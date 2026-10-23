@@ -209,7 +209,7 @@ function Locations({ ins, flags }) {
   );
 }
 
-// Accessions per year (WinBIAP accession date) with a linear trend over the complete years
+// Accessions per year (WinBook accession date) with a linear trend over the complete years
 function Acquisitions({ ins }) {
   const { t, nf } = useLanguage();
   const data = React.useMemo(() => {

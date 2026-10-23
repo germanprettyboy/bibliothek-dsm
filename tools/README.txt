@@ -5,7 +5,7 @@ build.mjs           Builds the website from ../src (React, Tailwind CSS, shadcn/
                     index.html, admin.html, assets/library.js, admin.js, style.css, head.js.
                     Run in the project folder: npm run build   (once beforehand: npm install)
 
-source/extract.js   Plaintext: reads the WinBIAP database, removes personal data
+source/extract.js   Plaintext: reads the WinBook database, removes personal data
 source/admin/       Plaintext: admin user interface (React: catalog, covers, maintenance + exports + table + corrections,
                     statistics, recommendations, info, help, local versions)
 encrypt-admin.js    Builds source/admin/ and encrypts it together with extract.js

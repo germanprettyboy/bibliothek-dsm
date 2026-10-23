@@ -12,13 +12,13 @@ export const HELP = {
       title: "Erste Schritte",
       intro: "Was die Verwaltung macht und wie ein Durchgang abläuft.",
       blocks: [
-        "Die Verwaltung erzeugt die drei Dateien der öffentlichen Bücherliste: den Bestand (books.js), die Buchempfehlungen (recommendations.js) sowie Öffnungszeiten, Ferien und Banner (info.js). Die Bücherliste aktualisiert sich nicht von selbst – den Bestand übertragen Sie von Hand aus WinBIAP, am besten einmal im Monat.",
+        "Die Verwaltung erzeugt die drei Dateien der öffentlichen Bücherliste: den Bestand (books.js), die Buchempfehlungen (recommendations.js) sowie Öffnungszeiten, Ferien und Banner (info.js). Die Bücherliste aktualisiert sich nicht von selbst – den Bestand übertragen Sie von Hand aus WinBook, am besten einmal im Monat.",
         { h: "Die Tabs im Überblick" },
         {
           list: [
-            "[[Bestand]]: WinBIAP-Datei einlesen, Bericht prüfen, italienische Kategorienamen ergänzen, veröffentlichen.",
+            "[[Bestand]]: WinBook-Datei einlesen, Bericht prüfen, italienische Kategorienamen ergänzen, veröffentlichen.",
             "[[Cover]]: Cover-Abdeckung prüfen und falsche Cover ausblenden.",
-            "[[Pflege]]: Listen, was in WinBIAP korrigiert werden sollte, Inventurlisten und automatische Korrekturen. Die Listen werden nicht veröffentlicht.",
+            "[[Pflege]]: Listen, was in WinBook korrigiert werden sollte, Inventurlisten und automatische Korrekturen. Die Listen werden nicht veröffentlicht.",
             "[[Statistik]]: Diagramme zum Bestand.",
             "[[Empfehlungen]]: Buchtipps für fünf Lesergruppen.",
             "[[Info]]: Öffnungszeiten, Ferien, Hinweis, Kontakt und Banner.",
@@ -27,14 +27,14 @@ export const HELP = {
         { h: "Die monatliche Routine" },
         {
           steps: [
-            { t: "WinBIAP-Datei kopieren: WinBIAP auf allen Computern schließen, dann die .winbook-Datei auf einen USB-Stick kopieren. Nur kopieren – nie verschieben, nie umbenennen." },
+            { t: "WinBook-Datei kopieren: WinBook auf allen Computern schließen, dann die .winbook-Datei auf einen USB-Stick kopieren. Nur kopieren – nie verschieben, nie umbenennen." },
             { t: "Bestand einlesen: Im Tab „Bestand“ auf [[Datenbank auswählen]] klicken und die Datei wählen. Den Bericht prüfen: Die Zahl der Bücher bleibt ungefähr gleich, bei „entfallen“ steht eine kleine Zahl.", tab: "catalog" },
             { t: "Cover prüfen: Im Tab „Cover“ auf [[Cover-Abdeckung prüfen]] klicken (einige Minuten) und falsche Cover ausblenden.", tab: "covers" },
-            { t: "Pflegen: Im Tab „Pflege“ eine oder zwei Listen abarbeiten und die Fehler in WinBIAP korrigieren.", tab: "care" },
-            { t: "Veröffentlichen: Mit [[Vorschau ansehen]] kontrollieren, dann [[Veröffentlichen]]. Zum Schluss [[Sperren]] und die Kopie der WinBIAP-Datei löschen.", tab: "catalog" },
+            { t: "Pflegen: Im Tab „Pflege“ eine oder zwei Listen abarbeiten und die Fehler in WinBook korrigieren.", tab: "care" },
+            { t: "Veröffentlichen: Mit [[Vorschau ansehen]] kontrollieren, dann [[Veröffentlichen]]. Zum Schluss [[Sperren]] und die Kopie der WinBook-Datei löschen.", tab: "catalog" },
           ],
         },
-        { warn: "Die WinBIAP-Datei enthält Schülerdaten. Die Verwaltung liest sie nur in diesem Browser und lädt sie nie hoch. Die Datei nicht per E-Mail, Messenger oder Cloud weitergeben und die Kopie nach Gebrauch löschen." },
+        { warn: "Die WinBook-Datei enthält Schülerdaten. Die Verwaltung liest sie nur in diesem Browser und lädt sie nie hoch. Die Datei nicht per E-Mail, Messenger oder Cloud weitergeben und die Kopie nach Gebrauch löschen." },
         { tip: "{{/}} springt in die Suche dieser Hilfe, {{Esc}} schließt sie." },
       ],
     },
@@ -49,7 +49,7 @@ export const HELP = {
           blocks: [
             {
               steps: [
-                "WinBIAP auf allen Computern beenden und die .winbook-Datei auf einen USB-Stick kopieren (Rechtsklick, Kopieren, Einfügen – nicht mit der Maus ziehen).",
+                "WinBook auf allen Computern beenden und die .winbook-Datei auf einen USB-Stick kopieren (Rechtsklick, Kopieren, Einfügen – nicht mit der Maus ziehen).",
                 "Im Tab „Bestand“ auf [[Datenbank auswählen]] klicken oder die Datei auf die Fläche ziehen. Die Datei wird nur im Browser gelesen, nicht hochgeladen.",
                 "Warten, bis „Lesemodul wird geladen …“ und „Datenbank wird gelesen und bereinigt …“ durch sind. Auf älteren Computern dauert das bis zu einer Minute.",
                 "Den Bericht prüfen: „Übernommen“ nennt die Zahl der Bücher, „Gegenüber der aktuellen Liste“ die neuen und entfallenen Titel – [[Titel anzeigen]] klappt sie auf. Unten sollte „Abgleich bestanden“ stehen.",
@@ -65,7 +65,7 @@ export const HELP = {
           id: "covers",
           title: "Cover-Abdeckung prüfen und falsche Cover ausblenden",
           blocks: [
-            "Cover gibt es nur über die ISBN aus WinBIAP: zuerst vom ekz-Bibliotheksservice, für die übrigen von Open Library. Ohne ISBN zeigt die Website einen gestalteten Platzhalter.",
+            "Cover gibt es nur über die ISBN aus WinBook: zuerst vom ekz-Bibliotheksservice, für die übrigen von Open Library. Ohne ISBN zeigt die Website einen gestalteten Platzhalter.",
             {
               steps: [
                 "Im Tab „Cover“ auf [[Cover-Abdeckung prüfen]] klicken.",
@@ -91,7 +91,7 @@ export const HELP = {
           id: "catit",
           title: "Italienische Kategorienamen",
           blocks: [
-            "Die Kategorien kommen auf Deutsch aus WinBIAP. Für die italienische Seite gibt es eine Übersetzungsliste; neue Kategorien ohne Übersetzung erscheinen dort auf Deutsch.",
+            "Die Kategorien kommen auf Deutsch aus WinBook. Für die italienische Seite gibt es eine Übersetzungsliste; neue Kategorien ohne Übersetzung erscheinen dort auf Deutsch.",
             {
               steps: [
                 "Fehlt eine Übersetzung, zeigt der Tab „Bestand“ den Kasten [[Kategorien auf Italienisch]].",
@@ -106,14 +106,14 @@ export const HELP = {
           id: "care",
           title: "Pflegelisten nutzen",
           blocks: [
-            "Beim Einlesen entstehen im Tab „Pflege“ Listen mit allem, was in WinBIAP korrigiert werden sollte – jeweils mit der Nummer in WinBIAP, damit Sie den Eintrag schnell finden. Die Listen werden nicht veröffentlicht.",
+            "Beim Einlesen entstehen im Tab „Pflege“ Listen mit allem, was in WinBook korrigiert werden sollte – jeweils mit der Nummer in WinBook, damit Sie den Eintrag schnell finden. Die Listen werden nicht veröffentlicht.",
             {
               list: [
-                "[[Für WinBIAP]]: die Listen in Gruppen (ISBN und Cover, Angaben zum Titel, Exemplare, Stammdaten, Namensprüfung). Ein Klick auf eine Zeile klappt sie auf; darunter steht, was zu tun ist.",
+                "[[Für WinBook]]: die Listen in Gruppen (ISBN und Cover, Angaben zum Titel, Exemplare, Stammdaten, Namensprüfung). Ein Klick auf eine Zeile klappt sie auf; darunter steht, was zu tun ist.",
                 "Excel und CSV: Über das Download-Menü lassen sich einzelne Listen oder alle Listen als Excel- oder CSV-Datei speichern, zum Sortieren und Abhaken.",
                 "Datentabelle: zeigt die Einträge als Tabelle zum Durchsehen, Sortieren und Filtern – ohne etwas herunterzuladen.",
                 "Drucken: [[Fehlerliste drucken]] druckt die ausgewählten Listen zum Abarbeiten. Die [[Standortliste für die Inventur]] druckt ein Regal mit der Spalte „Vorhanden“ zum Abhaken.",
-                "Automatische Korrekturen: vereinheitlichen nur sichere Fälle, etwa überzählige Leerzeichen oder dieselbe Angabe in mehreren Schreibweisen. Sie wirken nur auf die öffentliche Liste und gehen mit books.js online; die WinBIAP-Datei wird nie verändert.",
+                "Automatische Korrekturen: vereinheitlichen nur sichere Fälle, etwa überzählige Leerzeichen oder dieselbe Angabe in mehreren Schreibweisen. Sie wirken nur auf die öffentliche Liste und gehen mit books.js online; die WinBook-Datei wird nie verändert.",
               ],
             },
             { tip: "Nicht alles ist ein Fehler: Bei Sammelbänden fehlt der Autor zu Recht, bei Pseudonymen passt „Nachname, Vorname“ nicht. Die Hinweise unter jeder Liste sagen, wann es so richtig ist." },
@@ -246,7 +246,7 @@ export const HELP = {
                 "Andere Tabs und Programme schließen.",
                 "Wenn möglich einen neueren Computer nehmen (Windows 10 oder 11).",
                 "Ist die Datei viel größer oder kleiner als sonst, ist es vermutlich die falsche (Demo-Datenbank, alte Kopie).",
-                "„Die Datei konnte nicht gelesen werden: …“ heißt meist: Die Kopie ist unvollständig, weil WinBIAP beim Kopieren noch offen war. WinBIAP schließen und neu kopieren.",
+                "„Die Datei konnte nicht gelesen werden: …“ heißt meist: Die Kopie ist unvollständig, weil WinBook beim Kopieren noch offen war. WinBook schließen und neu kopieren.",
               ],
             },
           ],
@@ -257,13 +257,13 @@ export const HELP = {
           blocks: [
             {
               list: [
-                "Ohne ISBN gibt es kein Cover, nur den Platzhalter. Die ISBN in WinBIAP nachtragen (vom Buch abschreiben).",
+                "Ohne ISBN gibt es kein Cover, nur den Platzhalter. Die ISBN in WinBook nachtragen (vom Buch abschreiben).",
                 "Falsch abgeschriebene ISBN: Die Listen „Ungültige ISBN“ und „ISBN, aber kein Cover gefunden“ im Tab „Pflege“ helfen beim Finden.",
                 "Auch mit richtiger ISBN haben ekz und Open Library nicht jedes Bild, besonders bei italienischen, älteren oder kleinen Ausgaben.",
                 "„Nicht prüfbar (Netzfehler)“: Das Netz hat die Abfragen unterbrochen. Später [[Erneut prüfen]] klicken oder in einem anderen Netz prüfen.",
               ],
             },
-            { tip: "Die Verwaltung ergänzt bewusst keine ISBN von selbst. Nur die ISBN aus WinBIAP zählt." },
+            { tip: "Die Verwaltung ergänzt bewusst keine ISBN von selbst. Nur die ISBN aus WinBook zählt." },
             { tab: "covers" },
           ],
         },
@@ -272,7 +272,7 @@ export const HELP = {
           title: "Ein Buch zeigt ein falsches Cover",
           blocks: [
             { steps: ["Im Tab „Cover“ im Kasten [[Falsches Cover ausblenden]] das Buch suchen.", "[[Ausblenden]] klicken.", "Mit books.js veröffentlichen."] },
-            "Besser auf Dauer: die ISBN in WinBIAP prüfen. Haben Bände einer Reihe die ISBN der Gesamtausgabe, zeigen alle dasselbe Cover – die Liste „Gleiche ISBN bei verschiedenen Titeln“ im Tab „Pflege“ findet sie.",
+            "Besser auf Dauer: die ISBN in WinBook prüfen. Haben Bände einer Reihe die ISBN der Gesamtausgabe, zeigen alle dasselbe Cover – die Liste „Gleiche ISBN bei verschiedenen Titeln“ im Tab „Pflege“ findet sie.",
             { tab: "covers" },
           ],
         },
@@ -311,7 +311,7 @@ export const HELP = {
           blocks: [
             "Die Warnung „… Titel enthalten einen Namen, der auch in der Leserdatei vorkommt“ ist meist harmlos: Eine Autorin oder ein Autor heißt zufällig wie eine Leserin oder ein Leser.",
             { steps: ["Die Liste „Titel mit einem Namen aus der Leserdatei“ im Tab „Pflege“ ansehen.", "Im Zweifel über [[Vorschau ansehen]] prüfen, wie der Titel öffentlich erscheint."] },
-            "Kategorien und Standorte mit einem Namen aus der Leserdatei werden automatisch nicht veröffentlicht; sie stehen ebenfalls im Tab „Pflege“ und sollten in WinBIAP umbenannt werden. Der Ausleihstatus wird nie veröffentlicht.",
+            "Kategorien und Standorte mit einem Namen aus der Leserdatei werden automatisch nicht veröffentlicht; sie stehen ebenfalls im Tab „Pflege“ und sollten in WinBook umbenannt werden. Der Ausleihstatus wird nie veröffentlicht.",
             { tab: "care" },
           ],
         },
@@ -319,11 +319,11 @@ export const HELP = {
           id: "dupcat",
           title: "Eine Kategorie erscheint doppelt",
           blocks: [
-            "In WinBIAP steht dieselbe Kategorie in mehreren Schreibweisen – oft nur mit einem Leerzeichen am Ende oder anderer Groß- und Kleinschreibung.",
+            "In WinBook steht dieselbe Kategorie in mehreren Schreibweisen – oft nur mit einem Leerzeichen am Ende oder anderer Groß- und Kleinschreibung.",
             {
               list: [
                 "Die Liste „Kategorien in mehreren Schreibweisen“ im Tab „Pflege“ nennt sie.",
-                "In WinBIAP zu einem Eintrag zusammenführen; beim nächsten Einlesen ist die Dopplung weg.",
+                "In WinBook zu einem Eintrag zusammenführen; beim nächsten Einlesen ist die Dopplung weg.",
                 "Bis dahin können die automatischen Korrekturen die Schreibweise in der öffentlichen Liste vereinheitlichen.",
               ],
             },
@@ -357,7 +357,7 @@ export const HELP = {
           id: "students",
           title: "Werden Schülerdaten veröffentlicht?",
           blocks: [
-            "Nein. In die öffentliche Liste kommen nur Titel, Untertitel, Autor, Verlag, Jahr, ISBN, Kategorie und Standort. Tabellen mit Lesern, Ausleihen, Gebühren, WinBIAP-Benutzern und Anmeldungen werden nur gezählt. Der Ausleihstatus wird nie gelesen und nie veröffentlicht.",
+            "Nein. In die öffentliche Liste kommen nur Titel, Untertitel, Autor, Verlag, Jahr, ISBN, Kategorie und Standort. Tabellen mit Lesern, Ausleihen, Gebühren, WinBook-Benutzern und Anmeldungen werden nur gezählt. Der Ausleihstatus wird nie gelesen und nie veröffentlicht.",
             "Zusätzlich prüft die Verwaltung, ob ein Name aus der Leserdatei in den öffentlichen Angaben vorkommt.",
           ],
         },
@@ -369,7 +369,7 @@ export const HELP = {
         {
           id: "lock",
           title: "Was passiert beim Sperren?",
-          blocks: ["Die Verwaltung schließt sich und fragt beim nächsten Mal wieder nach dem Passwort. Entwürfe bleiben in diesem Browser erhalten. Eine eingelesene WinBIAP-Datei ist danach nicht mehr geladen – zum Weiterarbeiten neu einlesen."],
+          blocks: ["Die Verwaltung schließt sich und fragt beim nächsten Mal wieder nach dem Passwort. Entwürfe bleiben in diesem Browser erhalten. Eine eingelesene WinBook-Datei ist danach nicht mehr geladen – zum Weiterarbeiten neu einlesen."],
         },
         {
           id: "undo",
@@ -407,8 +407,8 @@ export const HELP = {
         },
         {
           id: "winbiap",
-          title: "Warum ändert WinBIAP nichts, wenn ich hier korrigiere?",
-          blocks: ["Die WinBIAP-Datei wird nur gelesen, nie verändert. Italienische Kategorienamen, ausgeblendete Cover und automatische Korrekturen wirken nur auf die öffentliche Liste. Dauerhaft richtig werden die Daten erst durch die Korrektur in WinBIAP – beim nächsten Einlesen ist sie dann in der Liste."],
+          title: "Warum ändert WinBook nichts, wenn ich hier korrigiere?",
+          blocks: ["Die WinBook-Datei wird nur gelesen, nie verändert. Italienische Kategorienamen, ausgeblendete Cover und automatische Korrekturen wirken nur auf die öffentliche Liste. Dauerhaft richtig werden die Daten erst durch die Korrektur in WinBook – beim nächsten Einlesen ist sie dann in der Liste."],
         },
         {
           id: "loan",
@@ -418,7 +418,7 @@ export const HELP = {
         {
           id: "edit",
           title: "Kann ich ein Buch hier hinzufügen oder ändern?",
-          blocks: ["Nein. Bücher werden nur in WinBIAP erfasst, korrigiert oder ausgeschieden. Die nächste Aktualisierung übernimmt die Änderung."],
+          blocks: ["Nein. Bücher werden nur in WinBook erfasst, korrigiert oder ausgeschieden. Die nächste Aktualisierung übernimmt die Änderung."],
         },
         {
           id: "two",
@@ -428,7 +428,7 @@ export const HELP = {
         {
           id: "mobile",
           title: "Geht das auch am Handy oder Tablet?",
-          blocks: ["Ja, die Verwaltung funktioniert dort. Für das Einlesen liegt die WinBIAP-Datei aber meist auf einem USB-Stick – dafür ist ein Computer praktischer. Der Website-Ordner lässt sich nur in Chrome oder Edge am Computer verwenden."],
+          blocks: ["Ja, die Verwaltung funktioniert dort. Für das Einlesen liegt die WinBook-Datei aber meist auf einem USB-Stick – dafür ist ein Computer praktischer. Der Website-Ordner lässt sich nur in Chrome oder Edge am Computer verwenden."],
         },
         {
           id: "browser",
@@ -438,7 +438,7 @@ export const HELP = {
         {
           id: "internet",
           title: "Braucht man Internet?",
-          blocks: ["Zum Öffnen der Verwaltung, für die Cover-Prüfung und zum Veröffentlichen online: ja. Das Einlesen der WinBIAP-Datei selbst geschieht im Browser, ohne dass Daten übertragen werden."],
+          blocks: ["Zum Öffnen der Verwaltung, für die Cover-Prüfung und zum Veröffentlichen online: ja. Das Einlesen der WinBook-Datei selbst geschieht im Browser, ohne dass Daten übertragen werden."],
         },
         {
           id: "stats",
@@ -462,7 +462,7 @@ export const HELP = {
           pairs: [
             ["Regelmäßig aktualisieren", "Etwa einmal im Monat und nach größeren Neuanschaffungen. Die Liste ist nur so aktuell wie das letzte Einlesen."],
             ["Pflegelisten nach Wirkung abarbeiten", "Zuerst die ISBN (ungültig, fehlend) – jede korrigierte ISBN kann ein Cover bringen. Danach Kategorien und Standorte, zuletzt Schreibweisen."],
-            ["Schreibweisen in WinBIAP vereinheitlichen", "Pro Autor, Verlag, Kategorie und Standort nur eine Schreibweise; Autoren als „Nachname, Vorname“. Das macht Filter und Suche besser."],
+            ["Schreibweisen in WinBook vereinheitlichen", "Pro Autor, Verlag, Kategorie und Standort nur eine Schreibweise; Autoren als „Nachname, Vorname“. Das macht Filter und Suche besser."],
             ["Erst prüfen, dann veröffentlichen", "Cover-Prüfung vor dem Veröffentlichen, damit ihr Ergebnis mitgespeichert wird. Und vorher kurz in die Vorschau schauen."],
             ["Empfehlungen pro Halbjahr erneuern", "Eine neue Runde zu Beginn des Halbjahres hält die Startseite lebendig; die alte bleibt unter „Bisherige Empfehlungen“ sichtbar."],
             ["Texte kurz halten", "Zwei bis drei Sätze: Worum geht es, und warum lohnt es sich? Immer auf Deutsch und Italienisch."],
@@ -470,7 +470,7 @@ export const HELP = {
             ["Ferien rechtzeitig eintragen", "Am besten alle Ferien des Schuljahres zu Beginn eintragen und vor jeden Ferien kurz prüfen."],
             ["Passwort nicht weitergeben", "Nur persönlich weitergeben, nicht aufschreiben, nicht im Browser speichern. Nach der Arbeit sperren."],
             ["Nach dem Veröffentlichen kontrollieren", "Die Website öffnen, neu laden und zur Probe ein neues Buch suchen oder die Öffnungszeiten ansehen."],
-            ["WinBIAP-Kopie löschen", "Die Kopie auf dem USB-Stick nach Gebrauch löschen. Sie enthält Schülerdaten."],
+            ["WinBook-Kopie löschen", "Die Kopie auf dem USB-Stick nach Gebrauch löschen. Sie enthält Schülerdaten."],
           ],
         },
       ],
@@ -483,18 +483,18 @@ export const HELP = {
         {
           kind: "terms",
           pairs: [
-            ["WinBIAP", "Das Bibliotheksprogramm der Schule. Es verwaltet Bücher, Leser und Ausleihen; die Verwaltung liest nur eine Kopie seiner Datenbank."],
-            [".winbook-Datei", "Die Datenbank von WinBIAP in einer einzigen Datei. Enthält Schülerdaten und bleibt in der Schule."],
+            ["WinBook", "Das Bibliotheksprogramm der Schule (WinBook 6.0). Es verwaltet Bücher, Leser und Ausleihen; die Verwaltung liest nur eine Kopie seiner Datenbank."],
+            [".winbook-Datei", "Die Datenbank von WinBook in einer einzigen Datei. Enthält Schülerdaten und bleibt in der Schule."],
             ["ISBN", "Die 10- oder 13-stellige Buchnummer, meist hinten über dem Strichcode. Über sie wird das Cover gefunden."],
             ["ekz-Bibliotheksservice", "Dienstleister für Bibliotheken; liefert die meisten Cover über die ISBN."],
             ["Open Library", "Freie Online-Bibliothek; zweite Quelle für Cover."],
             ["Cover-Abdeckung", "Anteil der Bücher, für die ein Cover gefunden wurde."],
-            ["Kategorie", "Sachgruppe aus WinBIAP. Grundlage des Kategoriefilters auf der Website."],
+            ["Kategorie", "Sachgruppe aus WinBook. Grundlage des Kategoriefilters auf der Website."],
             ["Standort", "Wo das Buch steht, zum Beispiel Regal und Brett. Erscheint in der Detailansicht."],
-            ["Signatur", "Kennzeichnung eines Exemplars in WinBIAP für die Aufstellung. Erscheint in den Pflegelisten, nicht auf der Website."],
+            ["Signatur", "Kennzeichnung eines Exemplars in WinBook für die Aufstellung. Erscheint in den Pflegelisten, nicht auf der Website."],
             ["Exemplar", "Ein einzelnes Buch im Regal. Exemplare mit gleichem Titel und erstem Autor ergeben einen Eintrag in der Liste."],
-            ["Medientyp", "Art des Mediums in WinBIAP. Nur Buch und Graphic Novel kommen in die Liste."],
-            ["Leserdatei", "Die Tabelle der Leserinnen und Leser in WinBIAP. Sie dient nur dem Namensabgleich; nichts daraus wird veröffentlicht."],
+            ["Medientyp", "Art des Mediums in WinBook. Nur Buch und Graphic Novel kommen in die Liste."],
+            ["Leserdatei", "Die Tabelle der Leserinnen und Leser in WinBook. Sie dient nur dem Namensabgleich; nichts daraus wird veröffentlicht."],
             ["books.js", "Datei der öffentlichen Bücherliste mit Cover-Abdeckung, italienischen Kategorienamen und ausgeblendeten Covern."],
             ["recommendations.js", "Datei der Buchempfehlungen mit ihren Texten und den früheren Runden."],
             ["info.js", "Datei mit Öffnungszeiten, Ferien, Abwesenheiten, anderen Zeiten, Hinweis, Kontakt und Banner."],
@@ -527,7 +527,7 @@ export const HELP = {
         { h: "Was mit den Daten passiert" },
         {
           list: [
-            "Die WinBIAP-Datei wird nur in diesem Browser gelesen und nie hochgeladen.",
+            "Die WinBook-Datei wird nur in diesem Browser gelesen und nie hochgeladen.",
             "Öffentlich sind nur Buchdaten, Empfehlungen und Öffnungszeiten – keine Namen, keine Ausleihen.",
             "Entwürfe bleiben in diesem Browser, bis sie veröffentlicht oder verworfen werden.",
             "Cover lädt die Website nur vom ekz-Bibliotheksservice und von Open Library.",
@@ -544,13 +544,13 @@ export const HELP = {
       title: "Primi passi",
       intro: "Che cosa fa la gestione e come si svolge un aggiornamento.",
       blocks: [
-        "La gestione crea i tre file dell'elenco pubblico dei libri: il catalogo (books.js), i consigli di lettura (recommendations.js) e orari, vacanze e banner (info.js). L'elenco non si aggiorna da solo: il catalogo va trasferito a mano da WinBIAP, idealmente una volta al mese.",
+        "La gestione crea i tre file dell'elenco pubblico dei libri: il catalogo (books.js), i consigli di lettura (recommendations.js) e orari, vacanze e banner (info.js). L'elenco non si aggiorna da solo: il catalogo va trasferito a mano da WinBook, idealmente una volta al mese.",
         { h: "Le schede in breve" },
         {
           list: [
-            "[[Catalogo]]: leggere il file WinBIAP, controllare il resoconto, aggiungere i nomi italiani delle categorie, pubblicare.",
+            "[[Catalogo]]: leggere il file WinBook, controllare il resoconto, aggiungere i nomi italiani delle categorie, pubblicare.",
             "[[Copertine]]: verificare la copertura delle copertine e nascondere quelle sbagliate.",
-            "[[Cura]]: liste di ciò che andrebbe corretto in WinBIAP, elenchi per l'inventario e correzioni automatiche. Le liste non vengono pubblicate.",
+            "[[Cura]]: liste di ciò che andrebbe corretto in WinBook, elenchi per l'inventario e correzioni automatiche. Le liste non vengono pubblicate.",
             "[[Statistiche]]: grafici sul catalogo.",
             "[[Consigli]]: suggerimenti di lettura per cinque gruppi di lettori.",
             "[[Info]]: orari di apertura, vacanze, avviso, contatti e banner.",
@@ -559,14 +559,14 @@ export const HELP = {
         { h: "La routine mensile" },
         {
           steps: [
-            { t: "Copiare il file WinBIAP: chiuda WinBIAP su tutti i computer, poi copi il file .winbook su una chiavetta USB. Solo copiare – mai spostare, mai rinominare." },
+            { t: "Copiare il file WinBook: chiuda WinBook su tutti i computer, poi copi il file .winbook su una chiavetta USB. Solo copiare – mai spostare, mai rinominare." },
             { t: "Leggere il catalogo: nella scheda «Catalogo» clicchi su [[Scegli il database]] e scelga il file. Controlli il resoconto: il numero dei libri resta più o meno uguale, i «rimossi» sono pochi.", tab: "catalog" },
             { t: "Verificare le copertine: nella scheda «Copertine» clicchi su [[Verifica copertura]] (alcuni minuti) e nasconda le copertine sbagliate.", tab: "covers" },
-            { t: "Curare i dati: nella scheda «Cura» elabori una o due liste e corregga gli errori in WinBIAP.", tab: "care" },
-            { t: "Pubblicare: controlli con [[Vedi anteprima]], poi clicchi su [[Pubblica]]. Alla fine clicchi su [[Blocca]] e cancelli la copia del file WinBIAP.", tab: "catalog" },
+            { t: "Curare i dati: nella scheda «Cura» elabori una o due liste e corregga gli errori in WinBook.", tab: "care" },
+            { t: "Pubblicare: controlli con [[Vedi anteprima]], poi clicchi su [[Pubblica]]. Alla fine clicchi su [[Blocca]] e cancelli la copia del file WinBook.", tab: "catalog" },
           ],
         },
-        { warn: "Il file WinBIAP contiene dati degli studenti. La gestione lo legge solo in questo browser e non lo carica mai in rete. Non lo inoltri per e-mail, messaggistica o cloud e cancelli la copia dopo l'uso." },
+        { warn: "Il file WinBook contiene dati degli studenti. La gestione lo legge solo in questo browser e non lo carica mai in rete. Non lo inoltri per e-mail, messaggistica o cloud e cancelli la copia dopo l'uso." },
         { tip: "{{/}} porta alla ricerca di questo aiuto, {{Esc}} lo chiude." },
       ],
     },
@@ -581,7 +581,7 @@ export const HELP = {
           blocks: [
             {
               steps: [
-                "Chiuda WinBIAP su tutti i computer e copi il file .winbook su una chiavetta USB (clic destro, Copia, Incolla – non trascinare con il mouse).",
+                "Chiuda WinBook su tutti i computer e copi il file .winbook su una chiavetta USB (clic destro, Copia, Incolla – non trascinare con il mouse).",
                 "Nella scheda «Catalogo» clicchi su [[Scegli il database]] o trascini il file sull'area. Il file viene letto solo nel browser, non caricato in rete.",
                 "Attenda la fine di «Caricamento del modulo di lettura …» e «Lettura e pulizia del database …». Sui computer meno recenti può volerci fino a un minuto.",
                 "Controlli il resoconto: «Inclusi» indica il numero dei libri, «Rispetto all'elenco attuale» i titoli nuovi e rimossi – [[Mostra i titoli]] li elenca. In fondo dovrebbe comparire «Verifica superata».",
@@ -597,7 +597,7 @@ export const HELP = {
           id: "covers",
           title: "Verificare la copertura e nascondere copertine sbagliate",
           blocks: [
-            "Le copertine arrivano solo tramite l'ISBN registrato in WinBIAP: prima da ekz-Bibliotheksservice, per le altre da Open Library. Senza ISBN il sito mostra un segnaposto grafico.",
+            "Le copertine arrivano solo tramite l'ISBN registrato in WinBook: prima da ekz-Bibliotheksservice, per le altre da Open Library. Senza ISBN il sito mostra un segnaposto grafico.",
             {
               steps: [
                 "Nella scheda «Copertine» clicchi su [[Verifica copertura]].",
@@ -623,7 +623,7 @@ export const HELP = {
           id: "catit",
           title: "Nomi italiani delle categorie",
           blocks: [
-            "Le categorie arrivano da WinBIAP in tedesco. Per la pagina italiana esiste un elenco di traduzioni; le nuove categorie senza traduzione vi compaiono in tedesco.",
+            "Le categorie arrivano da WinBook in tedesco. Per la pagina italiana esiste un elenco di traduzioni; le nuove categorie senza traduzione vi compaiono in tedesco.",
             {
               steps: [
                 "Se manca una traduzione, la scheda «Catalogo» mostra il riquadro [[Categorie in italiano]].",
@@ -638,14 +638,14 @@ export const HELP = {
           id: "care",
           title: "Usare le liste di manutenzione",
           blocks: [
-            "Durante la lettura, nella scheda «Cura» nascono liste di tutto ciò che andrebbe corretto in WinBIAP – ciascuna voce con il suo numero in WinBIAP, per trovarla subito. Le liste non vengono pubblicate.",
+            "Durante la lettura, nella scheda «Cura» nascono liste di tutto ciò che andrebbe corretto in WinBook – ciascuna voce con il suo numero in WinBook, per trovarla subito. Le liste non vengono pubblicate.",
             {
               list: [
-                "[[Per WinBIAP]]: le liste per gruppi (ISBN e copertine, dati del titolo, esemplari, dati anagrafici, controllo dei nomi). Un clic su una riga la apre; sotto è spiegato che cosa fare.",
+                "[[Per WinBook]]: le liste per gruppi (ISBN e copertine, dati del titolo, esemplari, dati anagrafici, controllo dei nomi). Un clic su una riga la apre; sotto è spiegato che cosa fare.",
                 "Excel e CSV: dal menu di download si salvano singole liste o tutte le liste come file Excel o CSV, da ordinare e spuntare.",
                 "Tabella dati: mostra le voci in una tabella da consultare, ordinare e filtrare – senza scaricare nulla.",
                 "Stampa: l'elenco degli errori si stampa con le liste selezionate, da elaborare con calma. L'[[Elenco per collocazione (inventario)]] stampa uno scaffale con la colonna «Presente» da spuntare.",
-                "Correzioni automatiche: uniformano solo casi sicuri, per esempio spazi superflui o lo stesso dato scritto in modi diversi. Valgono solo per l'elenco pubblico e vanno online con books.js; il file WinBIAP non viene mai modificato.",
+                "Correzioni automatiche: uniformano solo casi sicuri, per esempio spazi superflui o lo stesso dato scritto in modi diversi. Valgono solo per l'elenco pubblico e vanno online con books.js; il file WinBook non viene mai modificato.",
               ],
             },
             { tip: "Non tutto è un errore: nelle raccolte l'autore manca a ragione, per gli pseudonimi «Cognome, Nome» non si applica. Le note sotto ogni lista spiegano quando va bene così." },
@@ -778,7 +778,7 @@ export const HELP = {
                 "Chiuda altre schede e programmi.",
                 "Se possibile usi un computer più recente (Windows 10 o 11).",
                 "Se il file è molto più grande o più piccolo del solito, probabilmente è quello sbagliato (database demo, copia vecchia).",
-                "«Impossibile leggere il file: …» di solito significa che la copia è incompleta perché WinBIAP era ancora aperto. Chiuda WinBIAP e copi di nuovo il file.",
+                "«Impossibile leggere il file: …» di solito significa che la copia è incompleta perché WinBook era ancora aperto. Chiuda WinBook e copi di nuovo il file.",
               ],
             },
           ],
@@ -789,13 +789,13 @@ export const HELP = {
           blocks: [
             {
               list: [
-                "Senza ISBN non c'è copertina, solo il segnaposto. Inserisca l'ISBN in WinBIAP (copiandolo dal libro).",
+                "Senza ISBN non c'è copertina, solo il segnaposto. Inserisca l'ISBN in WinBook (copiandolo dal libro).",
                 "ISBN trascritto male: le liste «ISBN non valido» e «ISBN, ma nessuna copertina trovata» nella scheda «Cura» aiutano a trovarlo.",
                 "Anche con l'ISBN giusto ekz e Open Library non hanno tutte le immagini, soprattutto per edizioni italiane, vecchie o piccole.",
                 "«Non verificabile (errore di rete)»: la rete ha interrotto le richieste. Più tardi clicchi su [[Verifica di nuovo]] o verifichi da un'altra rete.",
               ],
             },
-            { tip: "La gestione non completa mai un ISBN da sola. Conta solo l'ISBN registrato in WinBIAP." },
+            { tip: "La gestione non completa mai un ISBN da sola. Conta solo l'ISBN registrato in WinBook." },
             { tab: "covers" },
           ],
         },
@@ -804,7 +804,7 @@ export const HELP = {
           title: "Un libro mostra una copertina sbagliata",
           blocks: [
             { steps: ["Nella scheda «Copertine», riquadro [[Nascondi una copertina sbagliata]], cerchi il libro.", "Clicchi su [[Nascondi]].", "Pubblichi con books.js."] },
-            "Meglio a lungo termine: controlli l'ISBN in WinBIAP. Se i volumi di una serie hanno l'ISBN dell'opera completa, mostrano tutti la stessa copertina – la lista «Stesso ISBN per titoli diversi» nella scheda «Cura» li trova.",
+            "Meglio a lungo termine: controlli l'ISBN in WinBook. Se i volumi di una serie hanno l'ISBN dell'opera completa, mostrano tutti la stessa copertina – la lista «Stesso ISBN per titoli diversi» nella scheda «Cura» li trova.",
             { tab: "covers" },
           ],
         },
@@ -843,7 +843,7 @@ export const HELP = {
           blocks: [
             "L'avviso «… titoli contengono un nome presente anche nell'archivio lettori» di solito è innocuo: un'autrice o un autore ha per caso lo stesso nome di una lettrice o di un lettore.",
             { steps: ["Consulti la lista «Titoli con un nome dell'archivio lettori» nella scheda «Cura».", "Nel dubbio verifichi con [[Vedi anteprima]] come appare il titolo pubblicamente."] },
-            "Categorie e collocazioni con un nome dell'archivio lettori non vengono mai pubblicate; compaiono anch'esse nella scheda «Cura» e andrebbero rinominate in WinBIAP. Lo stato dei prestiti non viene mai pubblicato.",
+            "Categorie e collocazioni con un nome dell'archivio lettori non vengono mai pubblicate; compaiono anch'esse nella scheda «Cura» e andrebbero rinominate in WinBook. Lo stato dei prestiti non viene mai pubblicato.",
             { tab: "care" },
           ],
         },
@@ -851,11 +851,11 @@ export const HELP = {
           id: "dupcat",
           title: "Una categoria compare due volte",
           blocks: [
-            "In WinBIAP la stessa categoria è scritta in modi diversi – spesso solo con uno spazio finale o con maiuscole e minuscole diverse.",
+            "In WinBook la stessa categoria è scritta in modi diversi – spesso solo con uno spazio finale o con maiuscole e minuscole diverse.",
             {
               list: [
                 "La lista «Categorie scritte in più modi» nella scheda «Cura» le elenca.",
-                "Le unisca in WinBIAP in un'unica voce; alla lettura successiva il doppione sparisce.",
+                "Le unisca in WinBook in un'unica voce; alla lettura successiva il doppione sparisce.",
                 "Nel frattempo le correzioni automatiche possono uniformare la grafia nell'elenco pubblico.",
               ],
             },
@@ -889,7 +889,7 @@ export const HELP = {
           id: "students",
           title: "Vengono pubblicati dati degli studenti?",
           blocks: [
-            "No. Nell'elenco pubblico entrano solo titolo, sottotitolo, autore, editore, anno, ISBN, categoria e collocazione. Le tabelle di lettori, prestiti, tariffe, utenti di WinBIAP e accessi vengono solo contate. Lo stato dei prestiti non viene mai letto né pubblicato.",
+            "No. Nell'elenco pubblico entrano solo titolo, sottotitolo, autore, editore, anno, ISBN, categoria e collocazione. Le tabelle di lettori, prestiti, tariffe, utenti di WinBook e accessi vengono solo contate. Lo stato dei prestiti non viene mai letto né pubblicato.",
             "Inoltre la gestione controlla che nessun nome dell'archivio lettori compaia nei dati pubblici.",
           ],
         },
@@ -901,7 +901,7 @@ export const HELP = {
         {
           id: "lock",
           title: "Che cosa succede quando blocco?",
-          blocks: ["La gestione si chiude e la volta successiva chiede di nuovo la password. Le bozze restano in questo browser. Un file WinBIAP letto non è più caricato – per continuare va letto di nuovo."],
+          blocks: ["La gestione si chiude e la volta successiva chiede di nuovo la password. Le bozze restano in questo browser. Un file WinBook letto non è più caricato – per continuare va letto di nuovo."],
         },
         {
           id: "undo",
@@ -939,8 +939,8 @@ export const HELP = {
         },
         {
           id: "winbiap",
-          title: "Perché WinBIAP non cambia quando correggo qui?",
-          blocks: ["Il file WinBIAP viene solo letto, mai modificato. Nomi italiani delle categorie, copertine nascoste e correzioni automatiche valgono solo per l'elenco pubblico. I dati diventano corretti in modo duraturo solo con la correzione in WinBIAP – che entra nell'elenco alla lettura successiva."],
+          title: "Perché WinBook non cambia quando correggo qui?",
+          blocks: ["Il file WinBook viene solo letto, mai modificato. Nomi italiani delle categorie, copertine nascoste e correzioni automatiche valgono solo per l'elenco pubblico. I dati diventano corretti in modo duraturo solo con la correzione in WinBook – che entra nell'elenco alla lettura successiva."],
         },
         {
           id: "loan",
@@ -950,7 +950,7 @@ export const HELP = {
         {
           id: "edit",
           title: "Posso aggiungere o modificare un libro qui?",
-          blocks: ["No. I libri si registrano, correggono o dismettono solo in WinBIAP. L'aggiornamento successivo riprende la modifica."],
+          blocks: ["No. I libri si registrano, correggono o dismettono solo in WinBook. L'aggiornamento successivo riprende la modifica."],
         },
         {
           id: "two",
@@ -960,7 +960,7 @@ export const HELP = {
         {
           id: "mobile",
           title: "Funziona anche su smartphone o tablet?",
-          blocks: ["Sì, la gestione funziona anche lì. Per la lettura però il file WinBIAP di solito si trova su una chiavetta USB – per questo è più pratico un computer. La cartella del sito si può usare solo con Chrome o Edge su computer."],
+          blocks: ["Sì, la gestione funziona anche lì. Per la lettura però il file WinBook di solito si trova su una chiavetta USB – per questo è più pratico un computer. La cartella del sito si può usare solo con Chrome o Edge su computer."],
         },
         {
           id: "browser",
@@ -970,7 +970,7 @@ export const HELP = {
         {
           id: "internet",
           title: "Serve internet?",
-          blocks: ["Per aprire la gestione, per la verifica delle copertine e per pubblicare online: sì. La lettura del file WinBIAP avviene invece nel browser, senza trasmettere dati."],
+          blocks: ["Per aprire la gestione, per la verifica delle copertine e per pubblicare online: sì. La lettura del file WinBook avviene invece nel browser, senza trasmettere dati."],
         },
         {
           id: "stats",
@@ -994,7 +994,7 @@ export const HELP = {
           pairs: [
             ["Aggiornare regolarmente", "Circa una volta al mese e dopo acquisti importanti. L'elenco è aggiornato solo quanto l'ultima lettura."],
             ["Elaborare le liste in base all'effetto", "Prima gli ISBN (non validi, mancanti) – ogni ISBN corretto può portare una copertina. Poi categorie e collocazioni, infine le grafie."],
-            ["Uniformare le grafie in WinBIAP", "Una sola grafia per autore, editore, categoria e collocazione; autori come «Cognome, Nome». Così filtri e ricerca funzionano meglio."],
+            ["Uniformare le grafie in WinBook", "Una sola grafia per autore, editore, categoria e collocazione; autori come «Cognome, Nome». Così filtri e ricerca funzionano meglio."],
             ["Prima verificare, poi pubblicare", "La verifica delle copertine prima della pubblicazione, così il risultato viene salvato. E prima uno sguardo all'anteprima."],
             ["Rinnovare i consigli ogni semestre", "Un nuovo turno all'inizio del semestre mantiene viva la pagina; quello vecchio resta visibile in «Consigli precedenti»."],
             ["Testi brevi", "Due o tre frasi: di che cosa parla e perché vale la pena? Sempre in tedesco e in italiano."],
@@ -1002,7 +1002,7 @@ export const HELP = {
             ["Inserire le vacanze per tempo", "Meglio inserire tutte le vacanze dell'anno scolastico all'inizio e controllarle prima di ogni pausa."],
             ["Non condividere la password", "Solo di persona, non annotarla, non salvarla nel browser. Bloccare la gestione dopo il lavoro."],
             ["Controllare dopo la pubblicazione", "Aprire il sito, ricaricarlo e per prova cercare un libro nuovo o controllare gli orari."],
-            ["Cancellare la copia di WinBIAP", "Cancellare la copia sulla chiavetta USB dopo l'uso. Contiene dati degli studenti."],
+            ["Cancellare la copia di WinBook", "Cancellare la copia sulla chiavetta USB dopo l'uso. Contiene dati degli studenti."],
           ],
         },
       ],
@@ -1015,18 +1015,18 @@ export const HELP = {
         {
           kind: "terms",
           pairs: [
-            ["WinBIAP", "Il programma della biblioteca della scuola. Gestisce libri, lettori e prestiti; la gestione legge solo una copia del suo database."],
-            ["File .winbook", "Il database di WinBIAP in un unico file. Contiene dati degli studenti e resta a scuola."],
+            ["WinBook", "Il programma della biblioteca della scuola (WinBook 6.0). Gestisce libri, lettori e prestiti; la gestione legge solo una copia del suo database."],
+            ["File .winbook", "Il database di WinBook in un unico file. Contiene dati degli studenti e resta a scuola."],
             ["ISBN", "Il codice del libro di 10 o 13 cifre, di solito sul retro sopra il codice a barre. Serve a trovare la copertina."],
             ["ekz-Bibliotheksservice", "Fornitore di servizi per biblioteche; fornisce la maggior parte delle copertine tramite l'ISBN."],
             ["Open Library", "Biblioteca online libera; seconda fonte delle copertine."],
             ["Copertura delle copertine", "Quota dei libri per cui è stata trovata una copertina."],
-            ["Categoria", "Gruppo tematico di WinBIAP. Base del filtro per categorie sul sito."],
+            ["Categoria", "Gruppo tematico di WinBook. Base del filtro per categorie sul sito."],
             ["Collocazione", "Dove si trova il libro, per esempio scaffale e ripiano. Compare nella scheda del libro."],
-            ["Segnatura", "Contrassegno di un esemplare in WinBIAP per la sistemazione a scaffale. Compare nelle liste di manutenzione, non sul sito."],
+            ["Segnatura", "Contrassegno di un esemplare in WinBook per la sistemazione a scaffale. Compare nelle liste di manutenzione, non sul sito."],
             ["Esemplare", "Una singola copia fisica. Esemplari con lo stesso titolo e lo stesso primo autore formano una voce nell'elenco."],
-            ["Tipo di media", "Il tipo di supporto in WinBIAP. Nell'elenco entrano solo Libro e Graphic novel."],
-            ["Archivio lettori", "La tabella delle lettrici e dei lettori in WinBIAP. Serve solo al controllo dei nomi; nulla viene pubblicato."],
+            ["Tipo di media", "Il tipo di supporto in WinBook. Nell'elenco entrano solo Libro e Graphic novel."],
+            ["Archivio lettori", "La tabella delle lettrici e dei lettori in WinBook. Serve solo al controllo dei nomi; nulla viene pubblicato."],
             ["books.js", "File dell'elenco pubblico dei libri con copertura delle copertine, nomi italiani delle categorie e copertine nascoste."],
             ["recommendations.js", "File dei consigli di lettura con i loro testi e i turni precedenti."],
             ["info.js", "File con orari, vacanze, assenze, altri orari, avviso, contatti e banner."],
@@ -1059,7 +1059,7 @@ export const HELP = {
         { h: "Che cosa succede ai dati" },
         {
           list: [
-            "Il file WinBIAP viene letto solo in questo browser e mai caricato in rete.",
+            "Il file WinBook viene letto solo in questo browser e mai caricato in rete.",
             "Sono pubblici solo dati dei libri, consigli e orari – nessun nome, nessun prestito.",
             "Le bozze restano in questo browser finché non vengono pubblicate o scartate.",
             "Il sito carica le copertine solo da ekz-Bibliotheksservice e da Open Library.",

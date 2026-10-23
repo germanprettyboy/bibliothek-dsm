@@ -3,15 +3,15 @@ import { addStrings } from "@/lib/language";
 
 addStrings({
   de: {
-    stEmpty: "Noch keine Bücher. Zuerst im Tab „Bestand“ die WinBIAP-Datei einlesen.",
+    stEmpty: "Noch keine Bücher. Zuerst im Tab „Bestand“ die WinBook-Datei einlesen.",
     stHintT: "Mehr nach dem Einlesen",
-    stHintP: "Nach dem Einlesen der WinBIAP-Datei (Tab Bestand) erscheinen hier auch Fehler- und Zugangsstatistiken.",
+    stHintP: "Nach dem Einlesen der WinBook-Datei (Tab Bestand) erscheinen hier auch Fehler- und Zugangsstatistiken.",
     stToCatalog: "Zum Tab Bestand",
     stTable: "Als Tabelle", stTableHide: "Tabelle ausblenden",
     stCount: "Anzahl", stShare: "Anteil",
 
     stKpiT: "Auf einen Blick",
-    stKBooks: "Bücher in der Liste", stKCopies: "Exemplare in WinBIAP", stKIsbn: "mit ISBN", stKCover: "mit Cover",
+    stKBooks: "Bücher in der Liste", stKCopies: "Exemplare in WinBook", stKIsbn: "mit ISBN", stKCover: "mit Cover",
     stKOpen: "Pflegeeinträge", stKLatest: "zuletzt erfasst", stKCats: "Kategorien", stKOf: "{n} Bücher",
 
     stProbT: "Wo stecken die meisten Fehler?",
@@ -53,15 +53,15 @@ addStrings({
     stLow: "wenige", stHigh: "viele", stLocation: "Standort",
   },
   it: {
-    stEmpty: "Ancora nessun libro. Prima importare il file WinBIAP nella scheda «Catalogo».",
+    stEmpty: "Ancora nessun libro. Prima importare il file WinBook nella scheda «Catalogo».",
     stHintT: "Di più dopo l'importazione",
-    stHintP: "Dopo l'importazione del file WinBIAP (scheda Catalogo) qui compaiono anche le statistiche su errori e acquisizioni.",
+    stHintP: "Dopo l'importazione del file WinBook (scheda Catalogo) qui compaiono anche le statistiche su errori e acquisizioni.",
     stToCatalog: "Alla scheda Catalogo",
     stTable: "Come tabella", stTableHide: "Nascondi tabella",
     stCount: "Numero", stShare: "Quota",
 
     stKpiT: "In sintesi",
-    stKBooks: "Libri nell'elenco", stKCopies: "Esemplari in WinBIAP", stKIsbn: "con ISBN", stKCover: "con copertina",
+    stKBooks: "Libri nell'elenco", stKCopies: "Esemplari in WinBook", stKIsbn: "con ISBN", stKCover: "con copertina",
     stKOpen: "Voci da sistemare", stKLatest: "ultima registrazione", stKCats: "Categorie", stKOf: "{n} libri",
 
     stProbT: "Dove si trovano più errori?",

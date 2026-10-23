@@ -1,5 +1,5 @@
 /*
- * Admin page, maintenance tools: tab "Pflege" (lists from the WinBIAP file, CSV, location list), new and dropped titles
+ * Admin page, maintenance tools: tab "Pflege" (lists from the WinBook file, CSV, location list), new and dropped titles
  * of an import, Italian category names and hidden covers (both published with books.js), and their effect on the list.
  */
 const { test, expect, open } = require("./helpers.js");
@@ -32,12 +32,12 @@ test.describe("tab Pflege", () => {
     await expect(page.locator("#tab-catalog")).toBeVisible();
   });
 
-  test("after the import: copies, lists with their WinBIAP numbers, no reader names", { tag: "@smoke" }, async ({ page }) => {
+  test("after the import: copies, lists with their WinBook numbers, no reader names", { tag: "@smoke" }, async ({ page }) => {
     await unlock(page);
     await importTest(page);
     await tab(page, "care");
     await expect(page.locator("#m-records")).toHaveText("10");
-    await expect(page.locator("#m-lines")).toContainText("Zuletzt in WinBIAP erfasst15.03.2026");
+    await expect(page.locator("#m-lines")).toContainText("Zuletzt in WinBook erfasst15.03.2026");
     const check = key => page.locator(`.check[data-check="${key}"]`);
     await expect(check("isbnBad").locator(":scope > button")).toHaveText(/Ungültige ISBN\s*1/);
     await expect(check("isbnNone").locator(":scope > button")).toHaveText(/Ohne ISBN\s*5/);

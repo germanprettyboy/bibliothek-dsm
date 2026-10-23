@@ -1,4 +1,4 @@
-/* Extraction from the WinBIAP database: whitelist, no personal data, merging, sort order, output format. */
+/* Extraction from the WinBook database: whitelist, no personal data, merging, sort order, output format. */
 "use strict";
 const { test, describe, before } = require("node:test");
 const assert = require("node:assert/strict");
@@ -271,7 +271,7 @@ describe("inspect: maintenance lists (admin page only)", () => {
     assert.deepEqual(check("titleSpaces").map(x => [x.r.id, x.v]), [[2, "„  Krabat “"]]);
     assert.deepEqual(check("titleCaps"), []);
     assert.ok(ids("categoryNone").includes(2));
-    assert.ok(!ids("categoryNone").includes(3), "a category hidden by the name check still exists in WinBIAP");
+    assert.ok(!ids("categoryNone").includes(3), "a category hidden by the name check still exists in WinBook");
     assert.ok(ids("locationNone").includes(11));
   });
 

@@ -1,4 +1,4 @@
-/* Tab "catalog": choose the WinBIAP database, discard personal data (source/extract.js), report, maintenance
+/* Tab "catalog": choose the WinBook database, discard personal data (source/extract.js), report, maintenance
    analysis (tab "Pflege"), Italian category names, publish a new books.js. Cover coverage and hidden covers: tab "Cover"
    (covers.jsx). Without an import the published books.js can be published again with new names.
    Import slot: drop zone → 3D book loader with steps (#status) → success panel (#import-done) in the same place and size.
@@ -192,7 +192,7 @@ export function Catalog({ B }) {
                 </svg>
                 <strong className="imp-in text-m font-semibold">{t("imDoneT")}</strong>
                 <p className="imp-in m-0 max-w-120 text-s text-muted-foreground [overflow-wrap:anywhere]" id="import-sub">
-                  {t("imDoneP", { f: lastFile || "WinBIAP", n: nf(result.report.books) })}
+                  {t("imDoneP", { f: lastFile || "WinBook", n: nf(result.report.books) })}
                 </p>
                 <Button variant="outline" id="again" className="imp-in" onClick={again}><span>{t("again")}</span></Button>
               </>
@@ -266,7 +266,7 @@ function Diff({ added, gone }) {
   );
 }
 
-// ---------- Italian names of categories that categories-it.js doesn't know (new in WinBIAP) ----------
+// ---------- Italian names of categories that categories-it.js doesn't know (new in WinBook) ----------
 function CategoriesIt({ B }) {
   const { t } = useLanguage();
   const own = B.extra.catIt;

@@ -37,7 +37,7 @@ test.describe("tab Statistik", () => {
     await expect(chart(page, "problems")).toHaveCount(0);
     await expect(chart(page, "acquisitions")).toHaveCount(0);
     await expect(chart(page, "age")).toContainText("Median 1973");
-    await expect(page.locator("#st-hint")).toContainText("Nach dem Einlesen der WinBIAP-Datei");
+    await expect(page.locator("#st-hint")).toContainText("Nach dem Einlesen der WinBook-Datei");
     await page.click("#st-to-catalog");
     await expect(page.locator("#tab-catalog")).toBeVisible();
   });
