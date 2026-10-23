@@ -48,7 +48,7 @@ addStrings({
     covPartial: "Abgebrochen nach {d} von {n} – Werte vorläufig.",
     lEkz: "ekz-Bibliotheksservice", lOl: "Open Library", lNone: "Kein Cover gefunden", lErr: "Nicht prüfbar (Netzfehler)", lOpen: "Noch offen",
     histT: "Verlauf", hDate: "Stand", hBooks: "Bücher", hIsbn: "mit ISBN", hCover: "mit Cover", hNot: "nicht geprüft",
-    tabCatalog: "Bestand", tabRecs: "Empfehlungen", lockAgain: "Sperren",
+    tabCatalog: "Bestand", tabRecs: "Empfehlungen", lockAgain: "Sperren", tabCovers: "Cover", tabStats: "Statistik", help: "Hilfe",
     inspecting: "Pflegelisten werden erstellt …", diffShow: "Titel anzeigen",
     diffAdded: "Neu in der Liste", diffGone: "Nicht mehr in der Liste", diffMore: "… und {n} weitere",
     // Tab "Pflege": maintenance lists from the WinBIAP file
@@ -206,7 +206,7 @@ addStrings({
     covPartial: "Interrotto dopo {d} di {n} – valori provvisori.",
     lEkz: "ekz-Bibliotheksservice", lOl: "Open Library", lNone: "Nessuna copertina trovata", lErr: "Non verificabile (errore di rete)", lOpen: "Ancora da verificare",
     histT: "Andamento", hDate: "Data", hBooks: "Libri", hIsbn: "con ISBN", hCover: "con copertina", hNot: "non verificato",
-    tabCatalog: "Catalogo", tabRecs: "Consigli", lockAgain: "Blocca",
+    tabCatalog: "Catalogo", tabRecs: "Consigli", lockAgain: "Blocca", tabCovers: "Copertine", tabStats: "Statistiche", help: "Aiuto",
     inspecting: "Creazione delle liste di manutenzione …", diffShow: "Mostra i titoli",
     diffAdded: "Nuovi nell'elenco", diffGone: "Non più nell'elenco", diffMore: "… e altri {n}",
     tabCare: "Cura",

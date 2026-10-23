@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 import { Big, Lines } from "./catalog";
+import { Fixes } from "./fixes";
 
 const GROUPS = [
   ["isbn", ["isbnBad", "isbnShared", "isbnNone", "coverNone"]],
@@ -50,7 +51,7 @@ function allChecks(ins, report, cov) {
   return GROUPS.map(([g, keys]) => [g, keys.filter(k => by.has(k)).map(k => ({ key: k, rows: by.get(k) }))]);
 }
 
-export function Care({ ins, report, cov, onCatalog }) {
+export function Care({ B, ins, report, cov, onCatalog }) {
   const { t, nf, df } = useLanguage();
   if (!ins) {
     return (
@@ -91,6 +92,7 @@ export function Care({ ins, report, cov, onCatalog }) {
         <Lines id="m-lines" lines={[[t("mRecords"), nf(ins.records.length)]].concat(ins.latest ? [[t("mLatest"), df(ins.latest)]] : [], [[t("mFound"), nf(found)]])} />
         <CardFooter><Button variant="outline" id="m-all" onClick={all}><span>{t("mAll")}</span></Button></CardFooter>
       </Card>
+      <Fixes B={B} ins={ins} />
       <Card id="m-checks">
         <CardTitle>{t("mChecksT")}</CardTitle>
         <CardDescription>{t("mChecksP")}</CardDescription>

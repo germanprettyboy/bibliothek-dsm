@@ -572,6 +572,13 @@
   .flag { border-left: 4px solid var(--green); padding: 10px 14px; background: var(--surface); border-radius: 0 10px 10px 0; }
   .flag.warn { border-left-color: var(--red); }
   .flag.mid { border-left-color: var(--yellow); }
+  /* Menus, popovers, selects, tooltips (shadcn, admin page): glass surface, short pop from the trigger side */
+  .menu { transform-origin: var(--radix-dropdown-menu-content-transform-origin, var(--radix-popover-content-transform-origin, var(--radix-select-content-transform-origin, var(--radix-tooltip-content-transform-origin, top)))); }
+  .menu[data-state="open"], .menu[data-state="delayed-open"], .menu[data-state="instant-open"] { animation: menu-in var(--t-fast) var(--ease); }
+  .menu[data-state="closed"] { animation: menu-out var(--t-out) var(--ease-in) forwards; }
+  /* Accordion (help page): height glides via the Radix variable */
+  .acc-content[data-state="open"] { animation: acc-open var(--t-base) var(--ease); }
+  .acc-content[data-state="closed"] { animation: acc-close var(--t-out) var(--ease-in); }
   :root[data-contrast="high"] [data-slot="switch-thumb"] { background: var(--bg); box-shadow: 0 0 0 2px var(--fg); }
 
   /* Preview notice (website from the admin page) */
@@ -654,6 +661,10 @@
 @keyframes ld-out { to { opacity: 0; visibility: hidden; } }
 @keyframes ld-slow { from { opacity: 0; } to { opacity: 1; visibility: visible; } }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes menu-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes menu-out { to { opacity: 0; transform: scale(.97); } }
+@keyframes acc-open { from { height: 0; } to { height: var(--radix-accordion-content-height); } }
+@keyframes acc-close { from { height: var(--radix-accordion-content-height); } to { height: 0; } }
 @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 
 /* Admin page, tab "Pflege": printing shows only the location list (data-print while printing), dark on white also in dark mode */
