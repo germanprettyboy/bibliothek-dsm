@@ -3,7 +3,7 @@
  * of an import, Italian category names and hidden covers (both published with books.js), and their effect on the list.
  */
 const { test, expect, open } = require("./helpers.js");
-const { adminSetup, unlock, importTest, tab, downloadFile, save, evaluate } = require("./admin-helpers.js");
+const { adminSetup, unlock, importTest, tab, downloadFile, save, evaluate, menusClosed } = require("./admin-helpers.js");
 
 adminSetup();
 
@@ -94,6 +94,7 @@ test.describe("tab Pflege", () => {
     const csv = rows((await downloadFile(page, "#m-shelf-csv")).text);
     expect(csv.length).toBe(4);
     expect(csv[3]).toEqual(["1", "Krabat", "Otfried Preußler", "Thienemann", "1981", "Jugendbuch", "Jugendbücher 6 Brett 5", "JB 6 Pre", "01.09.2025"]);
+    await menusClosed(page);
     await page.click("#m-shelf-dl");
     const every = rows((await downloadFile(page, "#m-shelf-all")).text);
     expect(every.length).toBe(11); // header + all 10 copies

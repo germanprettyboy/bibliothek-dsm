@@ -5,7 +5,7 @@
  */
 const fs = require("fs");
 const { test, expect, PHONE, swipeStages } = require("./helpers.js");
-const { adminSetup, unlock, importTest, tab } = require("./admin-helpers.js");
+const { adminSetup, unlock, importTest, tab, menusClosed } = require("./admin-helpers.js");
 
 adminSetup();
 
@@ -96,6 +96,7 @@ test.describe("Excel export", () => {
     const one = unzip((await bytes(page, "#m-shelf-xlsx")).buf);
     expect(sheetsOf(one)).toEqual(["Jugendbücher 6 Brett 5"]);
     expect((one["xl/worksheets/sheet1.xml"].match(/<row /g) || []).length).toBe(1 + 1 + 3); // title, header (after an empty row 2), 3 copies
+    await menusClosed(page);
     await page.click("#m-shelf-dl");
     const all = unzip((await bytes(page, "#m-shelf-all-xlsx")).buf);
     expect(sheetsOf(all)).toEqual(["Alle Standorte"]);

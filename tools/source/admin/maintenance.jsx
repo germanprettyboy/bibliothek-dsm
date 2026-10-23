@@ -116,14 +116,14 @@ function useExport() {
 }
 
 // "Herunterladen ▾": Excel first, CSV second. sections: [[label | null, [{ text, on, props }]]]
-// The menu closes first, the download runs after it: started inside the select event, the menu sometimes stayed open
-// and the next click on the trigger closed it instead of opening it
+// Not modal (the tab is no dialog): a modal menu locks clicks on the page until its closing animation has ended, so
+// opening it again right after a download did nothing. The download runs after the menu has closed.
 function DownloadMenu({ triggerProps, label, sections }) {
   const { t } = useLanguage();
   const [open, setOpen] = React.useState(false);
   const pick = fn => () => { setOpen(false); setTimeout(fn, 0); };
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" {...triggerProps}>
           <DownloadIcon aria-hidden="true" /><span>{label || t("mxDl")}</span><ChevronDownIcon aria-hidden="true" className="size-4" />

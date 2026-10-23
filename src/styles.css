@@ -698,6 +698,7 @@
     position: relative; display: flex; gap: 8px; min-width: 0; margin: 0 -20px; padding: 2px 20px; list-style: none;
     overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; scroll-behavior: smooth;
   }
+  .help-side > nav { min-width: 0; } /* grid item: otherwise as wide as all chips, and the row doesn't scroll */
   .help-nav::-webkit-scrollbar { display: none; }
   .help-nav > li { flex: none; }
   .help-nb {

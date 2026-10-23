@@ -5,7 +5,7 @@
  * filters, no horizontal scroll, swipe stages.
  */
 const { test, expect, PHONE, settled, swipeStages } = require("./helpers.js");
-const { adminSetup, unlock, importTest, tab, downloadFile } = require("./admin-helpers.js");
+const { adminSetup, unlock, importTest, tab, downloadFile, menusClosed } = require("./admin-helpers.js");
 
 adminSetup();
 
@@ -113,6 +113,7 @@ test.describe("table viewer", () => {
 
     await page.click("#tv-list");
     await page.getByRole("option", { name: /Ungültige ISBN/ }).click();
+    await menusClosed(page);
     await page.click("#tv-export");
     const { name, text } = await downloadFile(page, "#tv-csv");
     expect(name).toMatch(/^exemplare-winbiap-\d{4}-\d\d-\d\d\.csv$/);
@@ -125,6 +126,7 @@ test.describe("table viewer", () => {
     expect(r[1][1]).toBe("Das doppelte Lottchen");
     expect(r[1][r[1].length - 1]).toBe("Ungültige ISBN (9783522202100)");
 
+    await menusClosed(page);
     await page.click("#tv-export");
     const x = await downloadFile(page, "#tv-xlsx");
     expect(x.name).toMatch(/^exemplare-winbiap-\d{4}-\d\d-\d\d\.xlsx$/);

@@ -96,4 +96,9 @@ async function server(page, { get = { ready: true }, post = null, backups = null
   return requests;
 }
 
-module.exports = { PW, FOLDER, browserOf, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };
+// Menus and select lists fully closed (their closing animation keeps a modal menu's click lock on the page)
+async function menusClosed(page) {
+  await expect(page.locator('[data-slot="dropdown-menu-content"], [data-slot="select-content"]')).toHaveCount(0);
+}
+
+module.exports = { menusClosed, PW, FOLDER, browserOf, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };
