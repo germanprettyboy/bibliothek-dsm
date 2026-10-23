@@ -325,7 +325,7 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
   copy is "the original", don't tell Johann to download or delete anything on a server. When a webspace exists (likely
   Aruba, see docs/), upload `upload/website/` from `npm run pack` once (never the working folder website/: it holds a test
   info.js, .DS_Store, sicherung/) and set up save.php: admin.enc.js, save.php, save-access.php are current
-  (encrypted 2026-10-18). Unknown then: PHP version, write permissions, WAF. Only from that moment on the server copies of
+  (encrypted 2026-10-23). Unknown then: PHP version, write permissions, WAF. Only from that moment on the server copies of
   books.js/recommendations.js/info.js and backup/ become the original.
 - `tools/migrate-data.mjs` (old German data format → English) only matters for stray old local files; nothing live to migrate.
 - `website/info.js` is not committed and currently doesn't exist: the page shows no opening hours until the admin page publishes one.
