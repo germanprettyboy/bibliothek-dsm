@@ -31,3 +31,12 @@ guide/template.html + build-guide.js
                     Guide for colleagues (admin page, copying the WinBook file), in German.
                     node tools/build-guide.js  ->  anleitung/Anleitung_Verwaltung.html
                     (standalone file with embedded font and logo, offline and printable)
+
+generate-books.js   data/*.winbook -> ../website/books.js (npm run books); stops on a reader name in a public field
+pack.mjs            upload/website/ from the committed website/ (npm run pack)
+migrate-data.mjs    old German data files -> current format
+tunnel.mjs          public https URL for website/ (npm run tunnel, tunnel:dev, tunnel:php)
+
+branches.sh         Claude worktrees and main (npm run branches / integrate; SessionStart hook in ../.claude/settings.json):
+                    integrate = merge origin/main + the branch into main, push main, remove the finished worktree
+main-guard.cjs      PreToolUse hook for Edit/Write: refuses file edits in the main checkout (work happens in worktrees)
