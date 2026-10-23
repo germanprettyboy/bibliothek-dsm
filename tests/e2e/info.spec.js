@@ -29,7 +29,7 @@ test.describe("info card", () => {
     await expect(page.locator("#info")).toBeHidden();
   });
 
-  test("open now, several ranges today", async ({ page }) => {
+  test("open now, several ranges today", { tag: "@smoke" }, async ({ page }) => {
     await withInfo(page, info(), "10:00");
     await expect(card(page)).toContainText("Jetzt geöffnet");
     await expect(card(page)).toContainText("Heute 8:00–12:00, 13:00–15:00");
@@ -77,7 +77,7 @@ test.describe("info card", () => {
     await expect(page.locator("[role=dialog][aria-labelledby=info-t]")).toContainText("Keine Schließtage geplant.");
   });
 
-  test("dialog: week overview, today marked, closing days, notice", async ({ page }) => {
+  test("dialog: week overview, today marked, closing days, notice", { tag: "@smoke" }, async ({ page }) => {
     const c = [{ from: "2026-10-26", to: "2026-10-30", type: "holiday", de: "Herbstferien" },
       { from: "2026-11-02", type: "absent", de: "" }];
     await withInfo(page, info({ closures: c, notice: { de: "Bitte Ausweis mitbringen.", it: "Portare la tessera." } }), "10:00");

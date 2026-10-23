@@ -189,15 +189,15 @@ function Coverage({ B }) {
   const { cov, survey } = B;
   const pct = x => new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE", { style: "percent", maximumFractionDigits: 1 }).format(x || 0);
   const n = B.books.length, e = B.entry();
-  const segs = { ekz: 0, ol: 0, gb: 0, none: 0 };
+  const segs = { ekz: 0, ol: 0, none: 0 };
   let big, sub, lines = [];
   if (cov) {
-    const tot = cov.total || 1, c = (cov.ekz || 0) + cov.ol + cov.gb;
+    const tot = cov.total || 1, c = (cov.ekz || 0) + cov.ol;
     big = (cov.complete ? "" : "≥ ") + pct(c / tot);
     sub = t(cov.complete ? "covSub" : "covSubPart", { c: nf(c), n: nf(cov.total), a: pct(c / n) }) +
       (cov.complete ? "" : " · " + (survey ? t("covProgress", { d: nf(cov.done), n: nf(cov.total) }) : t("covPartial", { d: nf(cov.done), n: nf(cov.total) })));
-    segs.ekz = (cov.ekz || 0) / tot; segs.ol = cov.ol / tot; segs.gb = cov.gb / tot; segs.none = cov.none / tot;
-    lines = [[t("lEkz"), nf(cov.ekz || 0), "--mauve"], [t("lOl"), nf(cov.ol), "--green"], [t("lGb"), nf(cov.gb), "--blue"], [t("lNone"), nf(cov.none), "--red"]];
+    segs.ekz = (cov.ekz || 0) / tot; segs.ol = cov.ol / tot; segs.none = cov.none / tot;
+    lines = [[t("lEkz"), nf(cov.ekz || 0), "--mauve"], [t("lOl"), nf(cov.ol), "--green"], [t("lNone"), nf(cov.none), "--red"]];
     if (cov.err) lines.push([t("lErr"), nf(cov.err)]);
     if (cov.total - cov.done > 0) lines.push([t("lOpen"), nf(cov.total - cov.done)]);
   } else {
@@ -212,7 +212,7 @@ function Coverage({ B }) {
       <Big id="c-big">{big}</Big>
       <CardDescription id="c-sub">{sub}</CardDescription>
       <div className="meter mt-3 flex h-2 overflow-hidden rounded-xs bg-border" id="c-meter" aria-hidden="true" hidden={!cov}>
-        {[["ekz", "--mauve"], ["ol", "--green"], ["gb", "--blue"], ["none", "--red"]].map(([k, f]) => (
+        {[["ekz", "--mauve"], ["ol", "--green"], ["none", "--red"]].map(([k, f]) => (
           <i key={k} className={"m-" + k + " block h-full"} style={{ width: segs[k] * 100 + "%", background: `var(${f})` }} />
         ))}
       </div>
@@ -308,7 +308,7 @@ function CategoriesIt({ B }) {
 }
 
 // ---------- Hide a wrong cover: its ISBNs go into books.js noCover, covers.js then shows the placeholder ----------
-const SOURCE = { coverEKZ: "lEkz", coverOL: "lOl", coverGB: "lGb" };
+const SOURCE = { coverEKZ: "lEkz", coverOL: "lOl" };
 function HiddenCovers({ B }) {
   const { t } = useLanguage();
   const [q, setQ] = React.useState("");

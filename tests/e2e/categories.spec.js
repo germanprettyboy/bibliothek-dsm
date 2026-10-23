@@ -16,7 +16,7 @@ async function choose(page, id) {
 }
 
 test.describe("categories", () => {
-  test("the parent term selects the whole group, the filter button names the choice, × clears it", async ({ page }) => {
+  test("the parent term selects the whole group, the filter button names the choice, × clears it", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     const fantasy = inGroup("Fantasy");
     expect(fantasy.length).toBeGreaterThan(inCat("Fantasy").length);
@@ -71,7 +71,7 @@ test.describe("categories", () => {
     await expect(d).toBeVisible();
   });
 
-  test("together with the search; nothing found → note about the category", async ({ page }) => {
+  test("together with the search; nothing found → note about the category", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await choose(page, "g:Fantasy");
     await page.fill("#q", "drache");

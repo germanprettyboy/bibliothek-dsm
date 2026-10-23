@@ -12,12 +12,8 @@
  *  2. Open Library, batch request via /api/books (up to 20 books per request) → image via the
  *     cover ID. Images via the ID are not rate-limited (requests directly via the ISBN would be limited to
  *     100 per 5 minutes and IP – in the school network everyone shares one IP).
- *  3. Google Books, image directly via the ISBN. The Google API is not used: without a key
- *     its shared daily quota is exhausted (always 429). Without a cover Google returns one of
- *     two substitute images: 128×184 (book outline) or 128×170 ("image not available"), both are
- *     discarded. Google allows no CORS, comparing bytes is impossible – the dimensions suffice: in the catalog
- *     (2026-10-17) 444 substitute images, only 6 real covers of these sizes.
- * Resolution: ekz 170–440 px (fixed), Open Library "M" about 180 px, Google about 128 px wide.
+ * No Google Books (client, 2026-10-23: visitor IPs not to Google); old Google hits in the cache are dropped on load.
+ * Resolution: ekz 170–440 px (fixed), Open Library "M" about 180 px wide.
  *
  * Operation
  *  - get(book): immediately, with priority (on tap). ekz and Open Library in parallel.
@@ -32,14 +28,11 @@
   const log = root.DSM_LOG || function () {}; // assets/logger.js
 
   const OL_API = "https://openlibrary.org/api/books?format=json&jscmd=viewapi&bibkeys=";
-  const SRC = {
-    ekz: i => "https://cover.ekz.de/" + i + ".jpg",
-    gb: i => "https://books.google.com/books/content?vid=ISBN" + i + "&printsec=frontcover&img=1&zoom=1"
-  };
+  const EKZ = i => "https://cover.ekz.de/" + i + ".jpg";
   const BATCH = 20;            // books per Open Library request
   const PROBE_TICK = 300;      // ms between ekz image probes in the background
   const BG_TICK = 1500;        // ms between background requests to Open Library
-  const TAIL_TICK = 600;       // ms between image probes after Open Library (Open Library image, Google image)
+  const TAIL_TICK = 600;       // ms between Open Library image probes
   const IMG_TICK = 350;        // ms between preloaded images from the cache
   const POOL = 40;             // loaded image elements in memory
   const EKZ_SUBSTITUTE = { w: 170, h: 270, bytes: 9977, fnv: 0x6b29ba0d }; // ekz "leider kein aktuelles Bild vorhanden"
@@ -50,6 +43,8 @@
   let cache = {};
   try { localStorage.removeItem("dsm-cover-v2"); } catch (e) { /* blocked */ }
   try { cache = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}") || {}; } catch (e) { cache = {}; }
+  // Google Books was a source until 2026-10-23: forget its hits, those books are searched anew
+  for (const k of Object.keys(cache)) if (cache[k] && cache[k].b === "coverGB") delete cache[k];
   let saveT = 0;
   function persist() {
     clearTimeout(saveT);
@@ -90,9 +85,8 @@
     pool.delete(src); pool.set(src, img);
     if (pool.size > POOL) pool.delete(pool.keys().next().value);
   }
-  // discard Google substitute images (book outline 128×184, "image not available" 128×170) and one-pixel images
-  const real = (img, src) => img.naturalWidth > 20 && img.naturalHeight > 20 &&
-    !(img.naturalWidth === 128 && (img.naturalHeight === 184 || img.naturalHeight === 170) && src.includes("books.google"));
+  // discard one-pixel images
+  const real = img => img.naturalWidth > 20 && img.naturalHeight > 20;
   // ekz substitute image: only reload images of its size as data and compare. src -> Promise<bool>
   const substitutes = new Map();
   function ekzSubstitute(img, src) {
@@ -122,7 +116,7 @@
       img.decoding = "async";
       img.onload = async () => {
         clearTimeout(t);
-        const ok = real(img, src) && !await ekzSubstitute(img, src);
+        const ok = real(img) && !await ekzSubstitute(img, src);
         if (ok) keep(src, img);
         res(ok);
       };
@@ -151,8 +145,7 @@
     if (l !== blockList) { blockList = l; blockSet = new Set(l); }
     return b.i.some(i => blockSet.has(i)) ? Object.assign({}, b, { i: b.i.filter(i => !blockSet.has(i)) }) : b;
   }
-  const ekzCands = b => b.i.map(i => ({ src: SRC.ekz(i), by: "coverEKZ" }));
-  const gbCands = b => b.i.map(i => ({ src: SRC.gb(i), by: "coverGB" }));
+  const ekzCands = b => b.i.map(i => ({ src: EKZ(i), by: "coverEKZ" }));
 
   // Open Library: several books in one request. Result: Map key -> {src,by} | null; null on a network error.
   async function olLookup(books) {
@@ -194,7 +187,7 @@
     inflight.set(key, p);
     return p;
   }
-  // ekz and Open Library in parallel; ekz wins as soon as it is clear that it has one. Then Google.
+  // ekz and Open Library in parallel; ekz wins as soon as it is clear that it has one.
   function live(b, olHit) {
     const key = keyOf(b);
     const ekz = firstImg(ekzCands(b));
@@ -204,17 +197,14 @@
     });
     return ekz.then(async d => {
       if (d) return d;
-      const o = await ol;
-      if (o) return o;
-      const g = await firstImg(gbCands(b));
-      return g || (o === undefined ? undefined : null);
+      return ol;
     }).then(v => { if (v !== undefined) store(key, v); return v; });
   }
 
   // ---------- Background (staggered) ----------
   const queue = new Map();   // key -> book in view, still open: try ekz
   const olQueue = new Map(); // without an ekz cover: Open Library
-  const tail = [];           // {key, steps:[{src,by}]}: Open Library image, then Google image
+  const tail = [];           // {key, hit:{src,by}}: Open Library image to probe
   const imgQueue = [];       // known sources (cache) for preloading
   const conn = navigator.connection || {};
   const enabled = !conn.saveData && !/(^|-)2g$/.test(conn.effectiveType || "");
@@ -267,17 +257,14 @@
     let hits = 0;
     for (const b of batch) {
       const h = m.get(keyOf(b));
-      if (h) hits++;
-      tail.push({ key: keyOf(b), steps: (h ? [h] : []).concat(gbCands(b)) });
+      if (h) { hits++; tail.push({ key: keyOf(b), hit: h }); } else store(keyOf(b), null);
     }
     log("Cover", `background: ${batch.length} books without an ekz cover requested from Open Library, ${hits} with a cover`);
     kickTail();
   });
   const kickTail = worker(TAIL_TICK, () => tail.length > 0, async () => {
-    const job = tail[0];
-    const c = job.steps.shift();
-    const ok = await loadImg(c.src);
-    if (ok || !job.steps.length) { tail.shift(); store(job.key, ok ? c : null); }
+    const job = tail.shift();
+    store(job.key, await loadImg(job.hit.src) ? job.hit : null);
   });
   const kickImg = worker(IMG_TICK, () => imgQueue.length > 0, async () => {
     const { key, hit, book } = imgQueue.shift();
@@ -285,16 +272,15 @@
   });
 
   // ---------- Measurement for the admin page ----------
-  // Checks all books with an ISBN (without cache), four at a time. onProgress({done,total,ekz,ol,gb,none,err});
+  // Checks all books with an ISBN (without cache), four at a time. onProgress({done,total,ekz,ol,none,err});
   // stop() aborts. Results end up in the cache.
   function survey(books, onProgress) {
     let stopped = false;
     const list = books.map(usable).filter(b => b.i && b.i.length);
     // miss: the books without any cover (for the maintenance list in admin.html)
-    const st = { total: list.length, done: 0, ekz: 0, ol: 0, gb: 0, none: 0, err: 0, complete: false, miss: [] };
+    const st = { total: list.length, done: 0, ekz: 0, ol: 0, none: 0, err: 0, complete: false, miss: [] };
     const report = () => onProgress && onProgress(Object.assign({}, st));
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    const COUNT = { coverEKZ: "ekz", coverOL: "ol", coverGB: "gb" };
     const run = (async () => {
       report();
       // 1. ekz per book; collect misses
@@ -310,7 +296,7 @@
       };
       await Promise.all([ekzWorker(), ekzWorker(), ekzWorker(), ekzWorker()]);
       report();
-      // 2. misses: Open Library in batch requests, otherwise the Google image
+      // 2. misses: Open Library in batch requests
       for (let i = 0; i < misses.length && !stopped; i += BATCH) {
         const part = misses.slice(i, i + BATCH);
         let m = await olLookup(part);
@@ -318,8 +304,8 @@
         for (const b of part) {
           if (stopped) break;
           const h = m ? m.get(keyOf(b)) : undefined;
-          const v = await firstImg((h ? [h] : []).concat(gbCands(b)));
-          if (v) { st[COUNT[v.by]]++; store(keyOf(b), v); }
+          const v = h && await loadImg(h.src) ? h : null;
+          if (v) { st.ol++; store(keyOf(b), v); }
           else if (h === undefined) st.err++;
           else { st.none++; st.miss.push(b); store(keyOf(b), null); }
           st.done++;

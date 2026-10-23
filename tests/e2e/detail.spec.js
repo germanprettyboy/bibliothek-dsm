@@ -1,4 +1,4 @@
-// Detail view with cover (Open Library / Google Books mocked), placeholder, closing.
+// Detail view with cover (ekz / Open Library mocked, never Google), placeholder, closing.
 const fs = require("fs");
 const path = require("path");
 const { test, expect, PHONE, open, settled, swipeStages, data } = require("./helpers.js");
@@ -15,7 +15,7 @@ async function openBook(page, b) {
 }
 
 test.describe("detail", () => {
-  test("shows all details", async ({ page }) => {
+  test("shows all details", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await openBook(page, WITH_ISBN);
     const d = page.locator("#detail");
@@ -76,7 +76,7 @@ test.describe("detail", () => {
 });
 
 test.describe("cover", () => {
-  test("ekz first: image directly via the ISBN, source named", async ({ page, net }) => {
+  test("ekz first: image directly via the ISBN, source named", { tag: "@smoke" }, async ({ page, net }) => {
     net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
     net.image = url => url.includes("cover.ekz.de");
     await open(page);
@@ -127,7 +127,7 @@ test.describe("cover", () => {
     expect(net.requests.filter(u => u.includes("/b/isbn/"))).toEqual([]);
   });
 
-  test("tap the cover: large in its own dialog, size L reloaded, back via tap/Escape", async ({ page, net }) => {
+  test("tap the cover: large in its own dialog, size L reloaded, back via tap/Escape", { tag: "@smoke" }, async ({ page, net }) => {
     net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
     await open(page);
     await openBook(page, WITH_ISBN);
@@ -226,14 +226,14 @@ test.describe("cover", () => {
     expect(await page.evaluate(() => window.__seen)).toEqual([]);
   });
 
-  test("fallback Google: image directly via the ISBN, no Google API", async ({ page, net }) => {
+  test("never Google: without ekz/Open Library the placeholder, no request to Google", async ({ page, net }) => {
     net.ol = () => ({});
     net.image = url => url.includes("books.google.com");
     await open(page);
     await openBook(page, WITH_ISBN);
-    await expect(page.locator("#d-cover img")).toHaveAttribute("src", "https://books.google.com/books/content?vid=ISBN" + WITH_ISBN.i[0] + "&printsec=frontcover&img=1&zoom=1");
-    expect(net.requests.filter(u => u.includes("googleapis"))).toEqual([]);
-    await expect(page.locator("#d-src")).toHaveText("Cover: Google Books");
+    await expect(page.locator("#d-cover")).not.toHaveClass(/loading/, { timeout: 10000 });
+    await expect(page.locator("#d-cover img")).toHaveCount(0);
+    expect(net.requests.filter(u => u.includes("google"))).toEqual([]);
   });
 
   test("services not reachable: the placeholder stays, no errors", async ({ page }) => {
@@ -277,7 +277,7 @@ test.describe("detail on the phone", () => {
   });
 
   // Sheet half-high, up = as high as the content (or springs back), down = half, further down = close
-  test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
+  test("swiping: half, up = content-high, down = half, further down = closed", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await openBook(page, WITH_ISBN);
     await swipeStages(page, page.locator("#detail"));
