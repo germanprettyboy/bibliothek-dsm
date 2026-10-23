@@ -139,6 +139,9 @@ After every change: `npm run build`, commit, push, CI green. Triggers, retries, 
 Every task in its own worktree (`EnterWorktree` → `.claude/worktrees/<name>`, branch `worktree-<name>`). `.claude/settings.json`
 links `node_modules` from the main checkout and branches from local `main`. Never `npm install`/`ci` through the link (changes main's
 packages); dependency change: `rm node_modules && npm ci --prefer-offline`. Old worktree without link: `ln -s <main>/node_modules`.
+`tools/main-guard.cjs` refuses Edit/Write in the main checkout (replaces Claude Code's background guard, `bgIsolation: none`, which
+also refused plain shell commands); the shell is not guarded: no `npm run build`, commits or `git -C` into the main checkout or
+another session's worktree.
 1. Commit in the worktree, `git merge main`, resolve conflicts there (built files: `npm run build`; `admin.enc.js`: encrypt again;
    `books.js`: `npm run books`; others by content).
 2. `tools/source/*` changed → `npm run encrypt` (Johann). Push the branch, CI green.
