@@ -32,7 +32,7 @@ test.describe("tab Pflege", () => {
     await expect(page.locator("#tab-catalog")).toBeVisible();
   });
 
-  test("after the import: copies, lists with their WinBIAP numbers, no reader names", async ({ page }) => {
+  test("after the import: copies, lists with their WinBIAP numbers, no reader names", { tag: "@smoke" }, async ({ page }) => {
     await unlock(page);
     await importTest(page);
     await tab(page, "care");

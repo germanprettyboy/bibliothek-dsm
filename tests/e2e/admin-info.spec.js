@@ -42,7 +42,7 @@ test.describe("Sunday", () => {
 });
 
 test.describe("special opening hours", () => {
-  test("third type with its own time ranges, written sorted with valid ranges only", async ({ page }) => {
+  test("third type with its own time ranges, written sorted with valid ranges only", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await page.click("#i-add-special");
     const c = clo(page, 0);

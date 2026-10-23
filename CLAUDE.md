@@ -19,16 +19,12 @@ on Johann's Mac – not a single spec. Tests run ONLY on GitHub Actions: commit,
     (German guide), `.htaccess` (gzip, cache, security headers via IfModule, no listings, HSTS only via https, admin.html/save.php → https).
   - `assets/admin.enc.js` ENCRYPTED (tools/source/extract.js + built tools/source/admin/). `vendor/sql-asm.js` = sql.js 1.10.3 (asm.js).
     `fonts/` = Fira Sans 400/500/600 local. `backup/` only on the server.
-- `src/` – `index.html`/`admin.html` templates with loading skeleton (`#page`). `head.js` = classic script in `<head>` (theme/language
-  before first paint, placeholder flags, old-key migration). `styles.css` = tokens/theme/building blocks. `library/`: main, app, data,
-  list, detail (+zoom), cover, recommendations (+archive, questions), categories, info, choice, announcement. `admin/`: main, lock,
-  shared (`window.DSM_SHARED`). `lib/`: utils (`cn`), storage (localStorage, `log`), language (`t()`), appearance, notice, swipe,
-  environment (`reduced`, `C()` = covers.js). `components/`: glass-dialog, header, settings, announcement, `ui/` (shadcn).
-- `tools/` – `build.mjs`, `source/` (extract.js + admin UI, PLAINTEXT), `encrypt-admin.js`, `generate-books.js` (same logic as admin),
-  `pack.mjs`, `migrate-data.mjs` (old German data files, one-time), `tunnel.mjs`, `branches.sh`, `build-guide.js` + `guide/template.html`
-  (German staff guide → `anleitung/`), `local.mjs`/`local-router.php`/`local-address.cjs` (php-wasm only on 127.0.0.1 on an internal
-  port, browser-sync on PORT proxies with live reload + `no-store`; `-d sys_temp_dir=tests/.tmp/local/tmp`, otherwise POST bodies
-  > 16 KB fail; data from/to `tests/.tmp/local/data/` (`DSM_DATA_FOLDER`), so committed data files never change).
+- `src/` – page templates with loading skeleton (`#page`); `head.js` (classic, theme/language before first paint, old-key migration);
+  `styles.css` (tokens, building blocks); `library/`, `admin/` (main, lock, shared = `window.DSM_SHARED`), `lib/` (utils `cn`, storage
+  `log`, language `t()`, appearance, notice, swipe, environment `reduced`/`C()`), `components/` (glass-dialog, header, settings, `ui/`).
+- `tools/` – `build.mjs`, `source/` (extract.js + admin UI, PLAINTEXT), `encrypt-admin.js`, `generate-books.js`, `pack.mjs`,
+  `migrate-data.mjs` (old German files), `tunnel.mjs`, `branches.sh`, `build-guide.js` + `guide/template.html` (→ `anleitung/`),
+  `local.mjs` + router (php-wasm only on 127.0.0.1, own `sys_temp_dir` or POSTs > 16 KB fail, data in `tests/.tmp/local/data/`).
   npx (php-wasm, browser-sync, shadcn) always with exact version + `--prefer-offline`; deliberately not in package.json.
 - `tests/`, `docs/`: never uploaded. `data/` (`*.winbook`, reader names + classes): NEVER commit/upload. `docs/entwuerfe/` = UI variants
   as private artifact https://claude.ai/artifact/EuCPm1eKryK64A8YD5ywNP (picks: `ArtifactData get`, collection `picks`, doc `main`).
@@ -64,20 +60,17 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - Category filter (`categories.jsx`): `#cat-btn` (phone icon only, from 40rem "Kategorie") → glass dialog, search `#cat-q`, counts,
   `[data-cat]` = `all` | `g:<parent>` | `c:<category>`. ≥2 categories sharing the part before " - "/": " = group (parent selects all,
   subcategories indented, bare parent term = "allgemein"). Choice: `.cat-pill.on` [filter | divider | × `#cat-clear`]; × slides out
-  (grid 0fr→1fr); from 40rem hover/focus shows `.cat-label` (≤18 chars, else `oneWord`), full name in `aria-label`. Not saved.
-  Books without category (≈1,500) only under "Alle Bücher".
+  (grid 0fr→1fr); from 40rem hover/focus shows `.cat-label` (≤18 chars, else `oneWord`). Not saved. No category → only "Alle Bücher".
 - Admin page: no "Aktuell veröffentlicht …", no draft notice (only `#i-state` for incomplete info), no counters, no privacy notices.
   Tabs Bestand | Pflege | Empfehlungen | Info (`data-tab` catalog/care/recs/info), ≤420 px two rows, no transition on `TabsTrigger`.
   `#lock-btn` padlock, text slides out on hover/focus, `aria-label` always. `App` only gets `lock`. `#rec-groups` = `ToggleGroup` `surface`.
   - Recs editor: group full (4) → search disabled; contained hits greyed out; `.warn-de`/`.warn-it` for empty texts. `#rec-archive`:
     open a round (`.arc-h` aria-expanded), edit, remove books, delete; archive[0] `[data-op=restore]` = undo an accidental new round;
     destructive actions = two clicks within 4 s.
-  - Bestand: import → report (+ `#r-diff` new/dropped titles), coverage, `#cat-it` missing Italian category names, `#nocover` hide a
-    wrong cover, publish. Without import (`#current`) same cards for the published list; publish card appears once something changed.
-    Draft `dsm-books-draft` = `{catIt, noCover}`.
-  - Pflege (`tools/source/admin/maintenance.jsx`, after an import): `#m-sum`, `#m-checks` (`.check[data-check]`, WinBIAP `bid`, first
-    100, `[data-csv]`), `#m-all`, `#m-types`, `#m-shelf` inventory list (`#m-loc`, `#m-print` via `[data-print]`, `#m-shelf-csv`,
-    `#m-shelf-all`). CSV = UTF-8 BOM, `;`, CRLF, cells starting with = + - @ get `'`.
+  - Bestand: import → report (+ `#r-diff`), coverage, `#cat-it` Italian category names, `#nocover` hide a wrong cover, publish.
+    Without import (`#current`) same cards for the published list; publish card once something changed. Draft `dsm-books-draft`.
+  - Pflege (`maintenance.jsx`, after an import): `#m-sum`, `#m-checks` (`.check[data-check]`, WinBIAP `bid`, first 100, `[data-csv]`),
+    `#m-all`, `#m-types`, `#m-shelf` (`#m-loc`, `#m-print`/`[data-print]`, `#m-shelf-csv`, `#m-shelf-all`). CSV: BOM, `;`, CRLF, `'`=+-@.
 - Only HTML/CSS/JS, no deploy services/database/server code except `save.php`; double-click (file://) works: classic scripts, no modules.
   "Publish": (1) online save.php; (2) Chrome/Edge folder access (must contain index.html, handle in IndexedDB); (3) else download.
 - save.php (PHP ≥ 7.1: no str_starts_with/array_is_list/match): GET → `{dsm:"save",v:3,ready,reason?}`; POST `?file=` + `X-DSM-Key`,
@@ -98,8 +91,8 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - Every dialog (detail, settings, questions, opening hours, archive, categories) = `Dialog` `.glass.sheet`, scrim `.scrim`; phone bottom
   sheet, centered from 40rem. Phone (<40rem, `lib/swipe.js`, `useSwipe(scrimSel, onClose)`, class `swipe`): parked half-high, flies in
   (spring `linear()`), finger leads 1:1, up = content height (max full screen), down = half, further/fast = close. Content ≤ 80 % =
-  ONE stage (`data-fit`), rubber band upwards. Categories constant height, full screen on search focus. Swiping questions away = "no".
-  `data-gone` disables Radix' closing animation. New dialogs get the same. Tests: `swipeStages` in every dialog spec.
+  ONE stage (`data-fit`), rubber band up. Categories: constant height, full screen on search focus. Swiping questions away = "no".
+  `data-gone` disables Radix' closing animation. New dialogs the same; `swipeStages` in every dialog spec.
 - Announcement (`components/` + `library/announcement.jsx`): `aside#announce` above the header, 1–2 lines (max 140), logo color or
   neutral; floats in 300 ms after the list; × (44 px)/Esc collapses; closed = `dsm-announce` hash; `#preview` ignores it. Admin card
   `#i-ann` first in Info (`#i-ann-de/-it`, `#i-ann-color [data-color]`, `#i-ann-until`, `#i-ann-preview`, `#i-ann-clear`).
@@ -124,20 +117,17 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 
 ## Technology and performance
 
-- `react`/`react-dom` → `preact/compat`. Preact 10 fails with Radix. On a Preact/Radix update push and let CI run everything.
-- One IIFE per page (`src/{library,admin}/main.jsx`), fixed names (no hash: FTP replaces files). Mount into `#page` via `flushSync`.
-  Stores via `useSyncExternalStore`; texts per module via `addStrings({de, it})`.
+- `react` → `preact/compat` (Preact 10 fails with Radix; Preact/Radix update = full CI). One IIFE per page, fixed names (FTP, no hash).
+  Mount into `#page` via `flushSync`; stores via `useSyncExternalStore`; texts per module via `addStrings({de, it})`.
 - Admin: the lock decrypts `admin.enc.js`, `new Function(src)()` sets `window.DSM_ADMIN.App`; React and `@/…` from `window.DSM_SHARED`.
-- Sonner injects unlayered CSS: toast position/width in `styles.css` `.toaster[data-sonner-toaster] …`; `notify(msg, onClick)` = whole
-  toast is `.toast-btn`; toaster `dir="ltr"`.
+- Sonner CSS is unlayered: toast position/width in `styles.css` `.toaster[data-sonner-toaster]`; `notify(msg, onClick)` = `.toast-btn`.
 - Test hooks (`#list .row`, `#d-cover`, `.ask`, `.settings`, `#rec-res` …) must survive refactorings. Closed Radix dialog = not in DOM.
 - List (~17,000 elements): `#list > .rows > ul` chunks ≤ 40, each letter starts one (`ul[data-l] id="L-X"`), `content-visibility`
   only in `@supports (overflow-anchor: auto)`. Renders 2 chunks, then 20 per setTimeout, `Chunk` = `memo`. NO `startTransition`.
   One click listener. covers.js: tick timers only while work is pending. Nothing inherited animated on `<html>`/`<body>`.
 - Color switch (`lib/appearance.js`): EVERY change adds `<style>` `still` (`transition: none !important` except `.seg3` marker);
   with View Transition API: marker 150 ms, then `startViewTransition` (`--t-color` 350 ms), `still` removed on `finished`. NO View
-  Transition in WebKit (UA check; iPhone glitches, Playwright hung) → instant. Never switch `meta[name=theme-color]` by script.
-  Language: marker first (`.seg[data-on]`), `setLang` after the frame.
+  Transition in WebKit (UA check) → instant. Never switch `meta[name=theme-color]` by script. Language: marker first, `setLang` after.
 - Blur: scrim `blur(8px) saturate(1.15)`, glass `blur(18px) saturate(1.8)` – don't increase, don't remove, never measure.
 - Durations: `--t-fast` 150, `--t-base` 200, `--t-slow` 250, out `--t-out` 160 ms; detail from 40rem 140/110, scrim 120/110.
   Reference (390 px, CPU 4×): DOMContentLoaded ≈ 0.5 s, largest block ≈ 0.9 s = parsing books.js.
@@ -153,36 +143,46 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - `info.js`: `{updated, hours:{mon..sun:[["HH:MM","HH:MM"]]}, notice:{de,it,from?,to?}, contact?:{email?,phone?,de?,it?},
   closures:[{type:"holiday"|"absent"|"special",from,to,de,it,hours?}], announcement?:{de,it,color,until?}}` (YYYY-MM-DD; `special` with
   1–2 hours = open ONLY then, holiday/absence wins; empty text → "Ferien" / "Bibliothek geschlossen" / "Geänderte Öffnungszeiten").
-- localStorage: `dsm-lang`, `dsm-theme`, `dsm-font`, `dsm-contrast`, `dsm-recs` (`{want, group}`), `dsm-cover-v3`, `dsm-info-card`,
-  `dsm-announce`; admin: `dsm-recs-draft` (+ `archive`, `restored`), `dsm-info-draft`, `dsm-books-draft`, `dsm-preview(-recs|-info)`,
-  IndexedDB `dsm-admin`/`kv`/`website`. Log: `dsm-log` ("off"), sessionStorage `dsm-log-history` (500).
+- localStorage `dsm-lang|theme|font|contrast|recs|cover-v3|info-card|announce|log`; admin `dsm-recs-draft` (+ `archive`, `restored`),
+  `dsm-info-draft`, `dsm-books-draft`, `dsm-preview(-recs|-info)`, IndexedDB `dsm-admin`/`kv`/`website`; session `dsm-log-history`.
 - logger.js: own entries `log(area, text, data?)`; `/key|pass|pw|token/` never in plaintext; console `DSM_LOG.history()`/`.asText()`/`.off()`.
 
 ## Checking (CI only)
 
-After every change: `npm run build`, commit, push, CI green. GitHub Actions (`.github/workflows/test.yml`) on every push (not for
-docs/anleitung/`*.md` only) + Mondays 06:00 UTC on `origin/main`: `npm test` (runner PHP, so save.test runs), E2E sharded (chromium 2,
-firefox 2, webkit + iphone 1; 2 workers, 1 retry, traces as artifact on failure), `npm audit --audit-level=high`, save.test on PHP 7.1,
-job `apache` (`php:7.1-apache`, `DSM_APACHE=1`). `TZ=Europe/Rome`; flaky tests reported (`tests/helpers/flaky-report.js`). Stress:
-`gh workflow run stress.yml -f repeat=5 -f workers=4 [-f grep=…]`. Third-party actions pinned to SHAs. ≈4–5 min per run.
+After every change: `npm run build`, commit, push, CI green (`.github/workflows/test.yml`: every push except docs/anleitung/`*.md`/
+LIESMICH only; Mondays 06:00 UTC full on `origin/main`). `TZ=Europe/Rome`, 2 workers, 1 retry, flaky tests reported, traces as artifact,
+`npm audit --audit-level=high`, actions pinned to SHAs. Stress: `gh workflow run stress.yml -f repeat=5 -f workers=4 [-f grep=…]`.
+- **CI suites** (each agent decides per push): trailer line in the pushed HEAD commit (own line before `Co-Authored-By:`; merge commit
+  `-m "CI-Suite: …"`; by hand `gh workflow run test.yml --ref <branch> -f suite="smoke detail"`). Unknown area/misplaced trailer = fail.
+  - **full** (no trailer): unit (runner PHP + PHP 7.1) + every spec in Chromium (2 shards) and Firefox (2), WebKit + iPhone
+    `engines.spec`, Apache (`php:7.1-apache`). ≈4–5 min, 7 jobs.
+  - **`CI-Suite: smoke [area,…]`**: unit + `@smoke` core tests of every area + every test of the named areas, one Chromium job,
+    ≈1.5 min. Areas in `tests/suites.js` (`node tests/suites.js ["smoke x,y"]` prints the plan, runs no test, allowed locally): `list`,
+    `loading`, `announcement`, `categories`, `detail`, `recommendations`, `info`, `settings`, `admin`, `admin-care`, `admin-recs`,
+    `admin-info`; only when named: `engines`, `a11y`, `performance`. Core test = `{ tag: "@smoke" }`, main path, few per area; a new
+    spec needs an area, every area ≥ 1 `@smoke` (suites.test).
+  - full for shared ground: `src/styles.css`, `head.js`, `lib/*`, `components/{glass-dialog,header,ui/*}`, `library/{main,app,data}`,
+    `src/admin/*`, `tools/build.mjs`, dependencies (Preact/Radix!), Playwright config/helpers/setup, `tests/suites.js`, workflows,
+    `save.php`, `.htaccess`, `covers.js`, `logger.js`, `extract.js`, `generate-books.js`, data formats; engine-specific behavior (blur,
+    `lvh`, container queries, touch, animation, View Transition, Safari/Firefox); > 3 areas; a conflicting merge of `main`; unsure.
+    Smoke + areas for changes inside sections (component, its CSS/texts/spec, data it shows: books.js → `list`, recommendations.js →
+    `recommendations`, categories-it.js → `categories`); bare smoke only for tools, unit tests, `tests/apache/`.
+  - Before integrating: one green run covering ALL changes since `main` (full, or smoke naming every touched area). In doubt: full.
 - Unit (`tests/unit/`): whitelist via SQL spy, covers, encryption, save.php, build byte-exact against website/, data formats, migration,
   hard rules (`rules.test.js`, external hosts only ekz + Open Library), tunnel, pack. `build.test` gzip budget per file, `data.test`
   books.js budget (1000 KB / 250 KB gzip) – raise deliberately only. `DSM_ADMIN_PW` secret / `real-db` / `test:live` don't run.
-- E2E: admin tests encrypt sources with "test-password"; import byte-identical to `npm run books`; cover APIs mocked. Every spec in
-  Chromium + Firefox; WebKit desktop + iPhone only `engines.spec.js` (also file://). Phone: `test.use({ ...PHONE })`; `swipe()` CDP in
-  Chromium. performance.spec + a11y.spec (axe) only Chromium. WebKit publishes via download (`save()`/`FOLDER` in admin-helpers.js).
-  Wait with `settled(page)`, not `waitForTimeout`. Admin helpers `tests/e2e/admin-helpers.js`; specs admin, admin-care, admin-recs,
-  admin-info, admin-backups, publish (real save.php via `php -S`).
+- E2E: admin tests encrypt sources with "test-password"; import byte-identical to `npm run books`; cover APIs mocked. WebKit only
+  `engines.spec.js` (also file://), publishes via download (`save()`/`FOLDER` in `admin-helpers.js`). Phone: `test.use({ ...PHONE })`.
+  performance + a11y (axe) only Chromium. Wait with `settled(page)`, not `waitForTimeout`. publish.spec = real save.php via `php -S`.
 
 ## Integrating branches (mandatory at the end of every task)
 
-Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<name>`), merged `--no-ff` into local `main` at the end.
-`main` must always be uploadable.
+Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<name>`), merged `--no-ff` into local `main` (always uploadable).
 1. Commit in the worktree, `git merge main`, resolve conflicts there (built files: `npm run build`; `admin.enc.js`: encrypt again;
    `books.js`: `npm run books`; others by content).
-2. `tools/source/*` changed → `npm run encrypt` (Johann). Push the branch, CI green.
-3. ExitWorktree (`keep`), in the main checkout `npm run integrate -- worktree-<name>` (aborts on unclean main, conflict, syntax error;
-   takes over changed data files in main first via a `data-<time>` branch – never discard data files in `main`).
+2. `tools/source/*` changed → `npm run encrypt` (Johann). Push the branch, CI green (see CI suites).
+3. ExitWorktree (`keep`), in the main checkout `npm run integrate -- worktree-<name>` (aborts on unclean main/conflict/syntax error;
+   adopts changed data files in main via a `data-<time>` branch – never discard data files in `main`).
 4. `git worktree remove <path>`, `git branch -d` (never `-D`). Report merge commit and warnings.
 - `npm run branches` / SessionStart hook list local branches only; also check `git branch -r --no-merged main` (remote `claude/*`).
   Never touch foreign worktrees with uncommitted changes. `main` only via merge commits: no rebase, `--force`, `reset --hard`.
@@ -195,5 +195,5 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
 - GitHub repo `germanprettyboy/bibliothek-dsm` is PUBLIC on purpose (Johann, 2026-10-23: free Actions minutes; private would use up
   the free quota in days). So never commit secrets, the password, student data or `data/`. Plaintext admin source is public.
 - Covers: run "Cover-Abdeckung prüfen" completely; terms of use of cover.ekz.de. Proofread the 20 recommendation texts and Italian UI.
-- Untested on real devices: iPhone Safari; school PC Windows 7 (Chrome 109 / Firefox ESR 115; `@supports` fallbacks, target es2020).
-- `docs/dsmailand-techstack.md` (school website): adopt nothing (no GTM, no Google Fonts); Aruba `.htaccess` → `IfModule`.
+- Untested on real devices: iPhone Safari; school PC Windows 7 (Chrome 109 / Firefox ESR 115; `@supports` fallbacks, es2020).
+  `docs/dsmailand-techstack.md` (school website): adopt nothing (no GTM, no Google Fonts); Aruba `.htaccess` → `IfModule`.

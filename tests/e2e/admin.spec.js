@@ -57,7 +57,7 @@ test.describe("lock", () => {
     await expect(page.locator("#lock-msg")).toHaveText(/^Bitte (29|30) Sekunden warten\.$/);
   });
 
-  test("right password: the admin app starts, stays open on reload, lock closes it", async ({ page }) => {
+  test("right password: the admin app starts, stays open on reload, lock closes it", { tag: "@smoke" }, async ({ page }) => {
     await unlock(page);
     await expect(page.locator("#lock")).toBeHidden();
     expect(await page.evaluate(() => sessionStorage.getItem("dsm-admin-fails"))).toBe("0");
@@ -124,7 +124,7 @@ test.describe("lock", () => {
 });
 
 test.describe("importing the database", () => {
-  test("test database: report, personal data discarded, cross-check", async ({ page }) => {
+  test("test database: report, personal data discarded, cross-check", { tag: "@smoke" }, async ({ page }) => {
     await unlock(page);
     await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
@@ -262,7 +262,7 @@ test.describe("editing recommendations", () => {
     expect(duration).toEqual(["0s", "0s", "0s", "0s"]);
   });
 
-  test("full group: adding disabled; remove, add, sort, text – draft saved", async ({ page }) => {
+  test("full group: adding disabled; remove, add, sort, text – draft saved", { tag: "@smoke" }, async ({ page }) => {
     await unlock(page);
     await tab(page);
     // group full: search field disabled, note centered
@@ -496,7 +496,7 @@ test.describe("publishing directly online (save.php)", () => {
   const flag = page => page.locator('.pub[data-file="info.js"] .flag');
   const ONLINE = "Ein Klick speichert info.js direkt auf der Website – sofort online, nichts hochladen.";
 
-  test('one click: info.js goes to save.php with the key, no folder dialog, message "online"', async ({ page }) => {
+  test('one click: info.js goes to save.php with the key, no folder dialog, message "online"', { tag: "@smoke" }, async ({ page }) => {
     const { saveKey } = require("../../tools/encrypt-admin.js");
     const requests = await server(page);
     await unlock(page);

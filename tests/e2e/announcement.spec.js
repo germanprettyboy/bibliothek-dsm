@@ -12,7 +12,7 @@ const banner = page => page.locator("#announce");
 const top = page => page.locator(".bar").evaluate(e => Math.round(e.getBoundingClientRect().top + scrollY));
 
 test.describe("announcement", () => {
-  test("floats in at the top, pushes the search bar down, × collapses it and it stays closed", async ({ page }) => {
+  test("floats in at the top, pushes the search bar down, × collapses it and it stays closed", { tag: "@smoke" }, async ({ page }) => {
     await withInfo(page, ANN);
     await open(page);
     await expect(banner(page)).toHaveClass(/\bopen\b/);
