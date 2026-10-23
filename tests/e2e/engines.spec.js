@@ -5,7 +5,7 @@
 const path = require("path");
 const { pathToFileURL } = require("url");
 const base = require("@playwright/test");
-const { test, expect, open, data, TMP } = require("./helpers.js");
+const { test, expect, open, settled, data, TMP } = require("./helpers.js");
 const { WEB } = require("../helpers/load.js");
 
 const { B } = data();
@@ -25,6 +25,44 @@ test.describe("every engine", () => {
     await expect(page.locator("#d-by")).toHaveText(BOOK.a.join(", "));
     await page.keyboard.press("Escape");
     await expect(page.locator("#detail")).toHaveCount(0);
+  });
+
+  test("large cover: grows out of the small cover, stays centered when size L arrives", async ({ page, net }) => {
+    net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
+    await open(page);
+    await page.fill("#q", BOOK.i[0]);
+    await row(page, BOOK).click();
+    const box = page.locator("#d-cover.zoomable");
+    await expect(box).toBeVisible();
+    await settled(page);
+    // first frame of the flight as the engine draws it: the grow animation held at 0 for one measurement
+    await page.evaluate(() => {
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (...args) {
+        const a = animate.apply(this, args);
+        if (this.matches("#zoom img") && !window.__start) {
+          a.pause(); a.currentTime = 0;
+          const r = this.getBoundingClientRect();
+          window.__start = [r.left, r.top, r.width, r.height];
+          a.play();
+        }
+        return a;
+      };
+    });
+    const cover = await box.evaluate(e => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
+    await box.click();
+    const img = page.locator("#zoom img");
+    await expect(img).toHaveAttribute("src", /123-L\.jpg$/);
+    await settled(page);
+    const start = await page.evaluate(() => window.__start);
+    start.forEach((v, n) => expect(Math.abs(v - cover[n]), `start ${start} on the cover ${cover}`).toBeLessThan(2));
+    const end = await img.evaluate(e => {
+      const r = e.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, l: r.left, t: r.top, r: r.right, b: r.bottom, w: innerWidth, h: innerHeight };
+    });
+    expect(Math.abs(end.x - end.w / 2), `centered horizontally ${JSON.stringify(end)}`).toBeLessThan(2);
+    expect(Math.abs(end.y - end.h / 2), `centered vertically ${JSON.stringify(end)}`).toBeLessThan(2);
+    expect(end.l >= 0 && end.t >= 0 && end.r <= end.w && end.b <= end.h, `inside the window ${JSON.stringify(end)}`).toBe(true);
   });
 
   test("glass: sheet and scrim blurred", async ({ page }) => {
