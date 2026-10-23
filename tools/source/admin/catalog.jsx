@@ -1,7 +1,9 @@
 /* Tab "catalog": choose the WinBIAP database, discard personal data (source/extract.js), report, maintenance
    analysis (tab "Pflege"), Italian category names, publish a new books.js. Cover coverage and hidden covers: tab "Cover"
    (covers.jsx). Without an import the published books.js can be published again with new names.
-   Everything runs locally in the browser. */
+   Import slot: drop zone → 3D book loader with steps (#status) → success panel (#import-done) in the same place and size.
+   The name check (#r-check) only appears when it found something. Everything runs locally in the browser. */
+import "./strings-import";
 import * as React from "react";
 import { ChevronDownIcon, DatabaseIcon } from "lucide-react";
 
@@ -40,6 +42,10 @@ export const Lines = ({ id, lines }) => (
 );
 export const Big = props => <div className="big text-l leading-none font-semibold tabular-nums" {...props} />;
 
+// Name of the last imported file: the success panel shows it again after a tab change (the component remounts)
+let lastFile = "";
+const STEPS = ["loadingLib", "reading", "inspecting"];
+
 export function Catalog({ B }) {
   const { t, nf } = useLanguage();
   const { cur, result } = B;
@@ -48,6 +54,7 @@ export function Catalog({ B }) {
   const [error, setError] = React.useState(null); // [key, values]
   const [over, setOver] = React.useState(false);
   const input = React.useRef(null);
+  const dragged = React.useRef(false); // drop zone shown only because a file is dragged over the success panel
 
   // File dropped outside the drop zone: the browser should not open it
   React.useEffect(() => {
@@ -61,13 +68,13 @@ export function Catalog({ B }) {
   if (B.changed && !pubShown) setPubShown(true);
   const fail = (key, vars) => { setStatus(null); setError([key, vars]); setPhase("choose"); };
   async function handle(file) {
-    if (!file) return;
-    setError(null); setPhase("running");
+    if (!file || phase === "running") return;
+    dragged.current = false;
+    setError(null); setStatus("loadingLib"); setPhase("running");
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
       const sig = new TextDecoder().decode(buf.subarray(0, 15));
       if (sig !== "SQLite format 3") return fail("errNotSqlite");
-      setStatus("loadingLib");
       const SQL = await loadSql();
       setStatus("reading");
       await new Promise(r => setTimeout(r, 30)); // let the status display render
@@ -79,6 +86,7 @@ export function Catalog({ B }) {
         await new Promise(res => setTimeout(res, 30));
         ins = window.DSMExtract.inspect(db);
       } finally { db.close(); }
+      lastFile = file.name || "";
       B.imported(r, ins);
       setStatus(null);
       setPhase("report");
@@ -90,10 +98,28 @@ export function Catalog({ B }) {
       if (input.current) input.current.value = "";
     }
   }
+  const again = () => { setPhase("choose"); setError(null); setTimeout(() => input.current && input.current.click(), 0); };
+  // Drag and drop over the whole slot: over the success panel the drop zone comes back, leaving restores the panel
+  const drag = {
+    onDragEnter(e) {
+      e.preventDefault();
+      if (phase === "running") return;
+      if (phase === "report") { dragged.current = true; setPhase("choose"); }
+      setOver(true);
+    },
+    onDragOver(e) { e.preventDefault(); if (phase !== "running") setOver(true); },
+    onDragLeave(e) {
+      e.preventDefault();
+      if (e.currentTarget.contains(e.relatedTarget)) return;
+      setOver(false);
+      if (dragged.current && result) { dragged.current = false; setPhase("report"); }
+    },
+    onDrop(e) { e.preventDefault(); setOver(false); handle(e.dataTransfer.files[0]); },
+  };
 
   // ---------- Report ----------
   let report = null;
-  if (result && phase === "report") {
+  if (result && phase !== "running") {
     const r = result.report;
     const taken = [[t("records"), nf(r.records)], [t("nonBook"), nf(r.nonBook)]];
     if (r.gone) taken.push([t("gone"), nf(r.gone)]);
@@ -105,16 +131,13 @@ export function Catalog({ B }) {
       taken.push([t("diff"), t("diffV", { a: nf(added.length), r: nf(gone.length) })]);
       if (added.length || gone.length) diff = <Diff added={added} gone={gone} />;
     }
-    const agg = new Map();
-    for (const x of r.removedTables) agg.set(x.key, (agg.get(x.key) || 0) + x.rows);
-    const removed = [...agg].map(([k, n]) => [t("t_" + k), nf(n)]);
-    if (r.loanColumns.length) removed.push([t("loanCols"), t("loanColsV", { n: nf(r.loanColumns.length) })]);
-    if (r.namedLoans) removed.push([t("namedLoans"), nf(r.namedLoans)]);
-    const hasReaders = r.removedTables.some(x => x.key === "readers");
-    let msg = r.nameHits ? t("checkWarn", { n: nf(r.nameHits) }) : (hasReaders ? t("checkOk") : t("checkNoReaders"));
-    if (r.nameRemoved) msg += " " + t("checkRemoved", { n: nf(r.nameRemoved) });
+    // Name check: only shown when there is something to check (a name from the reader file in a public field)
+    const warn = [];
+    if (r.nameHits) warn.push(t("checkWarn", { n: nf(r.nameHits) }));
+    if (r.nameRemoved) warn.push(t("checkRemoved", { n: nf(r.nameRemoved) }));
     report = (
       <div className="report grid gap-3" id="report">
+        {warn.length ? <div className="flag mid" id="r-check">{warn.join(" ")}</div> : null}
         <Card>
           <CardTitle>{t("takenT")}</CardTitle>
           <Big id="r-books">{nf(r.books)}</Big>
@@ -122,23 +145,12 @@ export function Catalog({ B }) {
           <Lines id="r-taken" lines={taken} />
           {diff}
         </Card>
-        <Card>
-          <CardTitle>{t("removedT")}</CardTitle>
-          <Lines id="r-removed" lines={removed.length ? removed : [[t("noneFound"), "–"]]} />
-        </Card>
-        <div className={cn("flag", r.nameHits && "mid")} id="r-check">{msg}</div>
         <CategoriesIt B={B} />
-        <Publish
-          file="books.js" build={B.booksFile} ids={{ button: "dl", how: "r-howto", preview: "preview" }} alt="download" howKey="howto" preview
-        >
-          <Button variant="outline" id="again" onClick={() => { setPhase("choose"); setError(null); setTimeout(() => input.current && input.current.click(), 0); }}>
-            <span>{t("again")}</span>
-          </Button>
-        </Publish>
+        <Publish file="books.js" build={B.booksFile} ids={{ button: "dl", how: "r-howto", preview: "preview" }} alt="download" howKey="howto" preview />
       </div>
     );
   } else if (!result && B.books.length) {
-    // Without an import: the published list – check coverage, names, hidden covers, publish again if something changed
+    // Without an import: the published list – Italian names, publish again if something changed
     report = (
       <div className="grid gap-3" id="current">
         <CategoriesIt B={B} />
@@ -152,28 +164,68 @@ export function Catalog({ B }) {
     );
   }
 
+  // Drop zone, loader and success panel share one grid cell: the slot keeps the drop zone's size in every state
+  const step = Math.max(0, STEPS.indexOf(status));
+  const done = phase === "report" && !!result;
   return (
     <div className="steps grid gap-3.5 pb-10" id="tab-catalog">
-      <label
-        className={cn("drop relative grid cursor-pointer place-items-center gap-2.5 rounded-xl border-[1.5px] border-dashed border-border bg-surface px-[18px] py-9 text-center transition-[border-color,transform] duration-200 ease-dsm hover:border-blue", over && "over scale-[1.01] border-blue")}
-        id="drop" hidden={phase !== "choose"}
-        onDragEnter={e => { e.preventDefault(); setOver(true); }} onDragOver={e => { e.preventDefault(); setOver(true); }}
-        onDragLeave={e => { e.preventDefault(); setOver(false); }}
-        onDrop={e => { e.preventDefault(); setOver(false); handle(e.dataTransfer.files[0]); }}
-      >
-        <input
-          ref={input} type="file" id="file" className="absolute size-px opacity-0"
-          accept=".winbook,.sqlite,.sqlite3,.db,application/vnd.sqlite3,application/x-sqlite3" onChange={e => handle(e.target.files[0])}
-        />
-        <DatabaseIcon aria-hidden="true" strokeWidth={1.6} className="size-[34px] text-muted-foreground" />
-        <strong className="font-semibold">{t("dropT")}</strong>
-        <p className="m-0 max-w-120 text-s text-muted-foreground">{t("dropP")}</p>
-      </label>
-      <div className="status flex items-center gap-2.5 text-muted-foreground" id="status" hidden={!status}>
-        <span className="spin" aria-hidden="true" /><span id="statusText">{status ? t(status) : ""}</span>
+      <div className="imp" {...drag}>
+        <label
+          className={cn("drop relative grid cursor-pointer place-items-center gap-2.5 rounded-xl border-[1.5px] border-dashed border-border bg-surface px-[18px] py-9 text-center transition-[border-color,transform] duration-200 ease-dsm hover:border-blue", over && "over scale-[1.01] border-blue", phase !== "choose" && "invisible")}
+          id="drop" aria-hidden={phase !== "choose" || undefined}
+        >
+          <input
+            ref={input} type="file" id="file" className="absolute size-px opacity-0" tabIndex={phase !== "choose" ? -1 : undefined}
+            accept=".winbook,.sqlite,.sqlite3,.db,application/vnd.sqlite3,application/x-sqlite3" onChange={e => handle(e.target.files[0])}
+          />
+          <DatabaseIcon aria-hidden="true" strokeWidth={1.6} className="size-[34px] text-muted-foreground" />
+          <strong className="font-semibold">{t("dropT")}</strong>
+          <p className="m-0 max-w-120 text-s text-muted-foreground">{t("dropP")}</p>
+        </label>
+        {phase === "running" || done ? (
+          <div className={cn("imp-panel grid place-items-center content-center gap-2 px-[18px] py-2 text-center", done && "done")} id={done ? "import-done" : "status"} role="status" aria-live="polite">
+            {done ? (
+              <>
+                <svg className="imp-check" viewBox="0 0 52 52" aria-hidden="true">
+                  <circle className="imp-check-c" cx="26" cy="26" r="24" />
+                  <path className="imp-check-p" d="M15 27l7 7 15-16" />
+                </svg>
+                <strong className="imp-in text-m font-semibold">{t("imDoneT")}</strong>
+                <p className="imp-in m-0 max-w-120 text-s text-muted-foreground [overflow-wrap:anywhere]" id="import-sub">
+                  {t("imDoneP", { f: lastFile || "WinBIAP", n: nf(result.report.books) })}
+                </p>
+                <Button variant="outline" id="again" className="imp-in" onClick={again}><span>{t("again")}</span></Button>
+              </>
+            ) : (
+              <>
+                <BookLoader />
+                <span className="text-m" id="statusText">{status ? t(status) : ""}</span>
+                <ol className="imp-steps m-0 flex list-none gap-1.5 p-0" aria-label={t("imStep", { i: step + 1, n: STEPS.length })}>
+                  {STEPS.map((s, i) => <li key={s} className={cn(i < step && "past", i === step && "now")} />)}
+                </ol>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
       <div className="flag warn" id="error" hidden={!error}>{error ? t(error[0], error[1]) : ""}</div>
       {report}
+    </div>
+  );
+}
+
+// Loader: an open book whose pages turn in 3D (pure CSS transforms, also Chrome 109 / Firefox 115).
+// The top page (n = 0) lies highest (--z) and turns first.
+// Reduced motion: the pages stand still, fanned out (styles.css "Admin import loader").
+function BookLoader() {
+  return (
+    <div className="imp-ld" aria-hidden="true">
+      <div className="imp-book">
+        <i className="imp-base l" /><i className="imp-base r" />
+        {["--mauve", "--blue", "--orange"].map((c, n) => (
+          <i key={c} className="imp-page" style={{ "--n": n, "--c": `var(${c})`, "--z": (3 - n) * 0.6 + "px", "--fan": -150 + n * 55 + "deg" }} />
+        ))}
+      </div>
     </div>
   );
 }

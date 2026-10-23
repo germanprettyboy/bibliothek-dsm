@@ -28,6 +28,7 @@ import * as glassDialog from "@/components/glass-dialog";
 import * as announcement from "@/components/announcement";
 import * as notice from "@/lib/notice";
 import * as storage from "@/lib/storage";
+import * as swipe from "@/lib/swipe";
 import * as language from "@/lib/language";
 import * as utils from "@/lib/utils";
 
@@ -58,6 +59,7 @@ export const SHARED = {
   "@/components/announcement": announcement,
   "@/lib/notice": notice,
   "@/lib/storage": storage,
+  "@/lib/swipe": swipe,
   "@/lib/language": language,
   "@/lib/utils": utils,
 };

@@ -1,15 +1,21 @@
 /* Tab "Pflege": maintenance lists from the WinBIAP file (source/extract.js inspect) – what should be fixed in WinBIAP,
-   media types, a location list for the inventory at the shelf (print, CSV). Nothing here is published. */
+   media types, a location list for the inventory at the shelf. Every list: table view (table-view.jsx), download as
+   Excel (xlsx.js, formatted, one sheet per list) or CSV, printing (print.jsx). Nothing here is published. */
 import * as React from "react";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, DownloadIcon, PrinterIcon, TableIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 import { Big, Lines } from "./catalog";
 import { Fixes } from "./fixes";
+import { TableView } from "./table-view";
+import { GROUP_COLOR, PrintDialog, PrintJob } from "./print";
+import { sheetNames, xlsx } from "./xlsx";
+import "./strings-care";
 
 const GROUPS = [
   ["isbn", ["isbnBad", "isbnShared", "isbnNone", "coverNone"]],
@@ -18,28 +24,33 @@ const GROUPS = [
   ["master", ["authorDup", "publisherDup", "categoryDup", "locationDup", "categoryUnused", "locationUnused"]],
   ["names", ["nameHits", "namedCategory", "namedLocation"]],
 ];
-const SHOWN = 100; // rows on the page per list, all of them in the CSV file
+const HEX = { blue: "B5C9D0", mauve: "BA8EA7", green: "B3CEA1", orange: "DB9F00", red: "A93A39" }; // logo colours (styles.css)
+const SHOWN = 100; // rows on the page per list, all of them in the table view and the files
 const today = () => new Date().toLocaleDateString("sv-SE");
 const coll = new Intl.Collator("de", { sensitivity: "base", numeric: true });
 
-// CSV for Excel: BOM, semicolons, CRLF; cells starting with = + - @ are not run as formulas
-const cell = v => {
-  let s = v == null ? "" : String(v);
-  if (/^[=+\-@]/.test(s)) s = "'" + s;
-  return /[";\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-};
-function saveCsv(name, rows) {
-  const text = "﻿" + rows.map(r => r.map(cell).join(";")).join("\r\n") + "\r\n";
-  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+function saveBlob(name, blob, rows) {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  log("Care", `${name} saved (${rows.length - 1} rows)`);
+  log("Care", `${name} saved (${rows} rows)`);
 }
+/* CSV for Excel (Windows and Mac, German and Italian): UTF-8 with BOM, semicolons, CRLF. Plain values on purpose, so any
+   program reads them unchanged: no ="…" wrapping (Numbers/LibreOffice would show it literally, and the file would contain
+   formulas). Cells starting with = + - @ tab or CR get a leading ' so Excel never runs them as a formula; Excel then shows
+   the '. Excel may still turn a 13-digit ISBN into 9,78E+12 or "5-6" into a date – the Excel export keeps such values as
+   text, which is why it is the first choice in the menu. */
+const csvCell = v => {
+  let s = v == null ? "" : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return /[";\r\n]|^\s|\s$/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+};
+const csvBlob = rows => new Blob(["﻿" + rows.map(r => r.map(csvCell).join(";")).join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
 const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-// All lists: the checks of inspect, plus the cover check (tab "Bestand") and the name check of the import
-function allChecks(ins, report, cov) {
+// All lists: the checks of inspect, plus the cover check (tab "Cover") and the name check of the import (also stats.jsx)
+export function allChecks(ins, report, cov) {
   const by = new Map(ins.checks.map(c => [c.key, c.rows]));
   by.set("nameHits", ((report && report.nameHitTitles) || []).map(t => ({ r: { id: "", t, a: "", p: "", y: "", c: "", l: "", sig: "", z: "" } })));
   if (cov && cov.miss) {
@@ -51,8 +62,88 @@ function allChecks(ins, report, cov) {
   return GROUPS.map(([g, keys]) => [g, keys.filter(k => by.has(k)).map(k => ({ key: k, rows: by.get(k) }))]);
 }
 
+/* Tables for the files: columns { head, type: s|n|d, max } and raw rows (dates as YYYY-MM-DD). The same table becomes the
+   CSV (dates in the page's format) and an Excel sheet (real dates, ISBN and value columns as text). */
+function useExport() {
+  const { t, df, lang } = useLanguage();
+  const d = today();
+  const recCols = () => [
+    { head: t("cId"), type: "n" }, { head: t("cTitle"), max: 50 }, { head: t("cAuthor"), max: 34 }, { head: t("cPublisher"), max: 28 },
+    { head: t("cYear"), type: "n" }, { head: t("cCategory"), max: 30 }, { head: t("cLocation"), max: 32 }, { head: t("cSig"), max: 20 },
+    { head: t("cAdded"), type: "d" },
+  ];
+  const recVals = r => [r.id, r.t, r.a, r.p, r.y, r.c, r.l, r.sig, r.z];
+  const tableOf = c => {
+    if (c.rows.length && !c.rows[0].r) return { cols: [{ head: t("cEntry"), max: 70 }, { head: t("cCopies"), type: "n" }], rows: c.rows.map(x => [x.v, x.n == null ? "" : x.n]) };
+    const withValue = c.rows.some(x => x.v !== undefined);
+    return {
+      cols: recCols().concat(withValue ? [{ head: t("cValue"), max: 40 }] : []),
+      rows: c.rows.map(x => recVals(x.r).concat(withValue ? [x.v == null ? "" : x.v] : [])),
+    };
+  };
+  // One CSV for all lists: same columns in every row; "Wert" holds the value to fix or the master data entry
+  const allTable = groups => ({
+    cols: [{ head: t("cCheck"), max: 40 }, { head: t("mxGroup"), max: 22 }].concat(recCols(), [{ head: t("cValue"), max: 40 }, { head: t("cCopies"), type: "n" }]),
+    rows: groups.reduce((a, [g, list]) => a.concat(...list.map(c => c.rows.map(x => [t("m_" + c.key), t("mG_" + g)]
+      .concat(x.r ? recVals(x.r).concat([x.v == null ? "" : x.v, ""]) : ["", "", "", "", "", "", "", "", "", x.v, x.n == null ? "" : x.n])))), []),
+  });
+  const csv = (name, tb) => saveBlob(name, csvBlob([tb.cols.map(c => c.head)].concat(tb.rows.map(r => r.map((v, i) => (tb.cols[i].type === "d" ? df(v) : v))))), tb.rows.length);
+  const opts = doc => ({ date: lang === "it" ? "dd/mm/yyyy" : "dd.mm.yyyy", title: `${t("mxLib")} · ${doc}`, footer: `${t("mxLib")} · ${doc} · ${t("mxAsOf", { d: df(d) })}` });
+  const title = (doc, what) => `${t("mxLib")} · ${doc} · ${what} · ${t("mxAsOf", { d: df(d) })}`;
+  const book = (name, sheets, doc) => saveBlob(name, xlsx(sheets, opts(doc)), sheets.reduce((s, x) => s + x.rows.length, 0));
+  const listSheet = (c, g, name) => ({ name, tab: HEX[GROUP_COLOR[g]], title: title(t("mxDoc"), t("m_" + c.key)), sub: t("mh_" + c.key), ...tableOf(c) });
+  return {
+    d, tableOf, recCols, recVals,
+    listCsv: c => csv(`${slug(t("m_" + c.key))}-${d}.csv`, tableOf(c)),
+    listXlsx: (c, g) => book(`${slug(t("m_" + c.key))}-${d}.xlsx`, [listSheet(c, g, t("m_" + c.key))], t("mxDoc")),
+    allCsv: groups => csv(`bestandspflege-${d}.csv`, allTable(groups)),
+    // Overview first (group stripe, link to each list's sheet), then one sheet per non-empty list
+    allXlsx(groups, sub) {
+      const lists = groups.reduce((a, [g, list]) => a.concat(list.map(c => ({ c, g }))), []);
+      const full = lists.filter(x => x.c.rows.length);
+      const names = sheetNames([t("mxOverview")].concat(full.map(x => t("m_" + x.c.key))));
+      const sheetOf = new Map(full.map((x, i) => [x.c.key, names[i + 1]]));
+      const overview = {
+        name: names[0], tab: HEX.mauve, title: `${t("mxLib")} · ${t("mxDoc")} · ${t("mxAsOf", { d: df(d) })}`, sub,
+        cols: [{ head: "", min: 2.5, max: 2.5 }, { head: t("mxGroup"), max: 24 }, { head: t("cCheck"), max: 46 }, { head: t("mxCount"), type: "n" }, { head: t("mxHint"), max: 90 }],
+        rows: lists.map(({ c, g }) => [{ v: "", fill: HEX[GROUP_COLOR[g]] }, t("mG_" + g), sheetOf.has(c.key) ? { v: t("m_" + c.key), link: sheetOf.get(c.key) } : t("m_" + c.key), c.rows.length, t("mh_" + c.key)]),
+      };
+      book(`bestandspflege-${d}.xlsx`, [overview].concat(full.map(x => listSheet(x.c, x.g, sheetOf.get(x.c.key)))), t("mxDoc"));
+    },
+    shelfCsv: (name, recs) => csv(`${slug(name)}-${d}.csv`, { cols: recCols(), rows: recs.map(recVals) }),
+    shelfXlsx: (name, what, recs) => book(`${slug(name)}-${d}.xlsx`, [{ name: what, tab: HEX.mauve, title: title(t("mxShelfDoc"), what), cols: recCols(), rows: recs.map(recVals) }], t("mxShelfDoc")),
+  };
+}
+
+// "Herunterladen ▾": Excel first, CSV second. sections: [[label | null, [{ text, on, props }]]]
+function DownloadMenu({ triggerProps, label, sections }) {
+  const { t } = useLanguage();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" {...triggerProps}>
+          <DownloadIcon aria-hidden="true" /><span>{label || t("mxDl")}</span><ChevronDownIcon aria-hidden="true" className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {sections.map(([head, items], i) => (
+          <React.Fragment key={i}>
+            {i ? <DropdownMenuSeparator /> : null}
+            {head ? <DropdownMenuLabel>{head}</DropdownMenuLabel> : null}
+            {items.map(it => <DropdownMenuItem key={it.text} onSelect={it.on} {...it.props}>{it.text}</DropdownMenuItem>)}
+          </React.Fragment>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function Care({ B, ins, report, cov, onCatalog }) {
   const { t, nf, df } = useLanguage();
+  const X = useExport();
+  const [view, setView] = React.useState(null); // table view: { check } (null check = all data)
+  const [printOpen, setPrintOpen] = React.useState(false);
+  const [job, setJob] = React.useState(null); // print job (print.jsx)
   if (!ins) {
     return (
       <div className="steps grid gap-3.5 pb-10" id="tab-care">
@@ -66,22 +157,7 @@ export function Care({ B, ins, report, cov, onCatalog }) {
   }
   const groups = allChecks(ins, report, cov);
   const found = groups.reduce((s, [, list]) => s + list.reduce((n, c) => n + c.rows.length, 0), 0);
-  const recordHead = withValue => [t("cId"), t("cTitle"), t("cAuthor"), t("cPublisher"), t("cYear"), t("cCategory"), t("cLocation"), t("cSig"), t("cAdded")].concat(withValue ? [t("cValue")] : []);
-  const recordCells = (r, v) => [r.id, r.t, r.a, r.p, r.y, r.c, r.l, r.sig, r.z ? df(r.z) : ""].concat(v === undefined ? [] : [v == null ? "" : v]);
-  const csvOf = c => {
-    if (!c.rows.length || c.rows[0].r) {
-      const withValue = c.rows.some(x => x.v !== undefined);
-      return [recordHead(withValue)].concat(c.rows.map(x => recordCells(x.r, withValue ? x.v : undefined)));
-    }
-    return [[t("cEntry"), t("cCopies")]].concat(c.rows.map(x => [x.v, x.n == null ? "" : x.n]));
-  };
-  const all = () => {
-    const rows = [[t("cCheck")].concat(recordHead(true), [t("cEntry"), t("cCopies")])];
-    for (const [, list] of groups) for (const c of list) for (const x of c.rows) {
-      rows.push([t("m_" + c.key)].concat(x.r ? recordCells(x.r, x.v).concat(x.v === undefined ? [""] : [], ["", ""]) : ["", "", "", "", "", "", "", "", "", "", x.v, x.n == null ? "" : x.n]));
-    }
-    saveCsv(`bestandspflege-${today()}.csv`, rows);
-  };
+  const lines = [[t("mRecords"), nf(ins.records.length)]].concat(ins.latest ? [[t("mLatest"), df(ins.latest)]] : [], [[t("mFound"), nf(found)]]);
 
   return (
     <div className="steps grid gap-3.5 pb-10" id="tab-care">
@@ -89,8 +165,18 @@ export function Care({ B, ins, report, cov, onCatalog }) {
         <CardTitle>{t("mT")}</CardTitle>
         <Big id="m-records">{nf(ins.records.length)}</Big>
         <CardDescription>{t("mP")}</CardDescription>
-        <Lines id="m-lines" lines={[[t("mRecords"), nf(ins.records.length)]].concat(ins.latest ? [[t("mLatest"), df(ins.latest)]] : [], [[t("mFound"), nf(found)]])} />
-        <CardFooter><Button variant="outline" id="m-all" onClick={all}><span>{t("mAll")}</span></Button></CardFooter>
+        <Lines id="m-lines" lines={lines} />
+        <CardFooter>
+          <Button variant="outline" id="m-table" onClick={() => setView({ check: null })}><TableIcon aria-hidden="true" /><span>{t("mxAllTable")}</span></Button>
+          <DownloadMenu
+            triggerProps={{ id: "m-dl" }} label={t("mxAllDl")}
+            sections={[[null, [
+              { text: t("mxXlsx"), on: () => X.allXlsx(groups, lines.map(l => l.join(": ")).join(" · ")), props: { id: "m-all-xlsx" } },
+              { text: t("mxCsv"), on: () => X.allCsv(groups), props: { id: "m-all" } },
+            ]]]}
+          />
+          <Button variant="outline" id="m-print-lists" disabled={!found} onClick={() => setPrintOpen(true)}><PrinterIcon aria-hidden="true" /><span>{t("mPrint")}</span></Button>
+        </CardFooter>
       </Card>
       <Fixes B={B} ins={ins} />
       <Card id="m-checks">
@@ -98,8 +184,12 @@ export function Care({ B, ins, report, cov, onCatalog }) {
         <CardDescription>{t("mChecksP")}</CardDescription>
         {groups.map(([g, list]) => (
           <section key={g} className="mt-3" data-group={g}>
-            <h3 className="m-0 mb-1 text-s font-medium text-muted-foreground">{t("mG_" + g)}</h3>
-            {list.map(c => <Check key={c.key} c={c} onCsv={() => saveCsv(`${slug(t("m_" + c.key))}-${today()}.csv`, csvOf(c))} />)}
+            <h3 className="m-0 mb-1 flex items-center gap-2 text-s font-medium text-muted-foreground">
+              <i className="pd-dot" data-c={GROUP_COLOR[g]} aria-hidden="true" />{t("mG_" + g)}
+            </h3>
+            {list.map(c => (
+              <Check key={c.key} c={c} onTable={() => setView({ check: c.key })} onCsv={() => X.listCsv(c)} onXlsx={() => X.listXlsx(c, g)} />
+            ))}
           </section>
         ))}
       </Card>
@@ -108,13 +198,16 @@ export function Care({ B, ins, report, cov, onCatalog }) {
         <CardDescription>{t("mTypesP")}</CardDescription>
         <Lines id="m-types-lines" lines={ins.types.map(x => [`${x.name || "–"} · ${t(x.book ? "mTaken" : "mLeft")}`, nf(x.n)])} />
       </Card>
-      <Shelf ins={ins} saveCsv={saveCsv} recordHead={recordHead} recordCells={recordCells} />
+      <Shelf ins={ins} X={X} onPrint={setJob} />
+      <TableView open={!!view} onOpenChange={o => { if (!o) setView(null); }} ins={ins} books={B.books} report={report} cov={cov} check={view ? view.check : null} />
+      <PrintDialog open={printOpen} onOpenChange={setPrintOpen} groups={groups} onPrint={setJob} />
+      <PrintJob job={job} onDone={() => setJob(null)} />
     </div>
   );
 }
 
-// One list: row with name and count; opened: hint, the first rows, CSV
-function Check({ c, onCsv }) {
+// One list: row with name and count; opened: hint, the first rows, table view, download
+function Check({ c, onTable, onCsv, onXlsx }) {
   const { t, nf } = useLanguage();
   const [open, setOpen] = React.useState(false);
   const n = c.rows.length, records = !!(n && c.rows[0].r), withValue = c.rows.some(x => x.v !== undefined);
@@ -137,9 +230,8 @@ function Check({ c, onCsv }) {
             <table className="w-full border-collapse text-s">
               <thead>
                 <tr>
-                  {records
-                    ? [t("cId"), t("cTitle"), t("cAuthor"), t("cLocation")].concat(withValue ? [t("cValue")] : []).map(h => <th key={h} className={th}>{h}</th>)
-                    : [t("cEntry"), t("cCopies")].map(h => <th key={h} className={th}>{h}</th>)}
+                  {(records ? [t("cId"), t("cTitle"), t("cAuthor"), t("cLocation")].concat(withValue ? [t("cValue")] : []) : [t("cEntry"), t("cCopies")])
+                    .map(h => <th key={h} scope="col" className={th}>{h}</th>)}
                 </tr>
               </thead>
               <tbody>
@@ -160,17 +252,26 @@ function Check({ c, onCsv }) {
               </tbody>
             </table>
           </div>
-          {n > SHOWN ? <p className="m-0 text-s text-muted-foreground">{t("mFirst", { s: nf(SHOWN), n: nf(n) })}</p> : null}
-          <div><Button variant="outline" size="sm" data-csv={c.key} onClick={onCsv}>{t("mCsv")}</Button></div>
+          {n > SHOWN ? <p className="m-0 text-s text-muted-foreground">{t("mxFirst", { s: nf(SHOWN), n: nf(n) })}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" data-table={c.key} onClick={onTable}><TableIcon aria-hidden="true" /><span>{t("mxTable")}</span></Button>
+            <DownloadMenu
+              triggerProps={{ "data-dl": c.key }}
+              sections={[[null, [
+                { text: t("mxXlsx"), on: onXlsx, props: { "data-xlsx": c.key } },
+                { text: t("mxCsv"), on: onCsv, props: { "data-csv": c.key } },
+              ]]]}
+            />
+          </div>
         </div>
       ) : null}
     </div>
   );
 }
 
-// Location list for the inventory: one location, sorted by title; printing shows only this list (styles.css, [data-print])
-function Shelf({ ins, saveCsv, recordHead, recordCells }) {
-  const { t, nf, df } = useLanguage();
+// Location list for the inventory: one location, sorted by title; printed with the header of print.jsx
+function Shelf({ ins, X, onPrint }) {
+  const { t, nf } = useLanguage();
   const byLoc = React.useMemo(() => {
     const m = new Map();
     for (const r of ins.records) { const k = r.l || ""; (m.get(k) || m.set(k, []).get(k)).push(r); }
@@ -178,17 +279,10 @@ function Shelf({ ins, saveCsv, recordHead, recordCells }) {
     return [...m].sort((x, y) => (!x[0] ? 1 : !y[0] ? -1 : coll.compare(x[0], y[0])));
   }, [ins]);
   const [loc, setLoc] = React.useState(byLoc.length ? byLoc[0][0] : "");
-  const [printing, setPrinting] = React.useState(false);
   const list = (byLoc.find(x => x[0] === loc) || [loc, []])[1];
   const sig = list.some(r => r.sig);
   const name = l => l || t("mShelfNone");
-  React.useEffect(() => {
-    if (!printing) return undefined;
-    const done = () => setPrinting(false);
-    addEventListener("afterprint", done);
-    const id = setTimeout(() => window.print(), 0); // after the render with data-print
-    return () => { clearTimeout(id); removeEventListener("afterprint", done); };
-  }, [printing]);
+  const every = () => byLoc.reduce((a, [, rs]) => a.concat(rs), []);
   const th = "border-b border-border py-1.5 pr-3 text-left font-medium text-muted-foreground";
   const td = "border-b border-border py-1.5 pr-3 align-top";
   return (
@@ -204,19 +298,14 @@ function Shelf({ ins, saveCsv, recordHead, recordCells }) {
           {byLoc.map(([l, rs]) => <option key={l} value={l}>{`${name(l)} · ${nf(rs.length)}`}</option>)}
         </select>
       </label>
-      <div className="shelf-list mt-2 overflow-x-auto" id="m-shelf-list" data-print={printing ? "" : undefined}>
-        <h2 className="m-0 mb-2 hidden text-m font-semibold print:block">{t("mShelfHead", { l: name(loc), n: nf(list.length), d: df(today()) })}</h2>
+      <div className="shelf-list mt-2 overflow-x-auto" id="m-shelf-list">
         <table className="w-full border-collapse text-s">
           <thead>
-            <tr>
-              <th className={cn(th, "hidden w-8 print:table-cell")}>{t("cHere")}</th>
-              {[t("cTitle"), t("cAuthor"), t("cYear")].concat(sig ? [t("cSig")] : [], [t("cId")]).map(h => <th key={h} className={th}>{h}</th>)}
-            </tr>
+            <tr>{[t("cTitle"), t("cAuthor"), t("cYear")].concat(sig ? [t("cSig")] : [], [t("cId")]).map(h => <th key={h} scope="col" className={th}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {list.map(r => (
               <tr key={r.id}>
-                <td className={cn(td, "hidden print:table-cell")}><span className="inline-block size-3.5 border border-foreground" /></td>
                 <td className={td}>{r.t}</td>
                 <td className={td}>{r.a}</td>
                 <td className={cn(td, "tabular-nums")}>{r.y}</td>
@@ -228,13 +317,22 @@ function Shelf({ ins, saveCsv, recordHead, recordCells }) {
         </table>
       </div>
       <CardFooter>
-        <Button variant="outline" id="m-print" onClick={() => setPrinting(true)}><span>{t("mPrint")}</span></Button>
-        <Button variant="outline" id="m-shelf-csv" onClick={() => saveCsv(`${slug(t("cLocation") + "-" + name(loc))}-${today()}.csv`, [recordHead(false)].concat(list.map(r => recordCells(r))))}>
-          <span>{t("mCsv")}</span>
+        <Button variant="outline" id="m-print" disabled={!list.length} onClick={() => onPrint({ kind: "shelf", loc: name(loc), list })}>
+          <PrinterIcon aria-hidden="true" /><span>{t("mPrint")}</span>
         </Button>
-        <Button variant="outline" id="m-shelf-all" onClick={() => saveCsv(`${slug(t("mShelfAll"))}-${today()}.csv`, [recordHead(false)].concat(...byLoc.map(([, rs]) => rs.map(r => recordCells(r)))))}>
-          <span>{t("mShelfAll")}</span>
-        </Button>
+        <DownloadMenu
+          triggerProps={{ id: "m-shelf-dl" }}
+          sections={[
+            [t("mxShelfThis", { l: name(loc) }), [
+              { text: t("mxXlsx"), on: () => X.shelfXlsx(t("cLocation") + "-" + name(loc), name(loc), list), props: { id: "m-shelf-xlsx" } },
+              { text: t("mxCsv"), on: () => X.shelfCsv(t("cLocation") + "-" + name(loc), list), props: { id: "m-shelf-csv" } },
+            ]],
+            [t("mxShelfAll"), [
+              { text: t("mxXlsx"), on: () => X.shelfXlsx(t("mxShelfAll"), t("mxShelfAll"), every()), props: { id: "m-shelf-all-xlsx" } },
+              { text: t("mxCsv"), on: () => X.shelfCsv(t("mxShelfAll"), every()), props: { id: "m-shelf-all" } },
+            ]],
+          ]}
+        />
       </CardFooter>
     </Card>
   );

@@ -15,6 +15,7 @@ import { Recommendations, loadDraft } from "./recommendations";
 import { Info, loadInfo } from "./info";
 import { Help } from "./help";
 import { AdminNav, TABS } from "./nav";
+import { registerRestore } from "./versions";
 
 // Discard old previews, so index.html#preview only shows what is created in this session
 ["dsm-preview", "dsm-preview-recs", "dsm-preview-info"].forEach(k => store.del(k));
@@ -83,6 +84,8 @@ function App({ lock }) {
     store.del(BDRAFT);
     setExtra(fromLibrary(next));
   };
+  // Restoring an earlier books.js (versions.js): it counts as published (only state setters inside, so registered once)
+  React.useEffect(() => registerRestore("books.js", next => published(next)), []); // eslint-disable-line react-hooks/exhaustive-deps
   const B = {
     cur, result, ins, updated, cov, survey, entry, history, books, base, extra, changed, fixed, setTab,
     imported(r, inspection) {
@@ -115,6 +118,8 @@ function App({ lock }) {
           if (Object.keys(catIt).length) next.catIt = catIt;
           if (noCover.length) next.noCover = noCover;
           next.books = books;
+          // Published corrections become the base of the import, so they don't fall back to the uncorrected list
+          if (fixed && result) setResult(r => ({ ...r, books }));
           published(next);
         },
       };

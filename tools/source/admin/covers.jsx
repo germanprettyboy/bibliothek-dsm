@@ -1,6 +1,10 @@
 /* Tab "Cover": cover coverage (ekz, Open Library, none; history per published books.js) and hiding wrong covers.
-   Both are published with books.js (coverage/history, noCover), so the tab has its own publish card. */
+   Both are published with books.js (coverage/history, noCover), so the tab has its own publish card.
+   Head of the coverage card: donut ring (ekz mauve, Open Library green, none red; before a check: share with ISBN, blue)
+   next to the big percentage. Without any list (nothing published, nothing imported): empty state with a way to "Bestand". */
+import "./strings-import";
 import * as React from "react";
+import { ImageIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
@@ -17,6 +21,18 @@ export function Covers({ B }) {
   // The publish card stays once it appeared (its message must stay visible after publishing)
   const [pubShown, setPubShown] = React.useState(false);
   if (B.changed && !pubShown) setPubShown(true);
+  if (!B.books.length) {
+    return (
+      <div className="steps grid gap-3.5 pb-10" id="tab-covers">
+        <Card id="cov-empty" className="items-center px-6 py-10 text-center">
+          <ImageIcon aria-hidden="true" strokeWidth={1.6} className="size-[34px] text-muted-foreground" />
+          <CardTitle className="mt-1">{t("cvEmptyT")}</CardTitle>
+          <CardDescription className="max-w-120">{t("cvEmptyP")}</CardDescription>
+          <Button variant="outline" className="mt-2.5" id="cov-go" onClick={() => B.setTab("catalog")}><span>{t("cvEmptyGo")}</span></Button>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="steps grid gap-3.5 pb-10" id="tab-covers">
       <Coverage B={B} />
@@ -38,27 +54,34 @@ function Coverage({ B }) {
   const pct = x => new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE", { style: "percent", maximumFractionDigits: 1 }).format(x || 0);
   const n = B.books.length, e = B.entry();
   const segs = { ekz: 0, ol: 0, none: 0 };
-  let big, sub, lines = [];
+  let big, sub, ring, lines = [];
   if (cov) {
     const tot = cov.total || 1, c = (cov.ekz || 0) + cov.ol;
     big = (cov.complete ? "" : "≥ ") + pct(c / tot);
     sub = t(cov.complete ? "covSub" : "covSubPart", { c: nf(c), n: nf(cov.total), a: pct(c / n) }) +
       (cov.complete ? "" : " · " + (survey ? t("covProgress", { d: nf(cov.done), n: nf(cov.total) }) : t("covPartial", { d: nf(cov.done), n: nf(cov.total) })));
     segs.ekz = (cov.ekz || 0) / tot; segs.ol = cov.ol / tot; segs.none = cov.none / tot;
+    ring = { parts: [[segs.ekz, "--mauve"], [segs.ol, "--green"], [segs.none, "--red"]], label: t("cvRing", { p: big }) };
     lines = [[t("lEkz"), nf(cov.ekz || 0), "--mauve"], [t("lOl"), nf(cov.ol), "--green"], [t("lNone"), nf(cov.none), "--red"]];
     if (cov.err) lines.push([t("lErr"), nf(cov.err)]);
     if (cov.total - cov.done > 0) lines.push([t("lOpen"), nf(cov.total - cov.done)]);
   } else {
     big = pct(e.isbn / n);
     sub = t("covIsbn", { p: pct(e.isbn / n) });
+    ring = { parts: [[e.isbn / n, "--blue"]], label: t("cvRingIsbn", { p: big }) };
   }
   const history = B.history().reverse();
   const cell = "border-t border-border py-[7px] pl-3 text-right whitespace-nowrap first:pl-0 first:text-left";
   return (
     <Card id="cov">
-      <CardTitle>{t("covT")}</CardTitle>
-      <Big id="c-big">{big}</Big>
-      <CardDescription id="c-sub">{sub}</CardDescription>
+      <div className="flex items-center gap-4">
+        <Ring {...ring} />
+        <div className="grid min-w-0 gap-1.5">
+          <CardTitle>{t("covT")}</CardTitle>
+          <Big id="c-big">{big}</Big>
+          <CardDescription id="c-sub">{sub}</CardDescription>
+        </div>
+      </div>
       <div className="meter mt-3 flex h-2 overflow-hidden rounded-xs bg-border" id="c-meter" aria-hidden="true" hidden={!cov}>
         {[["ekz", "--mauve"], ["ol", "--green"], ["none", "--red"]].map(([k, f]) => (
           <i key={k} className={"m-" + k + " block h-full"} style={{ width: segs[k] * 100 + "%", background: `var(${f})` }} />
@@ -91,6 +114,30 @@ function Coverage({ B }) {
         </div>
       </div>
     </Card>
+  );
+}
+
+// Donut ring: parts = [[fraction, color token]] one after another from 12 o'clock, the rest is the track.
+// The segments grow from zero after mounting and glide on every update (styles.css .cv-ring).
+const RR = 40, RC = 2 * Math.PI * RR;
+function Ring({ parts, label }) {
+  const [ready, setReady] = React.useState(false);
+  React.useEffect(() => { const id = requestAnimationFrame(() => setReady(true)); return () => cancelAnimationFrame(id); }, []);
+  let start = 0;
+  return (
+    <div className="relative grid size-24 shrink-0 place-items-center" id="c-ring">
+      <svg className="cv-ring absolute inset-0 size-full" viewBox="0 0 100 100" role="img" aria-label={label}>
+        <g transform="rotate(-90 50 50)">
+          <circle className="track" cx="50" cy="50" r={RR} />
+          {parts.map(([f, c], i) => {
+            const len = ready ? Math.max(0, Math.min(1, f || 0)) * RC : 0, off = -start * RC;
+            start += f || 0;
+            return <circle key={i} className="seg" cx="50" cy="50" r={RR} style={{ stroke: `var(${c})`, strokeDasharray: `${len} ${RC}`, strokeDashoffset: off }} />;
+          })}
+        </g>
+      </svg>
+      <ImageIcon aria-hidden="true" strokeWidth={1.6} className="size-7 text-muted-foreground" />
+    </div>
   );
 }
 

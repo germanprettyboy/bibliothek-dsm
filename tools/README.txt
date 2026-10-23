@@ -6,10 +6,12 @@ build.mjs           Builds the website from ../src (React, Tailwind CSS, shadcn/
                     Run in the project folder: npm run build   (once beforehand: npm install)
 
 source/extract.js   Plaintext: reads the WinBIAP database, removes personal data
-source/admin/       Plaintext: admin user interface (React: catalog, cover coverage, recommendations, info)
+source/admin/       Plaintext: admin user interface (React: catalog, covers, maintenance + exports + table + corrections,
+                    statistics, recommendations, info, help, local versions)
 encrypt-admin.js    Builds source/admin/ and encrypts it together with extract.js
                     into ../website/assets/admin.enc.js; also writes ../website/save-access.php
                     (access for save.php, derived from the password)
+check-admin.cjs     Only builds source/admin/ (no password, writes nothing): node tools/check-admin.cjs = compile check
 
 After every change to source/ or to change the password (Node.js 18+, in the project folder):
   node tools/encrypt-admin.js   (asks for the password without echo, doesn't end up in the shell history)

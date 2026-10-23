@@ -32,7 +32,7 @@ function DropdownMenuContent({ className, sideOffset = 6, ...props }) {
   );
 }
 
-const item = "relative flex min-h-11 cursor-default items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-[color-mix(in_srgb,var(--fg)_8%,transparent)] [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
+const item = "relative flex min-h-11 cursor-default items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left outline-none select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-[var(--hl)] [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4";
 
 function DropdownMenuItem({ className, ...props }) {
   return <DropdownMenuPrimitive.Item data-slot="dropdown-menu-item" className={cn(item, className)} {...props} />;
@@ -78,7 +78,7 @@ function DropdownMenuSub(props) {
 
 function DropdownMenuSubTrigger({ className, children, ...props }) {
   return (
-    <DropdownMenuPrimitive.SubTrigger data-slot="dropdown-menu-sub-trigger" className={cn(item, "data-[state=open]:bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]", className)} {...props}>
+    <DropdownMenuPrimitive.SubTrigger data-slot="dropdown-menu-sub-trigger" className={cn(item, "data-[state=open]:bg-[var(--hl)]", className)} {...props}>
       {children}
       <ChevronRightIcon aria-hidden="true" className="ml-auto" />
     </DropdownMenuPrimitive.SubTrigger>
