@@ -13,7 +13,7 @@ const buttonVariants = cva(
       variant: {
         default: "border border-foreground bg-foreground text-background hover:opacity-90 active:scale-[.98]",
         outline: "border border-border bg-background text-foreground hover:bg-surface active:scale-[.98]",
-        // quiet text button (back, inline actions in a sentence): the color sets it apart, no underline
+        // quiet text button (back, inline actions in a sentence): the color sets it apart (no underlining)
         ghost: "text-muted-foreground hover:text-foreground",
         // glass buttons in the dialogs
         glass: "rounded-full border border-glass-brd text-foreground backdrop-blur-[10px] [background:linear-gradient(180deg,var(--gb-top),var(--gb-bot))] shadow-[inset_0_1px_0_var(--glass-hi),var(--sh-s)] hover:shadow-[inset_0_1px_0_var(--glass-hi),var(--sh-m)] active:scale-[.97]",
