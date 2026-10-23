@@ -66,7 +66,13 @@ for (const f of FILES) if (fs.existsSync(path.join(ROOT, "website", f))) fs.copy
 // local-address.cjs: otherwise php-wasm listens on all interfaces despite "-S 127.0.0.1" (reachable in the Wi-Fi)
 const NODE_OPTIONS = `${process.env.NODE_OPTIONS || ""} --require ${JSON.stringify(path.join(ROOT, "tools", "local-address.cjs"))}`.trim();
 const PHP_PORT = await freePort();
-const php = spawn("npx", ["--yes", "--prefer-offline", PHP_WASM, "-S", `127.0.0.1:${PHP_PORT}`, "-t", "website", path.join("tools", "local-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
+// PHP buffers request bodies over 16 KB in a temporary file. php-wasm sets TMPDIR to a folder under os.tmpdir()
+// (/var/folders/… on macOS, /var → /private/var), where PHP can't create files inside the WASM file system:
+// "PHP Request Startup: Unable to create temporary file … POST data can't be buffered" – save.php got an empty body
+// and the admin page showed "HTTP 200" (publishing recommendations.js/books.js, info.js is smaller). Own folder instead.
+const TMP = path.join(LOCAL, "tmp");
+fs.mkdirSync(TMP, { recursive: true });
+const php = spawn("npx", ["--yes", "--prefer-offline", PHP_WASM, "-d", `sys_temp_dir=${TMP}`, "-S", `127.0.0.1:${PHP_PORT}`, "-t", "website", path.join("tools", "local-router.php")], { cwd: ROOT, stdio: ["ignore", "ignore", "pipe"], env: { ...process.env, NODE_OPTIONS } });
 // While a connection is open, php-wasm reports "Failed to accept a client (reason: Invalid argument)" dozens of times
 // and "Failed to poll event" (accept() in the WASM socket; harmless, requests go through, still so in 3.1.58).
 // Hidden together with Accepted/Closing per connection; requests, PHP errors and everything else stay visible.
