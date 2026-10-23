@@ -304,7 +304,7 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
 Two suites in `test.yml`, chosen by a trailer line in the HEAD commit message of the push (only the last commit counts):
 - **full** (default, no trailer; also the Monday run): unit + every spec in Chromium and Firefox (sharded), WebKit/iPhone
   `engines.spec`, Apache. ≈5 min, 6 jobs.
-- **smoke** – `CI-Suite: smoke`: unit + the `@smoke` core tests of every area (≈22 tests), ONE Chromium job, no Firefox/
+- **smoke** – `CI-Suite: smoke`: unit + the `@smoke` core tests of every area (≈25 tests), ONE Chromium job, no Firefox/
   WebKit/Apache. `CI-Suite: smoke categories,detail`: additionally EVERY test of the named areas (Chromium). ≈1.5 min, 2 jobs.
 - Areas = groups of spec files in `tests/suites.js` (`node tests/suites.js` lists them, `node tests/suites.js "smoke x,y"`
   shows the plan – runs no test, allowed locally): `list` (alias `search`; list, search, A–Z, header), `loading`, `announcement`,
