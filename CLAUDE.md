@@ -34,7 +34,9 @@ Mac. Tests run ONLY on GitHub Actions: commit, `git push` the branch, then `gh r
   `encrypt-admin.js`, `generate-books.js` (same logic as admin.html), `migrate-data.mjs` (old German data files → English,
   one-time), `tunnel.mjs`, `branches.sh`, `build-guide.js` + `guide/template.html` (German staff guide),
   `local.mjs`/`local-router.php`/`local-address.cjs` (php-wasm only on 127.0.0.1 – otherwise it ignores "-S" and listens on the whole network;
-  it runs on a free internal port, browser-sync on PORT proxies it with live reload + `no-store`, watches website/ + local admin.enc.js, not the data files).
+  it runs on a free internal port, browser-sync on PORT proxies it with live reload + `no-store`, watches website/ + local admin.enc.js, not the data files;
+  `-d sys_temp_dir=tests/.tmp/local/tmp`: php-wasm's own TMPDIR under /var/folders isn't writable in WASM, POST bodies > 16 KB
+  were discarded → "HTTP 200: Unable to create temporary file" on publishing recommendations/books, 2026-10-23).
   local: data files from/to `tests/.tmp/local/data/` (`DSM_DATA_FOLDER`, freshly copied from website/ on every start) – testing
   never changes the committed books.js/recommendations.js/info.js (before, a changed info.js constantly blocked integration).
   npx (php-wasm, browser-sync, shadcn) always with an exact version + `--prefer-offline` (one cache per package spec in
