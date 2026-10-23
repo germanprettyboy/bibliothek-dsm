@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 import { Publish } from "./publish";
+import { registerRestore } from "./versions";
 
 const IDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const IDRAFT = "dsm-info-draft";
@@ -130,6 +131,13 @@ export function Info({ info, setInfo }) {
     const fresh = normInfo(window.DSM_INFO);
     setInfo(fresh); setOrder(sorted(fresh.closures));
   };
+  // Restoring an earlier info.js (versions.js): it is the published state now, the draft is dropped
+  React.useEffect(() => registerRestore("info.js", data => {
+    window.DSM_INFO = data;
+    store.del(IDRAFT);
+    const fresh = normInfo(data);
+    setInfo(fresh); setOrder(sorted(fresh.closures));
+  }), [setInfo]);
   const build = () => {
     const out = infoOut(info);
     return {

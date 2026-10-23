@@ -48,7 +48,7 @@ Veröffentlichen aus der Verwaltung – online (Normalfall)
   umbenennen (z. B. info.js) und hochladen.
   Die versteckte Datei backup/.htaccess (legt save.php selbst an) sperrt den Ordner für Besucher –
   nicht löschen.
-  Nur für den Bestand braucht es weiter die .winbook-Datei aus WinBIAP (siehe „Bestand aktualisieren“).
+  Nur für den Bestand braucht es weiter die .winbook-Datei aus WinBook (siehe „Bestand aktualisieren“).
 
   Einmal einrichten (Betreuung der Website):
     1. node tools/encrypt-admin.js – fragt das Passwort und schreibt neben
@@ -80,7 +80,7 @@ Verwaltung entsperren
 
 Bestand aktualisieren
   1. admin.html öffnen, entsperren, Reiter „Bestand“.
-  2. Die .winbook-Datei aus WinBIAP auswählen oder hineinziehen.
+  2. Die .winbook-Datei aus WinBook auswählen oder hineinziehen.
      Die Datei wird nur im Browser gelesen und nicht hochgeladen.
   3. Bericht prüfen: Übernommen werden nur Titel, Untertitel, Autor, Verlag, Jahr,
      ISBN, Kategorie und Standort. Leser-, Ausleih-, Gebühren-, Benutzer- und
@@ -146,9 +146,9 @@ Buchempfehlungen
   Die Uhrzeit für „geöffnet/geschlossen“ kommt vom Gerät des Besuchers.
 
 Bestand pflegen (Reiter „Pflege“)
-  Nach dem Einlesen der WinBIAP-Datei zeigt der Reiter „Pflege“ Listen, was in WinBIAP korrigiert werden
+  Nach dem Einlesen der WinBook-Datei zeigt der Reiter „Pflege“ Listen, was in WinBook korrigiert werden
   sollte (ungültige oder fehlende ISBN, Jahr, Autor, Kategorie, Standort, mehrere Schreibweisen,
-  ungenutzte Kategorien/Standorte, Namen aus der Leserdatei), jeweils mit der Nummer in WinBIAP;
+  ungenutzte Kategorien/Standorte, Namen aus der Leserdatei), jeweils mit der Nummer in WinBook;
   „Als CSV“ bzw. „Alle Listen als CSV“ für Excel. „Medientypen“ zeigt, was ausgelassen wurde. Die
   „Standortliste für die Inventur“ gibt es zum Drucken (mit Spalte „Vorhanden“) und als CSV.
   Nichts davon wird veröffentlicht.

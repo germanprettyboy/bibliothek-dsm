@@ -4,7 +4,7 @@ Public book list of the school library of the Deutsche Schule Mailand (DSM) with
 Bilingual German/Italian, mobile first.
 
 - **Book list** (`index.html`): alphabetical, search, category filter, A–Z jump, detail view with cover, book recommendations, opening hours/holidays.
-- **Admin page** (`admin.html`): import the catalog from the WinBIAP database, maintain recommendations, enter opening hours, publish.
+- **Admin page** (`admin.html`): import the catalog from the WinBook database, maintain recommendations, enter opening hours, publish.
 - **Technology**: React API on Preact, Tailwind CSS v4, shadcn/ui, built with Vite. The result in `website/` is plain HTML/CSS/JS and also runs via double-click (`file://`).
   Only server file: `website/save.php` (online saving from the admin page).
 

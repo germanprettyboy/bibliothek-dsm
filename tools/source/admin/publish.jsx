@@ -3,8 +3,11 @@
       The key DSM_SAVE_KEY sits at the start of the encrypted plaintext (tools/encrypt-admin.js).
    2. Chrome/Edge (File System Access API) write straight into the website folder. The folder is chosen
       the first time and remembered in IndexedDB; it is checked that index.html is in it.
-   3. Other browsers: download. */
+   3. Other browsers: download.
+   Every publish is also kept in the local version history (versions.js); "Frühere Versionen" lists it and, online with
+   save.php v3, the server backups as well. */
 /* global DSM_SAVE_KEY */
+import "./strings-versions";
 import * as React from "react";
 import { CheckIcon, DownloadIcon } from "lucide-react";
 
@@ -13,6 +16,7 @@ import { Card, CardFooter, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
+import * as versions from "./versions";
 
 export const FS = typeof window.showDirectoryPicker === "function";
 const KEY = typeof DSM_SAVE_KEY === "string" ? DSM_SAVE_KEY : "";
@@ -26,17 +30,13 @@ const update = next => { state = { ...state, ...next }; listeners.forEach(fn => 
 const message = (file, m) => update({ message: { ...state.message, [file]: m } });
 const usePub = () => React.useSyncExternalStore(fn => { listeners.add(fn); return () => listeners.delete(fn); }, () => state);
 
+// IndexedDB "dsm-admin" store "kv" (the database is opened by versions.js, which also owns the store "versions")
 function kv(mode, op) {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open("dsm-admin", 1);
-    r.onupgradeneeded = () => r.result.createObjectStore("kv");
-    r.onerror = () => rej(r.error);
-    r.onsuccess = () => {
-      const db = r.result, tx = db.transaction("kv", mode), q = op(tx.objectStore("kv"));
-      tx.oncomplete = () => { db.close(); res(q.result); };
-      tx.onerror = tx.onabort = () => { db.close(); rej(tx.error); };
-    };
-  });
+  return versions.openDB().then(db => new Promise((res, rej) => {
+    const tx = db.transaction("kv", mode), q = op(tx.objectStore("kv"));
+    tx.oncomplete = () => { db.close(); res(q.result); };
+    tx.onerror = tx.onabort = () => { db.close(); rej(tx.error); };
+  }));
 }
 // Load the remembered folder (without IndexedDB: choose the folder anew in every session)
 if (FS) kv("readonly", st => st.get("website")).then(h => { if (h && !state.folder) update({ folder: h }); }).catch(() => {});
@@ -104,16 +104,35 @@ async function api(url, init) {
 }
 const when = (time, lang) => new Date(time).toLocaleString(lang === "it" ? "it-IT" : "de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-// "Earlier versions" (save.php v3): list of this file's server backups, restoring needs a second click within 4 s
-function Backups({ file }) {
-  const { t, lang } = useLanguage();
-  const [open, setOpen] = React.useState(false);
-  const [items, setItems] = React.useState(null);
-  const [error, setError] = React.useState("");
+const kb = (size, lang) => Math.max(1, Math.round(size / 1024)).toLocaleString(lang === "it" ? "it-IT" : "de-DE") + " KB";
+const textButton = "p-0 h-auto text-[length:inherit] font-normal text-foreground";
+
+// Destructive actions need a second click within 4 s: confirm(id) is true on the second click
+function useSure() {
   const [sure, setSure] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
   const timer = React.useRef(0);
   React.useEffect(() => () => clearTimeout(timer.current), []);
+  const confirm = id => {
+    if (sure !== id) {
+      setSure(id);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setSure(""), 4000);
+      return false;
+    }
+    clearTimeout(timer.current);
+    setSure("");
+    return true;
+  };
+  return [sure, confirm];
+}
+
+// Server backups (save.php v3): loaded when the versions list opens, restoring needs a second click within 4 s
+function ServerBackups({ file, heading }) {
+  const { t, lang } = useLanguage();
+  const [items, setItems] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [sure, confirm] = useSure();
+  const [busy, setBusy] = React.useState(false);
   const load = async () => {
     setError("");
     try {
@@ -122,16 +141,10 @@ function Backups({ file }) {
       log("Publish", `${file}: ${((j.backups && j.backups[file]) || []).length} earlier versions on the website`);
     } catch (e) { setItems([]); setError(t("pubBackupsErr", { m: (e && e.message) || String(e) })); log("Publish", `${file}: list of earlier versions failed: ${(e && e.message) || e}`); }
   };
-  const toggle = () => { if (open) { setOpen(false); return; } setOpen(true); setItems(null); load(); };
+  React.useEffect(() => { load(); }, [file]); // eslint-disable-line react-hooks/exhaustive-deps
   const restore = async b => {
-    if (sure !== b.name) {
-      setSure(b.name);
-      clearTimeout(timer.current);
-      timer.current = setTimeout(() => setSure(""), 4000);
-      return;
-    }
-    clearTimeout(timer.current);
-    setSure(""); setBusy(true);
+    if (!confirm(b.name)) return;
+    setBusy(true);
     try {
       await api("save.php?restore=" + encodeURIComponent(b.name), { method: "POST" });
       message(file, { key: "pubRestored", vars: { d: when(b.time, lang) }, reload: true });
@@ -143,16 +156,16 @@ function Backups({ file }) {
     } finally { setBusy(false); }
   };
   return (
-    <div className="mt-3 grid gap-2.5" data-pub-backup-list={file}>
-      <div><Button variant="ghost" size="text" className="p-0 h-auto text-[length:inherit] font-normal text-foreground" data-pub-backups aria-expanded={open} onClick={toggle}>{t("pubBackups")}</Button></div>
-      {open && items === null ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-loading>{t("pubBackupsLoading")}</p> : null}
-      {open && error ? <p className="flag warn m-0" role="status">{error}</p> : null}
-      {open && items && !items.length && !error ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-none>{t("pubBackupsNone")}</p> : null}
-      {open && items && items.length ? (
+    <div className="grid gap-1.5" data-pub-backup-list={file}>
+      {heading ? <span className="text-s font-medium">{t("verServer")}</span> : null}
+      {items === null ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-loading>{t("pubBackupsLoading")}</p> : null}
+      {error ? <p className="flag warn m-0" role="status">{error}</p> : null}
+      {items && !items.length && !error ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-none>{t("pubBackupsNone")}</p> : null}
+      {items && items.length ? (
         <ul className="m-0 grid list-none gap-1 p-0">
           {items.map(b => (
             <li key={b.name} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1" data-backup={b.name}>
-              <span className="text-s">{when(b.time, lang)}<span className="text-muted-foreground">{" · "}{Math.max(1, Math.round(b.size / 1024)).toLocaleString(lang === "it" ? "it-IT" : "de-DE")} KB</span></span>
+              <span className="text-s">{when(b.time, lang)}<span className="text-muted-foreground">{" · "}{kb(b.size, lang)}</span></span>
               <Button variant="outline" size="sm" disabled={busy} data-restore onClick={() => restore(b)}>{t(sure === b.name ? "pubRestoreSure" : "pubRestore")}</Button>
             </li>
           ))}
@@ -162,28 +175,142 @@ function Backups({ file }) {
   );
 }
 
+// Restore a local version: write its text like a publish, then apply it to the app state; itself a new version (undo)
+async function restoreVersion(file, v, lang) {
+  let data;
+  try { data = versions.parse(v.text); } catch (e) {
+    message(file, { type: "warn", key: "verParseErr", vars: { m: (e && e.message) || String(e) } });
+    log("Versions", `${file}: version ${v.id} not readable: ${(e && e.message) || e}`);
+    return;
+  }
+  const d = when(v.time, lang);
+  if (!live() && !FS) {
+    download(file, v.text);
+    versions.apply(file, data);
+    message(file, { key: "verRestoredDl", vars: { d, f: file } });
+    log("Versions", `${file}: version ${v.id} restored as a download`);
+    versions.record(file, v.text, { note: "restored", live: false });
+    return;
+  }
+  update({ running: file });
+  try {
+    const w = await write(file, v.text);
+    versions.apply(file, data);
+    message(file, { key: w.live ? "verRestoredLive" : "verRestoredFolder", vars: { d, f: file, o: w.o || "" } });
+    log("Versions", `${file}: version ${v.id} restored`);
+    versions.record(file, v.text, { note: "restored" });
+  } catch (e) {
+    if (!e || e.name !== "AbortError") { message(file, failure(e)); log("Versions", `${file}: version ${v.id} not restored: ${(e && e.message) || e}`); }
+  } finally {
+    update({ running: null });
+  }
+}
+
+// Local versions of a file (versions.js), newest first: date, size, origin, "current", comparison line, restore
+function LocalVersions({ file, heading }) {
+  const { t, nf, df, lang } = useLanguage();
+  const [items, setItems] = React.useState(null);
+  const [sure, confirm] = useSure();
+  const busy = usePub().running === file;
+  React.useEffect(() => {
+    let alive = true;
+    const load = () => versions.list(file).then(l => { if (alive) setItems(l.map(v => ({ ...v, sum: versions.summary(file, v.text) }))); });
+    load();
+    const off = versions.subscribe(load);
+    return () => { alive = false; off(); };
+  }, [file]);
+  const cur = versions.currentHash(file);
+  const badge = "rounded-full px-2 text-s shadow-[inset_0_0_0_1px_var(--line)]";
+  const origin = v => (v.source === "opened" ? "verOpened" : v.note === "restored" ? "verRestoredBadge" : v.note === "download" ? "verDownloaded" : "verPublished");
+  const sumText = s => (s.key === "verBooks" ? t(s.key, { n: nf(s.n), d: df(s.d) }) : s.key === "verRecs" ? t(s.key, { n: nf(s.n), d: df(s.d) }) : t(s.key, { n: nf(s.n), s: s.s }));
+  const restore = v => { if (confirm(String(v.id))) restoreVersion(file, v, lang); };
+  let body;
+  if (!versions.available()) body = <p className="note m-0 text-s text-muted-foreground" data-local-versions-nodb>{t("verNoDb")}</p>;
+  else if (items === null) body = <p className="note m-0 text-s text-muted-foreground" data-local-versions-loading>{t("verLoading")}</p>;
+  else if (!items.length) body = <p className="note m-0 text-s text-muted-foreground" data-local-versions-none>{t("verNone")}</p>;
+  else {
+    body = (
+      <ul className="m-0 grid list-none p-0">
+        {items.map(v => {
+          const now = v.hash === cur;
+          return (
+            <li key={v.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-border py-2 first:border-t-0"
+              data-version={v.id} data-source={v.source} data-current={now ? "" : undefined}>
+              <span className="grid min-w-0 gap-0.5">
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-s">
+                  <span>{when(v.time, lang)}<span className="text-muted-foreground">{" · "}{kb(v.size, lang)}</span></span>
+                  <span className={badge}>{t(origin(v))}</span>
+                  {now ? <span className={cn(badge, "shadow-[inset_0_0_0_1.5px_var(--green)]")} data-version-current>{t("verCurrent")}</span> : null}
+                </span>
+                {v.sum ? <span className="text-s text-muted-foreground" data-version-summary>{sumText(v.sum)}</span> : null}
+              </span>
+              {now ? null : (
+                <Button variant="outline" size="sm" disabled={busy} data-local-restore onClick={() => restore(v)}>
+                  {t(sure === String(v.id) ? "pubRestoreSure" : "pubRestore")}
+                </Button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+  return (
+    <div className="grid gap-1.5" data-local-versions={file}>
+      {heading ? <span className="text-s font-medium">{t("verLocal")}</span> : null}
+      {body}
+    </div>
+  );
+}
+
+// "Earlier versions": one opener, local versions and (online, save.php v3) the server backups
+function Versions({ file, server }) {
+  const { t } = useLanguage();
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="mt-3 grid gap-3" data-versions={file}>
+      <div>
+        <Button variant="ghost" size="text" className={textButton} data-versions-open data-pub-backups={server ? "" : undefined}
+          aria-expanded={open} onClick={() => setOpen(o => !o)}>{t("pubBackups")}</Button>
+      </div>
+      {open ? <LocalVersions file={file} heading={server} /> : null}
+      {open && server ? <ServerBackups file={file} heading /> : null}
+    </div>
+  );
+}
+
+// Write a text in the current mode (online via save.php, otherwise into the website folder): { live, o = folder name }
+async function write(file, text) {
+  if (live()) {
+    await upload(file, text);
+    log("Publish", `${file} saved on the website (${text.length} characters)`);
+    return { live: true };
+  }
+  let dir = state.folder;
+  if (dir) await permit(dir); else dir = await chooseFolder();
+  await verify(dir);
+  const w = await (await dir.getFileHandle(file, { create: true })).createWritable();
+  await w.write(text);
+  await w.close();
+  log("Publish", `${file} written to "${dir.name}" (${text.length} characters)`);
+  return { live: false, o: dir.name };
+}
+
 // build() returns { text, done }: done() runs after a successful write (the new state counts as published)
 async function publish(file, build, lang) {
   const { text, done } = build();
-  if (!live() && !FS) { download(file, text); return; }
+  if (!live() && !FS) {
+    download(file, text);
+    versions.record(file, text, { note: "download", live: false });
+    return;
+  }
   update({ running: file });
   try {
-    const z = () => new Date().toLocaleTimeString(lang === "it" ? "it-IT" : "de-DE", { hour: "2-digit", minute: "2-digit" });
-    if (live()) {
-      await upload(file, text);
-      message(file, { key: "pubLiveOk", vars: { f: file, z: z() } });
-      log("Publish", `${file} saved on the website (${text.length} characters)`);
-    } else {
-      let dir = state.folder;
-      if (dir) await permit(dir); else dir = await chooseFolder();
-      await verify(dir);
-      const w = await (await dir.getFileHandle(file, { create: true })).createWritable();
-      await w.write(text);
-      await w.close();
-      message(file, { key: "pubOk", vars: { f: file, o: dir.name, z: z() } });
-      log("Publish", `${file} written to "${dir.name}" (${text.length} characters)`);
-    }
+    const z = new Date().toLocaleTimeString(lang === "it" ? "it-IT" : "de-DE", { hour: "2-digit", minute: "2-digit" });
+    const w = await write(file, text);
+    message(file, w.live ? { key: "pubLiveOk", vars: { f: file, z } } : { key: "pubOk", vars: { f: file, o: w.o, z } });
     done();
+    versions.record(file, text);
   } catch (e) {
     if (!e || e.name !== "AbortError") { message(file, failure(e)); log("Publish", `${file} not saved: ${(e && e.message) || e}`); }
   } finally {
@@ -203,7 +330,6 @@ export function Publish({ file, build, ids, alt, howKey, preview, onPreview, chi
     : FS ? t(z.folder ? "pubHowOn" : "pubHow", { f: file, o: z.folder ? z.folder.name : "" }) : t("pubNoFs") + " " + t(howKey);
   // save.php found but not usable: say why
   const setup = !z.server || online ? null : z.server === "ready" ? "pubSetupOld" : z.server === "not-writable" ? "pubSetupWritable" : "pubSetupAccess";
-  const textButton = "p-0 h-auto text-[length:inherit] font-normal text-foreground";
   return (
     <Card>
       <CardTitle>{t("publishT")}</CardTitle>
@@ -230,7 +356,7 @@ export function Publish({ file, build, ids, alt, howKey, preview, onPreview, chi
           </p>
         ) : null}
       </div>
-      {online && z.v >= 3 ? <Backups file={file} /> : null}
+      <Versions file={file} server={online && z.v >= 3} />
       {after}
     </Card>
   );

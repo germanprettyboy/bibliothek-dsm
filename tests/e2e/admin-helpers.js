@@ -71,7 +71,7 @@ const folderFile = (page, file, folder = "website") => page.evaluate(async ([f, 
 const evaluate = (s, name) => { const w = {}; new Function("window", s)(w); return w[name]; };
 // Content as data; null while the file is missing or being written
 const folderData = async (page, file, name) => { try { return evaluate(await folderFile(page, file), name) || null; } catch (e) { return null; } };
-const FILE = { "#dl": "books.js", "#rec-dl": "recommendations.js", "#i-dl": "info.js" };
+const FILE = { "#dl": "books.js", "#dl-covers": "books.js", "#rec-dl": "recommendations.js", "#i-dl": "info.js" };
 const okText = file => new RegExp(`^${file.replace(".", "\\.")} im Ordner „website“ gespeichert, \\d\\d:\\d\\d Uhr\\.$`);
 // Publish: click, success message, written file as text (WebKit: the download, as in Safari)
 async function save(page, button) {
@@ -96,4 +96,9 @@ async function server(page, { get = { ready: true }, post = null, backups = null
   return requests;
 }
 
-module.exports = { PW, FOLDER, browserOf, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };
+// Menus and select lists fully closed (their closing animation keeps a modal menu's click lock on the page)
+async function menusClosed(page) {
+  await expect(page.locator('[data-slot="dropdown-menu-content"], [data-slot="select-content"]')).toHaveCount(0);
+}
+
+module.exports = { menusClosed, PW, FOLDER, browserOf, adminSetup, unlock, load, importTest, tab, download, downloadFile, folderFile, folderData, evaluate, FILE, okText, save, server };

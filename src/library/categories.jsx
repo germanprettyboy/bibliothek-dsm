@@ -1,5 +1,5 @@
 /* Filter by category: dialog with all categories of the catalog (searchable, with counts).
-   Categories are flat in WinBIAP but often structured ("Fantasy - Magie", "Biografie: Antike"): if at least
+   Categories are flat in WinBook but often structured ("Fantasy - Magie", "Biografie: Antike"): if at least
    two categories share the part before " - "/": ", they form a group; the parent term selects the whole group.
    Selection as an id: "g:<parent>" (group) or "c:<category>" (exactly one). */
 import * as React from "react";

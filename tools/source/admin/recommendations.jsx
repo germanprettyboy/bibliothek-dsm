@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 import { Publish } from "./publish";
+import { registerRestore } from "./versions";
 
 export const GROUPS = ["middle", "upper", "adult-fiction", "adult-nonfiction", "adult-bio"];
 const DRAFT = "dsm-recs-draft";
@@ -134,6 +135,13 @@ export function Recommendations({ draft, setDraft, catalog }) {
     store.del(DRAFT);
     setDraft(fromPublished());
   };
+  // Restoring an earlier recommendations.js (versions.js): it is the published state now, the draft is dropped
+  React.useEffect(() => registerRestore("recommendations.js", data => {
+    window.DSM_RECOMMENDATIONS = data;
+    store.del(DRAFT);
+    setOpen(null);
+    setDraft(fromPublished());
+  }), [setDraft]);
   const build = () => {
     const out = recsOut(draft);
     return {

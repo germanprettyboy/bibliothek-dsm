@@ -1,5 +1,5 @@
 /*
- * Synthetic WinBIAP database for tests. Deliberately contains invented readers,
+ * Synthetic WinBook database for tests. Deliberately contains invented readers,
  * loans, users and loan columns so the whitelist extraction can be checked.
  * No real data.
  */
