@@ -111,7 +111,26 @@ test.describe("cover", () => {
     await expect(page.locator("#d-cover .ph")).toHaveCount(1);
     await expect.poll(() => page.evaluate(k => (JSON.parse(localStorage.getItem("dsm-cover-v3") || "{}")[k] || {}).u, WITH_ISBN.i.join(","))).toBe("");
     await expect(page.locator("#d-cover img")).toHaveCount(0);
-    await expect(page.locator("#d-src")).toBeHidden();
+    await expect(page.locator("#d-src")).toHaveText("");
+  });
+
+  test("the cover arriving late moves nothing: dialog and cover stay where they opened", { tag: "@smoke" }, async ({ page, net }) => {
+    net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
+    let release;
+    const held = new Promise(r => { release = r; });
+    await page.route(/covers\.openlibrary\.org\/b\/id\//, async route => { await held; await route.fallback(); });
+    await open(page);
+    await openBook(page, WITH_ISBN);
+    const box = page.locator("#d-cover");
+    await expect(box).toHaveClass(/loading/);
+    await settled(page);
+    const before = { cover: await box.boundingBox(), dialog: await page.locator("#detail").boundingBox() };
+    release();
+    await expect(box.locator("img")).toHaveClass(/in/);
+    await expect(page.locator("#d-src")).toHaveText("Cover: Open Library");
+    await settled(page);
+    expect(await box.boundingBox()).toEqual(before.cover);
+    expect(await page.locator("#detail").boundingBox()).toEqual(before.dialog);
   });
 
   test("Open Library: batch request, size M, source named, never /b/isbn/", async ({ page, net }) => {

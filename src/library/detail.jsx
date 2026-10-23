@@ -104,7 +104,9 @@ export function Detail({ entry, onClose }) {
                 </React.Fragment>
               ))}
             </dl>
-            <p className="src col-span-full m-0 text-s text-muted-foreground" id="d-src">{found ? t(found.by) : ""}</p>
+            {/* line reserved from the start: appearing only with the cover it made the dialog grow and re-center,
+                so the cover jumped once its image had loaded */}
+            <p className="src col-span-full m-0 min-h-[1.5em] text-s text-muted-foreground" id="d-src" hidden={!b.i}>{found ? t(found.by) : ""}</p>
           </div>
         ) : null}
       </GlassDialog>
