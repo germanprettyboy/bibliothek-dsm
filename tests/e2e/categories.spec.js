@@ -137,7 +137,9 @@ test.describe("categories", () => {
       await expect.poll(() => page.locator(".cat-x").evaluate(e => e.offsetWidth)).toBe(47);
       expect((await page.locator("#cat-clear").boundingBox()).width).toBeCloseTo((await page.locator("#cat-btn").boundingBox()).width, 0);
       const x = await page.locator("#cat-clear").boundingBox(), after = await page.locator("#q").boundingBox();
-      expect(Math.abs(x.y - button.y - 1)).toBeLessThan(1);
+      // choosing a category brings the sticky bar to the top (like focusing the search); compare with the search field's new position
+      expect(Math.abs(x.y - after.y - 1)).toBeLessThan(1);
+      expect(await page.locator(".bar").evaluate(e => e.getBoundingClientRect().top)).toBeLessThanOrEqual(1);
       expect(after.width).toBeLessThan(before.width);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
