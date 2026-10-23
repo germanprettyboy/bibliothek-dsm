@@ -36,11 +36,13 @@ export function Detail({ entry, onClose }) {
   const { lang, t } = useLanguage();
   // content stays while fading out
   const [last, setLast] = React.useState(entry);
-  if (entry && entry !== last) setLast(entry);
-  const { b, rec } = last || {};
   const [found, setFound] = React.useState(undefined);
   const [zoomable, setZoomable] = React.useState(false);
   const [zoom, setZoom] = React.useState(false);
+  // Another book: forget the previous cover in this very render. Reset only in the effect, the new detail's
+  // first render still had the old cover and "zoomable" (its image was hung into the new cover for a moment).
+  if (entry && entry !== last) { setLast(entry); setFound(entry.b.i ? undefined : null); setZoomable(false); }
+  const { b, rec } = last || {};
   const box = React.useRef(null);
 
   // Phone: the sheet flies in from below, swipe up = full screen, down = close (lib/swipe)
@@ -51,8 +53,6 @@ export function Detail({ entry, onClose }) {
     if (!entry) return undefined;
     const book = entry.b;
     let current = true;
-    setZoomable(false);
-    setFound(book.i ? undefined : null);
     if (!book.i) { log("Cover", `"${book.t}": no ISBN, placeholder`); return undefined; }
     const t0 = performance.now();
     C().get(book).then(f => {

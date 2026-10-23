@@ -23,7 +23,8 @@ export const Cover = React.forwardRef(function Cover({ title, isbn, found, small
     img.classList.remove("in");
     box.current.appendChild(img);
     let raf = 0;
-    const show = () => { setState("image"); raf = requestAnimationFrame(() => img.classList.add("in")); if (onShown) onShown(img); };
+    // onShown only together with "in": a tap in between found no image to enlarge (empty large cover)
+    const show = () => { setState("image"); raf = requestAnimationFrame(() => { img.classList.add("in"); if (onShown) onShown(img); }); };
     const fail = () => { setState("failed"); img.remove(); };
     if (img.complete) (img.naturalWidth ? show : fail)();
     else { img.onload = show; img.onerror = fail; }
