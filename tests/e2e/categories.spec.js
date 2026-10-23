@@ -21,6 +21,8 @@ test.describe("categories", () => {
     const fantasy = inGroup("Fantasy");
     expect(fantasy.length).toBeGreaterThan(inCat("Fantasy").length);
     await choose(page, "g:Fantasy");
+    // the sticky bar sits at the top on every screen size
+    expect(await page.locator(".bar").evaluate(e => e.getBoundingClientRect().top)).toBeLessThanOrEqual(1);
     await expect(page.locator("#list .row")).toHaveCount(fantasy.length);
     await expect(page.locator("#meta")).toHaveText(`${num(fantasy.length)} Treffer`);
     await expect(page.locator("#cat-btn")).toHaveAttribute("aria-label", "Nach Kategorie filtern: Fantasy");

@@ -228,12 +228,12 @@ export function BookList({ books, loaded, onOpen }) {
     if (scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
   }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
   // New category or letter: the hits start right below the bar if the page was already further down;
-  // a chosen category on the phone also brings the bar to the top, like focusing the search does
+  // a chosen category on every screen size also brings the bar to the top, like focusing the search does
   const firstCat = React.useRef(true);
   React.useLayoutEffect(() => {
     if (firstCat.current) { firstCat.current = false; return; }
     const y = anchorTop();
-    if (category && !wide.matches ? Math.abs(scrollY - y) > 1 : scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
+    if (category ? Math.abs(scrollY - y) > 1 : scrollY > y + 1) scrollTo({ top: y, behavior: "instant" });
   }, [category, letter]); // eslint-disable-line react-hooks/exhaustive-deps
   const onFocus = () => {
     if (wide.matches) return;
