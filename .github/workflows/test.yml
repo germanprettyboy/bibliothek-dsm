@@ -4,7 +4,7 @@
 # Skipped as locally: real-db.test (data/*.winbook is never committed), data.test info.js (website/info.js not committed),
 # encryption "is current" (only if the repository secret DSM_ADMIN_PW exists – optional, see CLAUDE.md "Checking").
 # Suite (CLAUDE.md "CI suites", tests/suites.js): full by default; the line "CI-Suite: smoke [area,…]" in the head commit
-# message (or the input "suite" of a run by hand) runs unit + one Chromium job with the core tests instead, no Apache job.
+# message (or the input "suite" of a run by hand) runs unit + one Chromium job with the core tests instead, no Apache job (≈1.5 min).
 name: Tests
 
 on:
