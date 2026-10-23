@@ -406,7 +406,7 @@ export const HELP = {
           blocks: ["Am besten einmal im Monat und nach größeren Neuanschaffungen, mindestens zu Beginn jedes Halbjahres. Öfter schadet nicht: Der Verlauf merkt sich die letzten 24 Aktualisierungen."],
         },
         {
-          id: "winbiap",
+          id: "winbook",
           title: "Warum ändert WinBook nichts, wenn ich hier korrigiere?",
           blocks: ["Die WinBook-Datei wird nur gelesen, nie verändert. Italienische Kategorienamen, ausgeblendete Cover und automatische Korrekturen wirken nur auf die öffentliche Liste. Dauerhaft richtig werden die Daten erst durch die Korrektur in WinBook – beim nächsten Einlesen ist sie dann in der Liste."],
         },
@@ -938,7 +938,7 @@ export const HELP = {
           blocks: ["Idealmente una volta al mese e dopo acquisti importanti, almeno all'inizio di ogni semestre. Più spesso non nuoce: l'andamento ricorda gli ultimi 24 aggiornamenti."],
         },
         {
-          id: "winbiap",
+          id: "winbook",
           title: "Perché WinBook non cambia quando correggo qui?",
           blocks: ["Il file WinBook viene solo letto, mai modificato. Nomi italiani delle categorie, copertine nascoste e correzioni automatiche valgono solo per l'elenco pubblico. I dati diventano corretti in modo duraturo solo con la correzione in WinBook – che entra nell'elenco alla lettura successiva."],
         },

@@ -116,7 +116,7 @@ test.describe("table viewer", () => {
     await menusClosed(page);
     await page.click("#tv-export");
     const { name, text } = await downloadFile(page, "#tv-csv");
-    expect(name).toMatch(/^exemplare-winbiap-\d{4}-\d\d-\d\d\.csv$/);
+    expect(name).toMatch(/^exemplare-winbook-\d{4}-\d\d-\d\d\.csv$/);
     expect(text.startsWith("﻿")).toBe(true);
     const r = rows(text);
     expect(r).toHaveLength(2);
@@ -129,7 +129,7 @@ test.describe("table viewer", () => {
     await menusClosed(page);
     await page.click("#tv-export");
     const x = await downloadFile(page, "#tv-xlsx");
-    expect(x.name).toMatch(/^exemplare-winbiap-\d{4}-\d\d-\d\d\.xlsx$/);
+    expect(x.name).toMatch(/^exemplare-winbook-\d{4}-\d\d-\d\d\.xlsx$/);
     expect(x.text.startsWith("PK")).toBe(true);
   });
 });
