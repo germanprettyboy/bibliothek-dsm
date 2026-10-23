@@ -124,10 +124,15 @@ function Zoom({ open, box, onClosed }) {
   const snap = () => getComputedStyle(document.documentElement).getPropertyValue("--snap").trim() || "ease-out";
 
   // Target: as large as possible, aspect ratio like .cover (2:3), at most 27rem wide
-  // (small Google images without a larger version only a good two and a half times as large, otherwise blurry)
+  // (small Google images without a larger version only a good two and a half times as large, otherwise blurry),
+  // centered in the visible part of the page. With pinch zoom (trackpad, two fingers) that is only a section of the
+  // window: sized and centered by innerWidth/innerHeight the image landed at the bottom right, partly outside.
   const place = () => {
-    const w = Math.min(innerWidth - 32, (innerHeight - 64) * 2 / 3, zMax.current), h = w * 1.5;
-    Object.assign(img.current.style, { left: (innerWidth - w) / 2 + "px", top: (innerHeight - h) / 2 + "px", width: w + "px", height: h + "px" });
+    const v = window.visualViewport || { offsetLeft: 0, offsetTop: 0, width: innerWidth, height: innerHeight };
+    const w = Math.min(v.width - 32, (v.height - 64) * 2 / 3, zMax.current), h = w * 1.5;
+    Object.assign(img.current.style, {
+      left: v.offsetLeft + (v.width - w) / 2 + "px", top: v.offsetTop + (v.height - h) / 2 + "px", width: w + "px", height: h + "px",
+    });
   };
   // transform that lays the large image exactly onto the small cover
   const onCover = () => {
@@ -151,11 +156,13 @@ function Zoom({ open, box, onClosed }) {
     hi.decode().then(() => { if (img.current === el && hi.naturalWidth > 1 && el.src === small.src) el.src = big; }, () => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // window size, pinch zoom or the visible section moved: back into the middle
   React.useEffect(() => {
     if (!open) return undefined;
-    const r = () => { if (!closing) place(); };
+    const r = () => { if (!closing && img.current) place(); }, v = window.visualViewport;
     addEventListener("resize", r);
-    return () => removeEventListener("resize", r);
+    if (v) { v.addEventListener("resize", r); v.addEventListener("scroll", r); }
+    return () => { removeEventListener("resize", r); if (v) { v.removeEventListener("resize", r); v.removeEventListener("scroll", r); } };
   }, [open, closing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const close = why => {

@@ -180,6 +180,30 @@ test.describe("cover", () => {
     expect(Math.abs(r.x + r.width / 2 - 640)).toBeLessThan(2);
   });
 
+  test("pinch zoom: the large cover lands in the middle of the visible section", async ({ page, net, browserName }) => {
+    test.skip(browserName !== "chromium", "pinch gesture via CDP");
+    net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
+    await open(page);
+    await page.fill("#q", WITH_ISBN.i[0]);
+    // zoomed in 2× (trackpad / two fingers), looking at the left part of the page
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.synthesizePinchGesture", { x: 100, y: 250, scaleFactor: 2, gestureSourceType: "mouse" });
+    await expect.poll(() => page.evaluate(() => visualViewport.scale)).toBeGreaterThan(1.5);
+    // clicks by script: the elements may lie outside the zoomed section
+    await row(page, WITH_ISBN).evaluate(e => e.click());
+    await page.locator("#d-cover.zoomable").evaluate(e => e.click());
+    await expect(page.locator("#zoom img")).toHaveAttribute("src", /123-L\.jpg$/);
+    await settled(page);
+    const r = await page.locator("#zoom img").evaluate(e => {
+      const a = e.getBoundingClientRect(), v = visualViewport;
+      return { x: a.left + a.width / 2 - (v.offsetLeft + v.width / 2), y: a.top + a.height / 2 - (v.offsetTop + v.height / 2),
+        inside: a.left >= v.offsetLeft && a.top >= v.offsetTop && a.right <= v.offsetLeft + v.width && a.bottom <= v.offsetTop + v.height };
+    });
+    expect(Math.abs(r.x), JSON.stringify(r)).toBeLessThan(2);
+    expect(Math.abs(r.y), JSON.stringify(r)).toBeLessThan(2);
+    expect(r.inside, JSON.stringify(r)).toBe(true);
+  });
+
   test("another book: the previous cover never appears in its detail", async ({ page, net }) => {
     net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
     await open(page);
