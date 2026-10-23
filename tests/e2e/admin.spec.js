@@ -218,11 +218,12 @@ test.describe("importing the database", () => {
     await expect(page.locator("#c-sub")).toHaveText("2 von 3 Büchern mit ISBN haben ein Cover · 25 % aller Bücher");
     await expect(page.locator("#c-lines")).toContainText("ekz-Bibliotheksservice1");
     await expect(page.locator("#c-lines")).toContainText("Open Library1");
-    await expect(page.locator("#c-lines")).toContainText("Google Books0");
+    await expect(page.locator("#c-lines")).not.toContainText("Google");
     await expect(page.locator("#c-lines")).toContainText("Kein Cover gefunden1");
     expect(net.requests.filter(u => u.includes("/b/isbn/"))).toEqual([]);
     const d = evaluate(await save(page, "#dl"), "DSM_LIBRARY");
-    expect(d.coverage).toMatchObject({ cover: 2, ekz: 1, ol: 1, gb: 0, none: 1, checked: 3, complete: true });
+    expect(d.coverage).toMatchObject({ cover: 2, ekz: 1, ol: 1, none: 1, checked: 3, complete: true });
+    expect(d.coverage.gb).toBeUndefined();
     expect(net.requests.filter(u => u.includes("api/books")).join()).not.toContain("9783871347108"); // ekz hits not sent to Open Library
   });
 

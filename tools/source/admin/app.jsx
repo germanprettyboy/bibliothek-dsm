@@ -54,7 +54,7 @@ function App({ lock }) {
   const entry = () => {
     if (!result && !(cov && cov.done) && cur && cur.coverage) return cur.coverage;
     const e = { updated: date, books: books.length, isbn: books.filter(b => b.i).length };
-    if (cov && cov.done) Object.assign(e, { cover: (cov.ekz || 0) + cov.ol + cov.gb, ekz: cov.ekz || 0, ol: cov.ol, gb: cov.gb, none: cov.none, checked: cov.done, complete: !!cov.complete });
+    if (cov && cov.done) Object.assign(e, { cover: (cov.ekz || 0) + cov.ol, ekz: cov.ekz || 0, ol: cov.ol, none: cov.none, checked: cov.done, complete: !!cov.complete });
     return e;
   };
   const history = () => {

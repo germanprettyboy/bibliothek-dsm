@@ -99,9 +99,7 @@ Cover
     - Für die übrigen Open Library als Sammelabfrage (bis 20 Bücher je Anfrage, alle 1,5 s).
       Bilder kommen über die Cover-ID, die nicht ratenbegrenzt ist. Abrufe direkt über die ISBN
       wären auf 100 je 5 Minuten und IP begrenzt, im Schulnetz teilen sich alle eine IP.
-    - Danach das Google-Books-Bild direkt über die ISBN (nicht die Google-API: ohne Schlüssel
-      ist deren Kontingent immer erschöpft). Googles Ersatzbilder („image not available“,
-      Buch-Umriss) werden ebenfalls erkannt und nicht gezeigt.
+    - Kein Google Books (seit 23.10.2026): die IP-Adressen der Besucher gehen nicht an Google.
     - Pause bei verstecktem Tab und bei aktivem Datensparmodus.
   Beim Antippen wird ein noch fehlendes Cover sofort mit Vorrang geholt.
   Ergebnisse (auch „kein Cover“) merkt sich der Browser: Treffer 60 Tage, Fehlanzeigen 14 Tage.
@@ -109,7 +107,7 @@ Cover
 
 Cover-Abdeckung
   admin.html zeigt nach dem Einlesen den Anteil mit ISBN und prüft auf Knopfdruck alle ISBN
-  (ekz-Cover, für die übrigen Open Library in Sammelabfragen, danach Google-Bild; einige Minuten).
+  (ekz-Cover, für die übrigen Open Library in Sammelabfragen; einige Minuten).
   Ergebnis und Verlauf (letzte 24 Aktualisierungen) werden in books.js gespeichert und beim
   nächsten Einlesen fortgeführt. Abgebrochene Prüfungen gelten als vorläufig (* im Verlauf).
 

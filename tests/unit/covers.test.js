@@ -1,7 +1,7 @@
 /*
  * covers.js in a sandbox: fetch, Image, localStorage and the tick timers (setTimeout 300/350/600/1500 ms) are replaced.
- * No network. Checks the order ekz → Open Library (batch request) → Google image, substitute image detection,
- * no Google API, cache, background queues and the survey.
+ * No network. Checks the order ekz → Open Library (batch request), substitute image detection,
+ * no Google (since 2026-10-23), cache, background queues and the survey.
  */
 "use strict";
 const { test, describe } = require("node:test");
@@ -135,29 +135,20 @@ describe("get(): tap, with priority", () => {
     assert.ok(decodeURIComponent(s.ol()[0].url).includes("ISBN:080442957X"));
   });
 
-  test("fallback Google: image directly via the ISBN, no Google API", async () => {
+  test("never Google: neither Google Books images nor the API; without ekz/Open Library a placeholder", async () => {
     const s = sandbox({ image: only("books.google") });
-    const r = await s.C.get(book(K2));
-    assert.equal(r.by, "coverGB");
-    assert.equal(r.src, GB + K2 + "&printsec=frontcover&img=1&zoom=1");
-    assert.ok(!s.calls.some(c => c.url.includes("googleapis")));
-  });
-
-  test('Google substitute image 128×184 counts as "no cover"', async () => {
-    const s = sandbox({ image: src => (src.includes("books.google") ? [128, 184] : false) });
     assert.equal(await s.C.get(book(K2)), null);
+    assert.equal(s.gb().length, 0);
+    assert.ok(![...s.calls.map(c => c.url), ...s.images].some(u => /google/.test(u)));
     await wait(450);
     assert.equal(s.saved()[K2].u, "");
   });
 
-  test('Google substitute image "image not available" 128×170 counts as "no cover"', async () => {
-    const s = sandbox({ image: src => (src.includes("books.google") ? [128, 170] : false) });
-    assert.equal(await s.C.get(book(K2)), null);
-  });
-
-  test("a real Google cover 128×205 is taken", async () => {
-    const s = sandbox({ image: src => (src.includes("books.google") ? [128, 205] : false) });
-    assert.equal((await s.C.get(book(K2))).by, "coverGB");
+  test("a Google hit from an old cache (until 2026-10-23) is dropped and searched anew", async () => {
+    const s = sandbox({ cache: { [K2]: { u: GB + K2 + "&printsec=frontcover&img=1&zoom=1", b: "coverGB", t: Date.now() } }, image: only("ekz.de") });
+    const r = await s.C.get(book(K2));
+    assert.equal(r.by, "coverEKZ");
+    assert.equal(s.gb().length, 0);
   });
 
   // instead of a 404 ekz often returns "leider kein aktuelles Bild vorhanden" (170×270, always the same 9977 bytes)
@@ -234,9 +225,12 @@ describe("get(): tap, with priority", () => {
     assert.deepEqual(s.saved(), {});
   });
 
-  test("Open Library image doesn't load → on to Google", async () => {
+  test("Open Library image doesn't load → placeholder, remembered", async () => {
     const s = sandbox({ ol: OLHIT(1), image: only("books.google") });
-    assert.equal((await s.C.get(book(K1))).by, "coverGB");
+    assert.equal(await s.C.get(book(K1)), null);
+    assert.equal(s.gb().length, 0);
+    await wait(450);
+    assert.equal(s.saved()[K1].u, "");
   });
 
   test("simultaneous calls share one request", async () => {
@@ -248,7 +242,7 @@ describe("get(): tap, with priority", () => {
   });
 
   test("never /b/isbn/ (rate limit at Open Library)", async () => {
-    const s = sandbox({ image: only("books.google") });
+    const s = sandbox();
     await s.C.get(book(K1));
     assert.ok(![...s.calls.map(c => c.url), ...s.images].some(u => u.includes("/b/isbn/")));
   });
@@ -353,14 +347,14 @@ describe("background: want/unwant, staggered", () => {
     assert.equal(s.ol().length, 2, "queue empty");
   });
 
-  test('after Open Library: Open Library image, otherwise Google image, otherwise "no cover" remembered', async () => {
+  test('after Open Library: Open Library image, otherwise "no cover" remembered', async () => {
     const s = sandbox({ ol: keys => (keys.includes("ISBN:" + K1) ? OLHIT(5)(["ISBN:" + K1]) : {}), image: only("openlibrary") });
     s.C.want(book(K1)); s.C.want(book(K2));
     await s.tick(300); await s.tick(300);
     await s.tick(1500);
     for (let n = 0; n < 4; n++) await s.tick(600);
     assert.equal(s.timers(), 0);
-    assert.deepEqual(s.gb(), [GB + K2 + "&printsec=frontcover&img=1&zoom=1"]);
+    assert.equal(s.gb().length, 0);
     await wait(450);
     const g = s.saved();
     assert.equal(g[K1].u, "https://covers.openlibrary.org/b/id/5-M.jpg");
@@ -438,23 +432,25 @@ describe("prime(): recommendations", () => {
 });
 
 describe("survey(): measure coverage (admin.html)", () => {
-  test("counts ekz, Open Library, Google, without cover; Open Library only for ekz misses", async () => {
+  test("counts ekz, Open Library, without cover; Open Library only for ekz misses", async () => {
     const K4 = "9783453604117";
     const s = sandbox({
       ol: keys => (keys.includes("ISBN:" + K1) ? OLHIT(1)(["ISBN:" + K1]) : {}),
-      image: only("openlibrary", "ISBN" + K2, "ekz.de/" + K4),
+      image: only("openlibrary", "books.google", "ekz.de/" + K4),
     });
     const progress = [];
     const sv = s.C.survey([book(K1), book(K2), book(K3), book(K4), { t: "without" }], st => progress.push(st));
     const st = await sv.done;
     assert.equal(st.total, 4);
-    assert.equal(st.ekz, 1); assert.equal(st.ol, 1); assert.equal(st.gb, 1); assert.equal(st.none, 1); assert.equal(st.err, 0);
+    assert.equal(st.ekz, 1); assert.equal(st.ol, 1); assert.equal(st.none, 2); assert.equal(st.err, 0);
+    assert.equal(st.gb, undefined);
+    assert.equal(s.gb().length, 0);
     assert.equal(st.done, 4);
     assert.equal(st.complete, true);
     assert.equal(s.ol().length, 1, "one batch request");
     assert.ok(!decodeURIComponent(s.ol()[0].url).includes(K4), "ekz hits not sent to Open Library");
     assert.ok(progress.every((v, n) => n === 0 || v.done >= progress[n - 1].done), "progress increases");
-    assert.deepEqual(Array.from(st.miss, b => b.t), ["Book " + K3], "books without a cover for the maintenance list");
+    assert.deepEqual(Array.from(st.miss, b => b.t).sort(), ["Book " + K2, "Book " + K3], "books without a cover for the maintenance list");
   });
   test("blocked ISBNs (books.js noCover) are skipped as if missing", async () => {
     const s = sandbox({ image: only("ekz.de") });

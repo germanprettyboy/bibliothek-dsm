@@ -1,4 +1,4 @@
-// Detail view with cover (Open Library / Google Books mocked), placeholder, closing.
+// Detail view with cover (ekz / Open Library mocked, never Google), placeholder, closing.
 const fs = require("fs");
 const path = require("path");
 const { test, expect, PHONE, open, settled, swipeStages, data } = require("./helpers.js");
@@ -226,14 +226,14 @@ test.describe("cover", () => {
     expect(await page.evaluate(() => window.__seen)).toEqual([]);
   });
 
-  test("fallback Google: image directly via the ISBN, no Google API", async ({ page, net }) => {
+  test("never Google: without ekz/Open Library the placeholder, no request to Google", async ({ page, net }) => {
     net.ol = () => ({});
     net.image = url => url.includes("books.google.com");
     await open(page);
     await openBook(page, WITH_ISBN);
-    await expect(page.locator("#d-cover img")).toHaveAttribute("src", "https://books.google.com/books/content?vid=ISBN" + WITH_ISBN.i[0] + "&printsec=frontcover&img=1&zoom=1");
-    expect(net.requests.filter(u => u.includes("googleapis"))).toEqual([]);
-    await expect(page.locator("#d-src")).toHaveText("Cover: Google Books");
+    await expect(page.locator("#d-cover")).not.toHaveClass(/loading/, { timeout: 10000 });
+    await expect(page.locator("#d-cover img")).toHaveCount(0);
+    expect(net.requests.filter(u => u.includes("google"))).toEqual([]);
   });
 
   test("services not reachable: the placeholder stays, no errors", async ({ page }) => {

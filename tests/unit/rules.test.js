@@ -71,9 +71,9 @@ describe("external connections", () => {
       assert.ok(fs.existsSync(path.join(WEB, "assets", u)), u);
     }
   });
-  test("only ekz, Open Library and Google Books as external targets", () => {
+  test("only ekz and Open Library as external targets (no Google since 2026-10-23)", () => {
     // react.dev: link in React's error messages, tailwindcss.com: license note in the CSS – neither is ever loaded
-    const allowed = new Set(["cover.ekz.de", "openlibrary.org", "covers.openlibrary.org", "books.google.com", "www.w3.org", "react.dev", "tailwindcss.com"]);
+    const allowed = new Set(["cover.ekz.de", "openlibrary.org", "covers.openlibrary.org", "www.w3.org", "react.dev", "tailwindcss.com"]);
     for (const p of text.filter(f => !f.endsWith(".txt"))) {
       for (const m of fs.readFileSync(p, "utf8").matchAll(/https?:\/\/([a-z0-9.-]+)/gi)) {
         assert.ok(allowed.has(m[1].toLowerCase()), path.relative(WEB, p) + ": " + m[1]);
