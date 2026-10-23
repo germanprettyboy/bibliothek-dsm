@@ -129,7 +129,7 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
           </h2>
           <Button variant="icon" size="icon-sm" className="-my-1 -mr-1" id="recs-x" aria-label={t("recsClose")} onClick={hide}><XIcon aria-hidden="true" /></Button>
         </div>
-        <div className="recs-row mt-2 grid sm:mt-4 sm:flex sm:justify-center sm:gap-4">
+        <div className="recs-row mt-2 grid sm:mt-4 sm:flex sm:justify-evenly sm:gap-4">
           {shown.map((x, n) => (
             <button
               key={x.r.k} type="button" onClick={() => onOpen(x.b, x.r)}
