@@ -2,6 +2,7 @@
 const { defineConfig, devices } = require("@playwright/test");
 const { execFileSync } = require("child_process");
 const path = require("path");
+const suites = require("./tests/suites.js");
 
 // Port per checkout derived from the path (8700–8999): parallel worktrees never test another one's files.
 // Override with DSM_TEST_PORT=…
@@ -22,6 +23,10 @@ const ENGINES = /engines\.spec\.js/;
 // DSM_LIVE_URL=https://… : test against a running address (npm run test:live, Cloudflare tunnel) instead of an own server.
 // Real network in between: less parallel, more time, a second attempt.
 const LIVE = process.env.DSM_LIVE_URL ? process.env.DSM_LIVE_URL.replace(/\/?$/, "/") : null;
+
+// DSM_SUITE="smoke [area,…]" (or a commit message with the line "CI-Suite: smoke …"): Chromium-only projects of tests/suites.js
+// instead of the browser projects. Set by the workflow; an unknown area fails here, before any test.
+const SUITE = process.env.DSM_SUITE ? suites.parse(process.env.DSM_SUITE) : { mode: "full" };
 
 module.exports = defineConfig({
   testDir: "tests/e2e",
@@ -45,7 +50,7 @@ module.exports = defineConfig({
   },
   // Chrome/Edge (Chromium), Firefox: every spec. Safari (WebKit) on the desktop and as iPhone: the basics (engines.spec.js).
   // CI shards each browser over parallel jobs (--project=… --shard=…; the WebKit job also runs iphone).
-  projects: [
+  projects: SUITE.mode === "smoke" ? suites.projects(SUITE) : [
     { name: "chromium", use: { browserName: "chromium" } },
     { name: "firefox", use: { browserName: "firefox" } },
     { name: "webkit", use: { browserName: "webkit" }, testMatch: ENGINES },

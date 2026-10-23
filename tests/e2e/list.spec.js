@@ -4,7 +4,7 @@ const { test, expect, PHONE, open, data, hits } = require("./helpers.js");
 const { B } = data();
 
 test.describe("list", () => {
-  test("shows all books as plain text (title + author), no images", async ({ page }) => {
+  test("shows all books as plain text (title + author), no images", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("#list .row")).toHaveCount(B.books.length);
     await expect(page.locator("#list img")).toHaveCount(0);
@@ -69,7 +69,7 @@ test.describe("list", () => {
 test.describe("search", () => {
   const search = async (page, q) => { await page.fill("#q", q); await expect(page.locator("#list")).toHaveClass(/live/); };
 
-  test("hits by title, count and highlighting", async ({ page }) => {
+  test("hits by title, count and highlighting", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await search(page, "tschick");
     const n = hits(B.books, "tschick").length;
@@ -142,7 +142,7 @@ test.describe("search", () => {
 });
 
 test.describe("A–Z bar (from 768 px)", () => {
-  test("desktop: a letter filters the list, the same letter again lifts the filter", async ({ page }) => {
+  test("desktop: a letter filters the list, the same letter again lifts the filter", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("#index")).toBeVisible();
     await expect(page.locator("#index button")).toHaveCount(27);
@@ -216,7 +216,7 @@ test.describe("phone (390 px)", () => {
     expect(w).toBeLessThanOrEqual(390);
   });
 
-  test("the search bar sticks at the top", async ({ page }) => {
+  test("the search bar sticks at the top", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await page.evaluate(() => scrollTo({ top: 5000, behavior: "instant" }));
     await expect(page.locator("#bar")).toHaveClass(/stuck/);

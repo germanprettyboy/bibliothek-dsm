@@ -55,6 +55,7 @@ npm run tunnel:php     # local + public https address, writes to tests/.tmp/loca
 npm run ui:add -- <n>  # new shadcn component (adapt it to DSM afterwards!)
 node tools/encrypt-admin.js   # after EVERY change to tools/source/* (asks for the password without echo); = npm run encrypt
 git push && gh run watch <id> --exit-status   # the ONLY way to test (GitHub Actions); npm test / test:e2e / test:all only run there
+node tests/suites.js ["smoke detail"]          # CI areas / what a "CI-Suite: …" trailer would run (no test); see "CI suites"
 ```
 
 The admin password is deliberately in no file: ask Johann, don't guess, don't write it down. Whatever the admin app imports
@@ -298,6 +299,43 @@ encryption, save.php, build byte-exact against website/, data formats, data migr
   `gh workflow run stress.yml -f repeat=5 -f workers=4 [-f grep=…]` (no retry, failure rate per test in the summary).
   Third-party actions pinned to a commit SHA.
 
+## CI suites: full or smoke (each agent decides per push, 2026-10-23)
+
+Two suites in `test.yml`, chosen by a trailer line in the HEAD commit message of the push (only the last commit counts):
+- **full** (default, no trailer; also the Monday run): unit + every spec in Chromium and Firefox (sharded), WebKit/iPhone
+  `engines.spec`, Apache. ≈5 min, 6 jobs.
+- **smoke** – `CI-Suite: smoke`: unit + the `@smoke` core tests of every area (≈22 tests), ONE Chromium job, no Firefox/
+  WebKit/Apache. `CI-Suite: smoke categories,detail`: additionally EVERY test of the named areas (Chromium). ≈2–3 min, 2 jobs.
+- Areas = groups of spec files in `tests/suites.js` (`node tests/suites.js` lists them, `node tests/suites.js "smoke x,y"`
+  shows the plan – runs no test, allowed locally): `list` (alias `search`; list, search, A–Z, header), `loading`, `announcement`,
+  `categories`, `detail` (alias `cover`; covers, zoom, sheet, glass), `recommendations` (alias `recs`; questions, card,
+  archive), `info` (alias `hours`), `settings` (alias `language`), `admin` (lock, import, publishing, backups, real save.php),
+  `admin-care`, `admin-recs`, `admin-info`; without core tests (only when named or full): `engines`, `a11y`, `performance`.
+- Core test = `test("…", { tag: "@smoke" }, async …)`: the main path of its area, few per area. A new spec needs an area in
+  `tests/suites.js`, every area with core tests at least one `@smoke` (suites.test checks both). Unknown area or the trailer
+  not on its own line → the run fails (no silent wrong suite).
+- Trailer: own line, e.g. before `Co-Authored-By:`. Merge commit: `git merge main -m "Merge branch 'main' into …" -m
+  "CI-Suite: smoke detail"`. By hand: `gh workflow run test.yml --ref <branch> -f suite="smoke detail"` (cancels a running
+  run of the same branch).
+
+Which one – decide by what the change can break, not by its size:
+- **full** if anything touches shared ground: `src/styles.css`, `src/head.js`, `src/lib/*`, `src/components/{glass-dialog,
+  header}.jsx`, `src/components/ui/*`, `src/library/{main,app,data}.jsx`, `src/admin/{main,lock,shared}.js*`, `tools/build.mjs`,
+  package.json/lock (any dependency, above all Preact/Radix), `playwright.config.js`, `tests/e2e/{helpers,admin-helpers,
+  setup}.js`, `tests/suites.js`, workflows, `website/{save.php,.htaccess,assets/covers.js,assets/logger.js}`,
+  `tools/source/extract.js`, `tools/generate-books.js`, a data format. Also: engine-specific behavior (backdrop-filter, `lvh`,
+  container queries, swipe/touch, animations, View Transition, anything iPhone/Safari/Firefox), changes in more than three
+  areas, a merge of `main` with conflicts, unsure which areas.
+- **smoke with areas** for a change inside one or a few sections: their component (`src/library/categories.jsx` → `categories`,
+  `detail/cover/zoom` → `detail`, `recommendations/questions/choice` → `recommendations`, `components/settings.jsx` →
+  `settings`, `components/announcement.jsx` → `announcement`, `tools/source/admin/maintenance.jsx` → `admin-care`, …), its own
+  CSS rules, texts (`addStrings`), its spec. Name EVERY touched area; data a section shows (books.js → `list`,
+  recommendations.js → `recommendations`, `categories-it.js` → `categories`) counts as touched.
+- **smoke without areas** when no page can be affected beyond a boot check: tools (tunnel, pack, local, branches), unit tests
+  only, `tests/apache/`. Docs/`*.md`/LIESMICH alone run no CI at all (paths-ignore).
+- Before `npm run integrate` the branch needs one green run that covers ALL its changes since `main`: full, or smoke naming
+  every touched area. A smoke run of a later commit doesn't cover areas only an earlier commit touched. When in doubt: full.
+
 ## Integrating branches (mandatory at the end of every task)
 
 Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<name>`), at the end of the same session via a
@@ -305,7 +343,7 @@ Every task in its own worktree (`.claude/worktrees/<name>`, branch `worktree-<na
 1. Commit in the worktree, `git merge main`, resolve conflicts **there** (never in `main`): source/CLAUDE.md/LIESMICH by content;
    `admin.enc.js` encrypt again, built files `npm run build`, `books.js` `npm run books`, `recommendations.js` by content.
 2. `tools/source/*` changed → encrypt again. Commit, `git push` the branch, GitHub Actions run green (`gh run watch`; never test
-   locally). Look at visible changes via `npm run serve`.
+   locally; full or smoke per "CI suites"). Look at visible changes via `npm run serve`.
 3. ExitWorktree (`keep`), in the main checkout `npm run integrate -- worktree-<name>`. Aborts on an unclean main checkout,
    uncommitted changes, a conflict, a syntax error in `website/**.js`/`tools/**.js` → fix in the worktree, again. If ONLY the
    three data files are changed in the main checkout (admin page via folder access = intended content), it takes them over

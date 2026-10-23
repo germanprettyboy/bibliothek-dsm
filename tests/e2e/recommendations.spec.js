@@ -32,7 +32,7 @@ test.describe("first visit", () => {
     await expect(ask(page).locator(".lead")).toHaveText("Desidera vedere dei consigli di lettura?");
   });
 
-  test("no → saved, notice, no recommendations, no repeated question", async ({ page }) => {
+  test("no → saved, notice, no recommendations, no repeated question", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await ask(page).locator('[data-a="no"]').click();
     // the notice disappears after 3.6 s: hovered at once, Sonner pauses that (slower engines need the time)
@@ -62,7 +62,7 @@ test.describe("first visit", () => {
   });
 
   // Oberstufe takes the same path (only data-g differs); switching groups is covered by "settings: change the group"
-  test("yes → Mittelstufe → recommendations visible", async ({ page }) => {
+  test("yes → Mittelstufe → recommendations visible", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await ask(page).locator('[data-a="yes"]').click();
     await expect(ask(page).locator("#ask-t")).toHaveText("Für wen?");

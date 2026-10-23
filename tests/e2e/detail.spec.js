@@ -15,7 +15,7 @@ async function openBook(page, b) {
 }
 
 test.describe("detail", () => {
-  test("shows all details", async ({ page }) => {
+  test("shows all details", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await openBook(page, WITH_ISBN);
     const d = page.locator("#detail");
@@ -76,7 +76,7 @@ test.describe("detail", () => {
 });
 
 test.describe("cover", () => {
-  test("ekz first: image directly via the ISBN, source named", async ({ page, net }) => {
+  test("ekz first: image directly via the ISBN, source named", { tag: "@smoke" }, async ({ page, net }) => {
     net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
     net.image = url => url.includes("cover.ekz.de");
     await open(page);
@@ -127,7 +127,7 @@ test.describe("cover", () => {
     expect(net.requests.filter(u => u.includes("/b/isbn/"))).toEqual([]);
   });
 
-  test("tap the cover: large in its own dialog, size L reloaded, back via tap/Escape", async ({ page, net }) => {
+  test("tap the cover: large in its own dialog, size L reloaded, back via tap/Escape", { tag: "@smoke" }, async ({ page, net }) => {
     net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
     await open(page);
     await openBook(page, WITH_ISBN);
@@ -277,7 +277,7 @@ test.describe("detail on the phone", () => {
   });
 
   // Sheet half-high, up = as high as the content (or springs back), down = half, further down = close
-  test("swiping: half, up = content-high, down = half, further down = closed", async ({ page }) => {
+  test("swiping: half, up = content-high, down = half, further down = closed", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await openBook(page, WITH_ISBN);
     await swipeStages(page, page.locator("#detail"));

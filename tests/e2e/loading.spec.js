@@ -22,7 +22,7 @@ async function throttle(page, pattern = "**/books.js", content) {
 test.describe("loading on a slow connection", () => {
   test.use({ storage: { "dsm-recs": OFF } });
 
-  test("placeholder for the list, then the real list", async ({ page }) => {
+  test("placeholder for the list, then the real list", { tag: "@smoke" }, async ({ page }) => {
     const release = await throttle(page);
     await page.goto("index.html", { waitUntil: "commit" });
     await expect(page.locator("#list .skel")).toBeVisible();
