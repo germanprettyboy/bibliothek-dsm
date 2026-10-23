@@ -1,7 +1,7 @@
 // Detail view with cover (Open Library / Google Books mocked), placeholder, closing.
 const fs = require("fs");
 const path = require("path");
-const { test, expect, PHONE, open, settled, swipeStages, data } = require("./helpers.js");
+const { test, expect, PHONE, open, settled, swipeStages, restingTop, data } = require("./helpers.js");
 
 const { B } = data();
 const WITH_ISBN = B.books.find(b => b.i && b.p && b.y && b.c && b.l && b.a);
@@ -216,5 +216,24 @@ test.describe("detail on the phone", () => {
     await open(page);
     await openBook(page, WITH_ISBN);
     await swipeStages(page, page.locator("#detail"));
+  });
+
+  // Turning the phone with the dialog open (lib/swipe.js follows the media query, not only on opening): across = the
+  // centered dialog, completely on screen; upright again = the half stage at once, swiping works as before
+  test("turning the phone: across centered, upright half-high again", async ({ page }) => {
+    await open(page);
+    await openBook(page, WITH_ISBN);
+    const detail = page.locator("#detail");
+    const half = await restingTop(detail);
+    await page.setViewportSize({ width: 844, height: 390 });
+    await settled(page);
+    expect(await detail.evaluate(d => d.style.transform)).toBe("");
+    const box = await detail.boundingBox();
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(390);
+    expect(Math.abs(box.x + box.width / 2 - 422)).toBeLessThan(3);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(Math.abs(await restingTop(detail) - half)).toBeLessThan(3);
+    await swipeStages(page, detail);
   });
 });

@@ -26,8 +26,20 @@ const spring = (() => {
   return `linear(${points.join(", ")})`;
 })();
 
+// The phone layout can come and go while a dialog is open (turning the phone: upright < 40rem, across wider). Follow it
+// at once (the change event comes before the next paint): across back to the centered dialog without any transform,
+// upright straight into the half stage (the dialog is already open, it doesn't fly in again).
 export function swipe(sheet, inner, scrimSel) {
-  if (!phone.matches) return () => {};
+  let off = phone.matches ? attach(sheet, inner, scrimSel, false) : null;
+  const change = () => {
+    if (off) { off(); off = null; }
+    if (phone.matches) off = attach(sheet, inner, scrimSel, true);
+  };
+  phone.addEventListener("change", change);
+  return () => { phone.removeEventListener("change", change); if (off) off(); };
+}
+
+function attach(sheet, inner, scrimSel, turned) {
   const scrim = () => document.querySelector(scrimSel);
   // top = highest stage (content-high, 0 = full screen), half = resting stage; fit = only one stage
   let H = 0, top = 0, half = 0, fit = false, target = "half", y = 0, anim = null;
@@ -78,7 +90,7 @@ export function swipe(sheet, inner, scrimSel) {
 
   const open = () => {
     measure(); target = "half"; mode();
-    if (reduced.matches) { setY(half); return; }
+    if (reduced.matches || turned) { setY(half); return; }
     sheet.style.transform = `translateY(${H}px)`; y = H;
     move("half", 0);
   };

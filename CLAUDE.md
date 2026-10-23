@@ -139,7 +139,9 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   (spring as `linear()`), the finger leads 1:1; up = as high as the content, at most full screen (content scrolls), down = half,
   further/fast = close, the scrim follows. Content that fits half-high (≤ 80 %) = ONE stage like an iOS sheet sized to its
   content (`data-fit`, 2026-10-20, client: no empty glass, mainly the questions): no 40 % minimum, upwards a rubber band
-  (iOS formula), springs back. From 40rem / reduced motion unchanged. Tests: `swipeStages` (helpers.js) in every dialog spec. EVERY dialog behaves the same (2026-10-20, client:
+  (iOS formula), springs back. From 40rem / reduced motion unchanged. Turning the phone with a dialog open (2026-10-23):
+  swipe.js follows the media query's `change`, not only the opening: across = centered dialog without transform, upright =
+  half stage at once (no flying in again). Tests: `swipeStages` (helpers.js) in every dialog spec. EVERY dialog behaves the same (2026-10-20, client:
   settings, categories, questions, opening hours, archive; `useSwipe(scrimSel, onClose)`, class `swipe` on dialog + scrim;
   a new dialog gets it too; categories keep a constant height and go to full screen when the search field gets focus; content
   changing its height at half glides to the new position; swiping the questions away = "no"). After a swipe away `data-gone` switches off Radix' closing animation (otherwise a flash on iOS).
