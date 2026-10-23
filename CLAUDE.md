@@ -28,7 +28,9 @@ on Johann's Mac – not a single spec. Tests run ONLY on GitHub Actions: commit,
   npx (php-wasm, browser-sync, shadcn) always with exact version + `--prefer-offline`; deliberately not in package.json.
 - `tests/`, `docs/`: never uploaded. `data/` (`*.winbook`, reader names + classes): NEVER commit/upload. `docs/entwuerfe/` = UI variants
   as private artifact https://claude.ai/artifact/EuCPm1eKryK64A8YD5ywNP (picks: `ArtifactData get`, collection `picks`, doc `main`).
-- Worktrees have no `node_modules`: `ln -s <main checkout>/node_modules node_modules` (ignored, never commit the link).
+- Worktrees: `.claude/settings.json` `worktree.symlinkDirectories` links `node_modules` from the main checkout; `baseRef: head`
+  branches from local `main` (`origin/main` diverges). Link missing (old worktree): `ln -s <main checkout>/node_modules`. Never
+  `npm install`/`ci` through the link (changes main's packages); dependency change: `rm node_modules && npm ci --prefer-offline`.
 
 ## Commands
 

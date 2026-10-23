@@ -2,7 +2,8 @@
 data/
 daten/
 *.winbook
-node_modules/
+# no trailing slash: also the symlink in worktrees (.claude/settings.json worktree.symlinkDirectories)
+node_modules
 .DS_Store
 
 # Local test environment (Playwright, screenshots) and backup copies
