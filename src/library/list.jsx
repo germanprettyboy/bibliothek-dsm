@@ -5,6 +5,8 @@
 import * as React from "react";
 import { ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
@@ -76,7 +78,7 @@ function sizer() {
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   const w = Math.max(160, Math.min(document.documentElement.clientWidth - 32, 46 * rem) - 40);
   const cT = w / (rem * .5), cA = w / (rem * .875 * .5);
-  return (t, a) => 25 + rem * 1.35 * Math.ceil((t.length || 1) / cT) + (a ? 2 + rem * .875 * 1.5 * Math.ceil(a.length / cA) : 0);
+  return (t, a) => 25 + rem * 1.25 * Math.ceil((t.length || 1) / cT) + (a ? 2 + rem * .875 * 1.5 * Math.ceil(a.length / cA) : 0);
 }
 // Head (anchor ul#L-X) only on the first occurrence of a letter: the sort order (Collator) can interrupt it,
 // e.g. "Œuvres" between the O's (counts as "#") or Greek titles after Z
@@ -331,21 +333,21 @@ export function BookList({ books, loaded, onOpen }) {
         <div className="wrap grid gap-2 py-3">
           <div className="flex gap-2">
           <label className="search relative min-w-0 flex-1">
-            <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 size-4.5 -translate-y-1/2 text-muted-foreground" />
             <input
               id="q" ref={input} type="search" data-log="own" autoComplete="off" spellCheck="false" enterKeyHint="search"
               placeholder={t("search")} aria-label={t("searchLabel")}
-              className="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blue)_55%,transparent)]"
+              className="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-(--t-base) placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blue)_55%,transparent)]"
               onChange={e => search(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape" && e.currentTarget.value) clear(false); }}
               onFocus={onFocus}
             />
-            <button
-              type="button" className="clear absolute top-1/2 right-1 grid size-10 -translate-y-1/2 place-items-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground"
+            <Button
+              variant="icon-ghost" size="icon" className="clear absolute top-1/2 right-0.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               hidden={!hasText} aria-label={t("clear")} onClick={() => clear(true)}
             >
-              <XIcon aria-hidden="true" className="size-4" />
-            </button>
+              <XIcon aria-hidden="true" />
+            </Button>
           </label>
           <div className={cn("cat-pill", category && "on", (!loaded || !model.groups.length) && "off")}>
             <button
@@ -353,14 +355,14 @@ export function BookList({ books, loaded, onOpen }) {
               aria-label={category ? `${t("catOpen")}: ${model.label(category, lang, t)}` : t("catOpen")}
               onClick={() => setCatOpen(true)}
             >
-              <ListFilterIcon aria-hidden="true" className="size-[18px] shrink-0" />
+              <ListFilterIcon aria-hidden="true" className="size-4.5 shrink-0" />
               <span className="cat-label" aria-hidden="true"><span><span>{category ? model.short(category, lang, t) : t("catBtn")}</span></span></span>
             </button>
             <span className="cat-x" inert={!category} aria-hidden={!category}>
               <span>
-                <span className="cat-div" aria-hidden="true" />
+                <Separator orientation="vertical" className="cat-div bg-current" />
                 <button type="button" id="cat-clear" aria-label={t("catClear")} tabIndex={category ? 0 : -1} onClick={() => { chooseCategory(null); document.getElementById("cat-btn").focus(); }}>
-                  <XIcon aria-hidden="true" className="size-[18px]" />
+                  <XIcon aria-hidden="true" className="size-4.5" />
                 </button>
               </span>
             </span>

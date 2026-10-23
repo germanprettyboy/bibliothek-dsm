@@ -154,7 +154,7 @@ test.describe("special opening hours, Sunday, notice period, contact", () => {
     await expect(card(page)).toContainText("Fr, 23.10. · 8:00–11:00");
     await card(page).click();
     const d = dialog(page);
-    await expect(d.locator("h4").first()).toHaveText("Ferien, Schließtage und geänderte Zeiten");
+    await expect(d.locator("h3").first()).toHaveText("Ferien, Schließtage und geänderte Zeiten");
     await expect(d.locator(".closures li")).toHaveCount(1);
     await expect(d.locator(".closures li")).toContainText("Fr, 23.10. · 8:00–11:00 · Andere Zeiten");
     await expect(d.locator(".week dd").nth(2)).toHaveText("8:00–12:00, 13:00–15:00"); // the weekly table stays regular
@@ -171,7 +171,7 @@ test.describe("special opening hours, Sunday, notice period, contact", () => {
   test("without special entries the heading stays", async ({ page }) => {
     await withInfo(page, info(), "10:00");
     await card(page).click();
-    await expect(dialog(page).locator("h4").first()).toHaveText("Ferien und Schließtage");
+    await expect(dialog(page).locator("h3").first()).toHaveText("Ferien und Schließtage");
   });
 
   test("Sunday with hours is shown in the weekly table", async ({ page }) => {
@@ -208,7 +208,7 @@ test.describe("special opening hours, Sunday, notice period, contact", () => {
     await withInfo(page, info({ contact }), "10:00");
     await card(page).click();
     const c = dialog(page).locator("#info-contact");
-    await expect(c.locator("h4")).toHaveText("Kontakt");
+    await expect(c.locator("h3")).toHaveText("Kontakt");
     await expect(c).toContainText("Raum 12, Frau Beispiel");
     await expect(c.locator('a[href="mailto:bibliothek@example.org"]')).toHaveText("bibliothek@example.org");
     await expect(c.locator('a[href="tel:+39021234567"]')).toHaveText("+39 02 123 4567");

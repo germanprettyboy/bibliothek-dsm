@@ -127,7 +127,7 @@ export function Lock({ onStart }) {
     <div className="lock grid place-items-center pt-6 pb-15" id="lock">
       <form
         ref={form} id="lock-form" autoComplete="off" aria-busy={String(busy)} onSubmit={submit}
-        className="grid w-full max-w-96 gap-3.5 rounded-3xl bg-surface p-[26px] shadow-[inset_0_0_0_1px_var(--line)]"
+        className="card grid w-full max-w-96 gap-4 p-4"
       >
         <h2 className="m-0 text-l font-semibold">{t("lockT")}</h2>
         <p className="m-0 text-muted-foreground">{t("lockP")}</p>

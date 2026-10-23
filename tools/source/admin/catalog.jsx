@@ -6,6 +6,7 @@ import * as React from "react";
 import { ChevronDownIcon, DatabaseIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ export const Lines = ({ id, lines }) => (
   <ul className="lines mt-2 mb-0 list-none p-0" id={id}>
     {lines.map(([label, value, color], n) => (
       <li key={n} className="flex justify-between gap-3 border-t border-border py-2">
-        <span>{color ? <span className="mr-2 inline-block size-2.5 rounded-[2px]" style={{ background: `var(${color})` }} /> : null}{label}</span>
+        <span>{color ? <span className="mr-2 inline-block size-2.5 rounded-full" style={{ background: `var(${color})` }} /> : null}{label}</span>
         <span className="font-medium whitespace-nowrap tabular-nums">{value}</span>
       </li>
     ))}
@@ -115,7 +116,7 @@ export function Catalog({ B }) {
     let msg = r.nameHits ? t("checkWarn", { n: nf(r.nameHits) }) : (hasReaders ? t("checkOk") : t("checkNoReaders"));
     if (r.nameRemoved) msg += " " + t("checkRemoved", { n: nf(r.nameRemoved) });
     report = (
-      <div className="report grid gap-3" id="report">
+      <div className="report grid gap-4 sm:gap-6" id="report">
         <Card>
           <CardTitle>{t("takenT")}</CardTitle>
           <Big id="r-books">{nf(r.books)}</Big>
@@ -127,7 +128,7 @@ export function Catalog({ B }) {
           <CardTitle>{t("removedT")}</CardTitle>
           <Lines id="r-removed" lines={removed.length ? removed : [[t("noneFound"), "–"]]} />
         </Card>
-        <div className={cn("flag", r.nameHits && "mid")} id="r-check">{msg}</div>
+        <Alert variant={r.nameHits ? "mid" : undefined} role="status" id="r-check">{msg}</Alert>
         <Coverage B={B} />
         <CategoriesIt B={B} />
         <HiddenCovers B={B} />
@@ -143,14 +144,14 @@ export function Catalog({ B }) {
   } else if (!result && B.books.length) {
     // Without an import: the published list – check coverage, names, hidden covers, publish again if something changed
     report = (
-      <div className="grid gap-3" id="current">
+      <div className="grid gap-4 sm:gap-6" id="current">
         <Coverage B={B} />
         <CategoriesIt B={B} />
         <HiddenCovers B={B} />
         {B.changed || pubShown ? (
           <Publish
             file="books.js" build={B.booksFile} ids={{ button: "dl", how: "r-howto", preview: "preview" }} alt="download" howKey="howto"
-            after={<p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="r-again">{t("pubBooksP")}</p>}
+            after={<p className="note mt-2 mb-0 text-s text-muted-foreground" id="r-again">{t("pubBooksP")}</p>}
           />
         ) : null}
       </div>
@@ -158,9 +159,9 @@ export function Catalog({ B }) {
   }
 
   return (
-    <div className="steps grid gap-3.5 pb-10" id="tab-catalog">
+    <div className="steps grid gap-4 pb-10 sm:gap-6" id="tab-catalog">
       <label
-        className={cn("drop relative grid cursor-pointer place-items-center gap-2.5 rounded-xl border-[1.5px] border-dashed border-border bg-surface px-[18px] py-9 text-center transition-[border-color,transform] duration-200 ease-dsm hover:border-blue", over && "over scale-[1.01] border-blue")}
+        className={cn("drop relative grid cursor-pointer place-items-center gap-2 rounded-2xl border-2 border-dashed border-border bg-surface px-6 py-9 text-center transition-[border-color,transform] duration-(--t-base) ease-dsm hover:border-blue", over && "over scale-[1.01] border-blue")}
         id="drop" hidden={phase !== "choose"}
         onDragEnter={e => { e.preventDefault(); setOver(true); }} onDragOver={e => { e.preventDefault(); setOver(true); }}
         onDragLeave={e => { e.preventDefault(); setOver(false); }}
@@ -170,14 +171,14 @@ export function Catalog({ B }) {
           ref={input} type="file" id="file" className="absolute size-px opacity-0"
           accept=".winbook,.sqlite,.sqlite3,.db,application/vnd.sqlite3,application/x-sqlite3" onChange={e => handle(e.target.files[0])}
         />
-        <DatabaseIcon aria-hidden="true" strokeWidth={1.6} className="size-[34px] text-muted-foreground" />
+        <DatabaseIcon aria-hidden="true" className="size-8 text-muted-foreground" />
         <strong className="font-semibold">{t("dropT")}</strong>
         <p className="m-0 max-w-120 text-s text-muted-foreground">{t("dropP")}</p>
       </label>
-      <div className="status flex items-center gap-2.5 text-muted-foreground" id="status" hidden={!status}>
+      <div className="status flex items-center gap-2 text-muted-foreground" id="status" hidden={!status}>
         <span className="spin" aria-hidden="true" /><span id="statusText">{status ? t(status) : ""}</span>
       </div>
-      <div className="flag warn" id="error" hidden={!error}>{error ? t(error[0], error[1]) : ""}</div>
+      <Alert variant="warn" id="error" hidden={!error}>{error ? t(error[0], error[1]) : ""}</Alert>
       {report}
     </div>
   );
@@ -205,13 +206,13 @@ function Coverage({ B }) {
     sub = t("covIsbn", { p: pct(e.isbn / n) });
   }
   const history = B.history().reverse();
-  const cell = "border-t border-border py-[7px] pl-3 text-right whitespace-nowrap first:pl-0 first:text-left";
+  const cell = "border-t border-border py-2 pl-3 text-right whitespace-nowrap first:pl-0 first:text-left";
   return (
     <Card id="cov">
       <CardTitle>{t("covT")}</CardTitle>
       <Big id="c-big">{big}</Big>
       <CardDescription id="c-sub">{sub}</CardDescription>
-      <div className="meter mt-3 flex h-2 overflow-hidden rounded-xs bg-border" id="c-meter" aria-hidden="true" hidden={!cov}>
+      <div className="meter mt-3 flex h-2 overflow-hidden rounded-full bg-border" id="c-meter" aria-hidden="true" hidden={!cov}>
         {[["ekz", "--mauve"], ["ol", "--green"], ["gb", "--blue"], ["none", "--red"]].map(([k, f]) => (
           <i key={k} className={"m-" + k + " block h-full"} style={{ width: segs[k] * 100 + "%", background: `var(${f})` }} />
         ))}
@@ -221,9 +222,9 @@ function Coverage({ B }) {
         <Button variant="outline" id="c-run" hidden={!!survey} onClick={B.check}><span>{t(cov ? "covRerun" : "covRun")}</span></Button>
         <Button variant="outline" id="c-stop" hidden={!survey} onClick={() => survey && survey.stop()}><span>{t("covStop")}</span></Button>
       </CardFooter>
-      <p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="c-hint">{t("covHint")}</p>
-      <div className="hist mt-[18px]" id="c-hist">
-        <h3 className="m-0 mb-1.5 text-m font-semibold">{t("histT")}</h3>
+      <p className="note mt-2 mb-0 text-s text-muted-foreground" id="c-hint">{t("covHint")}</p>
+      <div className="hist mt-4" id="c-hist">
+        <h3 className="m-0 mb-1.5 text-s font-medium text-muted-foreground">{t("histT")}</h3>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-s tabular-nums">
             <thead>
@@ -251,7 +252,7 @@ export function Opener({ open, onClick, children, ...props }) {
   return (
     <button type="button" aria-expanded={open} onClick={onClick} className="flex min-h-11 w-full items-center gap-3 py-2 text-left" {...props}>
       <span className="min-w-0 flex-1">{children}</span>
-      <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform duration-150 ease-dsm motion-reduce:transition-none", open && "rotate-180")} />
+      <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform duration-(--t-fast) ease-dsm motion-reduce:transition-none", open && "rotate-180")} />
     </button>
   );
 }
@@ -297,9 +298,9 @@ function CategoriesIt({ B }) {
       <CardDescription>{t("ciP")}</CardDescription>
       <div className="mt-2 grid">
         {cats.map(c => (
-          <label key={c} className="grid gap-1.5 border-t border-border py-2.5 first:border-t-0 sm:grid-cols-2 sm:items-center sm:gap-3" data-cat={c}>
+          <label key={c} className="grid gap-1.5 border-t border-border py-2 first:border-t-0 sm:grid-cols-2 sm:items-center sm:gap-3" data-cat={c}>
             <span className="min-w-0">{c}</span>
-            <Input className="h-10" lang="it" value={own[c] || ""} placeholder={c} onChange={e => B.setCatIt(c, e.target.value)} />
+            <Input lang="it" value={own[c] || ""} placeholder={c} onChange={e => B.setCatIt(c, e.target.value)} />
           </label>
         ))}
       </div>
@@ -326,7 +327,7 @@ function HiddenCovers({ B }) {
     setSel({ b, found: undefined });
     window.DSMCovers.get(b).then(f => setSel(s => (s && s.b === b ? { b, found: f || null } : s)));
   };
-  const row = "flex items-center justify-between gap-2.5 border-t border-border py-2 first:border-t-0";
+  const row = "flex items-center justify-between gap-3 border-t border-border py-2 first:border-t-0";
   return (
     <Card id="nocover">
       <CardTitle>{t("ncT")}</CardTitle>
@@ -337,13 +338,13 @@ function HiddenCovers({ B }) {
           {hits.length ? hits.map(b => (
             <li key={b.i.join()} className={row}>
               <span className="min-w-0"><b>{b.t}</b><small className="block text-s text-muted-foreground">{(b.a || []).concat(b.i).join(" · ")}</small></span>
-              <Button variant="outline" size="sm" onClick={() => show(b)}>{t("ncShow")}</Button>
+              <Button variant="outline" onClick={() => show(b)}>{t("ncShow")}</Button>
             </li>
           )) : <li className="border-t border-border py-2 text-s text-muted-foreground">{t("eNoResults")}</li>}
         </ul>
       ) : null}
       {sel ? (
-        <div className="mt-3 flex items-start gap-3.5 rounded-lg bg-surface p-3" id="nc-sel">
+        <div className="mt-3 flex items-start gap-4 rounded-lg bg-background p-3" id="nc-sel">
           <div className="grid h-[150px] w-[100px] shrink-0 place-items-center overflow-hidden bg-border">
             {sel.found && !sel.b.i.every(i => hidden.has(i)) ? <img src={sel.found.src} alt="" referrerPolicy="no-referrer" className="max-h-full max-w-full object-contain" /> : null}
           </div>
@@ -354,13 +355,13 @@ function HiddenCovers({ B }) {
             </small>
             <div>
               {sel.b.i.every(i => hidden.has(i))
-                ? <Button variant="outline" size="sm" id="nc-unhide" onClick={() => B.hideCover(sel.b.i, false)}>{t("ncUnhide")}</Button>
-                : <Button variant="outline" size="sm" id="nc-hide" disabled={!sel.found} onClick={() => B.hideCover(sel.b.i, true)}>{t("ncHide")}</Button>}
+                ? <Button variant="outline" id="nc-unhide" onClick={() => B.hideCover(sel.b.i, false)}>{t("ncUnhide")}</Button>
+                : <Button variant="outline" id="nc-hide" disabled={!sel.found} onClick={() => B.hideCover(sel.b.i, true)}>{t("ncHide")}</Button>}
             </div>
           </div>
         </div>
       ) : null}
-      <h3 className="m-0 mt-3.5 mb-1 text-s font-medium text-muted-foreground">{t("ncHidden")}</h3>
+      <h3 className="m-0 mt-4 mb-1 text-s font-medium text-muted-foreground">{t("ncHidden")}</h3>
       {B.extra.noCover.length ? (
         <ul className="m-0 list-none p-0" id="nc-list">
           {B.extra.noCover.map(i => {
@@ -368,7 +369,7 @@ function HiddenCovers({ B }) {
             return (
               <li key={i} className={row} data-isbn={i}>
                 <span className="min-w-0"><b>{b ? b.t : i}</b><small className="block text-s text-muted-foreground tabular-nums">{i}</small></span>
-                <Button variant="outline" size="sm" onClick={() => B.hideCover([i], false)}>{t("ncUnhide")}</Button>
+                <Button variant="outline" onClick={() => B.hideCover([i], false)}>{t("ncUnhide")}</Button>
               </li>
             );
           })}

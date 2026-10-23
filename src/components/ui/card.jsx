@@ -2,9 +2,9 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-// Card = section of the admin page (formerly .panel)
+// Card = section of the admin page; the same card as on the book list (.card in styles.css: surface, inner line, 16 px radius, p-4)
 function Card({ className, ...props }) {
-  return <div data-slot="card" className={cn("flex flex-col gap-1.5 rounded-xl border border-border bg-card p-[18px] text-card-foreground", className)} {...props} />;
+  return <div data-slot="card" className={cn("card flex flex-col gap-1.5 p-4 text-foreground", className)} {...props} />;
 }
 
 function CardHeader({ className, ...props }) {
@@ -24,7 +24,7 @@ function CardContent({ className, ...props }) {
 }
 
 function CardFooter({ className, ...props }) {
-  return <div data-slot="card-footer" className={cn("mt-3.5 flex flex-wrap gap-2.5", className)} {...props} />;
+  return <div data-slot="card-footer" className={cn("mt-4 flex flex-wrap gap-2", className)} {...props} />;
 }
 
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };

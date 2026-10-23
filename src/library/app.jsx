@@ -54,11 +54,11 @@ export function App() {
   return (
     <>
       {/* Skip link for keyboard and screen readers: only visible on focus */}
-      <a href="#q" className="sr-only rounded-lg bg-foreground px-4 py-3 font-semibold text-background no-underline focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[70]">{t("skip")}</a>
+      <a href="#q" className="sr-only rounded-md bg-foreground px-4 py-3 font-medium text-background no-underline focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[70]">{t("skip")}</a>
       <div className="banner text-s font-medium" id="preview" hidden={!PREVIEW_ON}>
         <div className="wrap flex items-center justify-between gap-3 py-2">
           <span>{t("preview")}</span>
-          <a href="./" className="font-semibold whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
+          <a href="./" className="font-medium whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
         </div>
       </div>
       <Announcement I={I} ready={loaded} />

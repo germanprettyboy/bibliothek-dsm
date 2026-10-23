@@ -174,15 +174,37 @@ from the page (`@/…`) must be in `src/admin/shared.js` (a test checks this).
   `[data-font="large"]`). Tailwind theme reset to DSM: only `text-s/m/l`, `font-normal/medium/semibold`,
   shadcn color names (`background`, `foreground`, `muted-foreground`, `border`, `primary`, `surface` …) and logo colors (`mauve`,
   `yellow`, `orange`, `blue`, `red`, `green`; plus `anthracite`). `--spacing: 4px` (`p-3` = 12 px). No `dark:`.
-- Grid: cards (info, recommendations also on the phone, settings blocks, detail text) = `.card` (16 px radius, `surface`,
-  inner line, `p-4`); blocks above the list `pb-4`; search field 48 px, radius 12 px; logo 44 px / 60 px, square corners (no radius on `.ld-img`, client 2026-10-18).
+- Grid: cards (info, recommendations also on the phone, settings blocks, detail text, admin `Card`, lock) = `.card` (16 px
+  radius, `surface`, inner line, `p-4`); blocks above the list `pb-4 sm:pb-6` (16 px, from 40rem 24 px: more space between the
+  blocks than inside the cards; admin card stacks `gap-4 sm:gap-6`, header `.hd-row` 16/24); search field 48 px, radius 12 px;
+  logo 44 px / 60 px, square corners (no radius on `.ld-img`, client 2026-10-18).
+- Uniform scales (2026-10-23, client: "alles umsetzen, an shadcn halten"; rules.test checks):
+  - Weights: 600 only headings (page/dialog/card titles, timeline dates, numbers), 500 controls (buttons, toggles, tabs, text
+    buttons = shadcn `font-medium`) and row titles/emphasis (`b`/`strong` base 500), 400 text and the book list. No weight
+    change with the state (selection = marker or check mark, as in shadcn).
+  - Headings: dialog title `DialogTitle` = h2, sections in dialogs `Section` (settings.jsx) = h3 `text-s font-medium` muted.
+  - Radii (theme reset): `rounded-md` 10 controls/rows, `rounded-lg` 12 fields, `rounded-2xl` 16 cards (and containers of
+    segmented controls), `rounded-3xl` 24 dialogs/sheets, `rounded-full`. Covers/skeletons keep their own shapes.
+  - Spacing: 4 px grid; half steps (`x.5`) only up to 6 px (`gap-0.5`, `gap-1.5`), no `-[Npx]` spacing. Dialog `.pane`
+    16/20/24 px (phone, top/sides/bottom), 28 px from 40rem; exception `#cat-btn` 14 px (48 px square on the phone).
+  - Line heights: `leading-normal` 1.5 text, `leading-tight` 1.25 headings and book titles (`.row .t`, covers, `text-l`).
+  - Shadows: `shadow-s/m/l` (`--sh-s/m/l`: controls/small covers, covers/floater/primary glass button, lifted on hover),
+    `--shadow` dialogs; inner line `shadow-[inset_0_0_0_1px_var(--line)]`. Durations via `--t-*` (`duration-(--t-fast)`).
+  - Icons: Lucide's own stroke (no `strokeWidth`), 18 px (`size-4.5`, button default), chevrons 16 px. Disclosure arrow =
+    `components/chevron.jsx` (muted, group hover: text color + 2 px); the list rows draw the same arrow as a mask (`--chev`).
+  - Disabled = 50 % opacity everywhere (also the A–Z letters).
 - Header index.html (2026-10-20, client, variant A from `docs/entwuerfe/`): title `h1` next to the logo behind a 1 px divider
-  ("DSM | Bibliothek", `Header title=…`, `.hd`/`.hd-row` in styles.css). Container query `calc(260px + 4.7em)`: one row from
+  (`Separator`) ("DSM | Bibliothek", `Header title=…`, `.hd`/`.hd-row` in styles.css). Container query `calc(262px + 4.7em)`: one row from
   375 px phones (larger text from 390 px), otherwise the title drops below the logo as before. admin.html keeps the title below.
   Test: header.spec.
-- Accessible: targets ≥44 px (`size="icon"` 44, `icon-sm` 40), focus 2 px in the text color (`--focus`), skip link `a[href="#q"]`,
-  info card without `aria-label`, invisible list heading `#list-t`.
+- Accessible: targets ≥44 px (buttons `h-11`, `size="icon"` 44, toggles/tabs `h-11`, inputs `h-11`; no `sm`/`icon-sm` sizes;
+  DE/IT toggles fill the 44 px pill (`size="pill"`); A–Z letters ≈28 px wide, 44 px hit area via `::before`; inline text buttons
+  in a sentence exempt), focus 2 px in the text color (`--focus`), skip link `a[href="#q"]`, info card without `aria-label`,
+  invisible list heading `#list-t`.
 - shadcn after `ui:add`: `cn` from `@/lib/utils`, no `text-sm`/`text-xs`, no `underline`, no `dark:` (rules.test checks).
+  Use the components instead of hand-made markup: round icon buttons `Button variant="icon"` (bordered) / `"icon-ghost"`
+  (search ×, banner ×), admin notices `Alert` (`ui/alert.jsx`, variants default/mid/warn, keeps the class `flag`),
+  dividers `Separator`. No network for `npx shadcn` in cloud sessions: adapt the source from github.com/shadcn-ui/ui by hand.
   `cn()` knows the custom sizes (tailwind-merge extended), otherwise it swallows `text-s text-muted-foreground`.
 
 ## Technology

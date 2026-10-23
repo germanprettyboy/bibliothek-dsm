@@ -5,6 +5,7 @@ import { ChevronDownIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
+import { field } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
@@ -54,7 +55,7 @@ export function Care({ ins, report, cov, onCatalog }) {
   const { t, nf, df } = useLanguage();
   if (!ins) {
     return (
-      <div className="steps grid gap-3.5 pb-10" id="tab-care">
+      <div className="steps grid gap-4 pb-10 sm:gap-6" id="tab-care">
         <Card id="m-none">
           <CardTitle>{t("mNoneT")}</CardTitle>
           <CardDescription>{t("mNoneP")}</CardDescription>
@@ -83,7 +84,7 @@ export function Care({ ins, report, cov, onCatalog }) {
   };
 
   return (
-    <div className="steps grid gap-3.5 pb-10" id="tab-care">
+    <div className="steps grid gap-4 pb-10 sm:gap-6" id="tab-care">
       <Card id="m-sum">
         <CardTitle>{t("mT")}</CardTitle>
         <Big id="m-records">{nf(ins.records.length)}</Big>
@@ -116,8 +117,8 @@ function Check({ c, onCsv }) {
   const { t, nf } = useLanguage();
   const [open, setOpen] = React.useState(false);
   const n = c.rows.length, records = !!(n && c.rows[0].r), withValue = c.rows.some(x => x.v !== undefined);
-  const th = "border-b border-border py-1.5 pr-3 text-left font-medium text-muted-foreground";
-  const td = "border-b border-border py-1.5 pr-3 align-top";
+  const th = "border-b border-border py-2 pr-3 text-left font-medium text-muted-foreground";
+  const td = "border-b border-border py-2 pr-3 align-top";
   return (
     <div className="check border-t border-border first-of-type:border-t-0" data-check={c.key}>
       <button
@@ -126,10 +127,10 @@ function Check({ c, onCsv }) {
       >
         <span className="min-w-0 flex-1">{t("m_" + c.key)}</span>
         <span className="font-medium tabular-nums">{nf(n)}</span>
-        <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform duration-150 ease-dsm motion-reduce:transition-none", open && "rotate-180", !n && "invisible")} />
+        <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform duration-(--t-fast) ease-dsm motion-reduce:transition-none", open && "rotate-180", !n && "invisible")} />
       </button>
       {open && n ? (
-        <div className="grid gap-2.5 pb-3.5">
+        <div className="grid gap-3 pb-4">
           <p className="m-0 text-s text-muted-foreground">{t("mh_" + c.key)}</p>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-s">
@@ -159,7 +160,7 @@ function Check({ c, onCsv }) {
             </table>
           </div>
           {n > SHOWN ? <p className="m-0 text-s text-muted-foreground">{t("mFirst", { s: nf(SHOWN), n: nf(n) })}</p> : null}
-          <div><Button variant="outline" size="sm" data-csv={c.key} onClick={onCsv}>{t("mCsv")}</Button></div>
+          <div><Button variant="outline" data-csv={c.key} onClick={onCsv}>{t("mCsv")}</Button></div>
         </div>
       ) : null}
     </div>
@@ -187,8 +188,8 @@ function Shelf({ ins, saveCsv, recordHead, recordCells }) {
     const id = setTimeout(() => window.print(), 0); // after the render with data-print
     return () => { clearTimeout(id); removeEventListener("afterprint", done); };
   }, [printing]);
-  const th = "border-b border-border py-1.5 pr-3 text-left font-medium text-muted-foreground";
-  const td = "border-b border-border py-1.5 pr-3 align-top";
+  const th = "border-b border-border py-2 pr-3 text-left font-medium text-muted-foreground";
+  const td = "border-b border-border py-2 pr-3 align-top";
   return (
     <Card id="m-shelf">
       <CardTitle>{t("mShelfT")}</CardTitle>
@@ -197,7 +198,7 @@ function Shelf({ ins, saveCsv, recordHead, recordCells }) {
         <span className="text-s font-medium">{t("mShelfPick")}</span>
         <select
           id="m-loc" value={loc} onChange={e => setLoc(e.target.value)}
-          className="h-11 w-full min-w-0 rounded-md border border-border bg-background px-3 text-m text-foreground"
+          className={cn(field, "h-11 px-3")}
         >
           {byLoc.map(([l, rs]) => <option key={l} value={l}>{`${name(l)} · ${nf(rs.length)}`}</option>)}
         </select>

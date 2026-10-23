@@ -147,35 +147,35 @@ export function Recommendations({ draft, setDraft, catalog }) {
       },
     };
   };
-  const op = "size-[34px] rounded-md";
+  const op = "rounded-md";
 
   return (
-    <div className="steps grid gap-3.5 pb-10" id="tab-recs">
+    <div className="steps grid gap-4 pb-10 sm:gap-6" id="tab-recs">
       <Card>
         <CardTitle>{t("eT")}</CardTitle>
         <CardDescription>{t("eP")}</CardDescription>
-        <div className="mt-1 grid gap-2.5 sm:grid-cols-2" id="rec-topic">
+        <div className="mt-1 grid gap-3 sm:grid-cols-2" id="rec-topic">
           {["de", "it"].map(l => (
             <Label key={l}>
               <span>{t(l === "de" ? "eTopicDe" : "eTopicIt")}</span>
-              <Input className="h-10" data-f={l} value={draft.topic[l] || ""} onChange={e => change(d => { d.topic[l] = e.target.value; })} />
+              <Input data-f={l} value={draft.topic[l] || ""} onChange={e => change(d => { d.topic[l] = e.target.value; })} />
             </Label>
           ))}
         </div>
         {/* Same segregated list as the settings/questions (middle, upper, adults in one block), without the color bars */}
         <ToggleGroup
           type="single" variant="surface" id="rec-groups" value={g} onValueChange={v => v && setG(v)}
-          className="mt-3 grid gap-2.5 rounded-none bg-transparent p-0 shadow-none grid-flow-row auto-cols-auto"
+          className="mt-3 grid gap-3 rounded-none bg-transparent p-0 shadow-none grid-flow-row auto-cols-auto"
         >
           {[["middle"], ["upper"], ["adult-fiction", "adult-nonfiction", "adult-bio"]].map(box => (
             <div key={box[0]} className="card grid overflow-hidden">
               {box.map(x => (
                 <ToggleGroupItem
                   key={x} value={x} data-g={x}
-                  className="group/opt h-auto min-h-12 w-full justify-start gap-3 rounded-none border-t border-border px-3.5 py-3 text-left text-m font-medium text-foreground first:border-t-0 data-[state=on]:bg-background data-[state=on]:font-semibold data-[state=on]:shadow-[inset_0_0_0_1px_var(--line)]"
+                  className="group/opt h-auto min-h-12 w-full justify-start gap-3 rounded-none border-t border-border px-4 py-3 text-left text-m font-medium text-foreground first:border-t-0 data-[state=on]:bg-background data-[state=on]:shadow-[inset_0_0_0_1px_var(--line)]"
                 >
                   <span className="min-w-0 flex-1 whitespace-normal">{t("g_" + x)}</span>
-                  <CheckIcon aria-hidden="true" className="size-[18px] shrink-0 opacity-0 transition-opacity group-data-[state=on]/opt:opacity-100" />
+                  <CheckIcon aria-hidden="true" className="size-4.5 shrink-0 opacity-0 transition-opacity group-data-[state=on]/opt:opacity-100" />
                 </ToggleGroupItem>
               ))}
             </div>
@@ -183,21 +183,21 @@ export function Recommendations({ draft, setDraft, catalog }) {
         </ToggleGroup>
         <div className="mt-3" id="rec-list" ref={listRef}>
           {list.length ? list.map((r, i) => (
-            <div key={r.k} className="rec-ed grid gap-3 border-t border-border py-3.5 first:border-t-0" data-n={i}>
-              <div className="hd flex items-start justify-between gap-2.5">
+            <div key={r.k} className="rec-ed grid gap-3 border-t border-border py-4 first:border-t-0" data-n={i}>
+              <div className="hd flex items-start justify-between gap-3">
                 <span>
-                  <b className="font-semibold">{r.t}</b>
+                  <b className="font-medium">{r.t}</b>
                   <small className="block text-s text-muted-foreground">{r.a || ""}</small>
                   {keys.has(r.k) ? null : <small className="warn block text-s font-medium text-red">{t("eMissing")}</small>}
                   {(r.de || "").trim() ? null : <small className="warn warn-de block text-s font-medium text-red">{t("eNoDe")}</small>}
                   {(r.it || "").trim() ? null : <small className="warn warn-it block text-s font-medium text-red">{t("eNoIt")}</small>}
                 </span>
                 <span className="ops flex shrink-0 gap-1.5">
-                  <Button variant="outline" size="icon-sm" className={op} data-op="up" aria-label={t("eUp")} disabled={i === 0}
+                  <Button variant="outline" size="icon" className={op} data-op="up" aria-label={t("eUp")} disabled={i === 0}
                     onClick={() => change(d => { const l = d.groups[g]; [l[i], l[i - 1]] = [l[i - 1], l[i]]; })}><ChevronUpIcon aria-hidden="true" /></Button>
-                  <Button variant="outline" size="icon-sm" className={op} data-op="down" aria-label={t("eDown")} disabled={i === list.length - 1}
+                  <Button variant="outline" size="icon" className={op} data-op="down" aria-label={t("eDown")} disabled={i === list.length - 1}
                     onClick={() => change(d => { const l = d.groups[g]; [l[i], l[i + 1]] = [l[i + 1], l[i]]; })}><ChevronDownIcon aria-hidden="true" /></Button>
-                  <Button variant="outline" size="icon-sm" className={op} data-op="del" aria-label={t("eRemove")}
+                  <Button variant="outline" size="icon" className={op} data-op="del" aria-label={t("eRemove")}
                     onClick={() => change(d => { d.groups[g].splice(i, 1); })}><XIcon aria-hidden="true" /></Button>
                 </span>
               </div>
@@ -211,20 +211,20 @@ export function Recommendations({ draft, setDraft, catalog }) {
           )) : <p className="note m-0 text-s text-muted-foreground">{t("eEmpty")}</p>}
         </div>
         {/* Group full: search disabled, note centered in the field. Already in the group: greyed out, no button */}
-        <div className="find relative mt-2.5">
+        <div className="find relative mt-3">
           <Input id="rec-q" type="search" autoComplete="off" disabled={full} placeholder={full ? "" : t("eFind")} value={full ? "" : q} onChange={e => setQ(e.target.value)} />
           <span className="full pointer-events-none absolute inset-x-0 top-0 grid h-11 place-items-center text-muted-foreground" id="rec-full" hidden={!full}>{t("eFull")}</span>
           <ul className="mt-2 mb-0 list-none p-0" id="rec-res">
             {hits ? (hits.length ? hits.map(b => {
               const present = have.has(keyB(b));
               return (
-                <li key={keyB(b)} className={cn("flex items-center justify-between gap-2.5 border-t border-border py-2", present && "present opacity-45")}>
+                <li key={keyB(b)} className={cn("flex items-center justify-between gap-3 border-t border-border py-2", present && "present opacity-50")}>
                   <span className="min-w-0">
                     <b>{b.t}</b>
                     <small className="block text-s text-muted-foreground">{(b.a || []).join(", ")}{b.y ? " · " + b.y : ""}</small>
                   </span>
                   {present ? null : (
-                    <Button variant="outline" size="sm" onClick={() => {
+                    <Button variant="outline" onClick={() => {
                       if (list.length >= 4 || have.has(keyB(b))) return;
                       focusNew.current = true;
                       change(d => { d.groups[g].push({ k: keyB(b), t: b.t, a: (b.a || []).join(", "), de: "", it: "" }); });
@@ -246,21 +246,21 @@ export function Recommendations({ draft, setDraft, catalog }) {
               <div key={a.updated + "|" + i} className="arc-r border-t border-border first:border-t-0" data-n={i}>
                 <button
                   type="button" aria-expanded={isOpen} onClick={() => { setOpen(isOpen ? null : i); setArmedDel(false); setArmedBack(false); }}
-                  className="arc-h flex min-h-12 w-full cursor-pointer items-center justify-between gap-2.5 border-0 bg-transparent p-0 text-left text-m text-foreground"
+                  className="arc-h flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent p-0 text-left text-m text-foreground"
                 >
                   <span className="min-w-0">
                     <b className="font-semibold">{df(a.updated)}</b>
                     {topic ? <small className="block text-s text-muted-foreground">{topic}</small> : null}
                   </span>
-                  <ChevronDownIcon aria-hidden="true" className={cn("size-[18px] shrink-0 transition-transform", isOpen && "rotate-180")} />
+                  <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform duration-(--t-fast) ease-dsm motion-reduce:transition-none", isOpen && "rotate-180")} />
                 </button>
                 {isOpen ? (
-                  <div className="arc-body grid gap-3 pb-3.5">
-                    <div className="grid gap-2.5 sm:grid-cols-2">
+                  <div className="arc-body grid gap-3 pb-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {["de", "it"].map(l => (
                         <Label key={l}>
                           <span>{t(l === "de" ? "eTopicDe" : "eTopicIt")}</span>
-                          <Input className="h-10" data-f={l} value={(a.topic && a.topic[l]) || ""}
+                          <Input data-f={l} value={(a.topic && a.topic[l]) || ""}
                             onChange={e => changeArc(n => { const x = n.archive[i]; x.topic = { de: "", it: "", ...x.topic, [l]: e.target.value }; })} />
                         </Label>
                       ))}
@@ -269,13 +269,13 @@ export function Recommendations({ draft, setDraft, catalog }) {
                       <div key={x} className="arc-g grid gap-0" data-g={x}>
                         <b className="font-semibold">{t("g_" + x)}</b>
                         {a.groups[x].map((r, j) => (
-                          <div key={r.k + j} className="rec-ed grid gap-3 border-t border-border py-3.5" data-n={j}>
-                            <div className="hd flex items-start justify-between gap-2.5">
+                          <div key={r.k + j} className="rec-ed grid gap-3 border-t border-border py-4" data-n={j}>
+                            <div className="hd flex items-start justify-between gap-3">
                               <span>
-                                <b className="font-semibold">{r.t}</b>
+                                <b className="font-medium">{r.t}</b>
                                 <small className="block text-s text-muted-foreground">{r.a || ""}</small>
                               </span>
-                              <Button variant="outline" size="icon-sm" className={op} data-op="del" aria-label={t("eRemove")}
+                              <Button variant="outline" size="icon" className={op} data-op="del" aria-label={t("eRemove")}
                                 onClick={() => changeArc(n => { n.archive[i].groups[x].splice(j, 1); })}><XIcon aria-hidden="true" /></Button>
                             </div>
                             {["de", "it"].map(l => (
@@ -288,7 +288,7 @@ export function Recommendations({ draft, setDraft, catalog }) {
                         ))}
                       </div>
                     ))}
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="flex flex-wrap gap-2">
                       {i === 0 ? <Button variant="outline" data-op="restore" onClick={restore}><span>{t(armedBack ? "aRestoreSure" : "aRestore")}</span></Button> : null}
                       <Button variant="outline" data-op="del-round" onClick={() => delRound(i)}><span>{t(armedDel ? "aDelSure" : "aDel")}</span></Button>
                     </div>

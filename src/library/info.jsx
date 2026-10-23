@@ -2,9 +2,10 @@
    with all hours, notice (optional period) and contact. Data: info.js (window.DSM_INFO, loaded before this script),
    maintained in admin.html. Past closing days hide themselves. */
 import * as React from "react";
-import { ChevronRightIcon } from "lucide-react";
 
+import { Chevron } from "@/components/chevron";
 import { GlassDialog } from "@/components/glass-dialog";
+import { Section } from "@/components/settings";
 import { DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
@@ -157,11 +158,11 @@ export function InfoCard({ I, onOpen }) {
     if (!PREVIEW && store.get("dsm-info-card") !== (show ? "1" : "0")) store.set("dsm-info-card", show ? "1" : "0");
   }, [show]);
   if (!show) return <section className="wrap info" id="info" hidden />;
-  const Chev = <ChevronRightIcon aria-hidden="true" strokeWidth={1.6} className="go size-4 shrink-0 text-muted-foreground" />;
+  const Chev = <Chevron className="go group-hover:translate-x-0.5 group-hover:text-foreground" />;
   return (
-    <section className="wrap info pb-4" id="info">
+    <section className="wrap info pb-4 sm:pb-6" id="info">
       {/* No aria-label: screen readers read the status themselves, the hint about the dialog follows invisibly */}
-      <button type="button" className="info-card card grid w-full p-0 text-left transition-transform duration-150 ease-dsm active:scale-[.99]" aria-haspopup="dialog" onClick={onOpen}>
+      <button type="button" className="info-card card group grid w-full p-0 text-left transition-transform duration-(--t-fast) ease-dsm active:scale-[.99]" aria-haspopup="dialog" onClick={onOpen}>
         {st ? (
           <Line><i className={cn("dot", st.k !== "open" && st.k)} /><Text b={st.t} small={st.sub} />{Chev}</Line>
         ) : (
@@ -192,11 +193,11 @@ export function InfoDialog({ I, open, onOpenChange }) {
   const fut = A.closures.filter(c => c.to >= today).slice(0, 10);
   const { email, phone, text } = A.contact;
   const link = "inline-block py-1 font-medium text-foreground [text-decoration:none]";
-  const cell = "m-0 border-t border-border py-[9px] tabular-nums";
+  const cell = "m-0 border-t border-border py-2 tabular-nums";
   return (
     <GlassDialog open={open} onOpenChange={onOpenChange} name="Opening hours" titleId="info-t" className="info-dialog swipe" overlayClassName="swipe">
       <div className="pane" ref={swipeRef}>
-        <DialogTitle id="info-t" asChild><h3>{t("infoT")}</h3></DialogTitle>
+        <DialogTitle id="info-t">{t("infoT")}</DialogTitle>
         {A.notice ? <p className="hint m-0">{A.notice}</p> : null}
         {A.hasWeek ? (
           <section>
@@ -205,37 +206,35 @@ export function InfoDialog({ I, open, onOpenChange }) {
                 const rs = A.dayRanges(k), isToday = k === tk;
                 return (
                   <React.Fragment key={k}>
-                    <dt className={cn(cell, "pr-5 text-muted-foreground", isToday && "today font-semibold text-foreground")}>{t("wd_" + k)}</dt>
-                    <dd className={cn(cell, isToday && "today font-semibold", !rs.length && "closed text-muted-foreground")}>{rs.length ? rs.map(span).join(", ") : t("closed")}</dd>
+                    <dt className={cn(cell, "pr-5 text-muted-foreground", isToday && "today font-medium text-foreground")}>{t("wd_" + k)}</dt>
+                    <dd className={cn(cell, isToday && "today font-medium", !rs.length && "closed text-muted-foreground")}>{rs.length ? rs.map(span).join(", ") : t("closed")}</dd>
                   </React.Fragment>
                 );
               })}
             </dl>
           </section>
         ) : null}
-        <section className="grid gap-1">
-          <h4 className="m-0 mb-1.5 text-s font-medium text-muted-foreground">{t(fut.some(c => c.type === "special") ? "closuresSpT" : "closuresT")}</h4>
+        <Section title={t(fut.some(c => c.type === "special") ? "closuresSpT" : "closuresT")}>
           {fut.length ? (
             <ul className="closures m-0 grid list-none gap-2 p-0">
               {fut.map((c, n) => (
                 <li key={n} className="flex gap-3 rounded-2xl px-4 py-3 [background:var(--gb-bot)] shadow-[inset_0_0_0_1px_var(--line)]">
                   <i className={cn("bar-c", c.type === "absent" && "absent", c.type === "special" && "special")} />
                   <span className="grid min-w-0 gap-0.5">
-                    <b className="font-semibold">{A.label(c)}</b>
+                    <b className="font-medium">{A.label(c)}</b>
                     <small className="text-s text-muted-foreground tabular-nums">{c.type === "special" ? A.specialText(c) : A.rangeText(c)} · {t(c.type === "absent" ? "typeAbsent" : c.type === "special" ? "typeSpecial" : "typeHoliday")}</small>
                   </span>
                 </li>
               ))}
             </ul>
           ) : <p className="note m-0 text-s text-muted-foreground">{t("noClosures")}</p>}
-        </section>
+        </Section>
         {A.hasContact ? (
-          <section className="grid gap-1" id="info-contact">
-            <h4 className="m-0 mb-1.5 text-s font-medium text-muted-foreground">{t("contactT")}</h4>
+          <Section title={t("contactT")} id="info-contact">
             {text ? <p className="m-0 whitespace-pre-line">{text}</p> : null}
             {email ? (/^[^\s@]+@[^\s@]+$/.test(email) ? <a className={link} href={"mailto:" + email}>{email}</a> : <span>{email}</span>) : null}
             {phone ? (/\d/.test(phone) ? <a className={link} href={"tel:" + phone.replace(/[^\d+]/g, "")}>{phone}</a> : <span>{phone}</span>) : null}
-          </section>
+          </Section>
         ) : null}
       </div>
     </GlassDialog>

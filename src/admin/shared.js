@@ -5,6 +5,7 @@ import * as React from "react";
 import * as jsxRuntime from "react/jsx-runtime";
 import * as ReactDOM from "react-dom";
 
+import * as alert from "@/components/ui/alert";
 import * as button from "@/components/ui/button";
 import * as card from "@/components/ui/card";
 import * as dialog from "@/components/ui/dialog";
@@ -29,6 +30,7 @@ export const SHARED = {
   "react": React,
   "react/jsx-runtime": jsxRuntime,
   "react-dom": ReactDOM,
+  "@/components/ui/alert": alert,
   "@/components/ui/button": button,
   "@/components/ui/card": card,
   "@/components/ui/dialog": dialog,

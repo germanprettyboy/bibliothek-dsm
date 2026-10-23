@@ -27,20 +27,20 @@
   <span class="hd-vr" aria-hidden="true"></span>
   <h1 class="hd-t">Bibliothek</h1>
   <div class="hd-tools flex items-center gap-2">
-    <div class="seg relative inline-grid grid-cols-2 rounded-full border border-border bg-background p-[3px]" role="group" aria-label="Sprache · Lingua">
-      <button type="button" class="relative z-[1] inline-flex h-9 min-w-10 items-center justify-center rounded-full px-2.5 text-s font-medium text-muted-foreground" lang="de">DE</button>
-      <button type="button" class="relative z-[1] inline-flex h-9 min-w-10 items-center justify-center rounded-full px-2.5 text-s font-medium text-muted-foreground" lang="it">IT</button>
+    <div class="seg relative inline-grid h-11 grid-cols-2 rounded-full border border-border bg-background" role="group" aria-label="Sprache · Lingua">
+      <button type="button" class="relative z-[1] inline-flex h-full min-w-11 items-center justify-center rounded-full px-3 text-s font-medium text-muted-foreground" lang="de">DE</button>
+      <button type="button" class="relative z-[1] inline-flex h-full min-w-11 items-center justify-center rounded-full px-3 text-s font-medium text-muted-foreground" lang="it">IT</button>
     </div>
-    <button type="button" class="inline-flex size-11 items-center justify-center rounded-full border border-border bg-background text-foreground" aria-label="Einstellungen · Impostazioni" disabled><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></button>
+    <button type="button" class="inline-flex size-11 items-center justify-center rounded-full border border-border bg-background text-foreground" aria-label="Einstellungen · Impostazioni" disabled><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg></button>
   </div>
 </div>
 </header>
 
 <!-- Placeholders only if there was an info card on the last visit or recommendations are chosen (head.js) -->
-<section class="wrap info pending pb-4" id="info" aria-hidden="true">
+<section class="wrap info pending pb-4 sm:pb-6" id="info" aria-hidden="true">
   <div class="info-card card skel grid"><span class="info-line flex min-w-0 items-center gap-3 px-4 py-3"><span class="skel-row"><span></span><span></span></span></span></div>
 </section>
-<section class="wrap recs pending pb-4" id="recs" aria-hidden="true">
+<section class="wrap recs pending pb-4 sm:pb-6" id="recs" aria-hidden="true">
   <div class="recs-card card skel relative overflow-hidden p-4">
     <div class="recs-head flex items-center gap-3"><span class="skel-row"><span></span><span></span></span></div>
     <div class="mt-2 grid sm:mt-4 sm:grid-cols-4 sm:gap-4">
@@ -56,11 +56,11 @@
   <div class="wrap grid gap-2 py-3">
     <div class="flex gap-2">
     <label class="search relative min-w-0 flex-1">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 left-4 size-4.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
       <input type="search" disabled placeholder="Titel, Autor oder ISBN suchen" aria-label="Bücher durchsuchen"
         class="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none placeholder:text-muted-foreground">
     </label>
-    <button type="button" disabled aria-label="Nach Kategorie filtern" class="grid h-12 min-w-12 shrink-0 grid-flow-col place-items-center gap-2 rounded-lg border border-border bg-surface px-3 text-m font-medium text-foreground opacity-50 sm:px-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-[18px]" aria-hidden="true"><path d="M2 5h20"/><path d="M6 12h12"/><path d="M9 19h6"/></svg><span class="hidden sm:inline" aria-hidden="true"><span class="sp" lang="de">Kategorie</span><span class="sp" lang="it">Categoria</span></span></button>
+    <button type="button" disabled aria-label="Nach Kategorie filtern" class="grid h-12 min-w-12 shrink-0 grid-flow-col place-items-center gap-2 rounded-lg border border-border bg-surface px-3 text-m font-medium text-foreground opacity-50 sm:px-4"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4.5" aria-hidden="true"><path d="M2 5h20"/><path d="M6 12h12"/><path d="M9 19h6"/></svg><span class="hidden sm:inline" aria-hidden="true"><span class="sp" lang="de">Kategorie</span><span class="sp" lang="it">Categoria</span></span></button>
     </div>
   </div>
 </div>

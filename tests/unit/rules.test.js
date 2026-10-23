@@ -148,6 +148,37 @@ describe("design", () => {
     assert.match(css, /--font-weight-\*: initial;/);
     for (const m of builtCss.matchAll(/--font-weight-([a-z]+):\s*(\d+)/g)) assert.ok(["400", "500", "600"].includes(m[2]), m[0]);
   });
+  // Uniform design (2026-10-23): one scale each for radius, spacing, shadow, icons and weights, controls ≥ 44 px
+  const each = (re, msg) => { for (const p of sources) assert.ok(!re.test(fs.readFileSync(p, "utf8")), path.relative(ROOT, p) + ": " + msg); };
+  test("four radii: md (controls), lg (fields), 2xl (cards), 3xl (dialogs), plus rounded-full", () => {
+    assert.match(css, /--radius-\*: initial;\s*--radius-md: 10px; --radius-lg: 12px; --radius-2xl: 16px; --radius-3xl: 24px;/);
+    each(/\brounded-(xs|sm|xl|\[)/, "radius off the scale");
+  });
+  test("spacing on the 4 px grid: half steps only up to 6 px, no pixel values", () => {
+    each(/(?:^|[\s"'`:])-?(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y|space-y|space-x)-(?:[2-9]|1\d)\.5\b/, "half step ≥ 10 px");
+    each(/(?:^|[\s"'`:])-?(?:p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr|gap|gap-x|gap-y)-\[\d+px\]/, "spacing in pixels");
+  });
+  test("shadows and line heights from the tokens", () => {
+    each(/shadow-\[[^\]]*rgba/, "shadow color outside --sh-s/m/l");
+    each(/leading-\[/, "line height other than leading-tight/normal");
+    assert.match(css, /--leading-\*: initial;\s*--leading-tight: 1\.25; --leading-normal: 1\.5;/);
+  });
+  test("icons: Lucide's own stroke, 18 px (size-4.5) or 16 px chevrons, one disclosure arrow", () => {
+    each(/strokeWidth|\bsize-\[/, "own stroke width or icon size");
+    for (const p of sources) {
+      if (/ChevronRightIcon/.test(fs.readFileSync(p, "utf8"))) assert.equal(path.relative(SRC, p), path.join("components", "chevron.jsx"));
+    }
+    assert.match(css, /--chev: url\("data:image\/svg\+xml,[^"]*stroke-width='1\.33'/);
+  });
+  test("weights: controls 500 like shadcn, no weight change on state, headings in the dialogs h2 > h3", () => {
+    assert.match(readSrc("components/ui/button.jsx"), /justify-center gap-2 whitespace-nowrap font-medium/);
+    each(/data-\[state=[a-z]+\][^\s"]*:font-|group-data-\[state=[a-z]+\][^\s"]*:font-/, "weight that changes with the state");
+    each(/<h[4-6][\s>]|asChild><h\d/, "dialog title not h2 or a skipped heading level");
+  });
+  test("controls at least 44 px: no small button or toggle sizes", () => {
+    each(/size="(sm|xs|icon-sm)"/, "control below 44 px");
+    assert.ok(!/\b(sm|xs|"icon-sm"):\s*"/.test(readSrc("components/ui/button.jsx")), "button size below 44 px");
+  });
   test("anthracite #333333 as the text color", () => {
     assert.match(css, /--fg:\s*#333333/i);
   });

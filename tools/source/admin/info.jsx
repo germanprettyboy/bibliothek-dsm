@@ -143,8 +143,8 @@ export function Info({ info, setInfo }) {
   const annText = (ann[lang] || ann.de || ann.it).trim();
   const annPast = YMD.test(ann.until) && ann.until < today();
   const colorNames = Object.fromEntries(ANNOUNCE_COLORS.map(c => [c, t("c_" + c)]));
-  const time = "h-10 w-28 px-2.5";
-  const mini = "size-[34px] rounded-md";
+  const time = "w-28";
+  const mini = "rounded-md";
   // Up to two time ranges; edit(fn) changes the list in the draft, focusSel = selector of the new range's first input
   const ranges = ({ rs, label, edit, focusSel }) => (
     <div className="ranges flex flex-wrap items-center gap-2">
@@ -160,13 +160,13 @@ export function Info({ info, setInfo }) {
               />
             </React.Fragment>
           ))}
-          <Button variant="outline" size="icon-sm" className={mini} data-op="del" aria-label={t("iDelRange")}
+          <Button variant="outline" size="icon" className={mini} data-op="del" aria-label={t("iDelRange")}
             onClick={() => edit(l => { l.splice(n, 1); })}><XIcon aria-hidden="true" /></Button>
         </span>
       ))}
       {rs.length ? null : <span className="closed text-muted-foreground">{t("iClosed")}</span>}
       {rs.length < 2 ? (
-        <Button variant="outline" size="icon-sm" className={mini} data-op="add" aria-label={t("iAddRange")} onClick={() => {
+        <Button variant="outline" size="icon" className={mini} data-op="add" aria-label={t("iAddRange")} onClick={() => {
           focus.current = focusSel;
           edit(l => { l.push(l.length ? [l[0][1] || "", ""] : ["08:00", "13:00"]); });
         }}><PlusIcon aria-hidden="true" /></Button>
@@ -177,7 +177,7 @@ export function Info({ info, setInfo }) {
   const noteWarn = YMD.test(noteFrom) && YMD.test(noteTo) && noteTo < noteFrom ? "iBadRange" : (YMD.test(noteTo) && noteTo < today() ? "iPast" : "");
 
   return (
-    <div className="steps grid gap-3.5 pb-10" id="tab-info" ref={box}>
+    <div className="steps grid gap-4 pb-10 sm:gap-6" id="tab-info" ref={box}>
       <Card id="i-ann">
         <CardTitle>{t("iAnnT")}</CardTitle>
         <CardDescription>{t("iAnnP")}</CardDescription>
@@ -195,7 +195,7 @@ export function Info({ info, setInfo }) {
                 onValueChange={v => v && change(d => { d.announcement.color = v; })} />
             </div>
             <Label>{t("iAnnUntil")}
-              <Input type="date" id="i-ann-until" className="h-10 px-2.5 sm:w-44" value={ann.until} onChange={e => change(d => { d.announcement.until = e.target.value; })} />
+              <Input type="date" id="i-ann-until" className="sm:w-44" value={ann.until} onChange={e => change(d => { d.announcement.until = e.target.value; })} />
             </Label>
           </div>
           <span className="warn text-s font-medium text-red" hidden={!annPast}>{annPast ? t("iAnnPast") : ""}</span>
@@ -209,19 +209,19 @@ export function Info({ info, setInfo }) {
           </div>
         </div>
         {annText ? (
-          <CardFooter className="mt-3">
-            <Button variant="outline" size="sm" id="i-ann-clear" onClick={() => change(d => { d.announcement.de = ""; d.announcement.it = ""; d.announcement.until = ""; })}>{t("iAnnClear")}</Button>
+          <CardFooter>
+            <Button variant="outline" id="i-ann-clear" onClick={() => change(d => { d.announcement.de = ""; d.announcement.it = ""; d.announcement.until = ""; })}>{t("iAnnClear")}</Button>
           </CardFooter>
         ) : null}
       </Card>
       <Card>
         <CardTitle>{t("iHoursT")}</CardTitle>
         <CardDescription>{t("iHoursP")}</CardDescription>
-        <div className="hours mt-2.5 grid" id="i-hours">
+        <div className="hours mt-2 grid" id="i-hours">
           {IDAYS.map(k => {
             const rs = info.hours[k];
             return (
-              <div key={k} className="day grid gap-1.5 border-t border-border py-2.5 first:border-t-0 sm:grid-cols-[7rem_1fr] sm:items-center sm:gap-2.5" data-d={k}>
+              <div key={k} className="day grid gap-1.5 border-t border-border py-2 first:border-t-0 sm:grid-cols-[7rem_1fr] sm:items-center sm:gap-3" data-d={k}>
                 <b className="font-medium">{t("wd_" + k)}</b>
                 {ranges({ rs, label: t("wd_" + k), focusSel: `#i-hours .day[data-d="${k}"] .range:last-of-type input`, edit: fn => change(d => { fn(d.hours[k]); }) })}
               </div>
@@ -242,10 +242,10 @@ export function Info({ info, setInfo }) {
               <Textarea id={"i-note-" + l} rows={2} value={info.notice[l]} onChange={e => change(d => { d.notice[l] = e.target.value; })} />
             </Label>
           ))}
-          <div className="dates grid grid-cols-2 gap-2.5">
+          <div className="dates grid grid-cols-2 gap-3">
             {["from", "to"].map(f => (
               <Label key={f}>{t(f === "from" ? "iNoteFrom" : "iNoteTo")}
-                <Input type="date" id={"i-note-" + f} className="h-10 px-2.5" value={info.notice[f]} onChange={e => change(d => { d.notice[f] = e.target.value; })} />
+                <Input type="date" id={"i-note-" + f} value={info.notice[f]} onChange={e => change(d => { d.notice[f] = e.target.value; })} />
               </Label>
             ))}
           </div>
@@ -259,10 +259,10 @@ export function Info({ info, setInfo }) {
         <div className="mt-1 grid gap-3" id="i-contact">
           <div className="grid gap-3 sm:grid-cols-2">
             <Label>{t("iEmail")}
-              <Input type="email" id="i-contact-email" className="h-10 px-2.5" value={info.contact.email} onChange={e => change(d => { d.contact.email = e.target.value; })} />
+              <Input type="email" id="i-contact-email" value={info.contact.email} onChange={e => change(d => { d.contact.email = e.target.value; })} />
             </Label>
             <Label>{t("iPhone")}
-              <Input type="tel" id="i-contact-phone" className="h-10 px-2.5" value={info.contact.phone} onChange={e => change(d => { d.contact.phone = e.target.value; })} />
+              <Input type="tel" id="i-contact-phone" value={info.contact.phone} onChange={e => change(d => { d.contact.phone = e.target.value; })} />
             </Label>
           </div>
           {["de", "it"].map(l => (
@@ -280,10 +280,10 @@ export function Info({ info, setInfo }) {
           {sequence.length ? sequence.map(n => {
             const c = info.closures[n], p = cloProblem(c), ab = c.type === "absent", sp = c.type === "special";
             return (
-              <div key={n} className={cn("clo grid gap-2.5 border-t border-border py-3.5 first:border-t-0", p === "iPast" && "past opacity-50")} data-n={n}>
-                <div className="hd flex items-center justify-between gap-2.5">
+              <div key={n} className={cn("clo grid gap-3 border-t border-border py-4 first:border-t-0", p === "iPast" && "past opacity-50")} data-n={n}>
+                <div className="hd flex items-center justify-between gap-3">
                   <ToggleGroup
-                    type="single" variant="surface" size="xs" value={c.type} className="seg2 inline-grid w-fit rounded-lg p-[3px]"
+                    type="single" variant="surface" value={c.type} className="seg2 inline-grid w-fit"
                     onValueChange={v => v && v !== c.type && change(d => {
                       d.closures[n].type = v;
                       if (v === "special" && !d.closures[n].hours) d.closures[n].hours = [["08:00", "13:00"]];
@@ -293,13 +293,13 @@ export function Info({ info, setInfo }) {
                     <ToggleGroupItem value="absent" data-type="absent">{t("iAbsent")}</ToggleGroupItem>
                     <ToggleGroupItem value="special" data-type="special">{t("iSpecial")}</ToggleGroupItem>
                   </ToggleGroup>
-                  <Button variant="outline" size="icon-sm" className={mini} data-op="del" aria-label={t("iDel")}
+                  <Button variant="outline" size="icon" className={mini} data-op="del" aria-label={t("iDel")}
                     onClick={() => change(d => { d.closures.splice(n, 1); }, true)}><XIcon aria-hidden="true" /></Button>
                 </div>
-                <div className="dates grid grid-cols-2 gap-2.5">
+                <div className="dates grid grid-cols-2 gap-3">
                   {["from", "to"].map(f => (
                     <Label key={f}>{t(f === "from" ? "iFirst" : "iLast")}
-                      <Input type="date" className="h-10 px-2.5" data-f={f} value={c[f]} onChange={e => change(d => { d.closures[n][f] = e.target.value; })} />
+                      <Input type="date" data-f={f} value={c[f]} onChange={e => change(d => { d.closures[n][f] = e.target.value; })} />
                     </Label>
                   ))}
                 </div>
@@ -309,10 +309,10 @@ export function Info({ info, setInfo }) {
                     {ranges({ rs: c.hours || [], label: t("iSpecial"), focusSel: `#i-clo .clo[data-n="${n}"] .range:last-of-type input`, edit: fn => change(d => { fn(d.closures[n].hours); }) })}
                   </div>
                 ) : null}
-                <div className="texts grid gap-2.5 sm:grid-cols-2">
+                <div className="texts grid gap-3 sm:grid-cols-2">
                   {["de", "it"].map(l => (
                     <Label key={l}>{t(l === "de" ? "eTeaserDe" : "eTeaserIt")}
-                      <Input className="txt h-10 px-2.5" data-f={l} value={c[l]} placeholder={t(l === "de" ? (sp ? "iPhSpecial" : ab ? "iPhAbsent" : "iPhHoliday") : (sp ? "iPhSpecialIt" : ab ? "iPhAbsentIt" : "iPhHolidayIt"))}
+                      <Input className="txt" data-f={l} value={c[l]} placeholder={t(l === "de" ? (sp ? "iPhSpecial" : ab ? "iPhAbsent" : "iPhHoliday") : (sp ? "iPhSpecialIt" : ab ? "iPhAbsentIt" : "iPhHolidayIt"))}
                         onChange={e => change(d => { d.closures[n][l] = e.target.value; })} />
                     </Label>
                   ))}
@@ -322,18 +322,18 @@ export function Info({ info, setInfo }) {
             );
           }) : <p className="note m-0 text-s text-muted-foreground">{t("iNone")}</p>}
         </div>
-        <CardFooter className="mt-3">
-          <Button variant="outline" size="sm" id="i-add-holiday" onClick={() => add("holiday")}>{t("iAddHoliday")}</Button>
-          <Button variant="outline" size="sm" id="i-add-absent" onClick={() => add("absent")}>{t("iAddAbsent")}</Button>
-          <Button variant="outline" size="sm" id="i-add-special" onClick={() => add("special")}>{t("iAddSpecial")}</Button>
-          <Button variant="outline" size="sm" id="i-clean" hidden={!past}
+        <CardFooter>
+          <Button variant="outline" id="i-add-holiday" onClick={() => add("holiday")}>{t("iAddHoliday")}</Button>
+          <Button variant="outline" id="i-add-absent" onClick={() => add("absent")}>{t("iAddAbsent")}</Button>
+          <Button variant="outline" id="i-add-special" onClick={() => add("special")}>{t("iAddSpecial")}</Button>
+          <Button variant="outline" id="i-clean" hidden={!past}
             onClick={() => change(d => { d.closures = d.closures.filter(c => cloProblem(c) !== "iPast"); }, true)}>{t("iClean")}</Button>
         </CardFooter>
       </Card>
       <Publish
         file="info.js" build={build} ids={{ button: "i-dl", how: "i-how", preview: "i-prev" }} alt="iDl" howKey="iHow" preview
         onPreview={() => store.set("dsm-preview-info", JSON.stringify(infoOut(info)))}
-        after={bad ? <p className="note mt-2.5 mb-0 text-s text-muted-foreground" id="i-state">{t("iIncomplete", { n: nf(bad) })}</p> : null}
+        after={bad ? <p className="note mt-2 mb-0 text-s text-muted-foreground" id="i-state">{t("iIncomplete", { n: nf(bad) })}</p> : null}
       >
         <Button variant="outline" id="i-reset" onClick={discard}><span>{t(armed ? "eResetSure" : "eReset")}</span></Button>
       </Publish>

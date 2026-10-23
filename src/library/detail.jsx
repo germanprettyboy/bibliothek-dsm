@@ -77,7 +77,7 @@ export function Detail({ entry, onClose }) {
         id="detail" titleId="d-title" overlayClassName="detail"
       >
         {b ? (
-          <div ref={swipeRef} className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-[18px] px-[max(20px,env(safe-area-inset-right,0px))] pt-3.5 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
+          <div ref={swipeRef} className="inner relative z-[1] grid grid-cols-[112px_1fr] items-start gap-4 px-[max(20px,env(safe-area-inset-right,0px))] pt-4 pb-[calc(24px+env(safe-area-inset-bottom,0px))] sm:grid-cols-[150px_1fr] sm:gap-6 sm:p-7">
             {/* fixed height: the row must not depend on width % + aspect-ratio (WebKit sized it from the text
                 only, so with a short title the cover ran into "Why this book?") */}
             <Cover
@@ -88,19 +88,20 @@ export function Detail({ entry, onClose }) {
               onKeyDown={e => { if ((e.key === "Enter" || e.key === " ") && zoomable) { e.preventDefault(); zoomOpen(); } }}
             />
             <div>
-              <DialogTitle id="d-title" asChild><h3>{b.t}</h3></DialogTitle>
+              <DialogTitle id="d-title">{b.t}</DialogTitle>
               <p className="mt-1 mb-0 text-muted-foreground [overflow-wrap:anywhere]" id="d-sub" hidden={!b.s}>{b.s || ""}</p>
               <p className="mt-2 mb-0 font-medium [overflow-wrap:anywhere]" id="d-by" hidden={!b.a}>{(b.a || []).join(", ")}</p>
             </div>
-            <div className="teaser card col-span-full px-4 py-3.5" id="d-teaser" hidden={!txt}>
-              <b className="mb-1 block text-s font-semibold">{t("why")}</b>
+            <div className="teaser card col-span-full p-4" id="d-teaser" hidden={!txt}>
+              <h3 className="m-0 mb-1 text-s font-medium text-muted-foreground">{t("why")}</h3>
               <p className="m-0 leading-normal">{txt || ""}</p>
             </div>
             <dl className="col-span-full mt-1 mb-0 grid grid-cols-[max-content_1fr]" id="d-dl">
               {details.map(([k, v]) => (
                 <React.Fragment key={k}>
-                  <dt className="m-0 border-t border-border pt-[11px] pr-4 pb-[9px] text-s text-muted-foreground">{t(k)}</dt>
-                  <dd className="m-0 border-t border-border py-[9px] tabular-nums [overflow-wrap:anywhere]">{v}</dd>
+                  {/* label in a 24 px line box like the value: both cells equally high, baselines aligned */}
+                  <dt className="m-0 border-t border-border py-2 pr-4 text-s leading-6 text-muted-foreground">{t(k)}</dt>
+                  <dd className="m-0 border-t border-border py-2 tabular-nums [overflow-wrap:anywhere]">{v}</dd>
                 </React.Fragment>
               ))}
             </dl>

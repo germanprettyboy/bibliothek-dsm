@@ -99,11 +99,11 @@ function Entry({ id, choice, onChoice, title, n, sub, parent }) {
   return (
     <button
       type="button" data-cat={id || "all"} aria-pressed={on} onClick={() => onChoice(id)}
-      className={cn("cat flex w-full items-center gap-3 rounded-[10px] border-0 bg-transparent px-2.5 py-3 text-left text-foreground transition-colors hover:bg-surface active:bg-border", sub && "sub pl-6", parent && "font-medium", on && "font-semibold")}
+      className={cn("cat flex w-full items-center gap-3 rounded-md border-0 bg-transparent px-3 py-3 text-left text-foreground transition-colors hover:bg-surface active:bg-border", sub && "sub pl-6", parent && "font-medium")}
     >
       <span className={cn("min-w-0 flex-1 [overflow-wrap:anywhere]", sub && "text-s")}>{title}</span>
       <span className="text-s text-muted-foreground tabular-nums">{nf(n)}</span>
-      <CheckIcon aria-hidden="true" className={cn("size-[18px] shrink-0", !on && "opacity-0")} />
+      <CheckIcon aria-hidden="true" className={cn("size-4.5 shrink-0", !on && "opacity-0")} />
     </button>
   );
 }
@@ -143,11 +143,11 @@ export function CategoryDialog({ open, onOpenChange, model, total, choice, onCho
       <div className="pane content-start" ref={swipeRef}>
         <DialogTitle id="cat-title">{t("catT")}</DialogTitle>
         <label className="search relative">
-          <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
+          <SearchIcon aria-hidden="true" className="pointer-events-none absolute top-1/2 left-4 size-4.5 -translate-y-1/2 text-muted-foreground" />
           <input
             id="cat-q" type="search" autoComplete="off" spellCheck="false" enterKeyHint="search" value={q}
             placeholder={t("catSearch")} aria-label={t("catSearch")} onChange={e => setQ(e.target.value)}
-            className="h-12 w-full appearance-none rounded-lg border border-border bg-surface pr-4 pl-11 text-m outline-none transition-[border-color,background-color] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background"
+            className="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-4 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-(--t-base) placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blue)_55%,transparent)]"
           />
         </label>
         <div className="grid">

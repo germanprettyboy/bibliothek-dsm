@@ -15,11 +15,11 @@ const THEMES = ["auto", "light", "dark"];
 // Open-source software shipped with the pages (licenses: MIT, ISC, Apache-2.0, SIL OFL)
 const CREDITS = "Preact, Radix UI, shadcn/ui, Tailwind CSS, Lucide, Sonner, class-variance-authority, clsx, tailwind-merge, sql.js, Fira Sans";
 
-// Section with a small heading
-export function Section({ title, children }) {
+// Section of a dialog with a small heading (h3 below the dialog title h2)
+export function Section({ title, children, ...props }) {
   return (
-    <section className="grid gap-1">
-      <h4 className="m-0 mb-1.5 text-s font-medium text-muted-foreground">{title}</h4>
+    <section className="grid gap-1" {...props}>
+      <h3 className="m-0 mb-1.5 text-s font-medium text-muted-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -30,7 +30,7 @@ export function Option({ id, title, help, checked, onCheckedChange }) {
   return (
     <label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-4 border-t border-border py-3 first-of-type:border-t-0">
       <span className="grid gap-0.5">
-        <b className="font-semibold">{title}</b>
+        <b className="font-medium">{title}</b>
         <small className="text-s text-muted-foreground">{help}</small>
       </span>
       <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />

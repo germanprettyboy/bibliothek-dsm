@@ -9,6 +9,7 @@ import * as React from "react";
 import { CheckIcon, DownloadIcon } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 import { Card, CardFooter, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
@@ -143,17 +144,17 @@ function Backups({ file }) {
     } finally { setBusy(false); }
   };
   return (
-    <div className="mt-3 grid gap-2.5" data-pub-backup-list={file}>
-      <div><Button variant="ghost" size="text" className="p-0 h-auto text-[length:inherit] font-normal text-foreground" data-pub-backups aria-expanded={open} onClick={toggle}>{t("pubBackups")}</Button></div>
+    <div className="mt-3 grid gap-2" data-pub-backup-list={file}>
+      <div><Button variant="ghost" size="text" className="min-h-0 p-0 h-auto text-[length:inherit] text-foreground" data-pub-backups aria-expanded={open} onClick={toggle}>{t("pubBackups")}</Button></div>
       {open && items === null ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-loading>{t("pubBackupsLoading")}</p> : null}
-      {open && error ? <p className="flag warn m-0" role="status">{error}</p> : null}
+      {open && error ? <Alert variant="warn" role="status">{error}</Alert> : null}
       {open && items && !items.length && !error ? <p className="note m-0 text-s text-muted-foreground" data-pub-backups-none>{t("pubBackupsNone")}</p> : null}
       {open && items && items.length ? (
         <ul className="m-0 grid list-none gap-1 p-0">
           {items.map(b => (
             <li key={b.name} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1" data-backup={b.name}>
               <span className="text-s">{when(b.time, lang)}<span className="text-muted-foreground">{" · "}{Math.max(1, Math.round(b.size / 1024)).toLocaleString(lang === "it" ? "it-IT" : "de-DE")} KB</span></span>
-              <Button variant="outline" size="sm" disabled={busy} data-restore onClick={() => restore(b)}>{t(sure === b.name ? "pubRestoreSure" : "pubRestore")}</Button>
+              <Button variant="outline" disabled={busy} data-restore onClick={() => restore(b)}>{t(sure === b.name ? "pubRestoreSure" : "pubRestore")}</Button>
             </li>
           ))}
         </ul>
@@ -203,14 +204,14 @@ export function Publish({ file, build, ids, alt, howKey, preview, onPreview, chi
     : FS ? t(z.folder ? "pubHowOn" : "pubHow", { f: file, o: z.folder ? z.folder.name : "" }) : t("pubNoFs") + " " + t(howKey);
   // save.php found but not usable: say why
   const setup = !z.server || online ? null : z.server === "ready" ? "pubSetupOld" : z.server === "not-writable" ? "pubSetupWritable" : "pubSetupAccess";
-  const textButton = "p-0 h-auto text-[length:inherit] font-normal text-foreground";
+  const textButton = "min-h-0 p-0 h-auto text-[length:inherit] text-foreground"; // inline in the sentence (no 44 px row)
   return (
     <Card>
       <CardTitle>{t("publishT")}</CardTitle>
       <p className="note m-0 text-s text-muted-foreground" id={ids.how}>{how}</p>
       <CardFooter>
         <Button id={ids.button} disabled={z.running === file} onClick={() => publish(file, build, lang)}>
-          {direct ? <CheckIcon aria-hidden="true" strokeWidth={2} /> : <DownloadIcon aria-hidden="true" strokeWidth={2} />}
+          {direct ? <CheckIcon aria-hidden="true" /> : <DownloadIcon aria-hidden="true" />}
           <span>{t(direct ? "pubBtn" : alt)}</span>
         </Button>
         {preview ? (
@@ -220,9 +221,9 @@ export function Publish({ file, build, ids, alt, howKey, preview, onPreview, chi
         ) : null}
         {children}
       </CardFooter>
-      <div className={cn("pub", (m || setup || (z.folder && !online)) && "mt-3 grid gap-2.5")} data-file={file}>
-        {m ? <p className={cn("flag m-0", m.type)} role="status">{t(m.key, m.vars)}</p> : null}
-        {m && m.reload ? <div><Button variant="outline" size="sm" data-pub-reload onClick={() => location.reload()}>{t("pubReload")}</Button></div> : null}
+      <div className={cn("pub", (m || setup || (z.folder && !online)) && "mt-3 grid gap-2")} data-file={file}>
+        {m ? <Alert variant={m.type} role="status">{t(m.key, m.vars)}</Alert> : null}
+        {m && m.reload ? <div><Button variant="outline" data-pub-reload onClick={() => location.reload()}>{t("pubReload")}</Button></div> : null}
         {setup ? <p className="note m-0 text-s text-muted-foreground" data-pub-setup>{t(setup)}</p> : null}
         {z.folder && !online ? (
           <p className="note m-0 text-s text-muted-foreground">

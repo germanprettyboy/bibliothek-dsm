@@ -135,10 +135,10 @@ test.describe("recommendations", () => {
     await page.locator("#recs .rec").first().click();
     await expect(page.locator("#d-title")).toHaveText(r.t);
     await expect(page.locator("#d-teaser")).toBeVisible();
-    await expect(page.locator("#d-teaser b")).toHaveText("Warum dieses Buch?");
+    await expect(page.locator("#d-teaser h3")).toHaveText("Warum dieses Buch?");
     await expect(page.locator("#d-teaser p")).toHaveText(r.de);
     await page.evaluate(() => document.querySelector('.seg [data-lang="it"]').click());
-    await expect(page.locator("#d-teaser b")).toHaveText("Perché questo libro?");
+    await expect(page.locator("#d-teaser h3")).toHaveText("Perché questo libro?");
     await expect(page.locator("#d-teaser p")).toHaveText(r.it);
   });
 

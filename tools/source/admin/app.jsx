@@ -104,7 +104,7 @@ function App({ lock }) {
 
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      <div className="adm-top mb-[18px] flex flex-wrap items-center justify-between gap-3">
+      <div className="adm-top mb-4 flex flex-wrap items-center justify-between gap-3">
         {/* Phones: four tabs in two rows (one row would cut "Empfehlungen") */}
         <TabsList className="tabs max-[420px]:w-full max-[420px]:grid-flow-row max-[420px]:grid-cols-2">
           {[["catalog", "tabCatalog"], ["care", "tabCare"], ["recs", "tabRecs"], ["info", "tabInfo"]].map(([v, k]) => (
@@ -116,8 +116,8 @@ function App({ lock }) {
           variant="ghost" size="icon" id="lock-btn" onClick={lock} aria-label={t("lockAgain")}
           className="group w-auto gap-0 rounded-full px-3 hover:bg-surface focus-visible:bg-surface"
         >
-          <LockIcon aria-hidden="true" strokeWidth={2} />
-          <span className="grid grid-cols-[0fr] opacity-0 transition-[grid-template-columns,opacity,margin] duration-200 ease-dsm group-hover:ml-2 group-hover:grid-cols-[1fr] group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:grid-cols-[1fr] group-focus-visible:opacity-100 motion-reduce:transition-none">
+          <LockIcon aria-hidden="true" />
+          <span className="grid grid-cols-[0fr] opacity-0 transition-[grid-template-columns,opacity,margin] duration-(--t-base) ease-dsm group-hover:ml-2 group-hover:grid-cols-[1fr] group-hover:opacity-100 group-focus-visible:ml-2 group-focus-visible:grid-cols-[1fr] group-focus-visible:opacity-100 motion-reduce:transition-none">
             <span className="overflow-hidden">{t("lockAgain")}</span>
           </span>
         </Button>

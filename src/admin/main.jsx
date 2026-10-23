@@ -26,7 +26,7 @@ function Page() {
         {App ? <div id="app"><App lock={lock} /></div> : <Lock onStart={v => setAdmin(v)} />}
       </main>
       <footer className="foot border-t border-border text-s text-muted-foreground">
-        <div className="wrap flex flex-wrap justify-between gap-x-4 gap-y-1.5 pt-[18px] pb-7">
+        <div className="wrap flex flex-wrap justify-between gap-x-4 gap-y-1.5 pt-5 pb-7">
           <span>{t("footer")}</span>
           <a className="text-inherit no-underline" href="./">{t("toList")}</a>
         </div>

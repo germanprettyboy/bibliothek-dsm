@@ -5,6 +5,7 @@ import * as React from "react";
 import { XIcon } from "lucide-react";
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { addStrings } from "@/lib/language";
 
@@ -21,9 +22,9 @@ export function AnnouncementBar({ text, color, closeLabel, onClose, className, .
     <div className={cn("announce-bar", className)} data-color={announceColor(color)} {...props}>
       <div className="wrap flex items-center gap-2 py-1">
         <p className="m-0 min-w-0 flex-1 py-2 font-medium [overflow-wrap:anywhere] [text-wrap:pretty]">{text}</p>
-        <button type="button" className="announce-x -mr-2.5" aria-label={closeLabel} onClick={onClose}>
-          <XIcon aria-hidden="true" strokeWidth={2} className="size-5" />
-        </button>
+        <Button variant="icon-ghost" size="icon" className="announce-x -mr-3" aria-label={closeLabel} onClick={onClose}>
+          <XIcon aria-hidden="true" />
+        </Button>
       </div>
     </div>
   );

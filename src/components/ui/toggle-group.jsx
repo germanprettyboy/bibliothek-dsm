@@ -12,7 +12,7 @@ function ToggleGroup({ className, variant = "segment", size = "default", childre
     <ToggleGroupPrimitive.Root
       data-slot="toggle-group"
       data-variant={variant}
-      className={cn("relative grid auto-cols-fr grid-flow-col rounded-xl bg-surface p-1 shadow-[inset_0_0_0_1px_var(--line)]", className)}
+      className={cn("relative grid auto-cols-fr grid-flow-col rounded-2xl bg-surface p-1 shadow-[inset_0_0_0_1px_var(--line)]", className)}
       {...props}
     >
       <ToggleGroupContext.Provider value={{ variant, size }}>{children}</ToggleGroupContext.Provider>

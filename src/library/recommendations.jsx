@@ -2,8 +2,9 @@
    section in the settings and the questions on the first visit.
    Data: recommendations.js (window.DSM_RECOMMENDATIONS) or the preview from the admin page. */
 import * as React from "react";
-import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import { ChevronLeftIcon, XIcon } from "lucide-react";
 
+import { Chevron } from "@/components/chevron";
 import { Section, Option } from "@/components/settings";
 import { GlassDialog } from "@/components/glass-dialog";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,7 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
   // While books.js loads: placeholder in place of the recommendations (only if some are chosen)
   if (!loaded) {
     return (
-      <section className="wrap recs pb-4" id="recs" hidden={!chosen} aria-hidden="true">
+      <section className="wrap recs pb-4 sm:pb-6" id="recs" hidden={!chosen} aria-hidden="true">
         <div className="recs-card card skel relative overflow-hidden p-4">
           <div className="recs-head flex items-center gap-3"><Skeleton /></div>
           <div className="mt-2 grid sm:mt-4 sm:grid-cols-4 sm:gap-4">
@@ -111,10 +112,10 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
   }
   if (!shown.length) return <section className="wrap recs" id="recs" hidden />;
   return (
-    <section className="wrap recs pb-4" id="recs" aria-labelledby="recs-title">
+    <section className="wrap recs pb-4 sm:pb-6" id="recs" aria-labelledby="recs-title">
       <div className={cn("recs-card card relative overflow-hidden p-4", gone && "hide")}>
         <div className="recs-head flex items-center justify-between gap-3">
-          <h2 id="recs-title" className="m-0 min-w-0 text-m font-semibold leading-[1.2]">
+          <h2 id="recs-title" className="m-0 min-w-0 text-m font-semibold leading-tight">
             {/* The head opens the previous recommendations */}
             <button
               type="button" id="recs-open" aria-haspopup="dialog" title={t("arcOpen")} onClick={onArchive}
@@ -122,12 +123,12 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
             >
               <span className="inline-flex items-center gap-1">
                 {t("recsT")}
-                <ChevronRightIcon aria-hidden="true" className="size-3.5 text-muted-foreground transition-transform duration-150 group-hover/head:translate-x-0.5" />
+                <Chevron className="group-hover/head:translate-x-0.5 group-hover/head:text-foreground" />
               </span>
               <small className="text-s font-normal text-muted-foreground">{gLabel(p.group)}</small>
             </button>
           </h2>
-          <Button variant="icon" size="icon-sm" className="-my-1 -mr-1" id="recs-x" aria-label={t("recsClose")} onClick={hide}><XIcon aria-hidden="true" /></Button>
+          <Button variant="icon" size="icon" className="-my-1 -mr-1" id="recs-x" aria-label={t("recsClose")} onClick={hide}><XIcon aria-hidden="true" /></Button>
         </div>
         <div className="recs-row mt-2 grid sm:mt-4 sm:grid-cols-4 sm:gap-4">
           {shown.map((x, n) => (
@@ -137,10 +138,10 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
             >
               <Cover
                 small title={x.b.t} isbn={!!x.b.i} found={found[n]}
-                className="shadow-[0_3px_8px_rgba(0,0,0,.14)] transition-[translate,box-shadow] duration-[250ms] ease-dsm sm:shadow-[0_6px_16px_rgba(0,0,0,.14)] sm:group-hover/rec:-translate-y-[3px] sm:group-hover/rec:shadow-[0_12px_24px_rgba(0,0,0,.18)]"
+                className="shadow-s transition-[translate,box-shadow] duration-(--t-slow) ease-dsm sm:shadow-m sm:group-hover/rec:-translate-y-1 sm:group-hover/rec:shadow-l"
               />
               <span className="rt min-w-0">
-                <b className="text-m font-medium leading-[1.3] sm:mt-[9px]">{x.b.t}</b>
+                <b className="text-m font-medium leading-tight sm:mt-2">{x.b.t}</b>
                 <span className="mt-0.5 block truncate text-s text-muted-foreground">{(x.b.a || [])[0] || ""}</span>
               </span>
             </button>
@@ -164,7 +165,7 @@ export function Archive({ open, onOpenChange, R, byKey, onOpen }) {
     <GlassDialog open={open} onOpenChange={onOpenChange} name="Previous recommendations" titleId="arc-t" className="archive swipe" overlayClassName="swipe">
       <div className="pane" ref={swipeRef}>
         <div>
-          <DialogTitle id="arc-t" asChild><h3>{t("arcT")}</h3></DialogTitle>
+          <DialogTitle id="arc-t">{t("arcT")}</DialogTitle>
           <p className="sub mt-1 mb-0 text-muted-foreground">{g ? gLabel(g) : ""}</p>
         </div>
         <ol className="arc m-0 grid list-none p-0">
@@ -193,8 +194,8 @@ function Round({ x, n, topic, df, t, lang, onOpen }) {
   const books = React.useMemo(() => x.recs.filter(it => it.b).map(it => it.b), [x]);
   const found = useCoverList(books, visible);
   return (
-    <li ref={li} className={cn("arc-round relative pb-[22px] pl-[22px]", x.now && "now")} style={{ "--i": Math.min(n, 8) }}>
-      <div className="arc-hd mb-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+    <li ref={li} className={cn("arc-round relative pb-6 pl-6", x.now && "now")} style={{ "--i": Math.min(n, 8) }}>
+      <div className="arc-hd mb-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <time className="font-semibold tabular-nums" dateTime={x.updated || ""}>{df(x.updated)}</time>
         {x.now ? <span className="arc-now text-s text-muted-foreground">{t("arcNow")}</span> : null}
         {topic ? <b className="basis-full font-medium">{topic}</b> : null}
@@ -203,7 +204,7 @@ function Round({ x, n, topic, df, t, lang, onOpen }) {
         const txt = it.r[lang] || it.r.de || "";
         const inner = (
           <>
-            <Cover small title={it.b ? it.b.t : it.r.t} isbn={!!(it.b && it.b.i)} found={it.b ? found[books.indexOf(it.b)] : null} className="shadow-[0_3px_8px_rgba(0,0,0,.14)]" />
+            <Cover small title={it.b ? it.b.t : it.r.t} isbn={!!(it.b && it.b.i)} found={it.b ? found[books.indexOf(it.b)] : null} className="shadow-s" />
             <span className="rt grid min-w-0 gap-0.5">
               <b className="font-medium [overflow-wrap:anywhere]">{it.b ? it.b.t : it.r.t}</b>
               <span className="text-s text-muted-foreground">{it.b ? (it.b.a || [])[0] || "" : it.r.a || ""}</span>
@@ -230,7 +231,7 @@ export function RecommendationSettings() {
     <RadioGroupItem value={g} data-g={g}>
       <ColorBar g={g} />
       <span className="grid min-w-0 flex-1 gap-0.5">
-        <b className="font-medium group-data-[state=checked]/opt:font-semibold">{t("g_" + g)}</b>
+        <b className="font-medium">{t("g_" + g)}</b>
         <small className="text-s text-muted-foreground">{t("d_" + g)}</small>
       </span>
     </RadioGroupItem>
@@ -286,14 +287,14 @@ export function Questions({ open, onOpenChange, onSettings }) {
   const choice = g => (
     <button
       type="button" key={g} data-g={g} onClick={() => (g === "adult" ? setStep(3) : choose(g))}
-      className="choice flex min-h-[72px] w-full items-center justify-between gap-3.5 rounded-2xl border border-glass-brd px-4 py-3.5 text-left text-foreground transition-[transform,box-shadow] duration-150 ease-dsm [background:linear-gradient(180deg,var(--gb-top),var(--gb-bot))] shadow-[inset_0_1px_0_var(--glass-hi),0_2px_10px_rgba(0,0,0,.06)] hover:shadow-[inset_0_1px_0_var(--glass-hi),0_6px_18px_rgba(0,0,0,.1)] active:scale-[.985]"
+      className="choice group flex min-h-18 w-full items-center justify-between gap-3 rounded-2xl border border-glass-brd p-4 text-left text-foreground transition-[transform,box-shadow] duration-(--t-fast) ease-dsm [background:linear-gradient(180deg,var(--gb-top),var(--gb-bot))] shadow-[inset_0_1px_0_var(--glass-hi),var(--sh-s)] hover:shadow-[inset_0_1px_0_var(--glass-hi),var(--sh-m)] active:scale-[.985]"
     >
       <ColorBar g={g} />
       <span className="min-w-0 flex-1">
-        <b className="block font-semibold">{t("g_" + g)}</b>
+        <b className="block font-medium">{t("g_" + g)}</b>
         <small className="mt-0.5 block text-s text-muted-foreground">{t("d_" + g)}</small>
       </span>
-      <ChevronRightIcon aria-hidden="true" className="size-[18px] shrink-0 text-muted-foreground" />
+      <Chevron className="group-hover:translate-x-0.5 group-hover:text-foreground" />
     </button>
   );
   return (
@@ -307,22 +308,22 @@ export function Questions({ open, onOpenChange, onSettings }) {
           {step === 1 ? <Shelf /> : (
             <div className="flex min-h-11 items-center">
               <Button variant="ghost" size="text" className="-ml-1 gap-1" data-a="back" onClick={() => setStep(step === 3 ? 2 : step - 1)}>
-                <ChevronLeftIcon aria-hidden="true" />{t("back")}
+                <ChevronLeftIcon aria-hidden="true" className="size-4" />{t("back")}
               </Button>
             </div>
           )}
           <div className="grid gap-2">
-            <DialogTitle id="ask-t" asChild><h3>{t("askT" + step)}</h3></DialogTitle>
+            <DialogTitle id="ask-t">{t("askT" + step)}</DialogTitle>
             <p className={cn("lead m-0", step === 1 ? "font-medium" : "text-muted-foreground")}>{t("askP" + step)}</p>
             {step === 1 ? <p className="m-0 text-s text-muted-foreground">{t("askH1")}</p> : null}
           </div>
           {step === 1 ? (
-            <div className="grid gap-2.5 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Button variant="glass-primary" size="lg" className="primary" data-a="yes" onClick={() => setStep(2)}>{t("yes")}</Button>
               <Button variant="glass" size="lg" data-a="no" onClick={() => change(false)}>{t("no")}</Button>
             </div>
           ) : (
-            <div className="grid gap-2.5">{(step === 2 ? ["middle", "upper", "adult"] : ["adult-fiction", "adult-nonfiction", "adult-bio"]).map(choice)}</div>
+            <div className="grid gap-3">{(step === 2 ? ["middle", "upper", "adult"] : ["adult-fiction", "adult-nonfiction", "adult-bio"]).map(choice)}</div>
           )}
         </div>
       </div>
