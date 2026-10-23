@@ -129,11 +129,11 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
           </h2>
           <Button variant="icon" size="icon-sm" className="-my-1 -mr-1" id="recs-x" aria-label={t("recsClose")} onClick={hide}><XIcon aria-hidden="true" /></Button>
         </div>
-        <div className="recs-row mt-2 grid sm:mt-4 sm:grid-cols-4 sm:gap-4">
+        <div className="recs-row mt-2 grid sm:mt-4 sm:flex sm:justify-center sm:gap-4">
           {shown.map((x, n) => (
             <button
               key={x.r.k} type="button" onClick={() => onOpen(x.b, x.r)}
-              className="rec group/rec grid min-w-0 grid-cols-[44px_1fr] items-center gap-4 border-t border-border py-3 text-left transition-opacity first:border-t-0 active:opacity-60 sm:flex sm:flex-col sm:items-stretch sm:justify-start sm:border-0 sm:p-0 sm:active:opacity-100"
+              className="rec group/rec grid min-w-0 sm:w-[calc((100%-3rem)/4)] sm:flex-none grid-cols-[44px_1fr] items-center gap-4 border-t border-border py-3 text-left transition-opacity first:border-t-0 active:opacity-60 sm:flex sm:flex-col sm:items-stretch sm:justify-start sm:border-0 sm:p-0 sm:active:opacity-100"
             >
               <Cover
                 small title={x.b.t} isbn={!!x.b.i} found={found[n]}
