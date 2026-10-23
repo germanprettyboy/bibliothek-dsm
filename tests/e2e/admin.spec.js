@@ -269,12 +269,12 @@ test.describe("importing the database", () => {
     await page.click('.tabs [data-tab="covers"]');
     await expect(page.locator("#tab-covers #cov")).toBeVisible();
     await expect(page.locator("#c-big")).toHaveText("37,5 %");
-    await expect(page.locator("#c-ring svg")).toHaveAttribute("aria-label", /^37,5\s% der Bücher haben eine ISBN$/); // \s: Intl puts a no-break space before %
+    await expect(page.locator("#c-ring svg[role=img]")).toHaveAttribute("aria-label", /^37,5\s% der Bücher haben eine ISBN$/); // \s: Intl puts a no-break space before %
     await page.click("#c-run");
     await expect(page.locator("#c-stop")).toBeVisible();
     await expect(page.locator("#c-run")).toBeVisible({ timeout: 15000 });
     await expect(page.locator("#c-big")).toHaveText("66,7 %");
-    await expect(page.locator("#c-ring svg")).toHaveAttribute("aria-label", /^66,7\s% der Bücher mit ISBN haben ein Cover$/);
+    await expect(page.locator("#c-ring svg[role=img]")).toHaveAttribute("aria-label", /^66,7\s% der Bücher mit ISBN haben ein Cover$/);
     await expect(page.locator("#c-ring .seg")).toHaveCount(3);
     await expect(page.locator("#c-sub")).toHaveText("2 von 3 Büchern mit ISBN haben ein Cover · 25 % aller Bücher");
     await expect(page.locator("#c-lines")).toContainText("ekz-Bibliotheksservice1");

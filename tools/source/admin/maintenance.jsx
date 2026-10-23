@@ -116,10 +116,14 @@ function useExport() {
 }
 
 // "Herunterladen ▾": Excel first, CSV second. sections: [[label | null, [{ text, on, props }]]]
+// The menu closes first, the download runs after it: started inside the select event, the menu sometimes stayed open
+// and the next click on the trigger closed it instead of opening it
 function DownloadMenu({ triggerProps, label, sections }) {
   const { t } = useLanguage();
+  const [open, setOpen] = React.useState(false);
+  const pick = fn => () => { setOpen(false); setTimeout(fn, 0); };
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" {...triggerProps}>
           <DownloadIcon aria-hidden="true" /><span>{label || t("mxDl")}</span><ChevronDownIcon aria-hidden="true" className="size-4" />
@@ -130,7 +134,7 @@ function DownloadMenu({ triggerProps, label, sections }) {
           <React.Fragment key={i}>
             {i ? <DropdownMenuSeparator /> : null}
             {head ? <DropdownMenuLabel>{head}</DropdownMenuLabel> : null}
-            {items.map(it => <DropdownMenuItem key={it.text} onSelect={it.on} {...it.props}>{it.text}</DropdownMenuItem>)}
+            {items.map(it => <DropdownMenuItem key={it.text} onSelect={pick(it.on)} {...it.props}>{it.text}</DropdownMenuItem>)}
           </React.Fragment>
         ))}
       </DropdownMenuContent>

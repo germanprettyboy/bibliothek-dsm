@@ -93,8 +93,9 @@ export function AdminNav({ tab, lock, onHelp }) {
     return () => { ro.disconnect(); cancelAnimationFrame(raf); cancelAnimationFrame(ready); };
   }, []);
 
-  // shrink: Button brings shrink-0; on narrow phones all eight items share the row
-  const item = "adm-item h-11 shrink rounded-lg px-[13px] font-medium text-m hover:text-foreground";
+  // shrink: Button brings shrink-0. Phones: every item takes an equal share of the row, without side padding
+  // (styles.css .adm-tabs flex 6), otherwise the bar is wider than the screen
+  const item = "adm-item h-11 shrink rounded-lg px-[13px] font-medium text-m hover:text-foreground max-sm:flex-1 max-sm:px-0";
   return (
     <div ref={bar} className="adm-nav" data-fit={fit} data-active={tab}>
       <TabsList aria-label={t("navTabs")} className="tabs adm-tabs flex w-auto rounded-lg bg-transparent p-0 shadow-none">

@@ -121,7 +121,7 @@ test.describe("automatic corrections", () => {
     await expect(page.locator("#fix-run")).toHaveCount(0);
     await expect(page.locator("#fixes [data-fix]")).toHaveCount(0);
     await page.click('[data-list="yearOdd"]');
-    await expect(page.locator('[data-check="yearOdd"] button[aria-expanded]')).toHaveAttribute("aria-expanded", "true");
+    await expect(page.locator('[data-check="yearOdd"] > button[aria-expanded]')).toHaveAttribute("aria-expanded", "true");
   });
 
   test("reduced motion: no spin, straight to done", async ({ page }) => {

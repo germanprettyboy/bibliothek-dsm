@@ -149,7 +149,8 @@ function Preview({ job }) {
   const { t } = useLanguage();
   const box = React.useRef(null);
   const [scale, setScale] = React.useState(.5);
-  React.useEffect(() => {
+  // Layout effect: the final height is there before the phone sheet measures its content (lib/swipe.js)
+  React.useLayoutEffect(() => {
     const el = box.current;
     if (!el) return undefined;
     const fit = () => setScale(el.clientWidth / 793.7 || .5);
@@ -190,7 +191,8 @@ export function PrintDialog({ open, onOpenChange, groups, onPrint }) {
           <p className="m-0 text-s text-muted-foreground">{t("prP")}</p>
         </div>
         <div className="grid gap-2">
-          <DropdownMenu modal={false}>
+          {/* modal (default): a non-modal menu loses its focus to the dialog's focus trap and closes at once */}
+          <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" id="p-pick" className="w-full justify-between">
                 <span className="min-w-0 truncate">{t("prPick")}</span>
