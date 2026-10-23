@@ -4,7 +4,7 @@ const { test, expect, PHONE, open, swipeStages, data, hits } = require("./helper
 const { B, C } = data();
 
 test.describe("language", () => {
-  test("switch to IT and back, the choice survives a reload", async ({ page }) => {
+  test("switch to IT and back, the choice survives a reload", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("html")).toHaveAttribute("lang", "de");
     await page.click('.seg [data-lang="it"]');
@@ -68,7 +68,7 @@ test.describe("language", () => {
 test.describe("settings", () => {
   const openSettings = async page => { await page.click(".settings-btn"); await expect(page.locator(".settings[role=dialog]")).toBeVisible(); };
 
-  test("theme: automatic / light / dark, saved", async ({ page }) => {
+  test("theme: automatic / light / dark, saved", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
     await openSettings(page);

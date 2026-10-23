@@ -60,7 +60,7 @@ test.describe("archive of previous rounds", () => {
     await expect(page.locator("#rec-arc-none")).toHaveCount(0);
   });
 
-  test("editing an archived text: archive changed, current round and date unchanged", async ({ page }) => {
+  test("editing an archived text: archive changed, current round and date unchanged", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expand(page, 0);
     await row(page, 0).locator('.arc-g[data-g="middle"] .rec-ed[data-n="0"] textarea[data-f=de]').fill("  Korrigierter Text.  ");
