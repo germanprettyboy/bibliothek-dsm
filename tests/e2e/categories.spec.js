@@ -151,8 +151,8 @@ test.describe("categories", () => {
       await page.click("#cat-btn");
       const half = await restingTop(d);
       expect(await d.evaluate(e => { const p = e.querySelector(":scope > .pane"); return p.scrollHeight > p.clientHeight + 300; })).toBe(true);
-      // slowly (5 px per step), 250 px further than the way to the top
-      await swipe(page, half + 300, 50, Math.ceil((half + 250) / 5));
+      // slowly (20 px per step: a CDP round trip each, more steps would be slow on CI), 250 px further than the way to the top
+      await swipe(page, half + 300, 50, Math.ceil((half + 250) / 20));
       expect(await restingTop(d)).toBeLessThan(20);
       expect(await d.evaluate(e => e.dataset.stage)).toBe("full");
       await expect.poll(pane).toBeGreaterThan(200);
