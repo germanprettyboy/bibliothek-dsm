@@ -30,6 +30,8 @@ addStrings({
 const R = previewRecs() || window.DSM_RECOMMENDATIONS || { groups: {} };
 const I = previewInfo() || window.DSM_INFO || null;
 const PREVIEW_ON = !!(previewBooks() || previewRecs() || previewInfo());
+// Switched off in the admin page: no card, no archive, no settings section, no questions
+const RECS = !R.off;
 
 export function App() {
   const { t } = useLanguage();
@@ -40,9 +42,10 @@ export function App() {
 
   React.useEffect(() => loadBooks(d => { setBooks(prepare(d)); setLoaded(true); }), []);
   const byKey = React.useMemo(() => new Map(books.map(b => [keyOf(b), b])), [books]);
-  // Questions on the first visit
+  // Questions on the first visit, only if there is a recommendation in the catalog at all
   React.useEffect(() => {
-    if (!loaded || getChoice() || !books.length) return undefined;
+    if (!RECS || !loaded || getChoice() || !books.length) return undefined;
+    if (!Object.values(R.groups || {}).some(l => (l || []).some(r => byKey.has(r.k)))) return undefined;
     const id = setTimeout(() => setDialog("questions"), 450);
     return () => clearTimeout(id);
   }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -73,16 +76,16 @@ export function App() {
       <Announcement I={I} ready={loaded} />
       <Header onSettings={settings} title={t("title")} />
       <InfoCard I={I} onOpen={() => setDialog("info")} />
-      <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} onSettings={settings} />
+      {RECS ? <Recommendations R={R} byKey={byKey} loaded={loaded} onOpen={open} onArchive={() => setDialog("archive")} onSettings={settings} /> : null}
       <BookList books={books} loaded={loaded} onOpen={open} />
 
       <Detail entry={detail} onClose={() => setDetail(null)} />
       <Settings open={dialog === "settings"} onOpenChange={dialogToggle("settings")}>
-        <RecommendationSettings />
+        {RECS ? <RecommendationSettings /> : null}
       </Settings>
-      <Archive open={dialog === "archive"} onOpenChange={dialogToggle("archive")} R={R} byKey={byKey} onOpen={open} />
+      {RECS ? <Archive open={dialog === "archive"} onOpenChange={dialogToggle("archive")} R={R} byKey={byKey} onOpen={open} /> : null}
       <InfoDialog I={I} open={dialog === "info"} onOpenChange={dialogToggle("info")} />
-      <Questions open={dialog === "questions"} onOpenChange={dialogToggle("questions")} onSettings={settings} />
+      {RECS ? <Questions open={dialog === "questions"} onOpenChange={dialogToggle("questions")} onSettings={settings} /> : null}
       <Toaster />
     </>
   );

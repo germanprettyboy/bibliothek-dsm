@@ -70,6 +70,7 @@ describe("recommendations.js", () => {
   test("basic shape, only known groups", () => {
     assert.match(R.updated, ISO);
     for (const g of Object.keys(R.groups)) assert.ok(GROUPS.includes(g), g);
+    if ("off" in R) assert.equal(R.off, true, "off: only true or missing");
   });
   for (const g of GROUPS) {
     test("group " + g + ": at most 4, texts DE/IT, key in the catalog", () => {

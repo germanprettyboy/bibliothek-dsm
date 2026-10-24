@@ -2,7 +2,9 @@
    Draft in the browser (localStorage dsm-recs-draft). Publish: other books than published = new round,
    the published round moves to the front of the archive; only texts/topic changed = same round.
    Draft extras (only after the first edit of the archive / undo): archive = edited archive, restored = round taken back
-   from the archive as the current one (replaces the published round as base of the comparison). */
+   from the archive as the current one (replaces the published round as base of the comparison).
+   Switch "Auf der Website anzeigen": off = off: true in recommendations.js, the book list then shows nothing of the
+   recommendations; groups and archive stay (switching it on again shows the same round). */
 import * as React from "react";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 
@@ -10,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
@@ -36,6 +39,8 @@ export function loadDraft() {
   if (!d || !d.groups) return fromPublished();
   GROUPS.forEach(g => { if (!Array.isArray(d.groups[g])) d.groups[g] = []; });
   if (!d.topic) d.topic = { de: "", it: "" };
+  // drafts from before the switch: published state
+  if (d.off === undefined) d.off = !!(window.DSM_RECOMMENDATIONS && window.DSM_RECOMMENDATIONS.off);
   return d;
 }
 
@@ -63,6 +68,7 @@ function recsOut(draft) {
   const archive = Array.isArray(arc) ? arc.slice() : [];
   if (isNew && baseHas) archive.unshift(Object.assign({ updated: base.updated }, base.topic ? { topic: base.topic } : {}, { groups: base.groups }));
   const out = { updated: isNew ? new Date().toLocaleDateString("sv-SE") : base.updated };
+  if (draft.off) out.off = true;
   const topic = { de: (draft.topic.de || "").trim(), it: (draft.topic.it || "").trim() };
   if (topic.de || topic.it) out.topic = topic;
   out.groups = groups;
@@ -159,6 +165,16 @@ export function Recommendations({ draft, setDraft, catalog }) {
 
   return (
     <div className="steps grid gap-3.5 pb-10" id="tab-recs">
+      <Card id="rec-on-card" className="flex-row items-center justify-between gap-4">
+        <div className="grid min-w-0 gap-1.5">
+          <CardTitle id="rec-on-t">{t("eOnT")}</CardTitle>
+          <CardDescription id="rec-on-p">{t(draft.off ? "eOffP" : "eOnP")}</CardDescription>
+        </div>
+        <Switch
+          id="rec-on" aria-labelledby="rec-on-t" aria-describedby="rec-on-p" checked={!draft.off}
+          onCheckedChange={v => setDraft(d => ({ ...d, off: !v, changed: true }))}
+        />
+      </Card>
       <Card>
         <CardTitle>{t("eT")}</CardTitle>
         <CardDescription>{t("eP")}</CardDescription>
