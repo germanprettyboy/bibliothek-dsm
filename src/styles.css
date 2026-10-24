@@ -496,7 +496,7 @@
      Same surface, edge and rounding as all cards; spacing in the components (p-4, sections pb-4).
      Recommendations: phone vertical list (small cover left, text right), from 40rem four large covers. */
   .card { border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
-  .recs-card { animation: rise var(--t-slow) var(--ease) both; }
+  /* No entrance animation: the card replaces the skeleton in place; rise made the covers dip 8px right after load */
   .recs-card.hide { animation: recs-out var(--t-base) var(--ease-in) forwards; }
   .rec b { overflow-wrap: anywhere; hyphens: auto; -webkit-hyphens: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
