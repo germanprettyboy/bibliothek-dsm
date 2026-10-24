@@ -52,7 +52,9 @@ The admin password is in no file: never guess or write it down. Whatever the adm
   from the school's main website (it links here): no footer, no own privacy page.
 - List = plain text (title + author); covers only in detail/recommendations. No "as of" date in public. `#meta` "4.545 Bücher"/"n Treffer".
 - Recommendations: phone = vertical list (small cover left), NO carousel; from 40rem four large covers. Card head opens "Bisherige
-  Empfehlungen" (timeline newest first).
+  Empfehlungen" (timeline newest first). Chosen group without books in the catalog = empty state in the card (`#recs-none`:
+  shelf, "Gerade keine Empfehlungen", button to the settings); no recommendation at all = no first-visit questions. Admin switch
+  `#rec-on` "Empfehlungen auf der Website" (`off: true`): no card, archive, settings section or questions; data stays.
 - Search bar sticks opaquely, hits start right below it. A–Z bar from 48rem FILTERS by initial (doesn't jump); below 48rem a letter
   floater. Category filter = glass dialog with search and groups (`categories.jsx`). Neither filter is saved.
 - Admin page: no "Aktuell veröffentlicht …", no draft notice, no privacy notices (import: no "Nicht übernommen" card, success =
@@ -112,7 +114,7 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - `books.js`: `{updated, count, coverage?, history?, catIt?, noCover?, books:[{t,s?,a?[],p?,y?,i?[],c?,l?[]}]}`; coverage/history =
   `{updated, books, isbn, cover?, ekz?, ol?, none?, checked?, complete?}` (old entries may carry `gb`); catIt = `{German: Italian}`;
   noCover = ISBNs with a wrong cover; both kept by `npm run books`.
-- `recommendations.js`: `{updated, topic?:{de,it}, groups:{middle|upper|adult-fiction|adult-nonfiction|adult-bio:[{k,t,a,de,it}]},
+- `recommendations.js`: `{updated, off?:true, topic?:{de,it}, groups:{middle|upper|adult-fiction|adult-nonfiction|adult-bio:[{k,t,a,de,it}]},
   archive?:[{updated, topic?, groups}]}` (newest first, max 40). Other books = new round (old one to archive); only texts → same round.
   `k` = norm(title)|norm(first author) (lower case, no accents, ß→ss, a–z0–9 and spaces).
 - `info.js`: `{updated, hours:{mon..sun:[["HH:MM","HH:MM"]]}, notice:{de,it,from?,to?}, contact?:{email?,phone?,de?,it?},

@@ -142,6 +142,13 @@ export const HELP = {
                 "[[Als aktuelle Runde zurückholen]] (nur bei der neuesten früheren Runde) macht eine versehentlich begonnene Runde rückgängig. Die jetzige aktuelle Runde wird dabei verworfen.",
               ],
             },
+            { h: "Ganz ausschalten" },
+            {
+              list: [
+                "Der Schalter [[Empfehlungen auf der Website]] blendet nach dem Veröffentlichen alles aus: keine Empfehlungen über der Liste, keine Frage beim ersten Besuch, kein Abschnitt in den Einstellungen. Bücher, Texte und Runden bleiben gespeichert.",
+                "Hat eine Gruppe keine Bücher, sehen Besucher dieser Gruppe einen Hinweis „Gerade keine Empfehlungen“ statt der Bücher.",
+              ],
+            },
             { tip: "Der Entwurf wird automatisch in diesem Browser gespeichert. [[Entwurf verwerfen]] (zweimal klicken) holt den veröffentlichten Stand zurück." },
             { tab: "recs" },
           ],
@@ -672,6 +679,13 @@ export const HELP = {
                 "Se si pubblicano altri libri, inizia un nuovo turno. Quello precedente resta visibile ai visitatori in «Consigli precedenti». Se cambiano solo i testi o il tema, il turno resta lo stesso.",
                 "Nel riquadro [[Turni precedenti]] si possono aprire i turni passati, modificarne i testi o eliminarli con [[Elimina il turno]].",
                 "[[Ripristina come turno attuale]] (solo per il turno precedente più recente) annulla un turno iniziato per errore. Il turno attuale viene scartato.",
+              ],
+            },
+            { h: "Disattivare del tutto" },
+            {
+              list: [
+                "L'interruttore [[Consigli sul sito]] nasconde tutto dopo la pubblicazione: nessun consiglio sopra l'elenco, nessuna domanda alla prima visita, nessuna sezione nelle impostazioni. Libri, testi e turni restano salvati.",
+                "Se un gruppo non ha libri, chi l'ha scelto vede l'avviso «Al momento nessun consiglio» al posto dei libri.",
               ],
             },
             { tip: "La bozza viene salvata automaticamente in questo browser. [[Scarta la bozza]] (due clic) ripristina lo stato pubblicato." },
