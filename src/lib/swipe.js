@@ -3,6 +3,9 @@
    fits half-high gets only that one stage (like an iOS sheet sized to its content): upwards it resists like a rubber band
    and springs back, never showing empty glass. The finger leads 1:1, on release the velocity decides; the movement
    afterwards is a spring (WAAPI, transform only). The background scrim fades with the finger.
+   Content taller than the screen: a swipe up that runs past the highest stage scrolls the content on in the same gesture,
+   and a fast one hands its remaining momentum to the content – the sheet never stops the motion halfway (not when
+   dragging by the head: grabber and title only move the sheet).
    From 40rem (centered dialog) and with reduced motion none of this applies. Only with a touch screen: in a slim desktop
    window the mouse can't drag, and a half-high sheet with hidden overflow would cut off its content (styles.css keeps the
    plain bottom sheet there, it scrolls with the wheel). */
@@ -30,7 +33,7 @@ export function swipe(sheet, inner, scrimSel) {
   if (!phone.matches) return () => {};
   const scrim = () => document.querySelector(scrimSel);
   // top = highest stage (content-high, 0 = full screen), half = resting stage; fit = only one stage
-  let H = 0, top = 0, half = 0, fit = false, target = "half", y = 0, anim = null;
+  let H = 0, top = 0, half = 0, fit = false, target = "half", y = 0, anim = null, glide = 0;
 
   const setY = (value, withScrim = true) => {
     y = value;
@@ -76,6 +79,25 @@ export function swipe(sheet, inner, scrimSel) {
     return a.finished.then(() => { setY(end, false); a.cancel(); if (anim === a) anim = null; }, () => {});
   };
 
+  // Momentum of the content after the sheet has reached the top: decays like iOS scrolling (0.998 per ms, total way
+  // ≈ v · 500 ms). Stops at the content's ends, on the next touch and as soon as something else scrolls the content.
+  const stopGlide = () => { cancelAnimationFrame(glide); glide = 0; };
+  const coast = v => {
+    stopGlide();
+    if (reduced.matches || Math.abs(v) < .05) return;
+    let pos = inner.scrollTop, last = performance.now();
+    const frame = now => {
+      const dt = Math.min(50, now - last), max = inner.scrollHeight - inner.clientHeight;
+      last = now;
+      if (Math.abs(inner.scrollTop - pos) > 2) { glide = 0; return; }
+      pos = clamp(pos + v * dt, 0, max);
+      inner.scrollTop = pos;
+      v *= Math.pow(.998, dt);
+      glide = Math.abs(v) < .02 || pos <= 0 || pos >= max ? 0 : requestAnimationFrame(frame);
+    };
+    glide = requestAnimationFrame(frame);
+  };
+
   const open = () => {
     measure(); target = "half"; mode();
     if (reduced.matches) { setY(half); return; }
@@ -86,10 +108,11 @@ export function swipe(sheet, inner, scrimSel) {
   // ---------- Finger ----------
   let t0 = null; // {x, y, y0, samples, take, head}
   const start = e => {
+    stopGlide();
     if (e.touches.length !== 1 || anim && target === "close") return;
     if (anim) { y = new DOMMatrix(getComputedStyle(sheet).transform).m42; anim.cancel(); anim = null; setY(y); }
     const f = e.touches[0], top = sheet.getBoundingClientRect().top;
-    t0 = { x: f.clientX, y: f.clientY, y0: y, samples: [[performance.now(), f.clientY]], take: null, head: f.clientY - top < 64 };
+    t0 = { x: f.clientX, y: f.clientY, y0: y, s0: inner.scrollTop, samples: [[performance.now(), f.clientY]], take: null, head: f.clientY - top < 64, over: 0 };
   };
   const drag = e => {
     if (!t0) return;
@@ -101,12 +124,16 @@ export function swipe(sheet, inner, scrimSel) {
       const scrollable = inner.scrollHeight > inner.clientHeight + 1;
       const contentScrolls = target === "full" && scrollable && !t0.head && (dy < 0 || inner.scrollTop > 0);
       t0.take = vertical && !contentScrolls;
+      t0.pass = scrollable && !fit && !t0.head; // past the highest stage the content takes over
       if (t0.take) { sheet.classList.add("dragging"); log("Swipe", "detail: finger leads"); }
     }
     if (!t0.take) return;
     if (e.cancelable) e.preventDefault();
     let ny = t0.y0 + dy;
-    if (ny < top) ny = top - rubber(top - ny); // beyond the highest stage: rubber band
+    if (ny < top) {
+      // beyond the highest stage: the content scrolls on, if it can't: rubber band
+      if (t0.pass) { t0.over = top - ny; inner.scrollTop = t0.s0 + t0.over; ny = top; } else ny = top - rubber(top - ny);
+    } else if (t0.over) { t0.over = 0; inner.scrollTop = t0.s0; }
     setY(ny);
     const now = performance.now();
     t0.samples.push([now, f.clientY]);
@@ -118,6 +145,12 @@ export function swipe(sheet, inner, scrimSel) {
     if (!g || !g.take) return;
     const [z0, p0] = g.samples[0], [z1, p1] = g.samples[g.samples.length - 1];
     const v = z1 > z0 ? (p1 - p0) / (z1 - z0) : 0; // px/ms
+    if (g.over) {
+      // the content took over: it keeps the momentum, the sheet stays at the top
+      log("Swipe", `detail: full, content scrolls on (v ${v.toFixed(2)} px/ms)`);
+      target = "full"; mode(); coast(-v);
+      return;
+    }
     const forecast = y + v * 220;
     // nearest position to the forecast: top, half, close (close only clearly below half)
     const positions = [["full", top], ["half", half], ["close", half + (H - half) * .55]];
@@ -138,6 +171,8 @@ export function swipe(sheet, inner, scrimSel) {
     }
     target = choice; mode();
     move(choice, v);
+    // fast swipe up: what the momentum carries beyond the way to the top scrolls the content
+    if (choice === "full" && g.pass && v < 0) { const rest = -v * 500 - (y - top); if (rest > 0) coast(rest / 500); }
   };
 
   // Content changes its height (e.g. the next step of the questions): glide to the new position
@@ -174,6 +209,7 @@ export function swipe(sheet, inner, scrimSel) {
     sheet.removeEventListener("touchend", end);
     sheet.removeEventListener("touchcancel", end);
     if (anim) anim.cancel();
+    stopGlide();
     sheet.style.transform = ""; sheet.classList.remove("dragging"); delete sheet.dataset.stage; delete sheet.dataset.fit;
     inner.style.overflowY = "";
     const s = scrim(); if (s) s.style.opacity = "";

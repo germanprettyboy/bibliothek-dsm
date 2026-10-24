@@ -1,5 +1,5 @@
 // Filter by category: dialog with groups (parent term before " - "/": "), filter pill [filter | ×] next to the search, together with the search.
-const { test, expect, PHONE, open, data, hits, OFF } = require("./helpers.js");
+const { test, expect, PHONE, open, swipe, restingTop, data, hits, OFF } = require("./helpers.js");
 
 const { B, C } = data();
 const parent = k => (/^(.+?)(?: - |: )(.+)$/.exec(k) || [, k])[1];
@@ -141,6 +141,29 @@ test.describe("categories", () => {
       expect(after.width).toBeLessThan(before.width);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
+    });
+
+    // A swipe up from the half-high sheet must not stop when the sheet reaches the top: the content scrolls on
+    // in the same gesture (slow drag) or takes over the momentum (fast swipe) – lib/swipe.js
+    test("swipe up: the content scrolls on once the sheet is at the top", { tag: "@smoke" }, async ({ page }) => {
+      await open(page);
+      const d = page.locator(".categories[role=dialog]"), pane = () => d.evaluate(e => e.querySelector(":scope > .pane").scrollTop);
+      await page.click("#cat-btn");
+      const half = await restingTop(d);
+      expect(await d.evaluate(e => { const p = e.querySelector(":scope > .pane"); return p.scrollHeight > p.clientHeight + 300; })).toBe(true);
+      // slowly (5 px per step), 250 px further than the way to the top
+      await swipe(page, half + 300, 50, Math.ceil((half + 250) / 5));
+      expect(await restingTop(d)).toBeLessThan(20);
+      expect(await d.evaluate(e => e.dataset.stage)).toBe("full");
+      await expect.poll(pane).toBeGreaterThan(200);
+      await page.keyboard.press("Escape");
+      await expect(d).toBeHidden();
+      // fast: the finger travels only 100 px, the sheet goes to the top and the content glides on
+      await page.click("#cat-btn");
+      const half2 = await restingTop(d);
+      await swipe(page, half2 + 400, half2 + 300);
+      expect(await restingTop(d)).toBeLessThan(20);
+      await expect.poll(pane).toBeGreaterThan(50);
     });
   });
 });

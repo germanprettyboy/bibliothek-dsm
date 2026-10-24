@@ -74,7 +74,8 @@ The admin password is in no file: never guess or write it down. Whatever the adm
   NEVER `/b/isbn/` (rate limit, school = one IP). Not DNB (bot protection). `noCover` ISBNs skipped everywhere, also from cache.
 - Zoom only for real, shown covers (placeholders never): FLIP into the center of the VISIBLE section, small images at most 2.5×.
 - Every dialog = `Dialog` `.glass.sheet` + `.scrim`; phone bottom sheet with swipe stages (`lib/swipe.js`), centered from 40rem.
-  New dialogs the same, `swipeStages` in every dialog spec. Swiping the questions away = "no".
+  New dialogs the same, `swipeStages` in every dialog spec. Swiping the questions away = "no". A swipe up past
+  the top stage never stops: taller content scrolls on in the same gesture / takes the momentum (not when dragging the head).
 - Announcement: `aside#announce` above the header, 1–2 lines (max 140), × / Esc closes (remembered by hash); edited in admin Info.
 - Slow connection: placeholders, after 6 s "Langsame Verbindung". library.js loads BEFORE books.js (setter on `window.DSM_LIBRARY`).
 - First visit: overlay "Möchten Sie Buchempfehlungen sehen?" → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher /
