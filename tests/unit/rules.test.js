@@ -159,6 +159,7 @@ describe("design", () => {
     assert.match(css, /:root\[data-contrast="high"\]/);
     assert.match(css, /:root\[data-font="large"\]\s*\{\s*font-size/);
     assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+    assert.match(css, /:root\[data-motion="reduce"\] \*, :root\[data-motion="reduce"\] \*::before, :root\[data-motion="reduce"\] \*::after \{ animation-duration/);
   });
   test("A–Z bar only from 48rem", () => {
     assert.match(css, /\.index \{ display: none; \}\s*@media \(min-width: 48rem\) \{\s*\.index \{ display: flex;/);

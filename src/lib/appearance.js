@@ -1,4 +1,4 @@
-/* Appearance: theme (auto/light/dark), larger text, high contrast. Set as attributes on <html>,
+/* Appearance: theme (auto/light/dark), larger text, high contrast, no animations. Set as attributes on <html>,
    the colors switch in styles.css. On load head.js already sets the attributes (no flash). */
 import { useSyncExternalStore } from "react";
 
@@ -6,7 +6,7 @@ import { store, log } from "@/lib/storage";
 import { reduced } from "@/lib/environment";
 
 const root = document.documentElement;
-let prefs = { theme: store.get("dsm-theme") || "auto", font: store.get("dsm-font") === "large", contrast: store.get("dsm-contrast") === "high" };
+let prefs = { theme: store.get("dsm-theme") || "auto", font: store.get("dsm-font") === "large", contrast: store.get("dsm-contrast") === "high", motion: store.get("dsm-motion") === "reduce" };
 const listeners = new Set();
 const darkMq = matchMedia("(prefers-color-scheme: dark)");
 const isDark = p => p.theme === "dark" || (p.theme === "auto" && darkMq.matches);
@@ -18,6 +18,7 @@ function apply() {
   if (prefs.theme === "light" || prefs.theme === "dark") root.dataset.theme = prefs.theme; else delete root.dataset.theme;
   if (prefs.font) root.dataset.font = "large"; else delete root.dataset.font;
   if (prefs.contrast) root.dataset.contrast = "high"; else delete root.dataset.contrast;
+  if (prefs.motion) root.dataset.motion = "reduce"; else delete root.dataset.motion;
 }
 
 // Color switch (theme, contrast). Two rules, the same on every path:
@@ -77,7 +78,8 @@ export function setPref(k, v) {
   if (k === "theme") store.set("dsm-theme", v);
   if (k === "font") store.set("dsm-font", v ? "large" : "normal");
   if (k === "contrast") store.set("dsm-contrast", v ? "high" : "normal");
-  log("Setting", `${{ theme: "Theme", font: "Larger text", contrast: "High contrast" }[k]}: ${v === true ? "on" : v === false ? "off" : v}`);
+  if (k === "motion") store.set("dsm-motion", v ? "reduce" : "normal");
+  log("Setting", `${{ theme: "Theme", font: "Larger text", contrast: "High contrast", motion: "No animations" }[k]}: ${v === true ? "on" : v === false ? "off" : v}`);
   const color = k === "contrast" || (k === "theme" && isDark(next) !== isDark(prefs));
   prefs = next;
   listeners.forEach(fn => fn());

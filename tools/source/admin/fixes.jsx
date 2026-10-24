@@ -27,7 +27,8 @@ const MIN = 600; // ms of visible progress, so the button doesn't flash
 const CHUNK = 1500; // books per step
 const SHOWN = 3; // examples per row
 const CAP = 1000; // rows in the full list
-const reduced = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Reduced motion: the system wish or the setting "Keine Animationen" (data-motion on <html>)
+const reduced = () => document.documentElement.dataset.motion === "reduce" || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
 const idle = fn => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 60 }) : setTimeout(fn, 0));
 
 // Category names with an Italian name: their spelling wins in a group

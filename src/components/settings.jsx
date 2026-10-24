@@ -1,4 +1,5 @@
-/* Settings: theme (automatic/light/dark), larger text, high contrast.
+/* Settings: theme (automatic/light/dark), larger text, high contrast, no animations (on and locked while the device
+   itself asks for reduced motion).
    Pages append their own sections as children (book list: book recommendations). */
 import * as React from "react";
 
@@ -9,8 +10,12 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAppearance, setPref, loadLogos } from "@/lib/appearance";
 import { useLanguage } from "@/lib/language";
 import { useSwipe } from "@/lib/swipe";
+import { cn } from "@/lib/utils";
+import { systemReduced } from "@/lib/environment";
 
 const THEMES = ["auto", "light", "dark"];
+
+const onSystem = fn => { systemReduced.addEventListener("change", fn); return () => systemReduced.removeEventListener("change", fn); };
 
 // Open-source software shipped with the pages (licenses: MIT, ISC, Apache-2.0, SIL OFL)
 const CREDITS = "Preact, Radix UI, shadcn/ui, Tailwind CSS, Lucide, Sonner, class-variance-authority, clsx, tailwind-merge, sql.js, Fira Sans";
@@ -26,14 +31,14 @@ export function Section({ title, children }) {
 }
 
 // Row with text on the left and a switch on the right
-export function Option({ id, title, help, checked, onCheckedChange }) {
+export function Option({ id, title, help, checked, disabled, onCheckedChange }) {
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-4 border-t border-border py-3 first-of-type:border-t-0">
+    <label htmlFor={id} className={cn("flex cursor-pointer items-center justify-between gap-4 border-t border-border py-3 first-of-type:border-t-0", disabled && "cursor-default")}>
       <span className="grid gap-0.5">
         <b className="font-semibold">{title}</b>
         <small className="text-s text-muted-foreground">{help}</small>
       </span>
-      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+      <Switch id={id} checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
     </label>
   );
 }
@@ -41,6 +46,7 @@ export function Option({ id, title, help, checked, onCheckedChange }) {
 export function Settings({ open, onOpenChange, children }) {
   const { t } = useLanguage();
   const p = useAppearance();
+  const sys = React.useSyncExternalStore(onSystem, () => systemReduced.matches);
   const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
   React.useEffect(() => { if (open) loadLogos(); }, [open]); // the logo of the other color scheme is ready before a switch
   return (
@@ -60,6 +66,10 @@ export function Settings({ open, onOpenChange, children }) {
         <Section title={t("sA11y")}>
           <Option id="s-font" title={t("sFont")} help={t("sFontH")} checked={p.font} onCheckedChange={v => setPref("font", v)} />
           <Option id="s-contrast" title={t("sContrast")} help={t("sContrastH")} checked={p.contrast} onCheckedChange={v => setPref("contrast", v)} />
+          <Option
+            id="s-motion" title={t("sMotion")} help={t(sys ? "sMotionSys" : "sMotionH")}
+            checked={sys || p.motion} disabled={sys} onCheckedChange={v => setPref("motion", v)}
+          />
         </Section>
         {children}
         <p className="m-0 text-s text-muted-foreground">

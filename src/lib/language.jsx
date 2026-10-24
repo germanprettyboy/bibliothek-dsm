@@ -11,6 +11,8 @@ const STRINGS = {
     sA11y: "Barrierefreiheit",
     sFont: "Größere Schrift", sFontH: "Vergrößert alle Texte der Seite.",
     sContrast: "Hoher Kontrast", sContrastH: "Schwarz-Weiß, kräftige Linien, keine durchscheinenden Flächen.",
+    sMotion: "Keine Animationen", sMotionH: "Fenster, Listen und Bilder erscheinen sofort, ohne Bewegung.",
+    sMotionSys: "Ist auf diesem Gerät bereits eingestellt (weniger Bewegung).",
     sCredits: "Verwendete Open-Source-Software:",
   },
   it: {
@@ -19,6 +21,8 @@ const STRINGS = {
     sA11y: "Accessibilità",
     sFont: "Testo più grande", sFontH: "Ingrandisce tutti i testi della pagina.",
     sContrast: "Contrasto elevato", sContrastH: "Bianco e nero, linee marcate, nessuna superficie trasparente.",
+    sMotion: "Nessuna animazione", sMotionH: "Finestre, elenchi e immagini compaiono subito, senza movimento.",
+    sMotionSys: "Già impostato su questo dispositivo (meno movimento).",
     sCredits: "Software open source utilizzato:",
   },
 };
