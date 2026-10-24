@@ -4,7 +4,8 @@ import { addStrings } from "@/lib/language";
 
 addStrings({
   de: {
-    mxDl: "Herunterladen", mxXlsx: "Excel-Tabelle (.xlsx)", mxCsv: "CSV-Datei (.csv)",
+    mxDl: "Herunterladen", mxXlsx: "Excel-Tabelle (.xlsx)", mxCsv: "CSV-Datei (.csv)", mxPdf: "PDF-Datei (.pdf)",
+    mxPdfHint: "Im Druckfenster als Ziel „Als PDF speichern“ wählen.",
     mxTable: "In Tabelle ansehen", mxAllTable: "Alle Daten als Tabelle", mxAllDl: "Alle Listen herunterladen",
     mxFirst: "Die ersten {s} von {n} – alle in der Tabelle und beim Herunterladen.",
     mxShelfThis: "Standort „{l}“", mxShelfAll: "Alle Standorte",
@@ -17,7 +18,8 @@ addStrings({
     prFooter: "Bibliothek der Deutschen Schule Mailand · Verwaltung", prPrinted: "gedruckt am {d}", prDone: "Erledigt",
   },
   it: {
-    mxDl: "Scarica", mxXlsx: "Tabella Excel (.xlsx)", mxCsv: "File CSV (.csv)",
+    mxDl: "Scarica", mxXlsx: "Tabella Excel (.xlsx)", mxCsv: "File CSV (.csv)", mxPdf: "File PDF (.pdf)",
+    mxPdfHint: "Nella finestra di stampa scelga come destinazione «Salva come PDF».",
     mxTable: "Vedi in tabella", mxAllTable: "Tutti i dati in tabella", mxAllDl: "Scarica tutte le liste",
     mxFirst: "I primi {s} di {n} – tutti nella tabella e nel file scaricato.",
     mxShelfThis: "Collocazione «{l}»", mxShelfAll: "Tutte le collocazioni",

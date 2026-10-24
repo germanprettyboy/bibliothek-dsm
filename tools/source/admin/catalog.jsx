@@ -192,7 +192,7 @@ export function Catalog({ B }) {
                 </svg>
                 <strong className="imp-in text-m font-semibold">{t("imDoneT")}</strong>
                 <p className="imp-in m-0 max-w-120 text-s text-muted-foreground [overflow-wrap:anywhere]" id="import-sub">
-                  {t("imDoneP", { f: lastFile || "WinBook", n: nf(result.report.books) })}
+                  {lastFile || t("imFile")}
                 </p>
                 <Button variant="outline" id="again" className="imp-in" onClick={again}><span>{t("again")}</span></Button>
               </>

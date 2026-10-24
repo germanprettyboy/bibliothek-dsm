@@ -176,6 +176,8 @@
 }
 
 @layer components {
+  /* Admin page (admin.html <body class="adm">): wider column, so tabs, tables and charts get room on a computer */
+  .adm { --w: 54rem; }
   .wrap {
     max-width: calc(var(--w) + 2 * 16px); margin: 0 auto;
     padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -682,6 +684,21 @@
   .sheet.help { height: 92dvh; }
   @media (min-width: 40rem) { .sheet.help { width: min(60rem, calc(100% - 48px)); height: 88dvh; } }
   @media (max-width: 39.999rem) and (pointer: coarse) { .sheet.help > .pane { flex: 1 1 auto; } }
+  /* Full screen (from 40rem; phones are full height already): button 44 px + 8 px gap left of ×, the sheet covers the
+     viewport (instant switch). From 48rem the sidebar widens a little and the content keeps a comfortable line length,
+     centered in its pane. Shown only from 40rem (utilities hidden / min-[40rem]:inline-flex in help.jsx). */
+  .sheet.help > .help-fs { position: absolute; top: 12px; right: 64px; z-index: 2; background: var(--gb-bot); border-color: var(--glass-brd); }
+  @media (min-width: 40rem) {
+    .sheet.help .help-head { padding-right: 52px; }
+    .sheet.help .help-sh { padding-right: 96px; }
+    .sheet.help.full { top: 0; right: 0; bottom: 0; left: 0; translate: none; width: 100%; height: auto; max-height: none; border-radius: 0; }
+  }
+  @media (min-width: 48rem) {
+    .sheet.help .help-head { padding-right: 20px; }
+    .sheet.help.full .help-pane { grid-template-columns: 18rem minmax(0, 1fr); }
+    .sheet.help.full .help-main { padding: 32px 48px 48px; }
+    .sheet.help.full .help-body { max-width: 46rem; margin-inline: auto; }
+  }
   .help-pane { align-content: start; gap: 14px; }
   .help-head { display: grid; gap: 2px; }
   .help-side {
@@ -826,10 +843,10 @@
     display: inline-block; padding-left: 8px; white-space: nowrap; opacity: 0; transform: translateX(-4px);
     transition: opacity var(--t-fast) var(--ease-in), transform var(--t-out) var(--ease-in);
   }
-  .adm-nav[data-fit="all"] .adm-tab .adm-lbl,
+  .adm-nav[data-fit="all"] .adm-tab .adm-lbl, .adm-nav[data-fit="lead"] .adm-lead .adm-lbl,
   .adm-nav:not([data-fit="none"]) .adm-tab[data-state="active"] .adm-lbl,
   .adm-nav:not([data-fit="none"]) .adm-item:focus-visible .adm-lbl { grid-template-columns: 1fr; transition: grid-template-columns var(--t-slow) var(--snap); }
-  .adm-nav[data-fit="all"] .adm-tab .adm-lbl > span > span,
+  .adm-nav[data-fit="all"] .adm-tab .adm-lbl > span > span, .adm-nav[data-fit="lead"] .adm-lead .adm-lbl > span > span,
   .adm-nav:not([data-fit="none"]) .adm-tab[data-state="active"] .adm-lbl > span > span,
   .adm-nav:not([data-fit="none"]) .adm-item:focus-visible .adm-lbl > span > span { opacity: 1; transform: none; transition: opacity var(--t-base) ease-out 60ms, transform var(--t-slow) var(--snap); }
   @media (hover: hover) {
@@ -967,7 +984,7 @@
 /* ---------- Admin statistics (tools/source/admin/stats.jsx + charts.jsx, tab "Statistik") ----------
    One column, two from 48rem (.st-wide spans both). Marks in the logo colors (set inline by the charts), 4 px rounded
    data ends, hairline grid in --line, text only in --fg/--muted. Entry: marks grow from their baseline (transform,
-   fill-box), staggered ≤ 300 ms by an inline animation-delay; lines and donut segments draw. Reduced motion: no entry. */
+   fill-box), staggered ≤ 300 ms by an inline animation-delay; donut segments draw. Reduced motion: no entry. */
 @layer components {
   .st-grid { display: grid; gap: 14px; align-items: start; }
   @media (min-width: 48rem) {
@@ -984,6 +1001,7 @@
   }
   .st-kpi::before { content: ""; width: 18px; height: 3px; margin-bottom: 8px; border-radius: 2px; background: var(--c, var(--line)); }
   .st-kpi-value { line-height: 1.2; }
+  .st-nowrap { white-space: nowrap; }
 
   /* Tooltip: inverted label above the mark, value first */
   .st-tip {
@@ -1013,25 +1031,27 @@
   .st-axis { fill: var(--muted); font-variant-numeric: tabular-nums; }
   .st-value { fill: var(--fg); font-weight: 500; font-variant-numeric: tabular-nums; }
   .st-marker line { stroke: var(--fg); stroke-width: 1; shape-rendering: crispEdges; }
-  .st-trend { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .st-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .st-area { opacity: .1; }
-  .st-cross { stroke: var(--muted); stroke-width: 1; shape-rendering: crispEdges; }
-  .st-dot { pointer-events: none; }
   .st-hit { fill: transparent; outline: none; }
   .st-hit:focus-visible { fill: var(--fg); fill-opacity: .06; stroke: var(--focus); stroke-width: 2; }
   .st-mark, .st-cell { transition: opacity var(--t-fast) var(--ease); }
   .st-dim { opacity: .45; }
   .st-grow-y { transform-box: fill-box; transform-origin: 50% 100%; animation: st-grow-y var(--t-slow) var(--ease) backwards; }
   .st-grow-x { transform-origin: 0 50%; animation: st-grow-x var(--t-slow) var(--ease) backwards; }
-  .st-draw { stroke-dasharray: 1; animation: st-dash calc(var(--t-slow) * 2) var(--ease) backwards; }
   .st-seg { outline: none; animation: st-seg calc(var(--t-slow) * 2) var(--ease) backwards; }
   .st-seg:focus-visible { stroke-width: 28px; }
   .st-pop { animation: st-pop var(--t-slow) var(--ease) backwards; }
 
-  /* Donut with its legend beside (below on narrow cards) */
-  .st-donut { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 20px; }
-  .st-donut > ul { flex: 1 1 13rem; }
+  /* Donut: legend below the ring, beside it once the card is ≥ 30rem wide (no container queries = below);
+     legend rows swatch | label (wraps, takes the free space) | count | share, numbers right-aligned */
+  .st-donut-box { container-type: inline-size; }
+  .st-donut { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: center; gap: 16px; }
+  .st-donut > .st-dleg { justify-self: stretch; }
+  @container (min-width: 30rem) {
+    .st-donut { grid-template-columns: auto minmax(0, 1fr); gap: 24px; }
+  }
+  .st-dleg { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+  .st-dleg > li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 3.75rem; align-items: baseline; column-gap: 8px; }
+  .st-dleg-l { min-width: 0; overflow-wrap: break-word; }
 
   /* Treemap: 1 px border in the card color = 2 px gap between cells; text anthracite on the light logo color */
   .st-tree { position: relative; width: 100%; }
@@ -1063,22 +1083,28 @@
 }
 @keyframes st-grow-x { from { transform: scaleX(0); } }
 @keyframes st-grow-y { from { transform: scaleY(0); } }
-@keyframes st-dash { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes st-seg { from { stroke-dasharray: 0 var(--c); } }
 @keyframes st-pop { from { opacity: 0; transform: scale(.96); } }
 @media (prefers-reduced-motion: reduce) {
-  .st-grow-x, .st-grow-y, .st-draw, .st-seg, .st-pop, .st-tip { animation: none; }
+  .st-grow-x, .st-grow-y, .st-seg, .st-pop, .st-tip { animation: none; }
 }
 
 /* ---------- Admin table viewer (tools/source/admin/table-view.jsx, opened from tab "Pflege") ----------
    Large sheet: from 40rem nearly the whole window, on phones (touch) the screen-high swipe sheet of lib/swipe.js. The
    pane itself scrolls (swipe needs that): toolbar (.tv-bar) and header row (.tv-head) stick, rows lie absolutely at
-   i × row height in .tv-list and only the visible ones exist. Zebra/hover are plain backgrounds (cheap on Win7 PCs);
-   problem dots in the logo colors (decorative, the chip text names the list). */
+   their offset in .tv-list and only the visible ones exist. Row heights are computed in JS from the number of problem
+   chips (stacked, 24 px + 4 px gap, never wrapping), so chips and cards must keep these sizes. Zebra/hover are plain
+   backgrounds (cheap on Win7 PCs); problem dots in the logo colors (decorative, the chip text names the list).
+   Fullscreen (from 40rem): .tv-full left of ×, class "full" on the sheet = whole viewport (instant, no layout animation). */
 @layer components {
   #table-view.sheet { display: flex; flex-direction: column; overflow: hidden; }
   @media (max-width: 39.999rem) and (pointer: fine), (max-width: 39.999rem) and (pointer: none) { #table-view.sheet { height: 92dvh; } }
-  @media (min-width: 40rem) { #table-view.sheet { width: min(72rem, calc(100% - 48px)); height: 88dvh; max-height: 88dvh; } }
+  @media (min-width: 40rem) {
+    #table-view.sheet { width: min(72rem, calc(100% - 48px)); height: 88dvh; max-height: 88dvh; }
+    #table-view.sheet.full { top: 0; left: 0; width: 100%; height: 100%; max-height: none; translate: none; border-radius: 0; }
+  }
+  .sheet > .tv-full { position: absolute; top: 12px; right: 64px; z-index: 2; background: var(--gb-bot); border-color: var(--glass-brd); }
+  @media (max-width: 39.999rem) { .sheet > .tv-full { display: none; } }
   #table-view.sheet > .pane { display: block; flex: 1 1 auto; min-height: 0; padding: 0 0 env(safe-area-inset-bottom, 0px); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
   .tv-bar { position: sticky; top: 0; z-index: 3; background: var(--glass-solid); box-shadow: 0 1px 0 var(--line); }
   .tv-badge {
@@ -1106,11 +1132,12 @@
   .tv-cell.two { display: grid; line-height: 1.3; }
   .tv-cell.two > span { overflow: hidden; text-overflow: ellipsis; }
   .tv-sub { color: var(--muted); font-size: var(--fs-s); }
-  .tv-chips { display: flex; gap: 4px; overflow: hidden; white-space: nowrap; }
+  .tv-chips { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; }
   .tv-chip {
-    display: inline-flex; flex: none; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: 999px;
+    display: inline-flex; flex: none; align-items: center; gap: 6px; max-width: 100%; height: 24px; padding: 0 8px; border-radius: 999px;
     background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); font-size: var(--fs-s); line-height: 1;
   }
+  .tv-chipt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 24px; }
   .tv-dot, .tv-chipdot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--tv-c, var(--muted)); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15); }
   .tv-chipdot { display: inline-block; margin-right: 8px; vertical-align: 1px; }
   #table-view [data-g="isbn"], .tv-chipdot[data-g="isbn"] { --tv-c: var(--blue); }
@@ -1122,22 +1149,31 @@
     position: absolute; top: 0; left: 16px; right: 16px; display: flex; flex-direction: column; gap: 2px; padding: 10px 14px;
     border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; cursor: pointer; contain: content;
   }
-  .tv-card > * { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 22px; }
+  .tv-card > * { flex: none; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; line-height: 22px; }
   .tv-card > .tv-chips { margin-top: auto; }
   .tv-card:active, .tv-card.on { box-shadow: inset 0 0 0 2px var(--fg); }
   .tv-empty { display: grid; justify-items: center; gap: 6px; padding: 56px 24px; text-align: center; }
-  /* Details: a panel over the table (right from 40rem, whole sheet on phones), Escape closes it first */
+  /* Details: a panel over the table (right from 40rem, whole sheet on phones), Escape closes it first. Flies in from the
+     right edge (phones: from below) and out again faster before it unmounts (data-state "closed", JS waits for animationend);
+     reduced motion: the global rule shortens both to nothing */
   .tv-detail {
     position: absolute; z-index: 4; top: 0; right: 0; bottom: 0; width: min(26rem, 100%); overflow-y: auto; overscroll-behavior: contain;
     padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--glass-solid); outline: none;
-    box-shadow: -1px 0 0 var(--line), -16px 0 40px rgba(0, 0, 0, .1); animation: tv-in var(--t-base) var(--ease);
+    box-shadow: -1px 0 0 var(--line), -16px 0 40px rgba(0, 0, 0, .1); animation: tv-in var(--t-slow) var(--snap) both;
   }
-  @media (max-width: 39.999rem) { .tv-detail { width: 100%; border-radius: inherit; box-shadow: none; } }
+  .tv-detail[data-state="closed"] { pointer-events: none; animation: tv-out var(--t-out) var(--ease-in) forwards; }
+  @media (max-width: 39.999rem) {
+    .tv-detail { width: 100%; border-radius: inherit; box-shadow: none; animation-name: tv-up; }
+    .tv-detail[data-state="closed"] { animation-name: tv-down; }
+  }
   .tv-dl { display: grid; grid-template-columns: minmax(6rem, auto) 1fr; gap: 6px 16px; align-items: baseline; }
   .tv-prob { position: relative; display: grid; gap: 2px; padding-left: 14px; }
   .tv-prob::before { content: ""; position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; background: var(--tv-c, var(--line)); }
 }
-@keyframes tv-in { from { opacity: 0; transform: translateX(16px); } }
+@keyframes tv-in { from { opacity: 0; transform: translateX(100%); } }
+@keyframes tv-out { to { opacity: 0; transform: translateX(100%); } }
+@keyframes tv-up { from { opacity: 0; transform: translateY(100%); } }
+@keyframes tv-down { to { opacity: 0; transform: translateY(100%); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }

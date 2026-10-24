@@ -4,8 +4,7 @@ import { addStrings } from "@/lib/language";
 
 addStrings({
   de: {
-    tvT: "Datentabelle",
-    tvP: "Alle Daten zum Durchsuchen, Sortieren und Exportieren. Nur zur Ansicht – nichts davon wird veröffentlicht.",
+    tvT: "Datentabelle", tvFull: "Vollbild", tvFullOff: "Vollbild beenden",
     tvSet: "Daten", tvRecords: "Exemplare (WinBook)", tvBooks: "Öffentliche Liste",
     tvSearch: "Suchen: Titel, Autor, Nr., ISBN …", tvSearchL: "In der Tabelle suchen",
     tvCount: "{n} von {m}", tvRows: "Zeilen",
@@ -27,8 +26,7 @@ addStrings({
     ts_copiesCategory: "Kategorie abweichend", ts_copiesLocation: "Standort abweichend", ts_nameHits: "Namenstreffer",
   },
   it: {
-    tvT: "Tabella dati",
-    tvP: "Tutti i dati da cercare, ordinare ed esportare. Solo consultazione – niente di questo viene pubblicato.",
+    tvT: "Tabella dati", tvFull: "Schermo intero", tvFullOff: "Esci dallo schermo intero",
     tvSet: "Dati", tvRecords: "Esemplari (WinBook)", tvBooks: "Elenco pubblico",
     tvSearch: "Cerca: titolo, autore, n., ISBN …", tvSearchL: "Cerca nella tabella",
     tvCount: "{n} di {m}", tvRows: "righe",

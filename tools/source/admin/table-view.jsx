@@ -1,13 +1,17 @@
 /* Table viewer for all admin data (opened from tab "Pflege"): the WinBook copies of the import (ins.records) or the public
    list (books), searchable, filterable by maintenance list, category and location, sortable by every column, exportable
    as CSV / Excel. Large glass dialog (#table-view): from 40rem nearly the whole window, on phones a screen-high sheet
-   with swipe stages and cards instead of table rows. Only the visible rows are rendered (fixed row height, one scroll
-   listener with rAF), so ~20,000 rows stay smooth on the school PCs. Nothing here is published.
+   with swipe stages and cards instead of table rows; from 40rem a fullscreen toggle left of ×. Only the visible rows are
+   rendered (one scroll listener with rAF), so ~20,000 rows stay smooth on the school PCs: every row's height follows from
+   its number of problem chips (stacked, one per line), offsets are prefix sums, the visible range a binary search.
+   Nothing here is published.
    Props: open, onOpenChange, ins (inspect result or null), books (public list), report (import report), cov (cover survey
    state), check (key of a maintenance list to preselect as filter, optional). Data: table-data.js. */
 import "./strings-table";
 import * as React from "react";
-import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, Columns3Icon, DownloadIcon, SearchIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import {
+  ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, Columns3Icon, DownloadIcon, Maximize2Icon, Minimize2Icon, SearchIcon, SlidersHorizontalIcon, XIcon,
+} from "lucide-react";
 
 import { GlassDialog } from "@/components/glass-dialog";
 import { DialogTitle } from "@/components/ui/dialog";
@@ -26,8 +30,33 @@ import { ALL, COLUMNS, GROUP, LISTS, NONE, buildData, defaultHidden, facets, fil
 import { xlsx } from "./xlsx";
 
 const OVER = 8; // rows rendered above and below the visible part
-const H = { records: 44, books: 56, card: 128 }; // row heights (px): table rows per dataset, phone cards (120 + 8 gap)
+const H = { records: 44, books: 56, card: 128 }; // minimum row heights (px): table rows per dataset, phone cards (120 + 8 gap)
+const CHIP = 28; // one chip line: 24 px chip + 4 px gap (chips never wrap: nowrap + ellipsis, full text in title)
 const WIDE = "(min-width: 40rem)";
+const OUT = 400; // ms: the detail panel unmounts at the latest this long after closing (if animationend never fires)
+
+// Height of one row: table rows grow with stacked chips (10 px padding above and below), cards by one chip line per extra chip
+const heightOf = (r, ds, wide, chips) => {
+  const n = r.probs.length;
+  if (!wide) return H.card + Math.max(0, n - 1) * CHIP;
+  return chips ? Math.max(H[ds], n * CHIP + 16) : H[ds];
+};
+// Prefix sums: offs[i] = top of row i, offs[n] = total height
+function offsets(view, ds, wide, chips) {
+  const offs = new Float64Array(view.length + 1);
+  for (let i = 0; i < view.length; i++) offs[i + 1] = offs[i] + heightOf(view[i], ds, wide, chips);
+  return offs;
+}
+// Index of the row that contains y (clamped to 0 … n-1)
+function rowAt(offs, y) {
+  let lo = 0, hi = offs.length - 2;
+  if (hi < 0) return 0;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (offs[mid] <= y) lo = mid; else hi = mid - 1;
+  }
+  return lo;
+}
 
 function useMedia(query) {
   const mq = React.useMemo(() => matchMedia(query), [query]);
@@ -37,10 +66,11 @@ function useMedia(query) {
 
 export function TableView({ open, onOpenChange, ins, books, report, cov, check }) {
   const esc = React.useRef(null); // the viewer closes its detail panel first on Escape
+  const [full, setFull] = React.useState(false); // fullscreen (from 40rem): class "full" on the sheet
   return (
     <GlassDialog
       open={open} onOpenChange={onOpenChange} name="Table" titleId="tv-title" id="table-view"
-      className="table-view swipe" overlayClassName="swipe tv-scrim"
+      className={cn("table-view swipe", full && "full")} overlayClassName="swipe tv-scrim"
       onEscapeKeyDown={e => { if (esc.current && esc.current()) e.preventDefault(); }}
       onOpenAutoFocus={e => {
         // with a mouse straight into the search; on touch screens no keyboard popping up
@@ -49,12 +79,15 @@ export function TableView({ open, onOpenChange, ins, books, report, cov, check }
         if (s) { e.preventDefault(); s.focus(); }
       }}
     >
-      <Viewer ins={ins} books={books || []} report={report} cov={cov} check={check} esc={esc} onClose={() => onOpenChange(false)} />
+      <Viewer
+        ins={ins} books={books || []} report={report} cov={cov} check={check} esc={esc} onClose={() => onOpenChange(false)}
+        full={full} setFull={setFull}
+      />
     </GlassDialog>
   );
 }
 
-function Viewer({ ins, books, report, cov, check, esc, onClose }) {
+function Viewer({ ins, books, report, cov, check, esc, onClose, full, setFull }) {
   const { t, nf, df, lang } = useLanguage();
   const wide = useMedia(WIDE);
   const [set, setSet] = React.useState(ins ? "records" : "books");
@@ -69,6 +102,7 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
   });
   const [filters, setFilters] = React.useState(false); // phone: filter row unfolded
   const [sel, setSel] = React.useState(null); // detail: { r, i }
+  const [closing, setClosing] = React.useState(false); // detail flies out, unmounts on animationend
   const [fi, setFi] = React.useState(0); // row reachable with Tab (roving tabindex)
   const [range, setRange] = React.useState([0, 40]);
   const [barH, setBarH] = React.useState(0);
@@ -87,22 +121,23 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
     () => COLUMNS[ds].filter(c => c.fixed || (!hidden[ds].has(c.id) && (c.needs !== "cov" || cov))),
     [ds, hidden, !!cov], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const rowH = wide ? H[ds] : H.card;
+  const chips = cols.some(c => c.id === "probs");
+  const offs = React.useMemo(() => offsets(view, ds, wide, chips), [view, ds, wide, chips]);
   const active = (list !== ALL) + (cat !== ALL) + (loc !== ALL);
 
-  // ---------- Windowed rendering: the pane scrolls, rows lie at i × rowH in .tv-list ----------
+  // ---------- Windowed rendering: the pane scrolls, row i lies at offs[i] in .tv-list ----------
   const paneRef = React.useRef(null), listRef = React.useRef(null), tableRef = React.useRef(null), barRef = React.useRef(null), headRef = React.useRef(null);
   const swipeRef = useSwipe(".scrim.tv-scrim", onClose);
   const setPane = React.useCallback(el => { paneRef.current = el; swipeRef(el); }, [swipeRef]);
-  const metrics = React.useRef({ rowH, n: view.length });
-  metrics.current = { rowH, n: view.length };
+  const metrics = React.useRef(offs);
+  metrics.current = offs;
   const sticky = () => (barRef.current ? barRef.current.offsetHeight : 0) + (headRef.current ? headRef.current.offsetHeight : 0);
   const update = React.useCallback(() => {
     const pane = paneRef.current, el = listRef.current;
     if (!pane || !el) return;
-    const { rowH: h, n } = metrics.current, top = el.offsetTop;
-    const from = Math.max(0, Math.floor((pane.scrollTop - top) / h) - OVER);
-    const to = Math.min(n, Math.ceil((pane.scrollTop + pane.clientHeight - top) / h) + OVER);
+    const o = metrics.current, n = o.length - 1, top = el.offsetTop;
+    const from = Math.max(0, rowAt(o, pane.scrollTop - top) - OVER);
+    const to = Math.min(n, rowAt(o, pane.scrollTop + pane.clientHeight - top) + 1 + OVER);
     setRange(r => (r[0] === from && r[1] === to ? r : [from, to]));
   }, []);
   React.useEffect(() => {
@@ -116,7 +151,7 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
     if (barRef.current) ro.observe(barRef.current);
     return () => { pane.removeEventListener("scroll", onScroll); ro.disconnect(); cancelAnimationFrame(raf); };
   }, [update]);
-  React.useLayoutEffect(update, [update, rowH, view.length, wide]);
+  React.useLayoutEffect(update, [update, offs, wide, full]);
   // New search, filter, sort or dataset: back to the first row (only if scrolled further)
   React.useLayoutEffect(() => {
     const pane = paneRef.current, table = tableRef.current;
@@ -132,9 +167,9 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
   const reveal = i => {
     const pane = paneRef.current, el = listRef.current;
     if (!pane || !el) return;
-    const top = el.offsetTop + i * rowH, min = pane.scrollTop + sticky();
+    const top = el.offsetTop + offs[i], h = offs[i + 1] - offs[i], min = pane.scrollTop + sticky();
     if (top < min) pane.scrollTop = top - sticky();
-    else if (top + rowH > pane.scrollTop + pane.clientHeight) pane.scrollTop = top + rowH - pane.clientHeight;
+    else if (top + h > pane.scrollTop + pane.clientHeight) pane.scrollTop = top + h - pane.clientHeight;
     update();
   };
   const moveTo = i => { reveal(i); setFi(i); wantFocus.current = i; };
@@ -143,26 +178,40 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
     const el = listRef.current.querySelector(`[data-i="${wantFocus.current}"]`);
     if (el) { el.focus({ preventScroll: true }); wantFocus.current = null; }
   });
-  const openRow = i => { if (view[i]) { setSel({ r: view[i], i }); setFi(i); log("Table", `details of row ${i + 1}`); } };
+  // Details: open at once (fly in), close = fly out first, unmount on its animationend (timer as fallback)
+  const outTimer = React.useRef(0);
+  const gone = React.useCallback(() => { clearTimeout(outTimer.current); setSel(null); setClosing(false); }, []);
+  React.useEffect(() => () => clearTimeout(outTimer.current), []);
+  const openRow = i => {
+    if (!view[i]) return;
+    clearTimeout(outTimer.current); setClosing(false);
+    setSel({ r: view[i], i }); setFi(i); log("Table", `details of row ${i + 1}`);
+  };
   const rowOf = e => { const el = e.target.closest && e.target.closest("[data-i]"); return el ? +el.dataset.i : -1; };
   const onKey = e => {
     const i = rowOf(e);
     if (i < 0) return;
-    const page = Math.max(1, Math.floor((paneRef.current ? paneRef.current.clientHeight - sticky() : 400) / rowH) - 1);
-    const to = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: view.length - 1, PageDown: i + page, PageUp: i - page }[e.key];
+    const ph = Math.max(H.records, paneRef.current ? paneRef.current.clientHeight - sticky() : 400); // one page of rows
+    const to = {
+      ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: view.length - 1,
+      PageDown: Math.max(i + 1, rowAt(offs, offs[i] + ph) - 1), PageUp: Math.min(i - 1, rowAt(offs, offs[i] - ph) + 1),
+    }[e.key];
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openRow(i); return; }
     if (to === undefined) return;
     e.preventDefault();
     moveTo(Math.max(0, Math.min(view.length - 1, to)));
   };
   const closeDetail = () => {
-    const i = sel ? sel.i : -1;
-    setSel(null);
+    if (!sel || closing) return;
+    const i = sel.i;
+    setClosing(true);
+    clearTimeout(outTimer.current);
+    outTimer.current = setTimeout(gone, OUT);
     if (i >= 0 && i < view.length) moveTo(i);
   };
   // Escape: closes the details first, then clears the search (while in it), only then the dialog
   const now = React.useRef(null);
-  now.current = { sel, q };
+  now.current = { sel: sel && !closing, q };
   esc.current = () => {
     if (now.current.sel) { closeDetail(); return true; }
     if (now.current.q && document.activeElement && document.activeElement.id === "tv-search") { setQ(""); return true; }
@@ -172,7 +221,7 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
   // ---------- Actions ----------
   const switchSet = v => {
     if (!v || v === ds) return;
-    setSet(v); setSel(null);
+    setSet(v); gone();
     if (sort.col && !COLUMNS[v].some(c => c.id === sort.col)) setSort({ col: null, dir: null });
     log("Table", `dataset ${v}`);
   };
@@ -204,14 +253,17 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
     saveBlob(name, blob, view.length);
   };
 
-  const first = i => (ins ? i === 0 : i === 1); // the first toolbar row leaves room for the close button
+  const first = i => (ins ? i === 0 : i === 1); // the first toolbar row leaves room for the close (and fullscreen) button
   const gridCols = cols.map(c => c.w).join(" ");
   const shown = [];
   const tabRow = Math.min(fi, view.length - 1);
   for (let i = range[0]; i < Math.min(range[1], view.length); i++) {
     const r = view[i];
     shown.push(
-      <Row key={ds + r.n} r={r} i={i} ds={ds} cols={cols} wide={wide} h={rowH} on={!!sel && sel.r === r} tab={i === tabRow} lang={lang} />,
+      <Row
+        key={ds + r.n} r={r} i={i} ds={ds} cols={cols} wide={wide} top={offs[i]} h={offs[i + 1] - offs[i]}
+        on={!!sel && !closing && sel.r === r} tab={i === tabRow} lang={lang}
+      />,
     );
   }
   const colLabel = c => t(c.label);
@@ -219,14 +271,13 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
   return (
     <>
       <div className="pane tv-pane" ref={setPane}>
-        <div className="px-4 pt-4 pr-14 sm:px-6 sm:pt-6 sm:pr-16">
+        <div className="px-4 pt-4 pr-14 sm:px-6 sm:pt-6 sm:pr-29">
           <DialogTitle id="tv-title">{t("tvT")}</DialogTitle>
-          <p className="m-0 mt-1 text-s text-muted-foreground" id="tv-hint">{t("tvP")}</p>
         </div>
 
         <div className="tv-bar grid gap-2.5 px-4 py-3 sm:px-6" id="tv-bar" ref={barRef}>
           {ins ? (
-            <div className={cn("flex", first(0) && "pr-10 sm:pr-12")}>
+            <div className={cn("flex", first(0) && "pr-10 sm:pr-25")}>
               <ToggleGroup
                 type="single" variant="surface" id="tv-set" aria-label={t("tvSet")} value={ds} onValueChange={switchSet}
                 className="w-full sm:w-auto"
@@ -236,7 +287,7 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
               </ToggleGroup>
             </div>
           ) : null}
-          <div className={cn("flex items-center gap-2", first(1) && "pr-10 sm:pr-12")}>
+          <div className={cn("flex items-center gap-2", first(1) && "pr-10 sm:pr-25")}>
             <label className="relative min-w-0 flex-1">
               <SearchIcon aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -364,7 +415,7 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
               </div>
             ) : null}
             <div
-              role={wide ? "rowgroup" : "presentation"} className="tv-list" ref={listRef} style={{ height: view.length * rowH }}
+              role={wide ? "rowgroup" : "presentation"} className="tv-list" ref={listRef} style={{ height: offs[view.length] }}
               onClick={e => { const i = rowOf(e); if (i >= 0) openRow(i); }}
               onKeyDown={onKey}
               onFocus={e => { const i = rowOf(e); if (i >= 0 && i !== fi) setFi(i); }}
@@ -374,7 +425,16 @@ function Viewer({ ins, books, report, cov, check, esc, onClose }) {
           </div>
         )}
       </div>
-      {sel ? <Detail r={sel.r} ds={ds} cov={!!cov} onClose={closeDetail} /> : null}
+      {wide ? (
+        <Button
+          variant="icon" size="icon" className="tv-full" data-fullscreen="" aria-pressed={full}
+          aria-label={t(full ? "tvFullOff" : "tvFull")} title={t(full ? "tvFullOff" : "tvFull")}
+          onClick={() => { setFull(f => !f); log("Table", full ? "fullscreen off" : "fullscreen on"); }}
+        >
+          {full ? <Minimize2Icon aria-hidden="true" /> : <Maximize2Icon aria-hidden="true" />}
+        </Button>
+      ) : null}
+      {sel ? <Detail r={sel.r} ds={ds} cov={!!cov} closing={closing} onClose={closeDetail} onGone={gone} /> : null}
     </>
   );
 }
@@ -394,18 +454,20 @@ function Facet({ id, label, all, value, onChange, items }) {
   );
 }
 
-// Problem chips: short name with the colour dot of its group
+// Problem chips, one per line: short name with the colour dot of its group; one line each (ellipsis), the full name in title
 function Chips({ probs }) {
   const { t } = useLanguage();
   return probs.map(p => (
-    <span key={p.key} className="tv-chip" data-g={GROUP[p.key]} data-list={p.key}><i className="tv-dot" aria-hidden="true" />{t("ts_" + p.key)}</span>
+    <span key={p.key} className="tv-chip" data-g={GROUP[p.key]} data-list={p.key} title={t("m_" + p.key) + (p.v ? ` (${p.v})` : "")}>
+      <i className="tv-dot" aria-hidden="true" /><span className="tv-chipt">{t("ts_" + p.key)}</span>
+    </span>
   ));
 }
 
 // One row (table from 40rem) or card (phone); plain elements only, memoized: scrolling only renders the new ones
-const Row = React.memo(function Row({ r, i, ds, cols, wide, h, on, tab }) {
+const Row = React.memo(function Row({ r, i, ds, cols, wide, top, h, on, tab }) {
   const { t, df } = useLanguage();
-  const style = { transform: `translateY(${i * h}px)`, height: wide ? h : h - 8 };
+  const style = { transform: `translateY(${top}px)`, height: wide ? h : h - 8 };
   if (!wide) {
     const meta = [ds === "records" ? t("tvRecNo", { n: r.id }) : "", r.y, r.c, r.l].filter(Boolean).join(" · ");
     return (
@@ -438,11 +500,13 @@ const Row = React.memo(function Row({ r, i, ds, cols, wide, h, on, tab }) {
   );
 });
 
-// Detail panel over the table: all fields, the copies in WinBook (public list) and the lists with their hints
-function Detail({ r, ds, cov, onClose }) {
+/* Detail panel over the table: all fields, the copies in WinBook (public list) and the lists with their hints. Flies in
+   from the right (phones: from below); closing = data-state "closed" (flies out), onGone on its animationend. */
+function Detail({ r, ds, cov, closing, onClose, onGone }) {
   const { t, df } = useLanguage();
   const ref = React.useRef(null);
   React.useEffect(() => { if (ref.current) ref.current.focus(); }, [r]);
+  const end = e => { if (closing && e.target === e.currentTarget) onGone(); };
   const fields = ds === "records"
     ? [["cId", r.id], ["cTitle", r.t], ["cAuthor", r.a], ["cPublisher", r.p], ["cYear", r.y], ["cCategory", r.c], ["cLocation", r.l], ["cSig", r.sig], ["cAdded", df(r.z)]]
     : [["cTitle", r.t], ["tvC_sub", r.s], ["tvC_authors", r.a], ["cPublisher", r.p], ["cYear", r.y], ["tvC_isbn", r.i], ["cCategory", r.c], ["tvC_locs", r.l]]
@@ -450,7 +514,10 @@ function Detail({ r, ds, cov, onClose }) {
   // a scrolling panel scrolls itself instead of dragging the sheet (lib/swipe.js listens on the sheet)
   const touch = e => { const el = ref.current; if (el && el.scrollHeight > el.clientHeight + 1) e.stopPropagation(); };
   return (
-    <section className="tv-detail" id="tv-detail" aria-labelledby="tv-detail-t" ref={ref} tabIndex={-1} onTouchStart={touch}>
+    <section
+      className="tv-detail" id="tv-detail" aria-labelledby="tv-detail-t" ref={ref} tabIndex={-1} onTouchStart={touch}
+      data-state={closing ? "closed" : "open"} aria-hidden={closing || undefined} onAnimationEnd={end}
+    >
       <div className="flex items-start gap-3 p-4 pb-2 sm:p-6 sm:pb-2">
         <div className="min-w-0 flex-1">
           <p className="m-0 text-s text-muted-foreground">{t("tvDetail")}</p>

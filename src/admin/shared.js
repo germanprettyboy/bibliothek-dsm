@@ -26,6 +26,7 @@ import * as toggleGroup from "@/components/ui/toggle-group";
 import * as tooltip from "@/components/ui/tooltip";
 import * as glassDialog from "@/components/glass-dialog";
 import * as announcement from "@/components/announcement";
+import * as libraryInfo from "@/library/info";
 import * as notice from "@/lib/notice";
 import * as storage from "@/lib/storage";
 import * as swipe from "@/lib/swipe";
@@ -57,6 +58,7 @@ export const SHARED = {
   "@/components/ui/tooltip": tooltip,
   "@/components/glass-dialog": glassDialog,
   "@/components/announcement": announcement,
+  "@/library/info": libraryInfo,
   "@/lib/notice": notice,
   "@/lib/storage": storage,
   "@/lib/swipe": swipe,

@@ -16,7 +16,7 @@ addStrings({
   de: {
     infoT: "Öffnungszeiten", infoOpen: "Öffnungszeiten und Schließtage anzeigen",
     openNow: "Jetzt geöffnet", until: "bis {t}", openLater: "Heute ab {t} geöffnet", today: "Heute",
-    closedNow: "Jetzt geschlossen", closedToday: "Heute geschlossen", again: "Wieder geöffnet {w}",
+    closedNow: "Jetzt geschlossen", closedToday: "Heute geschlossen", infoAgain: "Wieder geöffnet {w}",
     wTomorrow: "morgen ab {t}", wDay: "am {w} ab {t}", wDate: "am {w}, {d}, ab {t}",
     closed: "geschlossen", holiday: "Ferien", absent: "Bibliothek geschlossen",
     typeHoliday: "Ferien", typeAbsent: "Abwesenheit", typeSpecial: "Andere Zeiten", special: "Geänderte Öffnungszeiten",
@@ -27,7 +27,7 @@ addStrings({
   it: {
     infoT: "Orari di apertura", infoOpen: "Mostra orari e giorni di chiusura",
     openNow: "Aperta ora", until: "fino alle {t}", openLater: "Oggi aperta dalle {t}", today: "Oggi",
-    closedNow: "Chiusa ora", closedToday: "Oggi chiusa", again: "Riapre {w}",
+    closedNow: "Chiusa ora", closedToday: "Oggi chiusa", infoAgain: "Riapre {w}",
     wTomorrow: "domani alle {t}", wDay: "{w} alle {t}", wDate: "{w} {d} alle {t}",
     closed: "chiusa", holiday: "Vacanze", absent: "Biblioteca chiusa",
     typeHoliday: "Vacanze", typeAbsent: "Assenza", typeSpecial: "Altri orari", special: "Orari modificati",
@@ -103,7 +103,7 @@ function evaluate(I, lang, today) {
   function status(now) {
     const nowHm = hm(now), c = closedOn(today);
     const any = hasWeek || specials.some(x => x.to >= today);
-    const again = () => { const n = any && nextOpen(now); return n ? t("again", { w: when(n) }) : ""; };
+    const again = () => { const n = any && nextOpen(now); return n ? t("infoAgain", { w: when(n) }) : ""; };
     if (c) return { k: "closed", t: t("closedToday"), sub: [label(c) === t("absent") ? "" : label(c), again()].filter(Boolean).join(" · ") };
     if (!any) return null;
     const rs = rangesOn(today, keyOf(now)), all = t("today") + " " + rs.map(span).join(", ");
@@ -142,7 +142,8 @@ function useNow() {
   return milanNow();
 }
 
-export function InfoCard({ I, onOpen }) {
+// preview: live preview in the admin page (tab Info) – remembers nothing for the next visit
+export function InfoCard({ I, onOpen, preview }) {
   const { lang } = useLanguage();
   const now = useNow();
   const today = iso(now);
@@ -154,8 +155,8 @@ export function InfoCard({ I, onOpen }) {
   const show = !!A && !!(st || soon || A.closures.some(c => c.to >= today) || A.notice || A.hasContact);
   // Remember for the next visit whether a card comes (placeholder, head.js); the preview doesn't count
   React.useEffect(() => {
-    if (!PREVIEW && store.get("dsm-info-card") !== (show ? "1" : "0")) store.set("dsm-info-card", show ? "1" : "0");
-  }, [show]);
+    if (!PREVIEW && !preview && store.get("dsm-info-card") !== (show ? "1" : "0")) store.set("dsm-info-card", show ? "1" : "0");
+  }, [show, preview]);
   if (!show) return <section className="wrap info" id="info" hidden />;
   const Chev = <ChevronRightIcon aria-hidden="true" strokeWidth={1.6} className="go size-4 shrink-0 text-muted-foreground" />;
   return (
@@ -183,10 +184,19 @@ const Text = ({ b, small }) => (
 
 // Dialog with all hours and closing days
 export function InfoDialog({ I, open, onOpenChange }) {
-  const { lang } = useLanguage();
-  const now = useNow();
   const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
   if (!I) return null;
+  return (
+    <GlassDialog open={open} onOpenChange={onOpenChange} name="Opening hours" titleId="info-t" className="info-dialog swipe" overlayClassName="swipe">
+      <div className="pane" ref={swipeRef}><InfoBody I={I} /></div>
+    </GlassDialog>
+  );
+}
+
+// Content of the dialog (also the live preview in the admin page; titleId there its own, Title = plain h3)
+export function InfoBody({ I, preview }) {
+  const { lang } = useLanguage();
+  const now = useNow();
   const today = iso(now), A = evaluate(I, lang, today), tk = keyOf(now);
   const shown = DAYS.filter((k, n) => n < 5 || A.dayRanges(k).length);
   const fut = A.closures.filter(c => c.to >= today).slice(0, 10);
@@ -194,9 +204,8 @@ export function InfoDialog({ I, open, onOpenChange }) {
   const link = "inline-block py-1 font-medium text-foreground [text-decoration:none]";
   const cell = "m-0 border-t border-border py-[9px] tabular-nums";
   return (
-    <GlassDialog open={open} onOpenChange={onOpenChange} name="Opening hours" titleId="info-t" className="info-dialog swipe" overlayClassName="swipe">
-      <div className="pane" ref={swipeRef}>
-        <DialogTitle id="info-t" asChild><h3>{t("infoT")}</h3></DialogTitle>
+    <>
+      {preview ? <h3 className="m-0 text-l font-semibold">{t("infoT")}</h3> : <DialogTitle id="info-t" asChild><h3>{t("infoT")}</h3></DialogTitle>}
         {A.notice ? <p className="hint m-0">{A.notice}</p> : null}
         {A.hasWeek ? (
           <section>
@@ -237,7 +246,6 @@ export function InfoDialog({ I, open, onOpenChange }) {
             {phone ? (/\d/.test(phone) ? <a className={link} href={"tel:" + phone.replace(/[^\d+]/g, "")}>{phone}</a> : <span>{phone}</span>) : null}
           </section>
         ) : null}
-      </div>
-    </GlassDialog>
+    </>
   );
 }

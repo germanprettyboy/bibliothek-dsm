@@ -56,8 +56,8 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - Search bar sticks opaquely, hits start right below it. A–Z bar from 48rem FILTERS by initial (doesn't jump); below 48rem a letter
   floater. Category filter = glass dialog with search and groups (`categories.jsx`). Neither filter is saved.
 - Admin page: no "Aktuell veröffentlicht …", no draft notice, no privacy notices (import: no "Nicht übernommen" card, success =
-  "Upload erfolgreich"; only the reader-name warning stays). Floating sticky nav bar (`nav.jsx`): tabs Bestand | Cover | Pflege |
-  Statistik | Empfehlungen | Info, then help (`?`, `help.jsx`) and lock. Charts only in tab Statistik. Destructive actions = two
+  "Upload erfolgreich"; only the reader-name warning stays). Floating sticky nav bar (`nav.jsx`): tabs Bestand | Pflege | Cover |
+  Empfehlungen | Info | Statistik (column 54rem, `body.adm`), then help (`?`, `help.jsx`) and lock. Charts only in tab Statistik. Destructive actions = two
   clicks within 4 s. `App` only gets `lock`. Automatic corrections (`fixes.jsx`) only change the public list, never the WinBook
   file. Every publish keeps a local version (IndexedDB `dsm-admin`, `versions.js`). Print without `:has()` (Firefox ESR 115).
 - Only HTML/CSS/JS, no deploy services/database/server code except `save.php`; double-click (file://) works: classic scripts, no modules.

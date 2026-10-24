@@ -1,6 +1,7 @@
 /* Tab "Pflege": maintenance lists from the WinBook file (source/extract.js inspect) – what should be fixed in WinBook,
    media types, a location list for the inventory at the shelf. Every list: table view (table-view.jsx), download as
-   Excel (xlsx.js, formatted, one sheet per list) or CSV, printing (print.jsx). Nothing here is published. */
+   Excel (xlsx.js, formatted, one sheet per list) or CSV, printing (print.jsx); all lists also as PDF via the print
+   dialog (#m-all-pdf). Nothing here is published. */
 import * as React from "react";
 import { ChevronDownIcon, DownloadIcon, PrinterIcon, TableIcon } from "lucide-react";
 
@@ -10,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
+import { notify } from "@/lib/notice";
 import { Big, Lines } from "./catalog";
 import { Fixes } from "./fixes";
 import { TableView } from "./table-view";
@@ -26,6 +28,7 @@ const GROUPS = [
 ];
 const HEX = { blue: "B5C9D0", mauve: "BA8EA7", green: "B3CEA1", orange: "DB9F00", red: "A93A39" }; // logo colours (styles.css)
 const SHOWN = 100; // rows on the page per list, all of them in the table view and the files
+const WIDE = "h-auto min-h-11 w-full whitespace-normal py-2 text-center [text-wrap:balance]"; // summary card buttons
 const today = () => new Date().toLocaleDateString("sv-SE");
 const coll = new Intl.Collator("de", { sensitivity: "base", numeric: true });
 
@@ -162,6 +165,14 @@ export function Care({ B, ins, report, cov, onCatalog }) {
   const groups = allChecks(ins, report, cov);
   const found = groups.reduce((s, [, list]) => s + list.reduce((n, c) => n + c.rows.length, 0), 0);
   const lines = [[t("mRecords"), nf(ins.records.length)]].concat(ins.latest ? [[t("mLatest"), df(ins.latest)]] : [], [[t("mFound"), nf(found)]]);
+  /* "PDF": browsers save a PDF only through their print dialog (no library). So: the print job with every non-empty list,
+     the document title = file name (proposed by "Als PDF speichern"), a notice first, then the print dialog. */
+  const pdf = () => {
+    const lists = groups.reduce((a, [g, list]) => a.concat(list.filter(c => c.rows.length).map(c => ({ ...c, group: g }))), []);
+    if (!lists.length) return;
+    notify(t("mxPdfHint"));
+    setTimeout(() => setJob({ kind: "lists", lists, title: `${slug(t("mxDoc"))}-${X.d}` }), 500); // the notice shows first
+  };
 
   return (
     <div className="steps grid gap-3.5 pb-10" id="tab-care">
@@ -170,16 +181,18 @@ export function Care({ B, ins, report, cov, onCatalog }) {
         <Big id="m-records">{nf(ins.records.length)}</Big>
         <CardDescription>{t("mP")}</CardDescription>
         <Lines id="m-lines" lines={lines} />
-        <CardFooter>
-          <Button variant="outline" id="m-table" onClick={() => setView({ check: null })}><TableIcon aria-hidden="true" /><span>{t("mxAllTable")}</span></Button>
+        {/* three equal buttons over the full card width (stacked on narrow screens), labels may wrap */}
+        <CardFooter className="grid grid-cols-1 min-[30rem]:grid-cols-3" id="m-sum-actions">
+          <Button variant="outline" id="m-table" className={WIDE} onClick={() => setView({ check: null })}><TableIcon aria-hidden="true" /><span>{t("mxAllTable")}</span></Button>
           <DownloadMenu
-            triggerProps={{ id: "m-dl" }} label={t("mxAllDl")}
+            triggerProps={{ id: "m-dl", className: WIDE }} label={t("mxAllDl")}
             sections={[[null, [
               { text: t("mxXlsx"), on: () => X.allXlsx(groups, lines.map(l => l.join(": ")).join(" · ")), props: { id: "m-all-xlsx" } },
               { text: t("mxCsv"), on: () => X.allCsv(groups), props: { id: "m-all" } },
+              { text: t("mxPdf"), on: pdf, props: { id: "m-all-pdf", disabled: !found } },
             ]]]}
           />
-          <Button variant="outline" id="m-print-lists" disabled={!found} onClick={() => setPrintOpen(true)}><PrinterIcon aria-hidden="true" /><span>{t("mPrint")}</span></Button>
+          <Button variant="outline" id="m-print-lists" className={WIDE} disabled={!found} onClick={() => setPrintOpen(true)}><PrinterIcon aria-hidden="true" /><span>{t("mPrint")}</span></Button>
         </CardFooter>
       </Card>
       <Fixes B={B} ins={ins} />

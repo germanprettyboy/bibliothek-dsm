@@ -3,6 +3,7 @@
    then help and lock, separated by thin lines. All items 44 px high, icons 18 px.
    Labels open sideways; how many show depends on the room (data-fit, measured here):
      all    = every tab label; help and lock slide theirs out on hover/focus
+     lead   = every tab label but the last tab's (Statistik); it, help and lock slide theirs out on hover/focus
      active = only the active tab's label; the other tabs, help and lock slide theirs out on hover/focus (like the lock)
      none   = phones: icons only, nothing slides out (no room; touch has no hover)
    The measure adds natural widths (paddings + icon + label text), not the current ones: it doesn't depend on the state
@@ -19,11 +20,11 @@ import { useLanguage } from "@/lib/language";
 // Order of the tabs: [value, label key, icon]; data-tab and #tab-<value> are test hooks
 export const TABS = [
   ["catalog", "tabCatalog", DatabaseIcon],
-  ["covers", "tabCovers", ImageIcon],
   ["care", "tabCare", WrenchIcon],
-  ["stats", "tabStats", ChartColumnIcon],
+  ["covers", "tabCovers", ImageIcon],
   ["recs", "tabRecs", SparklesIcon],
   ["info", "tabInfo", InfoIcon],
+  ["stats", "tabStats", ChartColumnIcon],
 ];
 
 const ICON = { size: 18, strokeWidth: 1.8, "aria-hidden": "true" };
@@ -38,8 +39,9 @@ function bare(el) {
 }
 const labelOf = el => { const l = el.querySelector(".adm-lbl > span > span"); return l ? l.offsetWidth : 0; };
 
-// How many labels fit: "all" needs every tab label plus room for help/lock sliding out; "active" the two widest labels
-// (active tab + one sliding out); otherwise "none"
+// How many labels fit: "all" needs every tab label plus room for help/lock sliding out; "lead" every label but the last
+// tab's plus room for the widest of it, help and lock sliding out; "active" the two widest labels (active tab + one
+// sliding out); otherwise "none"
 function fitOf(bar) {
   const s = getComputedStyle(bar);
   const room = bar.clientWidth - px(s.paddingLeft) - px(s.paddingRight);
@@ -59,6 +61,8 @@ function fitOf(bar) {
   const sum = tabs.reduce((a, b) => a + b, 0);
   const top = tabs.concat(acts).sort((a, b) => b - a);
   if (fixed + sum + Math.max(0, ...acts) + 2 <= room) return "all";
+  const last = tabs[tabs.length - 1] || 0;
+  if (fixed + sum - last + Math.max(last, ...acts) + 2 <= room) return "lead";
   if (fixed + top[0] + (top[1] || 0) + 2 <= room) return "active";
   return "none";
 }
@@ -100,10 +104,10 @@ export function AdminNav({ tab, lock, onHelp }) {
     <div ref={bar} className="adm-nav" data-fit={fit} data-active={tab}>
       <TabsList aria-label={t("navTabs")} className="tabs adm-tabs flex w-auto rounded-lg bg-transparent p-0 shadow-none">
         <span ref={pill} className="adm-pill" aria-hidden="true" />
-        {TABS.map(([v, k, Icon]) => (
+        {TABS.map(([v, k, Icon], n) => (
           <TabsTrigger
             key={v} value={v} data-tab={v}
-            className={`${item} adm-tab data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:shadow-none`}
+            className={`${item} adm-tab${n < TABS.length - 1 ? " adm-lead" : ""} data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:shadow-none`}
           >
             <Icon {...ICON} /><Label>{t(k)}</Label>
           </TabsTrigger>

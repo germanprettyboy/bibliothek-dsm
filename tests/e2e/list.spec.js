@@ -233,6 +233,10 @@ test.describe("preview from the admin page", () => {
     await open(page, "index.html#preview");
     await expect(page.locator("#preview")).toBeVisible();
     await expect(page.locator("#list .row")).toHaveCount(2);
+    // "Vorschau beenden" leads back to the admin page (a tab without history closes instead, then the same address)
+    await expect(page.locator("#preview-end")).toHaveAttribute("href", "admin.html");
+    await page.click("#preview-end");
+    await expect(page).toHaveURL(/admin\.html$/);
   });
 
   test("without #preview: the published list", async ({ page }) => {

@@ -1,8 +1,8 @@
 /*
  * Admin page, help page (#help, tools/source/admin/help.jsx, content in help-content.js): opened via #help-btn in the
  * navigation bar; sections with navigation, search (case/accent-insensitive, marks, no-hit state), accordion articles,
- * "Zum Tab" buttons (close the help and switch the tab), "/" focuses the search, Escape closes, Italian content,
- * phone sheet with section chips and without horizontal scrolling.
+ * "Zum Tab" buttons (close the help and switch the tab), "/" focuses the search, Escape closes, full screen (#help-full,
+ * from 40rem), Italian content, phone sheet with section chips and without horizontal scrolling.
  */
 const { test, expect, PHONE, settled, swipeStages } = require("./helpers.js");
 const { adminSetup, unlock } = require("./admin-helpers.js");
@@ -68,11 +68,54 @@ test.describe("help page", () => {
     await expect(help(page)).toBeHidden();
   });
 
+  test("full screen: button left of ×, covers the viewport, readable line length, Escape still closes", async ({ page }) => {
+    await unlock(page);
+    await openHelp(page);
+    const sheet = help(page);
+    const fs = sheet.locator("#help-full[data-fullscreen]");
+    await expect(fs).toBeVisible();
+    await expect(fs).toHaveAttribute("aria-pressed", "false");
+    await expect(fs).toHaveAttribute("aria-label", "Vollbild");
+    // directly left of the close button, same row
+    const [a, x] = await Promise.all([fs.boundingBox(), sheet.locator(":scope > .close").boundingBox()]);
+    expect(Math.abs(a.y - x.y)).toBeLessThanOrEqual(1);
+    expect(a.width).toBeGreaterThanOrEqual(44);
+    expect(Math.round(x.x - (a.x + a.width))).toBe(8);
+
+    await fs.click();
+    await expect(sheet).toHaveClass(/\bfull\b/);
+    await expect(fs).toHaveAttribute("aria-pressed", "true");
+    await expect(fs).toHaveAttribute("aria-label", "Vollbild beenden");
+    await settled(page);
+    const vp = page.viewportSize();
+    const box = await sheet.boundingBox();
+    expect(Math.round(box.x)).toBe(0);
+    expect(Math.round(box.y)).toBe(0);
+    expect(Math.round(box.width)).toBe(vp.width);
+    expect(Math.round(box.height)).toBe(vp.height);
+    // the content keeps a line length of at most 46rem and doesn't run under the buttons
+    const body = await sheet.locator(".help-body").boundingBox();
+    expect(body.width).toBeLessThanOrEqual(46 * 16 + 1);
+    const h = await sheet.locator('[data-help-section="start"] .help-sh').evaluate(e => e.getBoundingClientRect().right - parseFloat(getComputedStyle(e).paddingRight));
+    expect(h).toBeLessThanOrEqual((await fs.boundingBox()).x);
+
+    // Escape closes; reopened it stays in full screen until switched off
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await openHelp(page);
+    await expect(sheet).toHaveClass(/\bfull\b/);
+    await sheet.locator("#help-full").click();
+    await expect(sheet).not.toHaveClass(/\bfull\b/);
+    await expect(sheet.locator("#help-full")).toHaveAttribute("aria-pressed", "false");
+    expect((await sheet.boundingBox()).width).toBeLessThan(page.viewportSize().width);
+  });
+
   test("Italian: content and search follow the language", async ({ page }) => {
     await unlock(page);
     await page.click('.seg [data-lang="it"]');
     await openHelp(page);
     await expect(page.locator("#help-t")).toHaveText("Aiuto");
+    await expect(page.locator("#help-full")).toHaveAttribute("aria-label", "Schermo intero");
     await expect(page.locator('[data-help-nav="start"]')).toHaveText("Primi passi");
     await expect(page.locator('[data-help-section="start"]')).toContainText("La routine mensile");
     await expect(page.locator('[data-help-section="start"] [data-help-tab="catalog"]').first()).toContainText("Vai alla scheda «Catalogo»");
@@ -92,6 +135,7 @@ test.describe("help page", () => {
       await unlock(page);
       await openHelp(page);
       const sheet = help(page);
+      await expect(sheet.locator("#help-full")).toBeHidden(); // phones: the sheet is full height already
       // the chips scroll inside their row; page, sheet and content don't scroll sideways
       expect(await page.locator(".help-nav").evaluate(n => n.scrollWidth > n.clientWidth)).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);

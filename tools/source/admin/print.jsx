@@ -121,24 +121,28 @@ function ShelfPart({ job, rows }) {
   );
 }
 
-// Prints a job: document into body, html.printing, waits for the logo, print(); afterprint ends the job (onDone)
+/* Prints a job: document into body, html.printing, waits for the logo, print(); afterprint ends the job (onDone).
+   job.title (optional, the PDF route): document.title while printing = the file name "Als PDF speichern" proposes. */
 export function PrintJob({ job, onDone }) {
   const ref = React.useRef(null);
   React.useEffect(() => {
     if (!job) return undefined;
     const root = document.documentElement;
+    const before = document.title;
     let gone = false, id = 0;
-    const done = () => { root.classList.remove("printing"); removeEventListener("afterprint", done); if (!gone) onDone(); };
+    const end = () => { root.classList.remove("printing"); removeEventListener("afterprint", done); if (job.title) document.title = before; };
+    const done = () => { end(); if (!gone) onDone(); };
     root.classList.add("printing");
+    if (job.title) document.title = job.title;
     addEventListener("afterprint", done);
     const img = ref.current && ref.current.querySelector("img");
-    const go = () => { if (gone) return; clearTimeout(id); log("Care", `print ${job.kind}`); window.print(); };
+    const go = () => { if (gone) return; clearTimeout(id); log("Care", `print ${job.kind}${job.title ? " as " + job.title : ""}`); window.print(); };
     if (img && !img.complete) {
       img.addEventListener("load", go, { once: true });
       img.addEventListener("error", go, { once: true });
       id = setTimeout(go, 1500); // never wait longer for the logo
     } else id = setTimeout(go, 0); // after the render with data-print
-    return () => { gone = true; clearTimeout(id); root.classList.remove("printing"); removeEventListener("afterprint", done); };
+    return () => { gone = true; clearTimeout(id); end(); };
   }, [job]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!job) return null;
   return createPortal(<div data-print="" ref={ref}><PrintDoc job={job} /></div>, document.body);
