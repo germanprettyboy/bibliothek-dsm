@@ -7,6 +7,10 @@
 #   tools/branches.sh sync                main and origin/main to the same state (take over origin's commits, push main)
 #   tools/branches.sh cleanup             remove finished worktrees and their branches (local and on origin)
 #
+# Build output (website/index.html, admin.html, assets/{head,library,admin}.js, assets/style.css – tools/build.mjs GENERATED)
+# never blocks: changed in the main checkout (a running npm run dev / local / tunnel:php rebuilds it) it is reset to the
+# committed state; a merge conflict only in build output is resolved in the branch worktree (merge main, build, commit).
+#
 # Procedure and rules: CLAUDE.md, section "Integrating branches".
 set -u
 
@@ -58,6 +62,8 @@ overview() {
   for f in $changed; do case " $DATA_FILES " in *" $f "*) ;; *) data_only=0 ;; esac; done
   if [ -n "$changed" ] && [ "$data_only" = 1 ]; then
     note="Main checkout: only admin data changed ($(echo $changed)) – npm run integrate takes it over via a merge.\n"
+  elif [ -n "$changed" ] && only_built "$changed"; then
+    note="Main checkout: only build output changed (a running watch build) – npm run integrate resets it.\n"
   elif [ -n "$changed" ]; then
     note="Main checkout ($MAIN) has uncommitted changes on main.\n"
   fi
@@ -83,6 +89,25 @@ overview() {
 # that is intended content: via its own branch data-<time> into main as a merge commit (main only via merges),
 # instead of blocking the integration. Other changes alongside → do nothing, integrate() aborts as before.
 DATA_FILES="website/books.js website/recommendations.js website/info.js"
+BUILT_FILES="website/index.html website/admin.html website/assets/head.js website/assets/library.js website/assets/admin.js website/assets/style.css"
+# Are all files in $1 (space separated, not empty) build output?
+only_built() {
+  local f
+  [ -n "$1" ] || return 1
+  for f in $1; do case " $BUILT_FILES " in *" $f "*) ;; *) return 1 ;; esac; done
+}
+# Build output changed in the main checkout (watch build of npm run dev / local / tunnel:php; it may contain classes from
+# the worktrees): back to the committed state, as long as everything else changed is only admin data (take_over_data)
+restore_built() {
+  local changed f built="" other=0
+  changed=$(g diff --name-only HEAD)
+  for f in $changed; do
+    case " $BUILT_FILES " in *" $f "*) built="$built $f"; continue ;; esac
+    case " $DATA_FILES " in *" $f "*) ;; *) other=1 ;; esac
+  done
+  [ -z "$built" ] || [ "$other" = 1 ] && return 0
+  g checkout HEAD -- $built && echo "Main checkout: build output reset to main ($(echo $built | sed 's#website/##g')) – a running watch build writes it again."
+}
 take_over_data() {
   local changed f idx tree commit branch
   changed=$(g diff --name-only HEAD)
@@ -108,10 +133,13 @@ take_over_data() {
 }
 
 # Merge $1 into main in the main checkout as a merge commit, JavaScript syntax checked. Returns 1 (main unchanged) if not possible.
+MERGE_CONFLICTS=""
 merge_checked() {
   local ref=$1 output conflicts f failed=0
+  MERGE_CONFLICTS=""
   if ! output=$(g merge --no-ff --no-commit "$ref" 2>&1); then
     conflicts=$(g diff --name-only --diff-filter=U)
+    MERGE_CONFLICTS=$(echo $conflicts)
     g merge --abort 2>/dev/null
     echo "Merging $ref is not possible – main unchanged." >&2
     [ -n "$conflicts" ] && printf "Conflicts:\n%s\n" "$conflicts" >&2 || echo "$output" >&2
@@ -188,12 +216,34 @@ cleanup() {
   for b in $(g for-each-ref --format='%(refname:short)' 'refs/heads/worktree-*'); do remove_finished "$b" "$quiet"; done
 }
 
+# Conflicts only in build output: in the branch worktree $2 merge main, build again, commit, push the branch. The sources
+# merged cleanly, so the rebuilt output is what the merged sources produce (CI of main checks it after the push).
+rebuild_branch() {
+  local b=$1 wt=$2 c f
+  [ -n "$wt" ] && [ -d "$wt" ] || { echo "$b has no worktree – merge main there by hand." >&2; return 1; }
+  w() { git -C "$wt" "$@"; }
+  echo "Conflicts only in build output: merging main into $b in $wt and building again …"
+  if ! w merge -q --no-edit main >/dev/null 2>&1; then
+    c=$(w diff --name-only --diff-filter=U)
+    only_built "$(echo $c)" || { w merge --abort 2>/dev/null; printf "Other conflicts as well:\n%s\n" "$c" >&2; return 1; }
+  fi
+  (cd "$wt" && node tools/build.mjs >/dev/null) || { w merge --abort 2>/dev/null; echo "Build in $wt failed." >&2; return 1; }
+  for f in $BUILT_FILES; do [ -e "$wt/$f" ] && w add -- "$f"; done
+  if w rev-parse -q --verify MERGE_HEAD >/dev/null; then
+    w commit -q -m "Merge main into $b (build output rebuilt)" || { w merge --abort; return 1; }
+  elif ! w diff --cached --quiet; then
+    w commit -q -m "Build output rebuilt after merging main" || return 1
+  fi
+  w push -q 2>/dev/null || echo "Pushing $b failed – push it later; main gets the merge anyway." >&2
+}
+
 integrate() {
   local b=${1:-} wt n
   [ -z "$b" ] && { echo "Usage: tools/branches.sh integrate <branch>" >&2; exit 2; }
   [ "$b" = main ] && { echo "main cannot be integrated into itself." >&2; exit 2; }
   g rev-parse --verify -q "refs/heads/$b" >/dev/null || { echo "Branch $b does not exist." >&2; exit 1; }
   [ "$(g symbolic-ref --short HEAD)" = main ] || { echo "Main checkout $MAIN is not on main." >&2; exit 1; }
+  restore_built
   take_over_data
   [ -z "$(g status --porcelain --untracked-files=no)" ] || { echo "Main checkout has uncommitted changes – clear that up first (ask Johann)." >&2; exit 1; }
   wt=$(worktree_of "$b")
@@ -205,7 +255,11 @@ integrate() {
   if [ "$n" -eq 0 ]; then
     echo "$b is already fully in main."
   else
-    merge_checked "$b" || { echo "Resolve in the branch worktree: 'git merge main' there, resolve the conflicts, check, commit, then integrate again." >&2; exit 1; }
+    restore_built # a watch build may have written it again after the sync
+    if ! merge_checked "$b"; then
+      only_built "$MERGE_CONFLICTS" && rebuild_branch "$b" "$wt" && n=$(g rev-list --count "main..$b") && merge_checked "$b" ||
+        { echo "Resolve in the branch worktree: 'git merge main' there, resolve the conflicts, check, commit, then integrate again." >&2; exit 1; }
+    fi
     echo "$b ($n commit(s)) integrated into main: $(g log -1 --format='%h %s')"
     check_encryption main
     sync_origin 0
@@ -216,9 +270,9 @@ integrate() {
 
 case "${1:-}" in
   "")        overview 0 ;;
-  --hook)    sync_origin 1; cleanup 1; overview 1 ;;
+  --hook)    restore_built >/dev/null; sync_origin 1; cleanup 1; overview 1 ;;
   integrate) integrate "${2:-}" ;;
-  sync)      sync_origin 0 ;;
+  sync)      restore_built; sync_origin 0 ;;
   cleanup)   cleanup 0 ;;
   *)         sed -n '2,10p' "$0"; exit 2 ;;
 esac

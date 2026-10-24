@@ -40,5 +40,7 @@ migrate-data.mjs    old German data files -> current format
 tunnel.mjs          public https URL for website/ (npm run tunnel, tunnel:dev, tunnel:php)
 
 branches.sh         Claude worktrees and main (npm run branches / integrate; SessionStart hook in ../.claude/settings.json):
-                    integrate = merge origin/main + the branch into main, push main, remove the finished worktree
+                    integrate = merge origin/main + the branch into main, push main, remove the finished worktree.
+                    Build output never blocks: changed in the main checkout (watch build) it is reset; a conflict only in
+                    build output is resolved in the branch worktree (merge main, npm run build, commit, push)
 main-guard.cjs      PreToolUse hook for Edit/Write: refuses file edits in the main checkout (work happens in worktrees)

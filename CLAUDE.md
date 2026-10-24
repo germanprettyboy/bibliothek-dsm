@@ -130,7 +130,7 @@ After every change: `npm run build`, commit, push, CI green. Triggers, retries, 
   - full for shared ground: `src/styles.css`, `head.js`, `lib/*`, `components/{glass-dialog,header,ui/*}`, `library/{main,app,data}`,
     `src/admin/*`, `tools/build.mjs`, dependencies, Playwright config/helpers, `tests/suites.js`, workflows, `save.php`, `.htaccess`,
     `covers.js`, `logger.js`, `extract.js`, `generate-books.js`, data formats; engine-specific behavior (blur, `lvh`, container
-    queries, touch, animation, View Transition); > 3 areas; a conflicting merge of `main`; unsure.
+    queries, touch, animation, View Transition); > 3 areas; a conflicting merge of `main` (conflicts only in build output don't count); unsure.
   - smoke + areas for changes inside a section (component, its CSS/texts/spec, the data it shows); bare smoke only for tools, unit
     tests, `tests/apache/`. A new spec needs an area and ≥ 1 `@smoke` test.
   - Before integrating: one green run covering ALL changes since `main`. In doubt: full.
@@ -147,10 +147,14 @@ also refused plain shell commands); the shell is not guarded: no `npm run build`
 another session's worktree.
 1. Commit in the worktree, `git merge main`, resolve conflicts there (built files: `npm run build`; `admin.enc.js`: encrypt again;
    `books.js`: `npm run books`; others by content).
-2. `tools/source/*` changed → `npm run encrypt` (Johann). Push the branch, CI green.
+2. `tools/source/*` changed → encrypt again (Claude, password from Johann in chat). Push the branch, CI green.
 3. ExitWorktree (`keep`), in the main checkout `npm run integrate -- worktree-<name>`. It takes over admin data in main, merges
    `origin/main`, merges the branch (`--no-ff`, syntax check), pushes `main` and removes worktree + branch (local and on origin).
    Report merge commit and warnings.
+- Build output (`website/{index,admin}.html`, `assets/{head,library,admin}.js`, `assets/style.css`) never blocks: changed in the
+  main checkout (a running `dev`/`local`/`tunnel:php` watch build, may contain classes of the worktrees) `integrate`, `sync` and
+  the hook reset it to main; a conflict ONLY in build output `integrate` resolves itself in the branch worktree (merge `main`,
+  build, commit, push) – that counts as a clean merge, no extra CI run. Never resolve it by hand, never stop for it.
 - `main` = `origin/main` always: cloud sessions merge `claude/*` branches into `origin/main`; `integrate` and the SessionStart hook
   (`tools/branches.sh --hook`) take those over and push. The hook also removes finished worktrees no process uses any more.
 - Never touch foreign worktrees with uncommitted changes. `main` only via merge commits: no rebase, `--force`, `reset --hard`.
