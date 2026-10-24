@@ -1,6 +1,7 @@
 /*
  * Admin page, tab "Pflege": downloads as Excel workbook (tools/source/admin/xlsx.js: ZIP without compression, one sheet
- * per list, "Übersicht" first) and printing (print.jsx: dialog with the choice of lists, printable document in body).
+ * per list, "Übersicht" first), printing (print.jsx: dialog with the choice of lists, printable document in body), all
+ * lists as PDF via the print dialog (#m-all-pdf: document.title = file name) and the summary card's button row.
  * The CSV contents are checked in admin-care.spec.js. window.print is replaced: no real print dialog.
  */
 const fs = require("fs");
@@ -42,6 +43,7 @@ const stubPrint = page => page.addInitScript(() => {
       n: d.length, text: d.length ? d[0].textContent : "",
       lists: d.length ? Array.from(d[0].querySelectorAll("[data-print-list]"), s => s.getAttribute("data-print-list")) : [],
       printing: document.documentElement.classList.contains("printing"),
+      title: document.title,
     };
   };
 });
@@ -148,6 +150,57 @@ test.describe("printing the error lists", () => {
     await page.click("#p-pick");
     await page.click("#p-all");
     await expect(page.locator('[data-pick="yearOdd"]')).toHaveAttribute("data-state", "checked");
+  });
+});
+
+test.describe("all lists as PDF", () => {
+  test("prints every non-empty list with the file name as document title, restored after printing", { tag: "@smoke" }, async ({ page }) => {
+    await stubPrint(page);
+    await care(page);
+    const title = await page.title();
+    // the non-empty lists in page order (empty ones have a disabled row button)
+    const keys = await page.locator(".check").evaluateAll(els => els.filter(e => !e.querySelector(":scope > button").disabled).map(e => e.getAttribute("data-check")));
+    expect(keys.length).toBeGreaterThan(2);
+    await page.click("#m-dl");
+    await expect(page.locator("#m-all-pdf")).toHaveText("PDF-Datei (.pdf)");
+    await page.click("#m-all-pdf");
+    await expect(page.locator(".toast")).toContainText("Im Druckfenster als Ziel „Als PDF speichern“ wählen.");
+    await expect.poll(() => page.evaluate(() => window.__printed && window.__printed.n)).toBe(1);
+    const p = await page.evaluate(() => window.__printed);
+    expect(p.printing).toBe(true);
+    expect(p.title).toMatch(/^fehlerliste-\d{4}-\d{2}-\d{2}$/);
+    expect(p.lists).toEqual(keys);
+    expect(p.text).toContain("Bibliothek · Fehlerliste");
+    expect(p.text).not.toContain("Musterfrau");
+    expect(await page.title()).toBe(p.title); // still printing
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    await expect(page).toHaveTitle(title);
+    await expect(page.locator("[data-print]")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.classList.contains("printing"))).toBe(false);
+  });
+
+  test("summary card: three buttons share the card width", async ({ page }) => {
+    await care(page);
+    const boxes = await Promise.all(["#m-table", "#m-dl", "#m-print-lists"].map(s => page.locator(s).boundingBox()));
+    const row = await page.locator("#m-sum-actions").boundingBox();
+    for (const b of boxes) {
+      expect(Math.abs(b.width - boxes[0].width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(b.height - boxes[0].height)).toBeLessThanOrEqual(1);
+      expect(Math.abs(b.y - boxes[0].y)).toBeLessThanOrEqual(1);
+    }
+    expect(Math.round(boxes[2].x + boxes[2].width - boxes[0].x)).toBe(Math.round(row.width));
+  });
+
+  test.describe("phone", () => {
+    test.use({ ...PHONE });
+    test("summary card: the three buttons stacked over the full width", async ({ page }) => {
+      await care(page);
+      const row = await page.locator("#m-sum-actions").boundingBox();
+      const boxes = await Promise.all(["#m-table", "#m-dl", "#m-print-lists"].map(s => page.locator(s).boundingBox()));
+      for (const b of boxes) expect(Math.round(b.width)).toBe(Math.round(row.width));
+      expect(boxes[1].y).toBeGreaterThan(boxes[0].y);
+      expect(boxes[2].y).toBeGreaterThan(boxes[1].y);
+    });
   });
 });
 

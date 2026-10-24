@@ -31,7 +31,7 @@ test("save.php v2: no button for earlier versions", async ({ page }) => {
   await server(page, { backups: handler([]) });
   await unlock(page);
   await open(page);
-  await expect(page.locator("#i-how")).toContainText("direkt auf der Website");
+  await expect(page.locator("#i-how")).toHaveAttribute("data-mode", "online");
   await expect(card(page).locator("[data-pub-backups]")).toHaveCount(0);
 });
 

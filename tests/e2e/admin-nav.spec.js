@@ -7,7 +7,7 @@ const { adminSetup, unlock, tab } = require("./admin-helpers.js");
 
 adminSetup();
 
-const NAMES = ["Bestand", "Cover", "Pflege", "Statistik", "Empfehlungen", "Info"];
+const NAMES = ["Bestand", "Pflege", "Cover", "Empfehlungen", "Info", "Statistik"];
 const nav = page => page.locator(".adm-nav");
 // Left edge of the pill (current transform)
 const pillX = page => page.locator(".adm-pill").evaluate(p => new DOMMatrix(getComputedStyle(p).transform).m41);
@@ -44,7 +44,7 @@ test.describe("admin navigation", () => {
     await unlock(page);
     await page.locator('.tabs [data-tab="catalog"]').focus();
     await page.keyboard.press("ArrowRight");
-    await expect(page.locator("#tab-covers")).toBeVisible();
+    await expect(page.locator("#tab-care")).toBeVisible();
     await page.keyboard.press("ArrowLeft");
     await expect(page.locator("#tab-catalog")).toBeVisible();
   });
@@ -61,8 +61,12 @@ test.describe("admin navigation", () => {
     expect(await label("#lock-btn")).toBeLessThan(1);
     await page.hover("#lock-btn");
     await expect.poll(() => label("#lock-btn")).toBeGreaterThan(30);
-    // the active tab shows its name, every item is at least 44 px high
+    // the active tab shows its name; with the room of a computer (1280 px) the first five tabs keep theirs written out
     expect(await label('.tabs [data-state="active"]')).toBeGreaterThan(30);
+    await expect(nav(page)).toHaveAttribute("data-fit", /^(lead|all)$/);
+    await page.mouse.move(0, 0);
+    await expect.poll(() => label('.tabs [data-tab="recs"]')).toBeGreaterThan(30);
+    // every item is at least 44 px high
     const heights = await page.locator(".tabs [data-tab], #help-btn, #lock-btn").evaluateAll(t => t.map(e => e.getBoundingClientRect().height));
     for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);
   });

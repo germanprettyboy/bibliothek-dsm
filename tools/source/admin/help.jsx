@@ -4,13 +4,14 @@
    below: search and horizontally scrolling section chips stick above the content (phone: swipe sheet).
    Search filters articles, questions and glossary entries across all sections (case/accent-insensitive) and marks
    the hits. Props: open, onOpenChange, onTab(value) = close and switch to a tab, tabs (TABS of nav.jsx),
-   section (optional: open on this section). Test hooks: #help, #help-q, #help-count, #help-empty,
-   [data-help-section], [data-help-nav], [data-help-item], [data-help-tab]. */
+   section (optional: open on this section). From 40rem a round button left of × switches to full screen (class `full`
+   on the sheet; kept while the page is open). Test hooks: #help, #help-q, #help-count, #help-empty, #help-full
+   ([data-fullscreen], aria-pressed), [data-help-section], [data-help-nav], [data-help-item], [data-help-tab]. */
 import "./strings-help";
 import * as React from "react";
 import {
-  ArrowRightIcon, BookAIcon, InfoIcon, LifeBuoyIcon, LightbulbIcon, ListOrderedIcon, MessageCircleQuestionMarkIcon,
-  RocketIcon, SearchIcon, ThumbsUpIcon, TriangleAlertIcon, XIcon,
+  ArrowRightIcon, BookAIcon, InfoIcon, LifeBuoyIcon, LightbulbIcon, ListOrderedIcon, Maximize2Icon, MessageCircleQuestionMarkIcon,
+  Minimize2Icon, RocketIcon, SearchIcon, ThumbsUpIcon, TriangleAlertIcon, XIcon,
 } from "lucide-react";
 
 import { GlassDialog } from "@/components/glass-dialog";
@@ -247,6 +248,7 @@ export function Help({ open, onOpenChange, onTab, tabs = [], section }) {
   const [active, setActive] = React.useState("start");
   const [q, setQ] = React.useState("");
   const [openItems, setOpenItems] = React.useState([]);
+  const [full, setFull] = React.useState(false);
   const search = React.useRef(null), main = React.useRef(null), side = React.useRef(null), nav = React.useRef(null);
   const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
 
@@ -315,9 +317,16 @@ export function Help({ open, onOpenChange, onTab, tabs = [], section }) {
 
   return (
     <GlassDialog
-      open={open} onOpenChange={onOpenChange} name="Help" titleId="help-t" id="help" className="help swipe" overlayClassName="swipe"
+      open={open} onOpenChange={onOpenChange} name="Help" titleId="help-t" id="help" className={cn("help swipe", full && "full")} overlayClassName="swipe"
       onKeyDown={key} onOpenAutoFocus={autoFocus}
     >
+      <Button
+        variant="icon" size="icon" id="help-full" className="help-fs hidden min-[40rem]:inline-flex" data-fullscreen="" aria-pressed={full}
+        aria-label={t(full ? "hFullOff" : "hFull")} title={t(full ? "hFullOff" : "hFull")}
+        onClick={() => { setFull(f => !f); log("Help", full ? "full screen off" : "full screen"); }}
+      >
+        {full ? <Minimize2Icon aria-hidden="true" strokeWidth={2} /> : <Maximize2Icon aria-hidden="true" strokeWidth={2} />}
+      </Button>
       <div className="pane help-pane" ref={swipeRef}>
         <header className="help-head">
           <DialogTitle id="help-t">{t("hTitle")}</DialogTitle>

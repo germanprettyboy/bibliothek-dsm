@@ -4,7 +4,7 @@ import { addStrings } from "@/lib/language";
 addStrings({
   de: {
     imDoneT: "Upload erfolgreich",
-    imDoneP: "{f} · {n} Bücher übernommen",
+    imFile: "WinBook-Datei",
     imStep: "Schritt {i} von {n}",
     cvEmptyT: "Noch keine Bücherliste",
     cvEmptyP: "Die Cover-Abdeckung lässt sich prüfen, sobald eine Bücherliste veröffentlicht oder im Tab „Bestand“ eine WinBook-Datenbank geladen ist.",
@@ -14,7 +14,7 @@ addStrings({
   },
   it: {
     imDoneT: "Caricamento riuscito",
-    imDoneP: "{f} · {n} libri acquisiti",
+    imFile: "File WinBook",
     imStep: "Passo {i} di {n}",
     cvEmptyT: "Ancora nessun elenco di libri",
     cvEmptyP: "La copertura delle copertine si può verificare non appena è pubblicato un elenco di libri o è caricato un database WinBook nella scheda «Catalogo».",

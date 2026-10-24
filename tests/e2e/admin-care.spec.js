@@ -25,7 +25,7 @@ const rows = text => text.replace(/^﻿/, "").trim().split("\r\n").map(l => l.sp
 test.describe("tab Pflege", () => {
   test("before an import: note, the button leads to the catalog tab", async ({ page }) => {
     await unlock(page);
-    await expect(page.locator(".tabs [data-tab]")).toHaveText(["Bestand", "Cover", "Pflege", "Statistik", "Empfehlungen", "Info"]);
+    await expect(page.locator(".tabs [data-tab]")).toHaveText(["Bestand", "Pflege", "Cover", "Empfehlungen", "Info", "Statistik"]);
     await tab(page, "care");
     await expect(page.locator("#m-none")).toContainText("Nichts davon wird veröffentlicht");
     await page.click("#m-to-catalog");

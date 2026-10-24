@@ -31,7 +31,8 @@ test.describe("publishing via the real save.php", () => {
     for (const text of ["Erster Hinweis", "Zweiter Hinweis"]) {
       await unlock(page);
       await page.click('.tabs [data-tab="info"]');
-      await expect(page.locator("#i-how")).toHaveText("Ein Klick speichert info.js direkt auf der Website – sofort online, nichts hochladen.");
+      await expect(page.locator("#i-how")).toHaveAttribute("data-mode", "online");
+      await expect(page.locator("#i-how")).toBeHidden(); // online one click needs no note
       await page.fill("#i-note-de", text);
       await page.click("#i-dl");
       await expect(page.locator('.pub[data-file="info.js"] .flag')).toHaveText(/^info\.js ist online, \d\d:\d\d Uhr\.$/);

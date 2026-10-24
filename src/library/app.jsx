@@ -58,7 +58,16 @@ export function App() {
       <div className="banner text-s font-medium" id="preview" hidden={!PREVIEW_ON}>
         <div className="wrap flex items-center justify-between gap-3 py-2">
           <span>{t("preview")}</span>
-          <a href="./" className="font-semibold whitespace-nowrap text-anthracite no-underline">{t("previewEnd")}</a>
+          {/* Back to the admin page: a preview tab opened from there (new tab, no history) closes, otherwise admin.html */}
+          <a
+            href="admin.html" className="font-semibold whitespace-nowrap text-anthracite no-underline" id="preview-end"
+            onClick={e => {
+              if (history.length > 1 || !/admin\.html/.test(document.referrer)) return;
+              e.preventDefault();
+              window.close();
+              setTimeout(() => { location.href = "admin.html"; }, 150);
+            }}
+          >{t("previewEnd")}</a>
         </div>
       </div>
       <Announcement I={I} ready={loaded} />

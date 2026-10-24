@@ -326,14 +326,16 @@ export function Publish({ file, build, ids, alt, howKey, preview, onPreview, chi
   const { t, lang } = useLanguage();
   const z = usePub(), m = z.message[file];
   const online = z.server === "ready" && !!KEY, direct = online || FS;
-  const how = online ? t("pubLiveHow", { f: file })
+  // Online one click is self-explanatory: no note (data-mode stays as a hook)
+  const how = online ? ""
     : FS ? t(z.folder ? "pubHowOn" : "pubHow", { f: file, o: z.folder ? z.folder.name : "" }) : t("pubNoFs") + " " + t(howKey);
+  const mode = online ? "online" : FS ? "folder" : "download";
   // save.php found but not usable: say why
   const setup = !z.server || online ? null : z.server === "ready" ? "pubSetupOld" : z.server === "not-writable" ? "pubSetupWritable" : "pubSetupAccess";
   return (
     <Card>
       <CardTitle>{t("publishT")}</CardTitle>
-      <p className="note m-0 text-s text-muted-foreground" id={ids.how}>{how}</p>
+      <p className="note m-0 text-s text-muted-foreground" id={ids.how} data-mode={mode} hidden={!how}>{how}</p>
       <CardFooter>
         <Button id={ids.button} disabled={z.running === file} onClick={() => publish(file, build, lang)}>
           {direct ? <CheckIcon aria-hidden="true" strokeWidth={2} /> : <DownloadIcon aria-hidden="true" strokeWidth={2} />}

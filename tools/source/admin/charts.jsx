@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language";
 
 const delay = i => Math.min(i * 18, 300) + "ms";
-const BG = "var(--bg)"; // card surface: gaps and rings around marks
 
 // Width of an element in px (0 until measured)
 export function useWidth() {
@@ -31,7 +30,8 @@ export function useWidth() {
   return [ref, w];
 }
 
-// Tooltip: one per chart, positioned above the hovered/focused mark inside the box (ref). rows = [[value, label, color?]]
+/* Tooltip: one per chart, positioned above the hovered/focused mark inside the box (ref). rows = [[value, label, color?]];
+   value null = label only (when the label already says the number) */
 export function useTip() {
   const ref = React.useRef(null);
   const [tip, setTip] = React.useState(null);
@@ -55,7 +55,7 @@ export function useTip() {
       {tip.rows.map(([value, label, color], k) => (
         <div key={k} className="flex items-center gap-2">
           {color ? <span className="st-key" style={{ background: color }} /> : null}
-          <span className="font-semibold tabular-nums">{value}</span>
+          {value != null ? <span className="font-semibold tabular-nums">{value}</span> : null}
           {label ? <span className="st-tip-l">{label}</span> : null}
         </div>
       ))}
@@ -135,14 +135,14 @@ function DataTable({ id, caption, table, hidden }) {
   );
 }
 
-// KPI tiles: label, value (proportional figures), optional note; a short accent line in a logo color
+// KPI tiles: label, value (text or node, all in the same size), optional note; a short accent line in a logo color
 export function Kpis({ items }) {
   return (
     <div className="st-kpis" style={{ "--n": Math.min(6, items.length) }}>
       {items.map(k => (
         <div key={k.key} className="st-kpi" data-kpi={k.key} style={{ "--c": k.color }}>
           <span className="text-s text-muted-foreground">{k.label}</span>
-          <span className={cn("st-kpi-value font-semibold", k.small ? "text-m" : "text-l")}>{k.value}</span>
+          <span className="st-kpi-value text-l font-semibold">{k.value}</span>
           {k.note ? <span className="text-s text-muted-foreground">{k.note}</span> : null}
         </div>
       ))}
@@ -197,13 +197,16 @@ function colPath(x, y, w, base) {
   return `M${x},${base}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${base}Z`;
 }
 
-/* Columns over bins (histogram, years). bins: [{ key, label, value, tip }]; marker: { at: position in bins (0 … n),
-   label } = vertical reference line (median); trend: value per bin or null = 2 px line; one series = one color. */
-export function Columns({ bins, color, marker, trend, height = 200, aria }) {
+/* Columns over bins (histogram, years). bins: [{ key, label (axis), name? (tooltip, default label), value, tip (aria) }];
+   marker: { at: position in bins (0 … n), label } = vertical reference line (median); one series = one color.
+   Axis labels on every 1st/2nd/5th/10th/20th bin, whichever is the first that leaves room between them (the first
+   bin is always labelled, so round start years give round labels); a label that would leave the plot is dropped. */
+const LABEL_STEPS = [1, 2, 5, 10, 20, 50];
+export function Columns({ bins, color, marker, height = 200, aria }) {
   const { nf } = useLanguage();
   const [wref, w] = useWidth();
   const tip = useTip();
-  const max = Math.max(1, ...bins.map(b => b.value), ...(trend || []).filter(v => v != null));
+  const max = Math.max(1, ...bins.map(b => b.value));
   const yt = ticks(max);
   const top = yt[yt.length - 1];
   const left = 8 + 8 * String(axisNum(nf, top)).length, right = 4, upper = 24, lower = 26;
@@ -211,10 +214,9 @@ export function Columns({ bins, color, marker, trend, height = 200, aria }) {
   const n = bins.length, band = n ? pw / n : 0;
   const bw = Math.max(1, Math.min(24, band - 2, band * 0.72));
   const y = v => base - (v / top) * ph;
-  const labelW = Math.max(...bins.map(b => String(b.label).length)) * 8 + 10;
-  const every = Math.max(1, Math.ceil(labelW / Math.max(1, band)));
-  const maxI = bins.reduce((m, b, i) => (b.value > bins[m].value ? i : m), 0);
-  const trendPts = trend ? trend.map((v, i) => (v == null ? null : `${left + band * (i + 0.5)},${y(Math.max(0, v))}`)).filter(Boolean) : [];
+  const labelW = Math.max(...bins.map(b => String(b.label).length)) * 8 + 12;
+  const need = labelW / Math.max(1, band);
+  const every = LABEL_STEPS.find(s => s >= need) || Math.ceil(need);
   return (
     <div ref={tip.ref} className="relative">
       <div ref={wref} className="w-full">
@@ -227,20 +229,17 @@ export function Columns({ bins, color, marker, trend, height = 200, aria }) {
               </g>
             ))}
             {bins.map((b, i) => {
-              const x = left + band * i + (band - bw) / 2;
+              const x = left + band * i + (band - bw) / 2, cx = left + band * (i + 0.5);
+              const lw = String(b.label).length * 8;
               return (
                 <g key={b.key}>
                   {b.value > 0 ? (
                     <path d={colPath(x, y(b.value), bw, base)} fill={color} className={cn("st-grow-y st-mark", tip.active != null && tip.active !== i && "st-dim")} style={{ animationDelay: delay(i) }} />
                   ) : null}
-                  {i % every === 0 ? <text x={left + band * (i + 0.5)} y={base + 18} textAnchor="middle" className="st-axis">{b.label}</text> : null}
+                  {i % every === 0 && cx + lw / 2 <= w ? <text x={cx} y={base + 18} textAnchor="middle" className="st-axis" data-tick={b.label}>{b.label}</text> : null}
                 </g>
               );
             })}
-            {bins[maxI] && bins[maxI].value > 0 && !marker ? (
-              <text x={left + band * (maxI + 0.5)} y={y(bins[maxI].value) - 6} textAnchor="middle" className="st-value">{nf(bins[maxI].value)}</text>
-            ) : null}
-            {trendPts.length > 1 ? <polyline points={trendPts.join(" ")} className="st-trend st-draw" pathLength="1" /> : null}
             {marker ? (() => {
               const mx = left + band * marker.at, end = mx > left + pw / 2;
               return (
@@ -254,7 +253,7 @@ export function Columns({ bins, color, marker, trend, height = 200, aria }) {
             {bins.map((b, i) => (
               <rect
                 key={b.key} x={left + band * i} y={upper} width={band} height={ph} className="st-hit" tabIndex={0} role="img"
-                aria-label={b.tip} {...tip.on([[nf(b.value), b.label]], i)}
+                aria-label={b.tip} {...tip.on([[nf(b.value), b.name || b.label]], i)}
               />
             ))}
           </svg>
@@ -265,73 +264,9 @@ export function Columns({ bins, color, marker, trend, height = 200, aria }) {
   );
 }
 
-/* Lines over time: x = dates (time scale), series = [{ key, label, color, values: [number|null] }], one y axis from 0.
-   Crosshair + one tooltip with every series at the hovered date; the first series has a light area wash. */
-export function LineChart({ dates, labels, series, height = 210, aria }) {
-  const { nf } = useLanguage();
-  const [wref, w] = useWidth();
-  const tip = useTip();
-  const ts = dates.map(d => Date.parse(d));
-  const t0 = Math.min(...ts), t1 = Math.max(...ts);
-  const max = Math.max(1, ...series.map(s => Math.max(0, ...s.values.filter(v => v != null))));
-  const yt = ticks(max);
-  const top = yt[yt.length - 1];
-  const left = 8 + 8 * String(axisNum(nf, top)).length, right = 14, upper = 12, lower = 26;
-  const pw = Math.max(0, w - left - right), ph = height - upper - lower, base = upper + ph;
-  const x = i => left + (t1 > t0 ? ((ts[i] - t0) / (t1 - t0)) * pw : pw / 2);
-  const y = v => base - (v / top) * ph;
-  const path = s => {
-    let d = "", pen = false;
-    s.values.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? "L" : "M") + x(i) + "," + y(v); pen = true; });
-    return d;
-  };
-  const first = series[0];
-  const fi = first.values.map((v, i) => (v == null ? -1 : i)).filter(i => i >= 0);
-  const area = fi.length > 1 ? `M${x(fi[0])},${base}` + fi.map(i => `L${x(i)},${y(first.values[i])}`).join("") + `L${x(fi[fi.length - 1])},${base}Z` : "";
-  const a = tip.active;
-  return (
-    <div ref={tip.ref} className="relative">
-      <div ref={wref} className="w-full">
-        {w > 0 ? (
-          <svg className="st-svg text-s" width={w} height={height} viewBox={`0 0 ${w} ${height}`} role="group" aria-label={aria}>
-            {yt.map(v => (
-              <g key={v}>
-                <line x1={left} x2={w - right} y1={y(v)} y2={y(v)} className="st-grid-line" />
-                <text x={left - 6} y={y(v)} dy="0.32em" textAnchor="end" className="st-axis">{axisNum(nf, v)}</text>
-              </g>
-            ))}
-            <line x1={left} x2={w - right} y1={base} y2={base} className="st-base" />
-            <text x={x(0)} y={base + 18} textAnchor="start" className="st-axis">{labels[0]}</text>
-            <text x={x(dates.length - 1)} y={base + 18} textAnchor="end" className="st-axis">{labels[labels.length - 1]}</text>
-            {area ? <path d={area} fill={first.color} className="st-area" /> : null}
-            {series.map(s => <path key={s.key} d={path(s)} stroke={s.color} className="st-line st-draw" pathLength="1" />)}
-            {a != null ? <line x1={x(a)} x2={x(a)} y1={upper} y2={base} className="st-cross" /> : null}
-            {series.map(s => {
-              const i = a != null ? a : s.values.length - 1;
-              const v = s.values[i];
-              return v == null ? null : <circle key={s.key} cx={x(i)} cy={y(v)} r={4} fill={s.color} stroke={BG} strokeWidth={2} className="st-dot" />;
-            })}
-            {dates.map((d, i) => {
-              const lo = i ? (x(i - 1) + x(i)) / 2 : left, hi = i < dates.length - 1 ? (x(i) + x(i + 1)) / 2 : w - right;
-              const rows = series.filter(s => s.values[i] != null).map(s => [nf(s.values[i]), s.label, s.color]);
-              return (
-                <rect
-                  key={d + i} x={lo} y={upper} width={Math.max(1, hi - lo)} height={ph} className="st-hit" tabIndex={0} role="img"
-                  aria-label={labels[i] + ": " + rows.map(r => r[1] + " " + r[0]).join(", ")}
-                  {...tip.on([[labels[i], ""]].concat(rows), i, { x: x(i), y: upper })}
-                />
-              );
-            })}
-          </svg>
-        ) : <div style={{ height: height + "px" }} />}
-      </div>
-      {tip.node}
-    </div>
-  );
-}
-
 /* Donut (part of a whole, ≤ 6 parts): parts = [{ key, label, value, color }], 2 px gaps between segments;
-   center = { value, label } in HTML; the list beside it is the legend with values and shares. */
+   center = { value, label } in HTML; the list is the legend with values and shares: beside the ring when the card
+   has room (container query on .st-donut-box), below it otherwise; rows = grid swatch | label | count | share. */
 export function Donut({ parts, center, aria }) {
   const { nf } = useLanguage();
   const tip = useTip();
@@ -342,44 +277,46 @@ export function Donut({ parts, center, aria }) {
   const pct = v => nf(Math.round((v / total) * 1000) / 10) + " %";
   let start = 0;
   return (
-    <div ref={tip.ref} className="st-donut relative">
-      <div className="relative shrink-0" style={{ width: S + "px", height: S + "px" }}>
-        <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="group" aria-label={aria}>
-          <circle cx={S / 2} cy={S / 2} r={R} fill="none" stroke="var(--surface)" strokeWidth={W} />
-          {shown.map((p, i) => {
-            const len = (p.value / total) * C, dash = Math.max(0.5, len - gap);
-            const mid = ((start + len / 2) / C) * 2 * Math.PI - Math.PI / 2;
-            const pt = { x: S / 2 + Math.cos(mid) * R, y: S / 2 + Math.sin(mid) * R - W / 2 };
-            const el = (
-              <circle
-                key={p.key} cx={S / 2} cy={S / 2} r={R} fill="none" stroke={p.color} strokeWidth={W}
-                strokeDasharray={`${dash} ${C}`} strokeDashoffset={-start} transform={`rotate(-90 ${S / 2} ${S / 2})`}
-                className={cn("st-seg st-mark", tip.active != null && tip.active !== i && "st-dim")} tabIndex={0} role="img"
-                style={{ "--c": C, animationDelay: delay(i * 3) }} data-part={p.key}
-                aria-label={`${p.label}: ${nf(p.value)} (${pct(p.value)})`} {...tip.on([[nf(p.value), p.label, p.color]], i, pt)}
-              />
-            );
-            start += len;
-            return el;
-          })}
-        </svg>
-        {center ? (
-          <div className="pointer-events-none absolute inset-0 grid place-content-center text-center" aria-hidden="true">
-            <span className="text-l leading-none font-semibold">{center.value}</span>
-            <span className="mt-1 text-s text-muted-foreground">{center.label}</span>
-          </div>
-        ) : null}
+    <div ref={tip.ref} className="st-donut-box relative">
+      <div className="st-donut">
+        <div className="relative" style={{ width: S + "px", height: S + "px" }}>
+          <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="group" aria-label={aria}>
+            <circle cx={S / 2} cy={S / 2} r={R} fill="none" stroke="var(--surface)" strokeWidth={W} />
+            {shown.map((p, i) => {
+              const len = (p.value / total) * C, dash = Math.max(0.5, len - gap);
+              const mid = ((start + len / 2) / C) * 2 * Math.PI - Math.PI / 2;
+              const pt = { x: S / 2 + Math.cos(mid) * R, y: S / 2 + Math.sin(mid) * R - W / 2 };
+              const el = (
+                <circle
+                  key={p.key} cx={S / 2} cy={S / 2} r={R} fill="none" stroke={p.color} strokeWidth={W}
+                  strokeDasharray={`${dash} ${C}`} strokeDashoffset={-start} transform={`rotate(-90 ${S / 2} ${S / 2})`}
+                  className={cn("st-seg st-mark", tip.active != null && tip.active !== i && "st-dim")} tabIndex={0} role="img"
+                  style={{ "--c": C, animationDelay: delay(i * 3) }} data-part={p.key}
+                  aria-label={`${p.label}: ${nf(p.value)} (${pct(p.value)})`} {...tip.on([[nf(p.value), p.label, p.color]], i, pt)}
+                />
+              );
+              start += len;
+              return el;
+            })}
+          </svg>
+          {center ? (
+            <div className="pointer-events-none absolute inset-0 grid place-content-center text-center" aria-hidden="true">
+              <span className="text-l leading-none font-semibold">{center.value}</span>
+              <span className="mt-1 text-s text-muted-foreground">{center.label}</span>
+            </div>
+          ) : null}
+        </div>
+        <ul className="st-dleg" role="list">
+          {parts.map(p => (
+            <li key={p.key} data-part={p.key}>
+              <span className="st-swatch translate-y-px" style={{ background: p.color }} aria-hidden="true" />
+              <span className="st-dleg-l">{p.label}</span>
+              <span className="text-right font-medium tabular-nums">{nf(p.value)}</span>
+              <span className="text-right text-s text-muted-foreground tabular-nums">{pct(p.value)}</span>
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className="m-0 grid min-w-0 flex-1 list-none content-center gap-1.5 p-0" role="list">
-        {parts.map(p => (
-          <li key={p.key} className="flex items-baseline gap-2" data-part={p.key}>
-            <span className="st-swatch translate-y-px" style={{ background: p.color }} aria-hidden="true" />
-            <span className="min-w-0 flex-1">{p.label}</span>
-            <span className="font-medium tabular-nums">{nf(p.value)}</span>
-            <span className="w-14 shrink-0 text-right text-s text-muted-foreground tabular-nums">{pct(p.value)}</span>
-          </li>
-        ))}
-      </ul>
       {tip.node}
     </div>
   );
@@ -474,7 +411,7 @@ export function Heatmap({ rows, cols, cells, color, max, low, high, rowHead }) {
               {cells[i].map((c, j) => {
                 const k = max > 0 ? c.value / max : 0, strong = k > 0.55;
                 return (
-                  <td key={j} tabIndex={0} aria-label={c.tip} data-v={c.value} {...tip.on([[nf(c.value), c.tip]], i * 100 + j)}>
+                  <td key={j} tabIndex={0} aria-label={c.tip} data-v={c.value} {...tip.on([[null, c.tip]], i * 100 + j)}>
                     <span className="st-heat-fill st-pop" style={{ background: color, opacity: c.value ? 0.12 + 0.88 * k : 0, animationDelay: delay(i + j) }} />
                     <span className={cn("relative tabular-nums", strong ? "text-white" : c.value ? "" : "text-muted-foreground")}>{c.value ? nf(c.value) : "–"}</span>
                   </td>

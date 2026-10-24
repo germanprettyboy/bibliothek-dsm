@@ -143,7 +143,7 @@ test.describe("importing the database", () => {
     // success panel in place of the drop zone; no list of discarded personal data, no "check passed" text
     const done = page.locator("#import-done");
     await expect(done).toContainText("Upload erfolgreich");
-    await expect(page.locator("#import-sub")).toHaveText("test.winbook · 8 Bücher übernommen");
+    await expect(page.locator("#import-sub")).toHaveText("test.winbook") // file name only, the count is in the report;
     await expect(done.locator("#again")).toBeVisible();
     await expect(page.locator("#drop")).toBeHidden();
     await expect(page.locator("#r-removed")).toHaveCount(0);
@@ -188,7 +188,7 @@ test.describe("importing the database", () => {
     await expect(page.locator("#import-done")).toHaveCount(0);
     await expect(page.locator("#report")).toBeVisible(); // the last report stays until a new file is read
     await chooser.setFiles(path.join(TMP, "test.winbook"));
-    await expect(page.locator("#import-done")).toContainText("8 Bücher übernommen", { timeout: 20000 });
+    await expect(page.locator("#import-done")).toContainText("Upload erfolgreich", { timeout: 20000 });
     await expect(page.locator("#drop")).toBeHidden();
   });
 
@@ -241,7 +241,7 @@ test.describe("importing the database", () => {
     await expect(page.locator("#error")).toHaveText(/Non è un database SQLite|SQLite/);
     await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#import-done")).toContainText("Caricamento riuscito", { timeout: 20000 });
-    await expect(page.locator("#import-sub")).toHaveText("test.winbook · 8 libri acquisiti");
+    await expect(page.locator("#import-sub")).toHaveText("test.winbook");
     await expect(page.locator("#r-check")).toContainText("1 titoli contengono un nome");
   });
 
@@ -252,7 +252,7 @@ test.describe("importing the database", () => {
     db.close();
     await unlock(page);
     await page.setInputFiles("#file", { name: "ohne-leser.winbook", mimeType: "application/octet-stream", buffer });
-    await expect(page.locator("#import-sub")).toHaveText("ohne-leser.winbook · 8 Bücher übernommen", { timeout: 20000 });
+    await expect(page.locator("#import-sub")).toHaveText("ohne-leser.winbook", { timeout: 20000 });
     await expect(page.locator("#report")).toBeVisible();
     await expect(page.locator("#r-check")).toHaveCount(0);
     await expect(page.locator("#tab-catalog")).not.toContainText("Leserdatei");
@@ -552,14 +552,13 @@ test.describe("publishing directly into the website folder", () => {
 test.describe("publishing directly online (save.php)", () => {
   const info = async page => { await page.click('.tabs [data-tab="info"]'); await expect(page.locator("#tab-info")).toBeVisible(); };
   const flag = page => page.locator('.pub[data-file="info.js"] .flag');
-  const ONLINE = "Ein Klick speichert info.js direkt auf der Website – sofort online, nichts hochladen.";
 
   test('one click: info.js goes to save.php with the key, no folder dialog, message "online"', { tag: "@smoke" }, async ({ page }) => {
     const { saveKey } = require("../../tools/encrypt-admin.js");
     const requests = await server(page);
     await unlock(page);
     await info(page);
-    await expect(page.locator("#i-how")).toHaveText(ONLINE);
+    await expect(page.locator("#i-how")).toHaveAttribute("data-mode", "online"); // online: no note
     await expect(page.locator("#i-dl")).toHaveText("Veröffentlichen");
     await expect(page.locator('.pub[data-file="info.js"] .note')).toHaveCount(0);
     await page.fill("#i-note-de", "Online-Hinweis");
@@ -589,7 +588,7 @@ test.describe("publishing directly online (save.php)", () => {
     await server(page, { post: { status: 403, json: { dsm: "save", v: 2, error: "key" } } });
     await unlock(page);
     await info(page);
-    await expect(page.locator("#i-how")).toHaveText(ONLINE);
+    await expect(page.locator("#i-how")).toHaveAttribute("data-mode", "online"); // online: no note
     const before = await page.evaluate(() => JSON.stringify(window.DSM_INFO));
     await page.fill("#i-note-de", "Abgelehnt");
     await page.click("#i-dl");
@@ -602,7 +601,7 @@ test.describe("publishing directly online (save.php)", () => {
     await server(page, { post: { status: 500, body: "Internal Server Error" } });
     await unlock(page);
     await info(page);
-    await expect(page.locator("#i-how")).toHaveText(ONLINE);
+    await expect(page.locator("#i-how")).toHaveAttribute("data-mode", "online"); // online: no note
     await page.click("#i-dl");
     await expect(flag(page)).toHaveText("Speichern auf der Website hat nicht geklappt (HTTP 500: Internal Server Error). Bitte noch einmal versuchen.");
   });
@@ -638,7 +637,7 @@ test.describe("publishing directly online (save.php)", () => {
     await unlock(page);
     await info(page);
     await page.click('.seg [data-lang="it"]');
-    await expect(page.locator("#i-how")).toHaveText("Un clic salva info.js direttamente sul sito – subito online, senza caricare nulla.");
+    await expect(page.locator("#i-how")).toHaveAttribute("data-mode", "online");
     await page.click("#i-dl");
     await expect(flag(page)).toHaveText(/^info\.js è online dalle \d\d:\d\d\.$/);
   });
