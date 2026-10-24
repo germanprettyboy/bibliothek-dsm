@@ -72,6 +72,9 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - **Covers only via existing ISBN, NO Google** (Johann, 2026-10-23: visitor IPs not to Google): (1) ekz `cover.ekz.de/<ISBN>.jpg`
   (its "kein Bild" substitute detected by size + hash); (2) Open Library only for ekz misses, always `/api/books?jscmd=viewapi`,
   NEVER `/b/isbn/` (rate limit, school = one IP). Not DNB (bot protection). `noCover` ISBNs skipped everywhere, also from cache.
+- Experimental backgrounds (`library/backdrop.jsx`, settings "Hintergrund", `dsm-bg`): OFF by default, only on the book list.
+  Fixed `#bg` behind the page, under the column only `--fx-col`; none with high contrast/print, one still frame with reduced
+  motion, ≤ 30 fps (15 under a dialog), touch variants sleep without pointer. Search bar transparent until `.stuck`.
 - Zoom only for real, shown covers (placeholders never): FLIP into the center of the VISIBLE section, small images at most 2.5×.
 - Every dialog = `Dialog` `.glass.sheet` + `.scrim`; phone bottom sheet with swipe stages (`lib/swipe.js`), centered from 40rem.
   New dialogs the same, `swipeStages` in every dialog spec. Swiping the questions away = "no". A swipe up past

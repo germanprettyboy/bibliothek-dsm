@@ -1,4 +1,4 @@
-// Language DE/IT and settings (theme, larger text, high contrast, no animations)
+// Language DE/IT and settings (theme, larger text, high contrast, no animations, experimental backgrounds)
 const { test, expect, PHONE, open, swipeStages, data, hits } = require("./helpers.js");
 
 const { B, C } = data();
@@ -237,5 +237,109 @@ test.describe("setting \"Keine Animationen\"", () => {
     await page.locator("#s-motion").uncheck();
     await expect(page.locator("html")).not.toHaveAttribute("data-motion", /.*/);
     expect(await page.evaluate(() => localStorage.getItem("dsm-motion"))).toBe("normal");
+  });
+});
+
+// Experimental backgrounds (library/backdrop.jsx): off by default, 15 variants, none under high contrast, still without motion
+const BGS = ["notebook", "grid", "shelf", "milan", "sky", "mosaic", "aurora", "letters", "words", "ribbons", "pages", "stars", "ink", "lamp", "lens"];
+const CSS_BGS = ["notebook", "grid", "aurora"];
+// Chosen before the first load (like a returning visitor); a choice made in the test survives reloads
+const useBg = (page, id) => page.addInitScript(v => {
+  if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", JSON.stringify({ on: true, id: v }));
+}, id);
+
+test.describe("background", () => {
+  test("off by default; on, choose, saved, off again", { tag: "@smoke" }, async ({ page }) => {
+    await open(page);
+    await expect(page.locator("#bg")).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
+    await openSettings(page);
+    await expect(page.locator("#s-bg")).not.toBeChecked();
+    await expect(page.locator("#s-bgpick")).toBeHidden();
+    await page.locator("#s-bg").check();
+    await expect(page.locator("html")).toHaveAttribute("data-bg", "aurora");
+    await expect(page.locator('#bg[data-bg="aurora"]')).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator("#s-bgpick [role=radio]")).toHaveCount(BGS.length);
+    await page.click('#s-bgpick [data-bg="milan"]');
+    await expect(page.locator('#bg[data-bg="milan"] canvas')).toHaveCount(1);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("dsm-bg")))).toEqual({ on: true, id: "milan" });
+    // behind everything, never in the way of a click
+    expect(await page.evaluate(() => { const s = getComputedStyle(document.getElementById("bg")); return [s.position, s.zIndex, s.pointerEvents]; }))
+      .toEqual(["fixed", "-1", "none"]);
+    await page.reload();
+    await expect(page.locator('#bg[data-bg="milan"] canvas')).toHaveCount(1);
+    await openSettings(page);
+    await expect(page.locator('#s-bgpick [data-bg="milan"]')).toHaveAttribute("aria-checked", "true");
+    await page.locator("#s-bg").uncheck();
+    await expect(page.locator("#bg")).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
+  });
+
+  test("all 15 variants draw without script errors, the pointer and taps included", async ({ page }) => {
+    await open(page);
+    for (const id of BGS) {
+      await page.evaluate(v => localStorage.setItem("dsm-bg", JSON.stringify({ on: true, id: v })), id);
+      await page.reload();
+      await expect(page.locator(`#bg[data-bg="${id}"]`)).toHaveCount(1);
+      if (CSS_BGS.includes(id)) {
+        await expect(page.locator("#bg canvas")).toHaveCount(0);
+        continue;
+      }
+      // in the left margin, next to the column
+      await page.mouse.move(60, 300);
+      await page.mouse.move(90, 340, { steps: 4 });
+      await page.mouse.click(120, 360);
+      // something was drawn: a pixel that is not transparent
+      await expect.poll(() => page.evaluate(() => {
+        const c = document.querySelector("#bg canvas"), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < d.length; i += 4 * 97) if (d[i]) return true;
+        return false;
+      }), id).toBe(true);
+    }
+  });
+
+  test("the search bar lets it through until it sticks", async ({ page }) => {
+    await useBg(page, "grid");
+    await open(page);
+    const bg = () => page.evaluate(() => getComputedStyle(document.getElementById("bar")).backgroundColor);
+    expect(await bg()).toBe("rgba(0, 0, 0, 0)");
+    await page.mouse.wheel(0, 1500);
+    await expect(page.locator("#bar.stuck")).toHaveCount(1);
+    expect(await bg()).not.toBe("rgba(0, 0, 0, 0)");
+  });
+
+  test("high contrast: no background, the switch locked; back afterwards", async ({ page }) => {
+    await useBg(page, "shelf");
+    await open(page);
+    await expect(page.locator('#bg[data-bg="shelf"]')).toHaveCount(1);
+    await openSettings(page);
+    await page.locator("#s-contrast").check();
+    await expect(page.locator("#bg")).toHaveCount(0);
+    await expect(page.locator("#s-bg")).toBeDisabled();
+    await expect(page.locator("#s-bgpick")).toBeHidden();
+    await page.locator("#s-contrast").uncheck();
+    await expect(page.locator('#bg[data-bg="shelf"]')).toHaveCount(1);
+  });
+
+  test("in Italian", async ({ page }) => {
+    await useBg(page, "words");
+    await open(page);
+    await page.click('.seg [data-lang="it"]');
+    await openSettings(page);
+    await expect(page.locator('label[for="s-bg"]')).toContainText("Sfondo decorativo");
+    await expect(page.locator('#s-bgpick [data-bg="words"]')).toContainText("Bilingue");
+  });
+});
+
+test.describe("background with reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+  test("an animated variant stands still", async ({ page }) => {
+    await useBg(page, "letters");
+    await open(page);
+    await expect(page.locator('#bg[data-bg="letters"] canvas')).toHaveCount(1);
+    const pic = () => page.evaluate(() => document.querySelector("#bg canvas").toDataURL());
+    const a = await pic();
+    await page.waitForTimeout(400); // nothing may change meanwhile
+    expect(await pic()).toBe(a);
   });
 });
