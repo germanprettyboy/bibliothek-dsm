@@ -1,4 +1,4 @@
-// Language DE/IT and settings (theme, larger text, high contrast)
+// Language DE/IT and settings (theme, larger text, high contrast, no animations)
 const { test, expect, PHONE, open, swipeStages, data, hits } = require("./helpers.js");
 
 const { B, C } = data();
@@ -65,9 +65,9 @@ test.describe("language", () => {
   });
 });
 
-test.describe("settings", () => {
-  const openSettings = async page => { await page.click(".settings-btn"); await expect(page.locator(".settings[role=dialog]")).toBeVisible(); };
+const openSettings = async page => { await page.click(".settings-btn"); await expect(page.locator(".settings[role=dialog]")).toBeVisible(); };
 
+test.describe("settings", () => {
   test("theme: automatic / light / dark, saved", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.*/);
@@ -210,5 +210,32 @@ test.describe("reduced motion", () => {
     await page.keyboard.press("Escape");
     // without the fade-out animation the dialog (Radix Dialog) is out of the DOM immediately
     await expect(page.locator(".settings[role=dialog]")).toHaveCount(0, { timeout: 300 });
+  });
+  test("the setting \"Keine Animationen\" is on and locked", async ({ page }) => {
+    await open(page);
+    await openSettings(page);
+    await expect(page.locator("#s-motion")).toBeChecked();
+    await expect(page.locator("#s-motion")).toBeDisabled();
+  });
+});
+
+test.describe("setting \"Keine Animationen\"", () => {
+  test("stops animations, survives a reload, off again", { tag: "@smoke" }, async ({ page }) => {
+    await open(page);
+    await openSettings(page);
+    await expect(page.locator("#s-motion")).not.toBeChecked();
+    await page.locator("#s-motion").check();
+    await expect(page.locator("html")).toHaveAttribute("data-motion", "reduce");
+    expect(await page.evaluate(() => localStorage.getItem("dsm-motion"))).toBe("reduce");
+    expect(await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".settings[role=dialog]")).animationDuration))).toBeLessThan(.001);
+    await page.keyboard.press("Escape");
+    // without the fade-out animation the dialog is out of the DOM immediately
+    await expect(page.locator(".settings[role=dialog]")).toHaveCount(0, { timeout: 300 });
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-motion", "reduce");
+    await openSettings(page);
+    await page.locator("#s-motion").uncheck();
+    await expect(page.locator("html")).not.toHaveAttribute("data-motion", /.*/);
+    expect(await page.evaluate(() => localStorage.getItem("dsm-motion"))).toBe("normal");
   });
 });
