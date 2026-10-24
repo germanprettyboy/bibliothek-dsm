@@ -161,7 +161,7 @@ test.describe("categories", () => {
       // fast: the finger travels only 100 px, the sheet goes to the top and the content glides on
       await page.click("#cat-btn");
       const half2 = await restingTop(d);
-      await swipe(page, half2 + 400, half2 + 300);
+      await swipe(page, half2 + 400, half2 + 300, 8, { inPage: true });
       expect(await restingTop(d)).toBeLessThan(20);
       await expect.poll(pane).toBeGreaterThan(50);
     });
