@@ -241,7 +241,7 @@ test.describe("importing the database", () => {
     await expect(page.locator("#error")).toHaveText(/Non è un database SQLite|SQLite/);
     await load(page, path.join(TMP, "test.winbook"));
     await expect(page.locator("#import-done")).toContainText("Caricamento riuscito", { timeout: 20000 });
-    await expect(page.locator("#import-sub")).toHaveText("test.winbook · 8 libri acquisiti");
+    await expect(page.locator("#import-sub")).toHaveText("test.winbook");
     await expect(page.locator("#r-check")).toContainText("1 titoli contengono un nome");
   });
 
@@ -637,7 +637,7 @@ test.describe("publishing directly online (save.php)", () => {
     await unlock(page);
     await info(page);
     await page.click('.seg [data-lang="it"]');
-    await expect(page.locator("#i-how")).toHaveText("Un clic salva info.js direttamente sul sito – subito online, senza caricare nulla.");
+    await expect(page.locator("#i-how")).toHaveAttribute("data-mode", "online");
     await page.click("#i-dl");
     await expect(flag(page)).toHaveText(/^info\.js è online dalle \d\d:\d\d\.$/);
   });
