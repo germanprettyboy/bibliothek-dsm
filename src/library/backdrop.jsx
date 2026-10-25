@@ -7,10 +7,15 @@
      touch  = reacts to the pointer (click/tap, move); sleeps while nothing happens.
    Reduced motion (system or setting): every variant stands still, one frame, no pointer. High contrast, print: none.
    Hidden tab: no frames. Colors only from the tokens in styles.css, read again on every theme change.
-   Test hooks: #bg[data-bg], <html data-bg>, #s-bg, #s-bgpick [data-bg]. */
+   500 more variants live in assets/backgrounds.js (src/backgrounds/): loaded only when the gallery opens or one of them
+   was chosen (ids "<topic>-<name>"), same engine and rules.
+   Test hooks: #bg[data-bg], <html data-bg>, #s-bg, #s-bgpick [data-bg], #s-bgx (gallery: -open, -topic, -nr, -prev, -next,
+   -dice, -name). */
 import * as React from "react";
+import { ChevronLeftIcon, ChevronRightIcon, DicesIcon } from "lucide-react";
 
 import { Section, Option } from "@/components/settings";
+import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAppearance } from "@/lib/appearance";
 import { reduced, systemReduced } from "@/lib/environment";
@@ -37,6 +42,10 @@ addStrings({
     bg_ink: "Tinte", bgd_ink: "Tippen oder Klicken zieht Kreise",
     bg_lamp: "Leselampe", bgd_lamp: "Warmes Licht folgt dem Zeiger",
     bg_lens: "Punktlupe", bgd_lens: "Das Punktraster wächst unter dem Zeiger",
+    bgxTitle: "Galerie", bgxOpen: "{n} weitere Hintergründe zeigen", bgxLoad: "Galerie wird geladen …",
+    bgxFail: "Die Galerie konnte nicht geladen werden.", bgxAll: "Alle Themen", bgxTopic: "Thema", bgxNr: "Nummer",
+    bgxPrev: "Vorheriger Hintergrund", bgxNext: "Nächster Hintergrund", bgxDice: "Zufälliger Hintergrund",
+    bgxNone: "Noch keiner aus der Galerie gewählt", bgxOf: "von",
   },
   it: {
     bgTitle: "Sfondo", bgShow: "Sfondo decorativo", bgShowH: "Sperimentale – 15 varianti da provare",
@@ -57,6 +66,10 @@ addStrings({
     bg_ink: "Inchiostro", bgd_ink: "Tocca o clicca: cerchi d'inchiostro",
     bg_lamp: "Lampada da lettura", bgd_lamp: "Una luce calda segue il puntatore",
     bg_lens: "Lente a punti", bgd_lens: "La griglia di punti cresce sotto il puntatore",
+    bgxTitle: "Galleria", bgxOpen: "Mostra altri {n} sfondi", bgxLoad: "Caricamento della galleria …",
+    bgxFail: "Impossibile caricare la galleria.", bgxAll: "Tutti i temi", bgxTopic: "Tema", bgxNr: "Numero",
+    bgxPrev: "Sfondo precedente", bgxNext: "Sfondo successivo", bgxDice: "Sfondo a caso",
+    bgxNone: "Nessuno sfondo della galleria scelto", bgxOf: "di",
   },
 });
 
@@ -71,6 +84,8 @@ const rnd = seed => () => {
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
+// The same color fully transparent: canvas gradients towards "transparent" (= transparent black) turn gray halfway
+const clear = col => /^#[0-9a-f]{6}$/i.test(col) ? `rgba(${parseInt(col.slice(1, 3), 16)}, ${parseInt(col.slice(3, 5), 16)}, ${parseInt(col.slice(5, 7), 16)}, 0)` : "rgba(0, 0, 0, 0)";
 const font = (w, px) => `${w} ${px}px "Fira Sans", system-ui, sans-serif`;
 
 // ---------- The variants ----------
@@ -177,7 +192,7 @@ const sky = {
     const f = (hr - 6) / 14, sun = f > 0 && f < 1;
     const x = sun ? w * (.08 + .84 * f) : w * .82, y = sun ? h * (.85 - Math.sin(Math.PI * f) * .7) : h * .16;
     const g = c.createRadialGradient(x, y, 0, x, y, 160);
-    g.addColorStop(0, sun ? P.c.yellow : P.c.blue); g.addColorStop(1, "transparent");
+    g.addColorStop(0, sun ? P.c.yellow : P.c.blue); g.addColorStop(1, clear(sun ? P.c.yellow : P.c.blue));
     c.globalAlpha = .45 * P.fx; c.fillStyle = g; c.fillRect(x - 160, y - 160, 320, 320);
     c.globalAlpha = (sun ? .7 : .5) * P.fx; c.fillStyle = sun ? P.c.yellow : P.c.blue;
     c.beginPath(); c.arc(x, y, sun ? 34 : 24, 0, TAU); c.fill();
@@ -366,7 +381,7 @@ const lamp = {
     const k = still ? 1 : Math.min(1, dt / 220);
     s.x += (tx - s.x) * k; s.y += (ty - s.y) * k;
     const R = clamp(Math.min(w, h) * .55, 220, 420), g = c.createRadialGradient(s.x, s.y, 0, s.x, s.y, R);
-    g.addColorStop(0, P.c.yellow); g.addColorStop(.45, P.c.orange); g.addColorStop(1, "transparent");
+    g.addColorStop(0, P.c.yellow); g.addColorStop(.45, P.c.orange); g.addColorStop(1, clear(P.c.yellow));
     c.globalAlpha = (P.dark ? .3 : .38) * P.fx; c.fillStyle = g; c.fillRect(s.x - R, s.y - R, R * 2, R * 2);
     c.fillStyle = P.dark ? P.c.yellow : P.c.orange;
     for (const d of s.dust) {
@@ -422,9 +437,33 @@ const KINDS = ["still", "motion", "touch"];
 
 // ---------- Choice (localStorage dsm-bg) ----------
 const KEY = "dsm-bg";
+const EXTRA_ID = /^[a-z]+-[a-z0-9-]+$/; // gallery variants: "<topic>-<name>"; the built-in ones have no dash
 const saved = store.json(KEY);
-let pref = { on: !!(saved && saved.on), id: saved && BG[saved.id] ? saved.id : "aurora" };
+let pref = { on: !!(saved && saved.on), id: saved && (BG[saved.id] || EXTRA_ID.test(saved.id)) ? saved.id : "aurora" };
 const listeners = new Set();
+
+// The gallery (assets/backgrounds.js): one classic script, loaded once on demand (also via file://)
+let extra = null, loading = null;
+export function loadExtra() {
+  if (extra) return Promise.resolve(extra);
+  if (!loading) loading = new Promise((resolve, reject) => {
+    const done = () => {
+      const x = window.DSM_BACKGROUNDS;
+      if (!x) { loading = null; return reject(new Error("backgrounds.js")); }
+      extra = { ...x, byId: new Map(x.list.map(b => [b.id, b])) };
+      listeners.forEach(fn => fn());
+      resolve(extra);
+    };
+    if (window.DSM_BACKGROUNDS) return done();
+    const s = document.createElement("script");
+    s.src = "assets/backgrounds.js";
+    s.onload = done;
+    s.onerror = () => { loading = null; s.remove(); reject(new Error("backgrounds.js")); };
+    document.head.append(s);
+  });
+  return loading;
+}
+const find = id => BG[id] || (extra && extra.byId.get(id)) || null;
 
 export function setBackground(next) {
   pref = { ...pref, ...next };
@@ -506,7 +545,14 @@ function mount() {
     layer = document.createElement("div"); layer.id = "bg"; layer.setAttribute("aria-hidden", "true");
     document.body.prepend(layer);
   }
-  spec = BG[pref.id]; layer.dataset.bg = root.dataset.bg = pref.id;
+  spec = find(pref.id);
+  if (!spec && !extra) { // a gallery variant: draw it once its script is there
+    if (canvas) { canvas.remove(); canvas = ctx = null; }
+    loadExtra().then(mount, () => { pref = { ...pref, id: "aurora" }; mount(); });
+    return;
+  }
+  if (!spec) { pref = { ...pref, id: "aurora" }; spec = BG.aurora; } // no longer in the gallery
+  layer.dataset.bg = root.dataset.bg = pref.id;
   if (spec.css) { if (canvas) { canvas.remove(); canvas = ctx = null; } return; }
   if (!canvas) { canvas = document.createElement("canvas"); ctx = canvas.getContext("2d"); layer.append(canvas); }
   ptr.taps.length = 0;
@@ -566,7 +612,7 @@ export function BackgroundSettings() {
         id="s-bg" title={t("bgShow")} help={t(a.contrast ? "bgContrast" : "bgShowH")}
         checked={p.on && !a.contrast} disabled={a.contrast} onCheckedChange={v => setBackground({ on: v })}
       />
-      <RadioGroup id="s-bgpick" className="gpick pt-1.5" aria-label={t("bgPick")} hidden={!p.on || a.contrast} value={p.id} onValueChange={id => id && setBackground({ on: true, id })}>
+      <RadioGroup id="s-bgpick" className="bgpick pt-1.5" aria-label={t("bgPick")} hidden={!p.on || a.contrast} value={p.id} onValueChange={id => id && setBackground({ on: true, id })}>
         {KINDS.map(k => (
           <div key={k}>
             <span className="block px-0.5 pt-1 pb-1.5 text-s text-muted-foreground">
@@ -576,6 +622,72 @@ export function BackgroundSettings() {
           </div>
         ))}
       </RadioGroup>
+      {p.on && !a.contrast ? <Gallery p={p} /> : null}
     </Section>
+  );
+}
+
+// Gallery of the 500: topic, number, back/forward, dice. Loads its script only when opened (or already chosen from it).
+const GALLERY_SIZE = 500;
+function Gallery({ p }) {
+  const { t, lang } = useLanguage();
+  const x = React.useSyncExternalStore(subscribe, () => extra);
+  const [open, setOpen] = React.useState(EXTRA_ID.test(p.id));
+  const [failed, setFailed] = React.useState(false);
+  const [topic, setTopic] = React.useState("all");
+  React.useEffect(() => { if (open) loadExtra().then(() => setFailed(false), () => setFailed(true)); }, [open]);
+  const head = <span className="block px-0.5 pt-1 pb-1.5 text-s text-muted-foreground">{t("bgxTitle")}</span>;
+  if (!open) {
+    return (
+      <div id="s-bgx" className="bgpick">
+        {head}
+        <Button id="s-bgx-open" variant="outline" className="w-full" onClick={() => setOpen(true)}>{t("bgxOpen", { n: GALLERY_SIZE })}</Button>
+      </div>
+    );
+  }
+  if (!x) return <div id="s-bgx">{head}<p className="m-0 text-s text-muted-foreground" aria-live="polite">{t(failed ? "bgxFail" : "bgxLoad")}</p></div>;
+  const list = topic === "all" ? x.list : x.list.filter(b => b.topic === topic);
+  const cur = x.byId.get(p.id) || null;
+  const i = cur ? list.indexOf(cur) : -1;
+  const go = b => b && setBackground({ on: true, id: b.id });
+  const field = "h-11 rounded-lg border border-border bg-surface px-3 text-m text-foreground";
+  return (
+    <div id="s-bgx" className="bgpick">
+      {head}
+      <div className="card grid gap-3 p-4">
+        <label className="grid gap-1">
+          <span className="text-s text-muted-foreground">{t("bgxTopic")}</span>
+          <select id="s-bgx-topic" className={field} value={topic} onChange={e => setTopic(e.target.value)}>
+            <option value="all">{t("bgxAll")} ({x.list.length})</option>
+            {Object.entries(x.topics).map(([k, v]) => <option key={k} value={k}>{v[lang] || v.de} ({x.list.filter(b => b.topic === k).length})</option>)}
+          </select>
+        </label>
+        <div className="flex items-center gap-2">
+          <Button id="s-bgx-prev" variant="icon" size="icon" aria-label={t("bgxPrev")} onClick={() => go(list[i < 0 ? list.length - 1 : (i - 1 + list.length) % list.length])}><ChevronLeftIcon /></Button>
+          <label className="flex min-w-0 flex-1 items-center gap-2">
+            <span className="sr-only">{t("bgxNr")}</span>
+            <input
+              id="s-bgx-nr" type="number" inputMode="numeric" min="1" max={x.list.length} className={field + " w-full min-w-0"}
+              value={cur ? cur.nr : ""} placeholder="1–500"
+              onChange={e => go(x.list[(parseInt(e.target.value, 10) || 0) - 1])}
+            />
+            <span className="text-s whitespace-nowrap text-muted-foreground">{t("bgxOf")} {x.list.length}</span>
+          </label>
+          <Button id="s-bgx-next" variant="icon" size="icon" aria-label={t("bgxNext")} onClick={() => go(list[(i + 1) % list.length])}><ChevronRightIcon /></Button>
+          <Button id="s-bgx-dice" variant="icon" size="icon" aria-label={t("bgxDice")} onClick={() => go(list[Math.random() * list.length | 0])}><DicesIcon /></Button>
+        </div>
+        <div id="s-bgx-name" className="flex min-h-11 items-center gap-3" aria-live="polite">
+          {cur ? (
+            <>
+              <i className="bar-c" style={{ background: `var(--${cur.color})` }} />
+              <span className="grid min-w-0 gap-0.5">
+                <b className="font-semibold">{cur.nr}. {cur[lang === "it" ? "it" : "de"][0]}</b>
+                <small className="text-s text-muted-foreground">{cur[lang === "it" ? "it" : "de"][1]} · {t("bgK_" + cur.kind)}</small>
+              </span>
+            </>
+          ) : <small className="text-s text-muted-foreground">{t("bgxNone")}</small>}
+        </div>
+      </div>
+    </div>
   );
 }

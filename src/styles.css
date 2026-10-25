@@ -381,7 +381,7 @@
   /* Clear button of the search: pops in with the first character (hidden while the field is empty) */
   .search .clear:not([hidden]) { animation: pop-in var(--t-fast) var(--ease); }
   /* Settings: the group choice rises in when "show recommendations" is switched on */
-  .gpick:not([hidden]) { animation: rise var(--t-slow) var(--ease) both; }
+  .gpick:not([hidden]), .bgpick:not([hidden]) { animation: rise var(--t-slow) var(--ease) both; }
 
   /* Letter floater: only appears while scrolling, marks the start of a new letter */
   .floater {
