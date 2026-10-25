@@ -314,6 +314,16 @@ const saved = store.json(KEY);
 let pref = { on: !!(saved && saved.on), id: saved && BG[saved.id] ? saved.id : "aurora" }; // removed variants: aurora
 const listeners = new Set();
 
+export function setBackground(next) {
+  pref = { ...pref, ...next };
+  store.set(KEY, JSON.stringify(pref));
+  log("Setting", `Background: ${pref.on ? pref.id : "off"}`);
+  listeners.forEach(fn => fn());
+  mount();
+}
+const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
+export const useBackground = () => React.useSyncExternalStore(subscribe, () => pref);
+
 // ---------- Engine ----------
 let layer = null, canvas = null, ctx = null, spec = null, st = null, raf = 0, sleep = 0, last = 0;
 const ptr = { x: 0, y: 0, on: false, t: 0, taps: [] };
