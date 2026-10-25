@@ -7,7 +7,7 @@
 #   tools/branches.sh sync                main and origin/main to the same state (take over origin's commits, push main)
 #   tools/branches.sh cleanup             remove finished worktrees and their branches (local and on origin)
 #
-# Build output (website/index.html, admin.html, assets/{head,library,admin}.js, assets/style.css – tools/build.mjs GENERATED)
+# Build output (website/index.html, admin.html, assets/{head,library,admin,backgrounds}.js, assets/style.css – tools/build.mjs GENERATED)
 # never blocks: changed in the main checkout (a running npm run dev / local / tunnel:php rebuilds it) it is reset to the
 # committed state; a merge conflict only in build output is resolved in the branch worktree (merge main, build, commit).
 #
@@ -89,7 +89,7 @@ overview() {
 # that is intended content: via its own branch data-<time> into main as a merge commit (main only via merges),
 # instead of blocking the integration. Other changes alongside → do nothing, integrate() aborts as before.
 DATA_FILES="website/books.js website/recommendations.js website/info.js"
-BUILT_FILES="website/index.html website/admin.html website/assets/head.js website/assets/library.js website/assets/admin.js website/assets/style.css"
+BUILT_FILES="website/index.html website/admin.html website/assets/head.js website/assets/library.js website/assets/admin.js website/assets/backgrounds.js website/assets/style.css"
 # Are all files in $1 (space separated, not empty) build output?
 only_built() {
   local f

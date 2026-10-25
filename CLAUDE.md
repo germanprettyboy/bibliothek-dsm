@@ -16,7 +16,7 @@ and `tests/suites.js`; integration = `tools/branches.sh`. This file keeps the de
 ## Folders
 
 - `website/` – ONLY this goes onto the webspace (via `npm run pack`). Built files are committed.
-  - BUILT from `src/`: `index.html`, `admin.html`, `assets/{library,admin}.js`, `assets/style.css`, `assets/head.js`.
+  - BUILT from `src/`: `index.html`, `admin.html`, `assets/{library,admin,backgrounds}.js`, `assets/style.css`, `assets/head.js`.
   - Generated, never by hand: `books.js`, `recommendations.js`, `info.js` (`window.DSM_LIBRARY/DSM_RECOMMENDATIONS/DSM_INFO`),
     `save-access.php` (by encrypt-admin.js). `info.js` is NOT committed (`.gitignore`); missing = no info card.
   - By hand: `save.php`, `assets/{logger,covers,categories-it}.js`, `LIESMICH.txt` (German guide), `.htaccess` (only `IfModule`).
@@ -72,6 +72,11 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - **Covers only via existing ISBN, NO Google** (Johann, 2026-10-23: visitor IPs not to Google): (1) ekz `cover.ekz.de/<ISBN>.jpg`
   (its "kein Bild" substitute detected by size + hash); (2) Open Library only for ekz misses, always `/api/books?jscmd=viewapi`,
   NEVER `/b/isbn/` (rate limit, school = one IP). Not DNB (bot protection). `noCover` ISBNs skipped everywhere, also from cache.
+- Experimental backgrounds (`library/backdrop.jsx`, settings "Hintergrund", `dsm-bg`): OFF by default, only on the book list.
+  Fixed `#bg` behind the page, under the column only `--fx-col`; none with high contrast/print, one still frame with reduced
+  motion, ≤ 30 fps (15 under a dialog), touch variants sleep without pointer. Search bar transparent until `.stuck`.
+  500 more in `assets/backgrounds.js` (`src/backgrounds/`, one file per topic, helpers `kit.js`): loaded ONLY when the gallery
+  opens or a gallery id (`<topic>-<name>`) is chosen; canvas only, colors only from `P` (tokens), gradients fade with `clear(col)`.
 - Zoom only for real, shown covers (placeholders never): FLIP into the center of the VISIBLE section, small images at most 2.5×.
 - Every dialog = `Dialog` `.glass.sheet` + `.scrim`; phone bottom sheet with swipe stages (`lib/swipe.js`), centered from 40rem.
   New dialogs the same, `swipeStages` in every dialog spec. Swiping the questions away = "no". A swipe up past
@@ -154,7 +159,7 @@ another session's worktree.
 3. ExitWorktree (`keep`), in the main checkout `npm run integrate -- worktree-<name>`. It takes over admin data in main, merges
    `origin/main`, merges the branch (`--no-ff`, syntax check), pushes `main` and removes worktree + branch (local and on origin).
    Report merge commit and warnings.
-- Build output (`website/{index,admin}.html`, `assets/{head,library,admin}.js`, `assets/style.css`) never blocks: changed in the
+- Build output (`website/{index,admin}.html`, `assets/{head,library,admin,backgrounds}.js`, `assets/style.css`) never blocks: changed in the
   main checkout (a running `dev`/`local`/`tunnel:php` watch build, may contain classes of the worktrees) `integrate`, `sync` and
   the hook reset it to main; a conflict ONLY in build output `integrate` resolves itself in the branch worktree (merge `main`,
   build, commit, push) – that counts as a clean merge, no extra CI run. Never resolve it by hand, never stop for it.
