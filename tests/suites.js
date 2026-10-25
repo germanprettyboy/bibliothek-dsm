@@ -18,7 +18,7 @@ const AREAS = {
   detail: { specs: ["detail", "blur"], about: "detail dialog, covers, zoom, phone sheet, glass" },
   recommendations: { specs: ["recommendations"], about: "first-visit questions, recommendation card, archive" },
   info: { specs: ["info"], about: "opening hours card and dialog, closures, contact" },
-  settings: { specs: ["language-settings"], about: "language, theme, larger text, high contrast, reduced motion, backgrounds" },
+  settings: { specs: ["language-settings"], about: "language, theme, larger text, high contrast, reduced motion" },
   admin: { specs: ["admin", "admin-backups", "publish", "admin-versions"], about: "lock, import, loader, publishing (folder, save.php, backups, local versions)" },
   "admin-care": { specs: ["admin-care", "admin-export", "admin-table", "admin-fixes"], about: "tabs Pflege + Cover, new/dropped titles, Italian categories, hidden covers, Excel/CSV, print, table viewer, corrections" },
   "admin-nav": { specs: ["admin-nav", "admin-help"], about: "admin navigation bar, tab switching, help page" },
