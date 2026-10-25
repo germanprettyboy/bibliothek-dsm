@@ -240,9 +240,9 @@ test.describe("setting \"Keine Animationen\"", () => {
   });
 });
 
-// Experimental backgrounds (library/backdrop.jsx): off by default, 15 variants, none under high contrast, still without motion
-const BGS = ["notebook", "grid", "shelf", "milan", "sky", "mosaic", "aurora", "letters", "words", "ribbons", "pages", "stars", "ink", "lamp", "lens"];
-const CSS_BGS = ["notebook", "grid", "aurora"];
+// Experimental backgrounds (library/backdrop.jsx): off by default, 9 variants, none under high contrast, still without motion
+const BGS = ["milan", "metro", "notebook", "words", "aurora", "ribbons", "lamp", "ink", "pullout"];
+const CSS_BGS = ["notebook", "aurora"];
 // Chosen before the first load (like a returning visitor); a choice made in the test survives reloads
 const useBg = (page, id) => page.addInitScript(v => {
   if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", JSON.stringify({ on: true, id: v }));
@@ -275,8 +275,8 @@ test.describe("background", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
   });
 
-  test("all 15 variants draw without script errors, the pointer and taps included", async ({ page }) => {
-    test.setTimeout(120000); // 15 reloads
+  test("all 9 variants draw without script errors, the pointer and taps included", async ({ page }) => {
+    test.setTimeout(90000); // 9 reloads
     await open(page);
     for (const id of BGS) {
       await page.evaluate(v => localStorage.setItem("dsm-bg", JSON.stringify({ on: true, id: v })), id);
@@ -300,7 +300,7 @@ test.describe("background", () => {
   });
 
   test("the search bar lets it through until it sticks", async ({ page }) => {
-    await useBg(page, "grid");
+    await useBg(page, "notebook");
     await open(page);
     const bg = () => page.evaluate(() => getComputedStyle(document.getElementById("bar")).backgroundColor);
     expect(await bg()).toBe("rgba(0, 0, 0, 0)");
@@ -310,16 +310,16 @@ test.describe("background", () => {
   });
 
   test("high contrast: no background, the switch locked; back afterwards", async ({ page }) => {
-    await useBg(page, "shelf");
+    await useBg(page, "milan");
     await open(page);
-    await expect(page.locator('#bg[data-bg="shelf"]')).toHaveCount(1);
+    await expect(page.locator('#bg[data-bg="milan"]')).toHaveCount(1);
     await openSettings(page);
     await page.locator("#s-contrast").check();
     await expect(page.locator("#bg")).toHaveCount(0);
     await expect(page.locator("#s-bg")).toBeDisabled();
     await expect(page.locator("#s-bgpick")).toBeHidden();
     await page.locator("#s-contrast").uncheck();
-    await expect(page.locator('#bg[data-bg="shelf"]')).toHaveCount(1);
+    await expect(page.locator('#bg[data-bg="milan"]')).toHaveCount(1);
   });
 
   test("in Italian", async ({ page }) => {
@@ -332,80 +332,18 @@ test.describe("background", () => {
   });
 });
 
-test.describe("background gallery (assets/backgrounds.js)", () => {
-  test("loaded only on demand; topic, number, forward/back, dice; the choice survives a reload", async ({ page }) => {
-    const scripts = [];
-    page.on("request", r => { if (/backgrounds\.js$/.test(r.url())) scripts.push(r.url()); });
-    await useBg(page, "aurora");
-    await open(page);
-    await openSettings(page);
-    expect(scripts).toEqual([]);
-    await page.click("#s-bgx-open");
-    await expect(page.locator("#s-bgx-topic")).toBeVisible();
-    expect(scripts).toHaveLength(1);
-    const n = await page.evaluate(() => window.DSM_BACKGROUNDS.list.length);
-    expect(n).toBe(500);
-    await page.fill("#s-bgx-nr", "137");
-    const id137 = await page.evaluate(() => window.DSM_BACKGROUNDS.list[136].id);
-    await expect(page.locator("html")).toHaveAttribute("data-bg", id137);
-    await expect(page.locator("#s-bgx-name")).toContainText("137.");
-    await page.click("#s-bgx-next");
-    await expect(page.locator("#s-bgx-name")).toContainText("138.");
-    await page.click("#s-bgx-prev");
-    await page.click("#s-bgx-prev");
-    await expect(page.locator("#s-bgx-name")).toContainText("136.");
-    // a topic: forward stays inside it
-    const topic = await page.evaluate(() => Object.keys(window.DSM_BACKGROUNDS.topics)[1]);
-    await page.selectOption("#s-bgx-topic", topic);
-    await page.click("#s-bgx-next");
-    expect(await page.evaluate(t => document.documentElement.dataset.bg.startsWith(t + "-"), topic)).toBe(true);
-    await page.click("#s-bgx-dice");
-    const chosen = await page.evaluate(() => document.documentElement.dataset.bg);
-    expect(chosen.startsWith(topic + "-")).toBe(true);
-    await expect(page.locator("#s-bgpick [aria-checked=true]")).toHaveCount(0);
-    await page.reload();
-    await expect(page.locator(`#bg[data-bg="${chosen}"]`)).toHaveCount(1);
-    expect(scripts).toHaveLength(2); // chosen from the gallery: the script comes along at once
-  });
-
-  test("all 500 have texts in both languages and draw in every state without script errors", async ({ page }) => {
-    test.setTimeout(180000);
-    await open(page);
-    await page.addScriptTag({ url: "assets/backgrounds.js" });
-    const problems = await page.evaluate(async () => {
-      const { list, topics } = window.DSM_BACKGROUNDS, out = [], ids = new Set();
-      const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue("--" + n).trim();
-      const c = {};
-      for (const n of ["mauve", "yellow", "orange", "blue", "red", "green"]) c[n] = v(n);
-      const P = { fg: v("fg"), bg: v("bg"), muted: v("muted"), line: v("line"), surface: v("surface"), fx: 1, c, logo: Object.values(c), dark: false };
-      const cv = document.createElement("canvas"); cv.width = 800; cv.height = 600;
-      const ctx = cv.getContext("2d");
-      for (const b of list) {
-        if (ids.has(b.id)) out.push(b.id + ": duplicate"); ids.add(b.id);
-        if (!topics[b.topic] || !c[b.color] || !["still", "motion", "touch"].includes(b.kind)) out.push(b.id + ": topic/color/kind");
-        for (const l of ["de", "it"]) if (!(b[l] && b[l][0] && b[l][1])) out.push(b.id + ": texts " + l);
-        for (const still of [false, true]) {
-          const ptr = { x: 200, y: 200, on: !still, t: 0, taps: still ? [] : [{ x: 300, y: 260 }] };
-          const E = { w: 800, h: 600, P, ptr, t: 1000, dt: 33, still, sy: 0 };
-          try {
-            ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.clearRect(0, 0, 800, 600);
-            const s = b.init ? b.init(E, ctx) : null;
-            for (let f = 0; f < (still ? 1 : 6); f++) { E.t += 33; ptr.x += 9; ptr.t = E.t; b.draw(ctx, s, E); }
-          } catch (e) { out.push(`${b.id}${still ? " still" : ""}: ${e.message}`); break; }
-        }
-      }
-      return out;
-    });
-    expect(problems).toEqual([]);
-  });
+test("a background that no longer exists (gallery until 2026-10-25) falls back to Farbnebel", async ({ page }) => {
+  await useBg(page, "books-pull-out");
+  await open(page);
+  await expect(page.locator("html")).toHaveAttribute("data-bg", "aurora");
 });
 
 test.describe("background with reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
   test("an animated variant stands still", async ({ page }) => {
-    await useBg(page, "letters");
+    await useBg(page, "ribbons");
     await open(page);
-    await expect(page.locator('#bg[data-bg="letters"] canvas')).toHaveCount(1);
+    await expect(page.locator('#bg[data-bg="ribbons"] canvas')).toHaveCount(1);
     const pic = () => page.evaluate(() => document.querySelector("#bg canvas").toDataURL());
     const a = await pic();
     await page.waitForTimeout(400); // nothing may change meanwhile
