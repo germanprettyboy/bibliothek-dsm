@@ -47,7 +47,7 @@
   /* Loading placeholders: bar color and moving shimmer */
   --skel: #ece8e5; --skel-hi: rgba(255, 255, 255, .75);
   /* Experimental backgrounds (library/backdrop.jsx): strength of the drawing, share let through under the content column */
-  --fx: 1; --fx-col: rgba(0, 0, 0, .25); --fx-phone: rgba(0, 0, 0, .42);
+  --fx: 1; --fx-col: rgba(0, 0, 0, .35); --fx-phone: rgba(0, 0, 0, .55);
   --mauve: #ba8ea7; --yellow: #ddd300; --orange: #db9f00; --blue: #b5c9d0; --red: #a93a39; --green: #b3cea1;
   --font: "Fira Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   /* Exactly three font sizes on all pages: small (secondary details), normal (text), large (headings) */
@@ -73,7 +73,7 @@
     --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
     --shadow: 0 24px 60px rgba(0, 0, 0, .55); --shadow-float: 0 8px 24px rgba(0, 0, 0, .45), 0 1px 3px rgba(0, 0, 0, .3); --hl: rgba(236, 233, 230, .12);
     --skel: #2c2a28; --skel-hi: rgba(255, 255, 255, .06);
-    --fx: .8; --fx-col: rgba(0, 0, 0, .3);
+    --fx: .8; --fx-col: rgba(0, 0, 0, .4);
     color-scheme: dark;
   }
 }
@@ -85,7 +85,7 @@
   --gb-top: rgba(255, 255, 255, .16); --gb-bot: rgba(255, 255, 255, .05);
   --shadow: 0 24px 60px rgba(0, 0, 0, .55); --shadow-float: 0 8px 24px rgba(0, 0, 0, .45), 0 1px 3px rgba(0, 0, 0, .3); --hl: rgba(236, 233, 230, .12);
   --skel: #2c2a28; --skel-hi: rgba(255, 255, 255, .06);
-  --fx: .8; --fx-col: rgba(0, 0, 0, .3);
+  --fx: .8; --fx-col: rgba(0, 0, 0, .4);
   color-scheme: dark;
 }
 /* High contrast: pure black/white surfaces, strong lines, opaque dialogs */
@@ -256,13 +256,19 @@
   }
   #bg canvas { display: block; }
   /* Narrow window: the column is the whole width, a little more of the background shows */
-  @media (max-width: 47.99rem) { #bg { --fx-m: linear-gradient(var(--fx-phone), var(--fx-phone)); } #bg[data-bg="words"] { --fx-phone: rgba(0, 0, 0, .15); } }
+  @media (max-width: 47.99rem) { #bg { --fx-m: linear-gradient(var(--fx-phone), var(--fx-phone)); } #bg[data-bg="words"] { --fx-phone: var(--fx-col); } }
+  /* Words over the list read like text: in a wide window they stay in the margins */
+  @media (min-width: 60rem) { #bg[data-bg="words"] { --fx-col: rgba(0, 0, 0, .08); } }
   :root[data-bg] .bar:not(.stuck) { background: transparent; }
   :root[data-contrast="high"] #bg { display: none; }
   #bg[data-bg="notebook"] { opacity: .55; background: repeating-linear-gradient(180deg, transparent 0 31px, var(--blue) 31px 32px); }
   #bg[data-bg="notebook"]::before {
     content: ""; position: absolute; top: 0; bottom: 0; left: max(6px, calc(50% - var(--w) / 2 - 40px)); width: 5px;
     border-left: 1px solid var(--red); border-right: 1px solid var(--red);
+  }
+  #bg[data-bg="grid"] {
+    opacity: .4; background-size: 20px 20px;
+    background-image: linear-gradient(var(--blue) 1px, transparent 1px), linear-gradient(90deg, var(--blue) 1px, transparent 1px);
   }
   #bg[data-bg="aurora"] { opacity: calc(.4 * var(--fx)); background: radial-gradient(42vmax 36vmax at 78% 24%, var(--green), transparent); }
   #bg[data-bg="aurora"]::before, #bg[data-bg="aurora"]::after {

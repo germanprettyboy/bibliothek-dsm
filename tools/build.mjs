@@ -9,6 +9,7 @@
  *   website/assets/head.js                   from src/head.js (before the first paint: theme, language)
  *   website/assets/library.js                book list (src/library/main.jsx)
  *   website/assets/admin.js                  lock of the admin page (src/admin/main.jsx)
+ *   website/assets/backgrounds.js            500 extra backgrounds, loaded only when chosen (src/backgrounds/index.js)
  *   website/assets/style.css                 Tailwind CSS of both pages
  * Scripts as IIFE (classic <script>, no type="module"): that way the page also runs via double-click (file://).
  * The admin app itself (tools/source/) is built and encrypted by tools/encrypt-admin.js.
@@ -60,6 +61,7 @@ export function viteBase() {
 const PAGES = [
   { entry: "library/main.jsx", file: "library.js", name: "DSM_PAGE_LIBRARY" },
   { entry: "admin/main.jsx", file: "admin.js", name: "DSM_PAGE_ADMIN" },
+  { entry: "backgrounds/index.js", file: "backgrounds.js", name: "DSM_PAGE_BACKGROUNDS" },
 ];
 
 function copy(target) {
@@ -89,7 +91,7 @@ export async function buildSite(target = WEB) {
   copy(target);
   for (const s of PAGES) await page(s, target);
 }
-export const GENERATED = ["index.html", "admin.html", "assets/head.js", "assets/library.js", "assets/admin.js", "assets/style.css"];
+export const GENERATED = ["index.html", "admin.html", "assets/head.js", "assets/library.js", "assets/admin.js", "assets/backgrounds.js", "assets/style.css"];
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   await buildSite();
@@ -97,6 +99,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     for (const f of ["index.html", "admin.html", "head.js"]) fs.watch(path.join(SRC, f), () => { copy(WEB); console.log("copied:", f); });
     console.log("Rebuilding on changes …");
   } else {
-    console.log("built: website/index.html, admin.html, assets/{library.js, admin.js, style.css, head.js}");
+    console.log("built: website/index.html, admin.html, assets/{library.js, admin.js, backgrounds.js, style.css, head.js}");
   }
 }
