@@ -1,5 +1,5 @@
-// Language DE/IT and settings (theme, larger text, high contrast, no animations)
-const { test, expect, PHONE, open, swipeStages, data, hits } = require("./helpers.js");
+// Language DE/IT and settings (theme, larger text, high contrast, no animations, interactive backgrounds)
+const { test, expect, PHONE, open, settled, swipeStages, data, hits, OFF } = require("./helpers.js");
 
 const { B, C } = data();
 
@@ -237,5 +237,146 @@ test.describe("setting \"Keine Animationen\"", () => {
     await page.locator("#s-motion").uncheck();
     await expect(page.locator("html")).not.toHaveAttribute("data-motion", /.*/);
     expect(await page.evaluate(() => localStorage.getItem("dsm-motion"))).toBe("normal");
+  });
+});
+
+// Interactive backgrounds (library/backdrop.jsx, scenes.js): off by default, two scenes, tweakable with a live preview,
+// none under high contrast, paused under a dialog, one still frame without motion
+const BG = (p = {}) => JSON.stringify({ on: true, id: "dots", color: "all", k: 50, t: 50, d: 50, ...p });
+const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-bg")));
+// anything drawn on the canvas (sampled alpha), and the picture itself to compare frames
+const painted = (page, sel) => page.evaluate(s => {
+  const c = document.querySelector(s), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+  for (let i = 3; i < d.length; i += 4 * 61) if (d[i]) return true;
+  return false;
+}, sel);
+const picture = page => page.evaluate(() => document.querySelector("#bg canvas").toDataURL());
+
+test.describe("background", () => {
+  test("off by default; on, scene, color, sliders, saved, reset, off again", { tag: "@smoke" }, async ({ page }) => {
+    await open(page);
+    await expect(page.locator("#bg")).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
+    await openSettings(page);
+    await expect(page.locator("#s-bg")).not.toBeChecked();
+    await expect(page.locator("#s-bgpick")).toBeHidden();
+    await page.locator("#s-bg").check();
+    await expect(page.locator("html")).toHaveAttribute("data-bg", "dots");
+    await expect(page.locator('#bg[data-bg="dots"]')).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator("#bg-preview")).toBeVisible();
+    await expect.poll(() => painted(page, "#bg-preview")).toBe(true);
+    await expect.poll(() => painted(page, "#bg canvas")).toBe(true);
+    // behind everything, never in the way of a click
+    expect(await page.evaluate(() => { const s = getComputedStyle(document.getElementById("bg")); return [s.position, s.zIndex, s.pointerEvents]; }))
+      .toEqual(["fixed", "-1", "none"]);
+    await expect(page.locator("#bg-reset")).toBeDisabled();
+    await page.click('#s-bgscene [data-v="lines"]');
+    await expect(page.locator("html")).toHaveAttribute("data-bg", "lines");
+    await page.click('#s-bgcolor [data-c="blue"]');
+    await expect(page.locator('#s-bgcolor [data-c="blue"]')).toHaveAttribute("aria-checked", "true");
+    await page.locator("#s-bgk").fill("80");
+    await page.locator("#s-bgd").fill("10");
+    await expect(page.locator("#bg-reset")).toBeEnabled();
+    expect(await saved(page)).toEqual({ on: true, id: "lines", color: "blue", k: 80, t: 50, d: 10 });
+    await page.reload();
+    await expect(page.locator('#bg[data-bg="lines"] canvas')).toHaveCount(1);
+    await openSettings(page);
+    await expect(page.locator('#s-bgscene [data-v="lines"]')).toHaveAttribute("aria-checked", "true");
+    await expect(page.locator("#s-bgk")).toHaveValue("80");
+    await page.click("#bg-reset");
+    expect(await saved(page)).toEqual({ on: true, id: "lines", color: "all", k: 50, t: 50, d: 50 });
+    await expect(page.locator("#bg-reset")).toBeDisabled();
+    await page.locator("#s-bg").uncheck();
+    await expect(page.locator("#bg")).toHaveCount(0);
+    await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
+  });
+
+  test("both scenes draw, move and answer the pointer and clicks without script errors", async ({ page }) => {
+    await open(page);
+    for (const id of ["dots", "lines"]) {
+      await page.evaluate(v => localStorage.setItem("dsm-bg", v), BG({ id }));
+      await page.reload();
+      await expect(page.locator(`#bg[data-bg="${id}"] canvas`)).toHaveCount(1);
+      await expect.poll(() => painted(page, "#bg canvas"), id).toBe(true);
+      const a = await picture(page);
+      // in the left margin, next to the column: the lens, then a ring wave
+      await page.mouse.move(60, 300);
+      await page.mouse.move(120, 340, { steps: 4 });
+      await page.mouse.down(); await page.mouse.up();
+      await expect.poll(() => picture(page), id).not.toBe(a);
+    }
+  });
+
+  test("the search bar lets the background through until it sticks", async ({ page }) => {
+    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG());
+    await open(page);
+    const bg = () => page.evaluate(() => getComputedStyle(document.getElementById("bar")).backgroundColor);
+    expect(await bg()).toBe("rgba(0, 0, 0, 0)");
+    await page.mouse.wheel(0, 1500);
+    await expect(page.locator("#bar.stuck")).toHaveCount(1);
+    expect(await bg()).not.toBe("rgba(0, 0, 0, 0)");
+  });
+
+  test("paused under a dialog; a slider there still repaints it once", async ({ page }) => {
+    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG({ t: 100 }));
+    await open(page);
+    await expect.poll(() => painted(page, "#bg canvas")).toBe(true);
+    await openSettings(page);
+    await settled(page); // dialog open, scroll lock (and with it a possible resize) done
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const a = await picture(page);
+    await page.waitForTimeout(400); // tempo 100 would move it in every frame
+    expect(await picture(page)).toBe(a);
+    await page.locator("#s-bgd").fill("100");
+    await expect.poll(() => picture(page)).not.toBe(a);
+  });
+
+  test("high contrast: no background, the switch locked; back afterwards", async ({ page }) => {
+    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG({ id: "lines" }));
+    await open(page);
+    await expect(page.locator('#bg[data-bg="lines"]')).toHaveCount(1);
+    await openSettings(page);
+    await page.locator("#s-contrast").check();
+    await expect(page.locator("#bg")).toHaveCount(0);
+    await expect(page.locator("#s-bg")).toBeDisabled();
+    await expect(page.locator("#s-bgpick")).toBeHidden();
+    await page.locator("#s-contrast").uncheck();
+    await expect(page.locator('#bg[data-bg="lines"]')).toHaveCount(1);
+  });
+
+  test("in Italian", async ({ page }) => {
+    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG());
+    await open(page);
+    await page.click('.seg [data-lang="it"]');
+    await openSettings(page);
+    await expect(page.locator('label[for="s-bg"]')).toContainText("Sfondo animato");
+    await expect(page.locator('#s-bgscene [data-v="lines"]')).toHaveText("Linee");
+    await expect(page.locator('#s-bgcolor [data-c="green"]')).toHaveAttribute("aria-label", "Verde");
+    await expect(page.locator('label[for="s-bgt"]')).toContainText("Velocità");
+  });
+
+  test.describe("saved before 2026-10-25", () => {
+    test.use({ storage: { "dsm-recs": OFF, "dsm-bg": JSON.stringify({ on: true, id: "aurora" }) } });
+    test("a background that no longer exists falls back to the first scene", async ({ page }) => {
+      await open(page);
+      await expect(page.locator("html")).toHaveAttribute("data-bg", "dots");
+    });
+  });
+});
+
+test.describe("background with reduced motion", () => {
+  test.use({ reducedMotion: "reduce", storage: { "dsm-recs": OFF, "dsm-bg": BG({ id: "lines", t: 100 }) } });
+  test("one still frame, no pointer; tempo locked", async ({ page }) => {
+    await open(page);
+    await expect.poll(() => painted(page, "#bg canvas")).toBe(true);
+    const a = await picture(page);
+    await page.mouse.move(60, 300);
+    await page.mouse.move(120, 340, { steps: 4 });
+    await page.mouse.down(); await page.mouse.up();
+    await page.waitForTimeout(400); // nothing may change meanwhile
+    expect(await picture(page)).toBe(a);
+    await openSettings(page);
+    await expect(page.locator("#s-bgt")).toBeDisabled();
+    await expect(page.locator('label[for="s-bgt"]')).toContainText("Steht still");
   });
 });

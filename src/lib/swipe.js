@@ -110,6 +110,7 @@ export function swipe(sheet, inner, scrimSel) {
   const start = e => {
     stopGlide();
     if (e.touches.length !== 1 || anim && target === "close") return;
+    if (e.target.closest && e.target.closest('input[type="range"]')) return; // a slider (background settings) keeps the finger
     if (anim) { y = new DOMMatrix(getComputedStyle(sheet).transform).m42; anim.cancel(); anim = null; setY(y); }
     const f = e.touches[0], top = sheet.getBoundingClientRect().top;
     t0 = { x: f.clientX, y: f.clientY, y0: y, s0: inner.scrollTop, samples: [[performance.now(), f.clientY]], take: null, head: f.clientY - top < 64, over: 0 };
