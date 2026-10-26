@@ -1,4 +1,4 @@
-/* Book list (index.html): header, info, recommendations, search and list, dialogs. */
+/* Book list (index.html): header, info, recommendations, search and list, dialogs, optional background. */
 import * as React from "react";
 
 import { Settings } from "@/components/settings";
@@ -12,6 +12,7 @@ import { InfoCard, InfoDialog } from "@/library/info";
 import { Announcement } from "@/library/announcement";
 import { BookList } from "@/library/list";
 import { getChoice } from "@/library/choice";
+import { BackgroundSettings, startBackground } from "@/library/backdrop";
 
 addStrings({
   de: {
@@ -41,6 +42,7 @@ export function App() {
   const [dialog, setDialog] = React.useState(null); // settings | archive | info | questions
 
   React.useEffect(() => loadBooks(d => { setBooks(prepare(d)); setLoaded(true); }), []);
+  React.useEffect(startBackground, []); // interactive background, if chosen (settings)
   const byKey = React.useMemo(() => new Map(books.map(b => [keyOf(b), b])), [books]);
   // Questions on the first visit, only if there is a recommendation in the catalog at all
   React.useEffect(() => {
@@ -82,6 +84,7 @@ export function App() {
       <Detail entry={detail} onClose={() => setDetail(null)} />
       <Settings open={dialog === "settings"} onOpenChange={dialogToggle("settings")}>
         {RECS ? <RecommendationSettings /> : null}
+        <BackgroundSettings />
       </Settings>
       {RECS ? <Archive open={dialog === "archive"} onOpenChange={dialogToggle("archive")} R={R} byKey={byKey} onOpen={open} /> : null}
       <InfoDialog I={I} open={dialog === "info"} onOpenChange={dialogToggle("info")} />

@@ -80,6 +80,12 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - Slow connection: placeholders, after 6 s "Langsame Verbindung". library.js loads BEFORE books.js (setter on `window.DSM_LIBRARY`).
 - First visit: overlay "Möchten Sie Buchempfehlungen sehen?" → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher /
   Biografien & Geschichte (`dsm-recs`); no language question, no progress bar. Settings: same choice.
+- Interactive backgrounds (`library/backdrop.jsx` engine + settings "Hintergrund", `library/scenes.js` drawing; `dsm-bg` =
+  `{on,id,color,k,t,d}`): OFF by default, only on the book list. Two abstract scenes (2026-10-26, after the 9 of 10-25 were
+  removed): Punkte (halftone dot grid, the pointer a lens showing the logo colors) and Linien (contour lines, the pointer a
+  hill). Tweaks: color (all/one logo color), strength, tempo, density, live preview. Fixed `#bg` behind the page, under the
+  column only `--fx-col`; none with high contrast/print; one still frame with reduced motion; 30 fps while interacting,
+  else 20, 10 after 30 s idle, none under a dialog or in a hidden tab. Search bar transparent until `.stuck`.
 
 ## Design
 

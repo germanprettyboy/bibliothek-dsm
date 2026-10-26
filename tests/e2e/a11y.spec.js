@@ -47,6 +47,11 @@ test.describe("accessibility", () => {
   for (const [name, show] of [
     ["detail", async page => { await page.locator("#list .row").nth(2).click(); await expect(page.locator("#detail")).toBeVisible(); }],
     ["settings", async page => { await page.click(".settings-btn"); await expect(page.locator(".settings[role=dialog]")).toBeVisible(); }],
+    ["settings with the background controls", async page => {
+      await page.click(".settings-btn");
+      await page.locator("#s-bg").check();
+      await expect(page.locator("#bg-preview")).toBeVisible();
+    }],
     ["categories", async page => { await page.click("#cat-btn"); await expect(page.getByRole("dialog")).toBeVisible(); }],
   ]) {
     test(`dialog: ${name}`, async ({ page }) => {
