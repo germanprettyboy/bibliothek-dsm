@@ -1,15 +1,18 @@
 /* Interactive backgrounds (settings "Hintergrund"): two abstract scenes behind the book list (library/scenes.js), off by
-   default (`dsm-bg`). Tweakable in the settings: scene, color, strength, tempo, density – with a live preview that
-   answers the pointer like the page does.
+   default (`dsm-bg`). Punkte runs on the GPU (library/dots-gl.js, WebGL) wherever that works, otherwise with canvas 2D.
+   Tweakable in the settings: scene, color, strength, tempo, density – with a live preview that answers the pointer
+   like the page does.
    Layer #bg (fixed, z-index -1, aria-hidden, no pointer events): in front of the body color, behind everything else.
    Under the content column the mask in styles.css lets only --fx-col of it through (the list stays readable), the
-   search bar is transparent until it sticks. Pointer, clicks/taps and scrolling are read on window.
-   Frames: 30 fps while the pointer moves or a wave runs, otherwise 20, 10 after 30 s without any input; none in a hidden
-   tab, none with tempo 0 while nothing moves, none under a modal dialog (its blur would be recomputed on every frame –
-   a change in the settings paints one frame). Reduced motion (system or setting): one still frame, no pointer.
-   High contrast, print: none. Colors only from the tokens in styles.css, read again on every theme change.
+   search bar is transparent until it sticks. Pointer, clicks/taps and scrolling are read on window, only while the
+   layer is on; a ring wave only for a click on free space (never on a book, button, field or link).
+   Frames: while the pointer moves or a wave runs 60 fps (WebGL) / 30 (canvas 2D), otherwise 20, 10 after 30 s
+   without any input; none in a hidden tab, none with tempo 0 while nothing moves, none under a modal dialog (its blur
+   would be recomputed on every frame – a change in the settings paints one frame). Reduced motion (system or setting):
+   one still frame, no pointer. High contrast, print: none. Colors only from the tokens in styles.css, read again on
+   every theme change.
    Test hooks: #bg[data-bg], <html data-bg>, #s-bg, #s-bgpick, #s-bgscene [data-v], #s-bgcolor [data-c], #s-bgk, #s-bgt,
-   #s-bgd, #bg-reset, #bg-preview. */
+   #s-bgd, #bg-reset, #bg-preview (the box of the preview canvas), window.DSM_BG { frames, gl, waves }. */
 import * as React from "react";
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 
@@ -21,6 +24,7 @@ import { reduced, systemReduced } from "@/lib/environment";
 import { addStrings, useLanguage } from "@/lib/language";
 import { store, log } from "@/lib/storage";
 import { dots, lines, HUES, WAVE } from "@/library/scenes";
+import { dotsGL } from "@/library/dots-gl";
 
 addStrings({
   de: {
@@ -72,7 +76,7 @@ export function setBackground(next) {
 const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 export const useBackground = () => React.useSyncExternalStore(subscribe, () => pref);
 
-// ---------- Engine: one scene per canvas (the page layer, the preview in the settings) ----------
+// ---------- Engine: one scene per box (the page layer, the preview in the settings) ----------
 let P = null; // colors from the tokens, shared by all scenes
 function palette() {
   const cs = getComputedStyle(root), v = n => cs.getPropertyValue("--" + n).trim();
@@ -80,21 +84,64 @@ function palette() {
 }
 let input = 0; // last pointer, scroll or key input anywhere
 let waveN = 0;
+let noGL = false; // WebGL failed once (none, blocked, shaders not compiled): canvas 2D from then on
+// Test hooks, also handy in the console (window.DSM_BG): frames the page layer painted, WebGL or not, waves running
+const stats = { frames: 0, gl: false, waves: 0 };
 
-function scene(canvas, main) {
-  const c = canvas.getContext("2d");
-  const S = { w: 0, h: 0, t: 0, now: 0, P: null, k: 1, d: .5, hue: -1, sy: 0, lens: { x: 0, y: 0, a: 0 }, waves: [] };
+// The scene keeps its box and puts the right canvas into it: WebGL for Punkte (every dot computed on the GPU, sharp at
+// the device resolution), canvas 2D for Linien and wherever WebGL fails.
+function scene(box, main) {
+  const S = { w: 0, h: 0, dpr: 1, t: 0, now: 0, P: null, k: 1, d: -1, hue: -1, sy: 0, lens: { x: 0, y: 0, a: 0 }, waves: [] };
   const ptr = { x: 0, y: 0, on: false, at: 0 }; // where the lens wants to go
-  let spec = null, st = null, id = "", dens = -1, speed = 1, dpr = 1, raf = 0, last = 0, later = 0;
+  let canvas = null, kind = "", c = null, R = null, lost = false;
+  let spec = null, st = null, speed = 1, raf = 0, last = 0, later = 0;
 
   const still = () => reduced.matches;
   // The page layer pauses under a modal dialog (Radix sets pointer-events: none on <body>)
   const paused = () => main && document.body.style.pointerEvents === "none";
   const busy = now => !main || S.waves.length > 0 || S.lens.a > .01 || (ptr.on && now - ptr.at < 6000);
 
+  // a WebGL context goes at once instead of waiting for the garbage collector (browsers allow only a few)
+  function lose() { const x = kind === "gl" && R && R.gl.getExtension("WEBGL_lose_context"); if (x) x.loseContext(); }
+  // A canvas of the wanted kind; false = no WebGL here
+  function surface(gl) {
+    const want = gl ? "gl" : "2d";
+    if (kind === want) return true;
+    const next = document.createElement("canvas");
+    let res = null;
+    if (gl) {
+      const ctx = next.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, powerPreference: "low-power" });
+      res = ctx && dotsGL.setup(ctx);
+      if (!res) { noGL = true; log("Background", "no WebGL – Punkte drawn with canvas 2D"); return false; }
+      next.addEventListener("webglcontextlost", e => { e.preventDefault(); lost = true; });
+      next.addEventListener("webglcontextrestored", () => {
+        R = dotsGL.setup(ctx); lost = !R;
+        if (R && spec === dotsGL && S.w) st = spec.init(S, R);
+        api.draw();
+      });
+    }
+    if (canvas) { lose(); canvas.remove(); }
+    R = res; c = gl ? null : next.getContext("2d");
+    canvas = next; kind = want; lost = false; S.w = 0; // sized anew
+    box.append(canvas);
+    return true;
+  }
+
+  // Canvas as large as its box (page: 100vh = the tall viewport on the phone, no new start when the toolbar moves).
+  // WebGL at the full device resolution; canvas 2D lighter on the page (fine shapes at low alpha), sharp in the preview.
+  function fit(fresh) {
+    const w = box.clientWidth, h = box.clientHeight;
+    if (!canvas || !w || !h || (!fresh && w === S.w && h <= S.h)) return false;
+    S.dpr = Math.min(window.devicePixelRatio || 1, kind === "gl" ? 3 : main ? 1.25 : 2);
+    S.w = w; S.h = h;
+    canvas.width = Math.round(w * S.dpr); canvas.height = Math.round(h * S.dpr);
+    if (spec) st = spec.init(S, R);
+    return true;
+  }
+
   function paint(now) {
     const dt = Math.min(now - last || 16, 100);
-    last = now; S.now = now; S.P = P;
+    last = now; S.now = now;
     // Preview without a pointer inside: the lens wanders by itself, so the effect shows before anyone tries it
     if (!main && !ptr.on) { ptr.x = S.w * (.5 + .34 * Math.sin(now / 2300)); ptr.y = S.h * (.5 + .3 * Math.sin(now / 1700)); ptr.at = now; }
     const L = S.lens, on = (ptr.on || !main) && now - ptr.at < 6000 && !still(); // a resting mouse: the lens fades after 6 s
@@ -105,12 +152,15 @@ function scene(canvas, main) {
       L.x += (ptr.x - L.x) * f; L.y += (ptr.y - L.y) * f;
       L.a += ((on ? 1 : 0) - L.a) * Math.min(1, dt / 260);
       if (L.a < .01 && !on) L.a = 0;
-      S.waves = S.waves.filter(w => now - w.t0 < WAVE.life);
+      while (S.waves.length && now - S.waves[0].t0 >= WAVE.life) S.waves.shift();
     }
     S.sy = main ? window.scrollY || 0 : 0;
-    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, canvas.width, canvas.height);
-    c.setTransform(dpr, 0, 0, dpr, 0, 0); c.globalAlpha = 1;
-    spec.draw(c, S, st);
+    if (kind === "gl") { if (!lost) spec.draw(R, S, st); } else {
+      c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, canvas.width, canvas.height);
+      c.setTransform(S.dpr, 0, 0, S.dpr, 0, 0); c.globalAlpha = 1;
+      spec.draw(c, S, st);
+    }
+    if (main) { stats.frames++; stats.waves = S.waves.length; }
   }
 
   function frame(now) {
@@ -119,7 +169,8 @@ function scene(canvas, main) {
     const moving = busy(now);
     // tempo 0 and nothing under the pointer: the picture only changes when something happens (wake)
     if (!speed && !moving && S.sy === (main ? window.scrollY || 0 : 0)) return;
-    const gap = moving ? 33 : now - input > IDLE ? 100 : 50;
+    // the pointer at the display rate (at most 60 fps; canvas 2D: 30), drifting at 20, 10 after 30 s without input
+    const gap = moving ? (kind === "gl" ? 15 : 33) : now - input > IDLE ? 100 : 50;
     if (now - last >= gap - 4) paint(now);
     raf = requestAnimationFrame(frame);
   }
@@ -129,28 +180,23 @@ function scene(canvas, main) {
     draw() { if (spec && S.w && P) { paint(performance.now()); api.wake(); } },
     wake() { if (!raf) raf = requestAnimationFrame(frame); },
     stop() { cancelAnimationFrame(raf); raf = 0; clearTimeout(later); },
+    destroy() { api.stop(); lose(); if (canvas) canvas.remove(); canvas = null; kind = ""; },
     set(p) {
-      const d = p.d / 100;
-      speed = 2 * p.t / 100; S.k = (.35 + 1.3 * p.k / 100) * (P ? P.fx : 1); S.d = d; S.hue = p.color === "all" ? -1 : HUES.indexOf(p.color);
-      if (p.id !== id || d !== dens) { id = p.id; dens = d; spec = SCENES[id]; if (S.w) st = spec.init(S); }
+      const d = p.d / 100, gl = p.id === "dots" && !noGL && surface(true);
+      if (!gl) surface(false);
+      const next = gl ? dotsGL : SCENES[p.id], fresh = next !== spec || d !== S.d;
+      speed = 2 * p.t / 100; S.k = (.35 + 1.3 * p.k / 100) * (P ? P.fx : 1);
+      S.d = d; S.hue = p.color === "all" ? -1 : HUES.indexOf(p.color); S.P = P; spec = next;
+      if (main) stats.gl = gl;
+      if (!S.w) fit(true); else if (fresh) st = spec.init(S, R);
       // under the settings dialog: one frame once the slider rests (each one recomputes the blur above it)
       clearTimeout(later);
       if (paused()) later = setTimeout(api.draw, 150); else api.draw();
     },
-    // re-inits only when the width changes or the height grows (the phone toolbar moving changes nothing)
-    size(w, h, fresh) {
-      if (!w || !h || (!fresh && w === S.w && h <= S.h)) return;
-      // the page layer lighter (fine lines at low alpha need no full retina resolution), the small preview sharp
-      dpr = Math.min(window.devicePixelRatio || 1, main ? 1.25 : 2);
-      S.w = w; S.h = h;
-      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-      if (spec) st = spec.init(S);
-      api.draw();
-    },
+    resize() { if (fit(false)) api.draw(); },
     move(x, y, on) { ptr.x = x; ptr.y = y; ptr.on = on; ptr.at = performance.now(); if (on && !still()) api.wake(); },
     tap(x, y) {
       if (still() || paused()) return;
-      api.move(x, y, ptr.on);
       S.waves.push({ x, y, t0: performance.now(), c: S.hue >= 0 ? S.hue : waveN++ % HUES.length });
       if (S.waves.length > WAVE.max) S.waves.shift();
       api.wake();
@@ -166,51 +212,61 @@ const active = () => pref.on && root.dataset.contrast !== "high";
 
 function mount() {
   if (!active()) {
-    if (layer) { page.stop(); layer.remove(); layer = page = null; }
+    if (layer) { listen(false); page.destroy(); layer.remove(); layer = page = null; }
     delete root.dataset.bg;
+    stats.gl = false;
     return;
   }
   if (!P) palette();
   if (!layer) {
     layer = document.createElement("div"); layer.id = "bg"; layer.setAttribute("aria-hidden", "true");
-    const canvas = document.createElement("canvas");
-    layer.append(canvas); document.body.prepend(layer);
-    page = scene(canvas, true);
-    page.set(pref);
-    page.size(layer.clientWidth, layer.clientHeight, true);
-  } else page.set(pref);
+    document.body.prepend(layer);
+    page = scene(layer, true);
+    listen(true);
+  }
+  page.set(pref);
   layer.dataset.bg = root.dataset.bg = pref.id;
 }
 
 // New colors after a theme switch; contrast and motion decide whether and how it runs at all
 function restyle() {
+  if (!pref.on) return;
   palette();
   mount();
   for (const s of previews) s.set(pref);
+}
+
+// Input, only while the layer is there (off = no listeners at all). A click meant for something – a book, a button,
+// a field, a link – starts no wave: only one on free space does.
+const QUIET = "a, button, input, select, textarea, label, summary, [role], [tabindex], [contenteditable]";
+const touched = () => { input = performance.now(); if (page) page.wake(); };
+const onMove = e => { touched(); if (page) page.move(e.clientX, e.clientY, true); };
+const onClick = e => { if (page && !(e.target.closest && e.target.closest(QUIET))) page.tap(e.clientX, e.clientY); };
+// Mouse and pen: the lens follows while the pointer is over the window; finger: only while it touches
+const onLift = e => { if (page && e.pointerType === "touch") page.move(e.clientX, e.clientY, false); };
+const onOut = e => { if (page && !e.relatedTarget) page.move(e.clientX, e.clientY, false); };
+const onResize = () => { if (page) page.resize(); };
+const onVisible = () => { if (page) page.wake(); previews.forEach(s => s.wake()); };
+let dialogs = null; // a dialog closes (Radix gives <body> its pointer events back): the layer runs again
+function listen(on) {
+  const m = on ? "addEventListener" : "removeEventListener", o = { passive: true };
+  for (const [type, fn] of [["scroll", touched], ["keydown", touched], ["pointermove", onMove], ["pointerdown", onMove],
+    ["pointerup", onLift], ["pointercancel", onLift], ["click", onClick], ["resize", onResize]]) window[m](type, fn, o);
+  document[m]("pointerout", onOut);
+  document[m]("visibilitychange", onVisible);
+  if (dialogs) { dialogs.disconnect(); dialogs = null; }
+  if (on) (dialogs = new MutationObserver(() => page && page.wake())).observe(document.body, { attributes: true, attributeFilter: ["style"] });
 }
 
 let started = false;
 export function startBackground() {
   if (started) return;
   started = true;
+  window.DSM_BG = stats;
   new MutationObserver(restyle).observe(root, { attributes: true, attributeFilter: ["data-theme", "data-contrast", "data-motion"] });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", restyle);
   systemReduced.addEventListener("change", restyle);
-  // a dialog closes: the layer runs again
-  new MutationObserver(() => page && page.wake()).observe(document.body, { attributes: true, attributeFilter: ["style"] });
-  document.addEventListener("visibilitychange", () => { if (page) page.wake(); previews.forEach(s => s.wake()); });
-  addEventListener("resize", () => layer && page.size(layer.clientWidth, layer.clientHeight), { passive: true });
   input = performance.now();
-  const touched = () => { input = performance.now(); if (page) page.wake(); };
-  addEventListener("scroll", touched, { passive: true });
-  addEventListener("keydown", touched, { passive: true });
-  // Mouse and pen: the lens follows while the pointer is over the window; finger: only while it touches
-  addEventListener("pointermove", e => { touched(); if (page) page.move(e.clientX, e.clientY, true); }, { passive: true });
-  addEventListener("pointerdown", e => { touched(); if (page) { page.move(e.clientX, e.clientY, true); page.tap(e.clientX, e.clientY); } }, { passive: true });
-  const lift = e => { if (page && e.pointerType === "touch") page.move(e.clientX, e.clientY, false); };
-  addEventListener("pointerup", lift, { passive: true });
-  addEventListener("pointercancel", lift, { passive: true }); // the finger scrolls the page
-  document.addEventListener("pointerout", e => { if (!e.relatedTarget && page) page.move(e.clientX, e.clientY, false); });
   mount();
 }
 
@@ -220,24 +276,24 @@ function Preview({ p }) {
   const ref = React.useRef(null);
   const sc = React.useRef(null);
   React.useEffect(() => {
-    const canvas = ref.current, s = scene(canvas, false);
+    const box = ref.current, s = scene(box, false);
     sc.current = s; previews.add(s);
     if (!P) palette();
     s.set(pref);
-    const ro = new ResizeObserver(() => s.size(canvas.clientWidth, canvas.clientHeight));
-    ro.observe(canvas);
-    const at = e => { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const ro = new ResizeObserver(() => s.resize());
+    ro.observe(box);
+    const at = e => { const r = box.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     const move = e => { input = performance.now(); s.move(...at(e), true); };
     const down = e => { move(e); s.tap(...at(e)); };
     const leave = e => s.move(...at(e), false);
-    canvas.addEventListener("pointermove", move);
-    canvas.addEventListener("pointerdown", down);
-    canvas.addEventListener("pointerleave", leave);
-    canvas.addEventListener("pointercancel", leave);
-    return () => { ro.disconnect(); s.stop(); previews.delete(s); };
+    box.addEventListener("pointermove", move);
+    box.addEventListener("pointerdown", down);
+    box.addEventListener("pointerleave", leave);
+    box.addEventListener("pointercancel", leave);
+    return () => { ro.disconnect(); s.destroy(); previews.delete(s); };
   }, []);
   React.useEffect(() => { if (sc.current) sc.current.set(p); }, [p]);
-  return <div className="bgprev"><canvas ref={ref} id="bg-preview" aria-hidden="true" /></div>;
+  return <div ref={ref} id="bg-preview" className="bgprev" aria-hidden="true" />;
 }
 
 function Slider({ id, label, value, disabled, note, onChange }) {
