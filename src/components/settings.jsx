@@ -17,8 +17,8 @@ const THEMES = ["auto", "light", "dark"];
 
 const onSystem = fn => { systemReduced.addEventListener("change", fn); return () => systemReduced.removeEventListener("change", fn); };
 
-// Open-source software shipped with the pages (licenses: MIT, ISC, Apache-2.0, SIL OFL)
-const CREDITS = "Preact, Radix UI, shadcn/ui, Tailwind CSS, Lucide, Sonner, class-variance-authority, clsx, tailwind-merge, sql.js, Fira Sans";
+// Open-source software shipped with the pages (licenses: MIT, ISC, Apache-2.0, SIL OFL; webgl-noise: MIT, in library/dots-gl.js)
+const CREDITS = "Preact, Radix UI, shadcn/ui, Tailwind CSS, Lucide, Sonner, class-variance-authority, clsx, tailwind-merge, sql.js, webgl-noise, Fira Sans";
 
 // Section with a small heading
 export function Section({ title, children }) {

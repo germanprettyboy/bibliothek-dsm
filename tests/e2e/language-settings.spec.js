@@ -240,17 +240,30 @@ test.describe("setting \"Keine Animationen\"", () => {
   });
 });
 
-// Interactive backgrounds (library/backdrop.jsx, scenes.js): off by default, two scenes, tweakable with a live preview,
-// none under high contrast, paused under a dialog, one still frame without motion
+// Interactive backgrounds (library/backdrop.jsx, scenes.js, dots-gl.js): off by default, two scenes, tweakable with a live
+// preview, none under high contrast, paused under a dialog, one still frame without motion, waves only on free space
 const BG = (p = {}) => JSON.stringify({ on: true, id: "dots", color: "all", k: 50, t: 50, d: 50, ...p });
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-bg")));
-// anything drawn on the canvas (sampled alpha), and the picture itself to compare frames
-const painted = (page, sel) => page.evaluate(s => {
-  const c = document.querySelector(s), d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
-  for (let i = 3; i < d.length; i += 4 * 61) if (d[i]) return true;
-  return false;
-}, sel);
-const picture = page => page.evaluate(() => document.querySelector("#bg canvas").toDataURL());
+// frames the page layer painted, WebGL or canvas 2D, waves running (window.DSM_BG)
+const bgStats = page => page.evaluate(() => ({ ...window.DSM_BG }));
+const frames = async page => (await bgStats(page)).frames;
+// Anything drawn on the canvas (sampled alpha). WebGL: read in a frame right after the scene painted (its buffer is
+// gone once the frame is shown), so for a while on every frame; canvas 2D: any time.
+const painted = (page, sel) => page.evaluate(s => new Promise(resolve => {
+  let n = 0;
+  const check = () => {
+    const c = document.querySelector(s), gl = c && c.getContext("webgl");
+    let d = null;
+    if (gl) {
+      d = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+      gl.readPixels(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight, gl.RGBA, gl.UNSIGNED_BYTE, d);
+    } else if (c) d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    let hit = false;
+    for (let i = 3; d && i < d.length; i += 4 * 61) if (d[i]) { hit = true; break; }
+    if (hit || ++n > 120) resolve(hit); else requestAnimationFrame(check);
+  };
+  requestAnimationFrame(check);
+}), sel);
 
 test.describe("background", () => {
   test("off by default; on, scene, color, sliders, saved, reset, off again", { tag: "@smoke" }, async ({ page }) => {
@@ -264,8 +277,8 @@ test.describe("background", () => {
     await expect(page.locator("html")).toHaveAttribute("data-bg", "dots");
     await expect(page.locator('#bg[data-bg="dots"]')).toHaveAttribute("aria-hidden", "true");
     await expect(page.locator("#bg-preview")).toBeVisible();
-    await expect.poll(() => painted(page, "#bg-preview")).toBe(true);
-    await expect.poll(() => painted(page, "#bg canvas")).toBe(true);
+    await expect.poll(() => painted(page, "#bg-preview canvas")).toBe(true);
+    await expect.poll(() => frames(page)).toBeGreaterThan(0); // the page layer under the dialog: one frame, then paused
     // behind everything, never in the way of a click
     expect(await page.evaluate(() => { const s = getComputedStyle(document.getElementById("bg")); return [s.position, s.zIndex, s.pointerEvents]; }))
       .toEqual(["fixed", "-1", "none"]);
@@ -291,20 +304,48 @@ test.describe("background", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
   });
 
-  test("both scenes draw, move and answer the pointer and clicks without script errors", async ({ page }) => {
+  test("both scenes draw, move and answer the pointer and clicks without script errors", async ({ page, browserName }) => {
     await open(page);
     for (const id of ["dots", "lines"]) {
       await page.evaluate(v => localStorage.setItem("dsm-bg", v), BG({ id }));
       await page.reload();
+      await page.locator("#list .row").first().waitFor();
       await expect(page.locator(`#bg[data-bg="${id}"] canvas`)).toHaveCount(1);
       await expect.poll(() => painted(page, "#bg canvas"), id).toBe(true);
-      const a = await picture(page);
+      // Punkte on the GPU where WebGL works (Chromium, also headless); Linien always canvas 2D
+      if (browserName === "chromium" || id === "lines") expect((await bgStats(page)).gl, id).toBe(id === "dots");
       // in the left margin, next to the column: the lens, then a ring wave
+      const f = await frames(page);
       await page.mouse.move(60, 300);
       await page.mouse.move(120, 340, { steps: 4 });
-      await page.mouse.down(); await page.mouse.up();
-      await expect.poll(() => picture(page), id).not.toBe(a);
+      await page.mouse.click(120, 340);
+      await expect.poll(() => frames(page), id).toBeGreaterThan(f + 3);
+      await expect.poll(async () => (await bgStats(page)).waves, id).toBe(1);
     }
+  });
+
+  test("a click on a book, a field or a button starts no wave, one on free space does", async ({ page }) => {
+    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG());
+    await open(page);
+    // painted again after each click: the layer runs (not under a dialog), the count is current
+    const quiet = async what => {
+      const f = await frames(page);
+      await expect.poll(() => frames(page), what).toBeGreaterThan(f + 1);
+      expect((await bgStats(page)).waves, what).toBe(0);
+    };
+    await page.locator("#list .row").nth(1).click();
+    await expect(page.locator("#detail")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#detail")).toHaveCount(0);
+    await quiet("book");
+    await page.click("#q");
+    await quiet("search field");
+    await page.click("#cat-btn");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await quiet("category button");
+    await page.mouse.click(40, 400); // the left margin
+    await expect.poll(async () => (await bgStats(page)).waves).toBe(1);
   });
 
   test("the search bar lets the background through until it sticks", async ({ page }) => {
@@ -324,11 +365,11 @@ test.describe("background", () => {
     await openSettings(page);
     await settled(page); // dialog open, scroll lock (and with it a possible resize) done
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
-    const a = await picture(page);
-    await page.waitForTimeout(400); // tempo 100 would move it in every frame
-    expect(await picture(page)).toBe(a);
+    const f = await frames(page);
+    await page.waitForTimeout(400); // tempo 100 would paint it 8 times meanwhile
+    expect(await frames(page)).toBe(f);
     await page.locator("#s-bgd").fill("100");
-    await expect.poll(() => picture(page)).not.toBe(a);
+    await expect.poll(() => frames(page)).toBeGreaterThan(f);
   });
 
   test("high contrast: no background, the switch locked; back afterwards", async ({ page }) => {
@@ -368,13 +409,13 @@ test.describe("background with reduced motion", () => {
   test.use({ reducedMotion: "reduce", storage: { "dsm-recs": OFF, "dsm-bg": BG({ id: "lines", t: 100 }) } });
   test("one still frame, no pointer; tempo locked", async ({ page }) => {
     await open(page);
-    await expect.poll(() => painted(page, "#bg canvas")).toBe(true);
-    const a = await picture(page);
+    await expect.poll(() => painted(page, "#bg canvas")).toBe(true); // Linien: canvas 2D, readable any time
+    const f = await frames(page);
     await page.mouse.move(60, 300);
     await page.mouse.move(120, 340, { steps: 4 });
-    await page.mouse.down(); await page.mouse.up();
-    await page.waitForTimeout(400); // nothing may change meanwhile
-    expect(await picture(page)).toBe(a);
+    await page.mouse.click(120, 340);
+    await page.waitForTimeout(400); // nothing may be painted meanwhile
+    expect(await bgStats(page)).toEqual({ frames: f, gl: false, waves: 0 });
     await openSettings(page);
     await expect(page.locator("#s-bgt")).toBeDisabled();
     await expect(page.locator('label[for="s-bgt"]')).toContainText("Steht still");

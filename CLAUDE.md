@@ -82,10 +82,13 @@ The admin password is in no file: never guess or write it down. Whatever the adm
   Biografien & Geschichte (`dsm-recs`); no language question, no progress bar. Settings: same choice.
 - Interactive backgrounds (`library/backdrop.jsx` engine + settings "Hintergrund", `library/scenes.js` drawing; `dsm-bg` =
   `{on,id,color,k,t,d}`): OFF by default, only on the book list. Two abstract scenes (2026-10-26, after the 9 of 10-25 were
-  removed): Punkte (halftone dot grid, the pointer a lens showing the logo colors) and Linien (contour lines, the pointer a
-  hill). Tweaks: color (all/one logo color), strength, tempo, density, live preview. Fixed `#bg` behind the page, under the
-  column only `--fx-col`; none with high contrast/print; one still frame with reduced motion; 30 fps while interacting,
-  else 20, 10 after 30 s idle, none under a dialog or in a hidden tab. Search bar transparent until `.stuck`.
+  removed; Johann: no more scenes, Punkte optimized instead): Punkte (halftone dot grid, the pointer a lens showing the logo
+  colors) on the GPU (`library/dots-gl.js`, WebGL, full device resolution; canvas 2D only without WebGL) and Linien
+  (contour lines, the pointer a hill). Tweaks: color (all/one logo color), strength, tempo, density, live preview. Ring
+  wave only for a click on free space, never on a book/button/field/link. Fixed `#bg` behind the page, under the column
+  only `--fx-col`; none with high contrast/print; one still frame with reduced motion; while interacting 60 fps (WebGL) /
+  30 (2D), else 20, 10 after 30 s idle, none under a dialog or in a hidden tab; input listeners only while on. Search bar
+  transparent until `.stuck`. Test hook `window.DSM_BG` {frames, gl, waves}.
 
 ## Design
 
