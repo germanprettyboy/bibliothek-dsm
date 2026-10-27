@@ -21,6 +21,8 @@ test.describe("categories", () => {
     const fantasy = inGroup("Fantasy");
     expect(fantasy.length).toBeGreaterThan(inCat("Fantasy").length);
     await choose(page, "g:Fantasy");
+    // the sticky bar sits at the top on every screen size
+    expect(await page.locator(".bar").evaluate(e => e.getBoundingClientRect().top)).toBeLessThanOrEqual(1);
     await expect(page.locator("#list .row")).toHaveCount(fantasy.length);
     await expect(page.locator("#meta")).toHaveText(`${num(fantasy.length)} Treffer`);
     await expect(page.locator("#cat-btn")).toHaveAttribute("aria-label", "Nach Kategorie filtern: Fantasy");
@@ -137,7 +139,9 @@ test.describe("categories", () => {
       await expect.poll(() => page.locator(".cat-x").evaluate(e => e.offsetWidth)).toBe(47);
       expect((await page.locator("#cat-clear").boundingBox()).width).toBeCloseTo((await page.locator("#cat-btn").boundingBox()).width, 0);
       const x = await page.locator("#cat-clear").boundingBox(), after = await page.locator("#q").boundingBox();
-      expect(Math.abs(x.y - button.y - 1)).toBeLessThan(1);
+      // choosing a category brings the sticky bar to the top (like focusing the search); compare with the search field's new position
+      expect(Math.abs(x.y - after.y - 1)).toBeLessThan(1);
+      expect(await page.locator(".bar").evaluate(e => e.getBoundingClientRect().top)).toBeLessThanOrEqual(1);
       expect(after.width).toBeLessThan(before.width);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(overflow).toBeLessThanOrEqual(0);
