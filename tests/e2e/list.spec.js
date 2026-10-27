@@ -56,7 +56,10 @@ test.describe("list", () => {
 
   test("page text can be neither marked nor copied; the search field can", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
-    expect(await page.evaluate(() => getComputedStyle(document.querySelector("#list .row")).userSelect)).toBe("none");
+    // user-select is not inherited (Firefox reports "auto" below body, which there means none): body, then a real try
+    expect(await page.evaluate(() => getComputedStyle(document.body).userSelect)).toBe("none");
+    await page.locator("#meta").dblclick();
+    expect(await page.evaluate(() => String(getSelection()))).toBe("");
     // a copy anywhere on the page is refused, one in a field goes through
     const copy = sel => page.evaluate(s => {
       const e = new ClipboardEvent("copy", { bubbles: true, cancelable: true });
