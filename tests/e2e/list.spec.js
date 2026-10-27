@@ -245,6 +245,37 @@ test.describe("phone (390 px)", () => {
   });
 });
 
+test.describe("phone (360 px)", () => {
+  test.use({ ...PHONE, viewport: { width: 360, height: 740 } });
+
+  test("the search placeholder fits whole (DE and IT), the × gets its room only with text", async ({ page }) => {
+    await open(page);
+    // the placeholder's text laid out in the field's font (a span: a placeholder has no scrollWidth) against the content
+    // box from the border box (Firefox's clientWidth of an input already leaves out the padding)
+    const fit = () => page.locator("#q").evaluate(async i => {
+      await document.fonts.ready;
+      const cs = getComputedStyle(i), s = document.createElement("span");
+      for (const k of ["fontFamily", "fontSize", "fontWeight", "letterSpacing"]) s.style[k] = cs[k];
+      Object.assign(s.style, { position: "absolute", visibility: "hidden", whiteSpace: "pre" });
+      s.textContent = i.placeholder;
+      document.body.appendChild(s);
+      const need = s.getBoundingClientRect().width;
+      s.remove();
+      const edges = ["borderLeftWidth", "borderRightWidth", "paddingLeft", "paddingRight"].reduce((sum, k) => sum + parseFloat(cs[k]), 0);
+      return { need, room: i.getBoundingClientRect().width - edges };
+    });
+    let r = await fit();
+    expect(r.need, JSON.stringify(r)).toBeLessThanOrEqual(r.room);
+    await page.click('.seg [data-lang="it"]');
+    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titolo, autore o ISBN");
+    r = await fit();
+    expect(r.need, JSON.stringify(r)).toBeLessThanOrEqual(r.room);
+    await page.locator("#q").fill("tschick");
+    await expect(page.locator(".search .clear")).toBeVisible();
+    await expect(page.locator("#q")).toHaveCSS("padding-right", "48px");
+  });
+});
+
 test.describe("preview from the admin page", () => {
   const preview = { updated: "2026-01-01", count: 2, books: [{ t: "Vorschau Eins", a: ["A B"] }, { t: "Vorschau Zwei" }] };
   test.use({ storage: { "dsm-recs": JSON.stringify({ want: false, group: null }), "dsm-preview": JSON.stringify(preview) } });

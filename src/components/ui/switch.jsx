@@ -13,9 +13,10 @@ function Switch({ className, ...props }) {
       )}
       {...props}
     >
+      {/* Checked: the thumb in the page color – white on the anthracite track, dark on the light track of dark mode */}
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
-        className="pointer-events-none block size-6 translate-x-[3px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,.25)] transition-transform duration-[280ms] ease-dsm data-[state=checked]:translate-x-[23px]"
+        className="pointer-events-none block size-6 translate-x-[3px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,.25)] transition-transform duration-[280ms] ease-dsm data-[state=checked]:translate-x-[23px] data-[state=checked]:bg-background"
       />
     </SwitchPrimitive.Root>
   );

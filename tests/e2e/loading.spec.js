@@ -32,7 +32,7 @@ test.describe("loading on a slow connection", () => {
     await expect(page.locator("#recs")).toBeHidden();
     // the search bar is ready already; texts from the HTML stay although the page script has already run
     await expect(page.locator("#q")).toBeVisible();
-    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titel, Autor oder ISBN suchen");
+    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titel, Autor oder ISBN");
     await expect(page.locator("h1")).toHaveText("Bibliothek");
 
     release();
