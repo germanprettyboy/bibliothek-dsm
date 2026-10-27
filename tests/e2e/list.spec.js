@@ -250,17 +250,25 @@ test.describe("phone (360 px)", () => {
 
   test("the search placeholder fits whole (DE and IT), the × gets its room only with text", async ({ page }) => {
     await open(page);
-    // text width in the field's font against its content box (a placeholder has no scrollWidth)
-    const fits = () => page.locator("#q").evaluate(async i => {
+    // the placeholder's text laid out in the field's font (a span: a placeholder has no scrollWidth; a canvas measured
+    // Firefox's fallback font) against the field's content box
+    const fit = () => page.locator("#q").evaluate(async i => {
       await document.fonts.ready;
-      const cs = getComputedStyle(i), c = document.createElement("canvas").getContext("2d");
-      c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
-      return c.measureText(i.placeholder).width <= i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const cs = getComputedStyle(i), s = document.createElement("span");
+      for (const k of ["fontFamily", "fontSize", "fontWeight", "letterSpacing"]) s.style[k] = cs[k];
+      Object.assign(s.style, { position: "absolute", visibility: "hidden", whiteSpace: "pre" });
+      s.textContent = i.placeholder;
+      document.body.appendChild(s);
+      const need = s.getBoundingClientRect().width;
+      s.remove();
+      return { need, room: i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) };
     });
-    expect(await fits()).toBe(true);
+    let r = await fit();
+    expect(r.need, JSON.stringify(r)).toBeLessThanOrEqual(r.room);
     await page.click('.seg [data-lang="it"]');
     await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titolo, autore o ISBN");
-    expect(await fits()).toBe(true);
+    r = await fit();
+    expect(r.need, JSON.stringify(r)).toBeLessThanOrEqual(r.room);
     await page.locator("#q").fill("tschick");
     await expect(page.locator(".search .clear")).toBeVisible();
     await expect(page.locator("#q")).toHaveCSS("padding-right", "48px");
