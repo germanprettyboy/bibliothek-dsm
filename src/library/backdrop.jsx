@@ -1,75 +1,53 @@
-/* Interactive backgrounds (settings "Hintergrund"): two abstract scenes behind the book list (library/scenes.js), off by
-   default (`dsm-bg`). Punkte runs on the GPU (library/dots-gl.js, WebGL) wherever that works, otherwise with canvas 2D.
-   Tweakable in the settings: scene, color, strength, tempo, density – with a live preview that answers the pointer
-   like the page does.
+/* Interactive background (settings "Hintergrund"): the abstract scene Punkte behind the book list, off by default
+   (`dsm-bg` = { on }). It runs on the GPU (library/dots-gl.js, WebGL) wherever that works, otherwise with canvas 2D
+   (library/scenes.js). The settings show a live preview that answers the pointer like the page does; nothing to tweak.
    Layer #bg (fixed, z-index -1, aria-hidden, no pointer events): in front of the body color, behind everything else.
    Under the content column the mask in styles.css lets only --fx-col of it through (the list stays readable), the
    search bar is transparent until it sticks. Pointer, clicks/taps and scrolling are read on window, only while the
-   layer is on; a ring wave only for a click on free space (never on a book, button, field or link).
+   layer is on; a ring wave only for a click on free space (never on a book, button, field or link) and never for one
+   that began under a dialog (closing a book by a click beside it).
    Frames: while the pointer moves or a wave runs 60 fps (WebGL) / 30 (canvas 2D), otherwise 20, 10 after 30 s
-   without any input; none in a hidden tab, none with tempo 0 while nothing moves, none under a modal dialog (its blur
-   would be recomputed on every frame – a change in the settings paints one frame). Reduced motion (system or setting):
+   without any input; none in a hidden tab, none under a modal dialog (its blur would be recomputed on every frame –
+   switching it on in the settings paints one frame). Reduced motion (system or setting):
    one still frame, no pointer. High contrast, print: none. Colors only from the tokens in styles.css, read again on
    every theme change.
-   Test hooks: #bg[data-bg], <html data-bg>, #s-bg, #s-bgpick, #s-bgscene [data-v], #s-bgcolor [data-c], #s-bgk, #s-bgt,
-   #s-bgd, #bg-reset, #bg-preview (the box of the preview canvas), window.DSM_BG { frames, gl, waves }. */
+   Test hooks: #bg[data-bg], <html data-bg>, #s-bg, #s-bgpick, #bg-preview (the box of the preview canvas),
+   window.DSM_BG { frames, gl, waves }. */
 import * as React from "react";
-import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
 
 import { Section, Option } from "@/components/settings";
-import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useAppearance } from "@/lib/appearance";
 import { reduced, systemReduced } from "@/lib/environment";
 import { addStrings, useLanguage } from "@/lib/language";
 import { store, log } from "@/lib/storage";
-import { dots, lines, HUES, WAVE } from "@/library/scenes";
+import { dots, HUES, WAVE } from "@/library/scenes";
 import { dotsGL } from "@/library/dots-gl";
 
 addStrings({
   de: {
     bgTitle: "Hintergrund", bgShow: "Bewegter Hintergrund", bgShowH: "Abstrakt – folgt Zeiger, Klick und Fingertipp",
-    bgContrast: "Bei hohem Kontrast ausgeschaltet", bgScene: "Motiv", bg_dots: "Punkte", bg_lines: "Linien",
-    bgColor: "Farbe", bgc_all: "Alle Logofarben", bgc_mauve: "Mauve", bgc_red: "Rot", bgc_orange: "Orange", bgc_yellow: "Gelb",
-    bgc_green: "Grün", bgc_blue: "Blau",
-    bgK: "Stärke", bgT: "Tempo", bgD: "Dichte", bgStill: "Steht still (Keine Animationen)", bgReset: "Zurücksetzen",
+    bgContrast: "Bei hohem Kontrast ausgeschaltet",
   },
   it: {
     bgTitle: "Sfondo", bgShow: "Sfondo animato", bgShowH: "Astratto – segue puntatore, clic e tocco",
-    bgContrast: "Disattivato con contrasto elevato", bgScene: "Motivo", bg_dots: "Punti", bg_lines: "Linee",
-    bgColor: "Colore", bgc_all: "Tutti i colori del logo", bgc_mauve: "Malva", bgc_red: "Rosso", bgc_orange: "Arancione",
-    bgc_yellow: "Giallo", bgc_green: "Verde", bgc_blue: "Blu",
-    bgK: "Intensità", bgT: "Velocità", bgD: "Densità", bgStill: "Resta fermo (Nessuna animazione)", bgReset: "Ripristina",
+    bgContrast: "Disattivato con contrasto elevato",
   },
 });
 
 const root = document.documentElement;
-const SCENES = { dots, lines };
-export const IDS = Object.keys(SCENES);
-const COLORS = ["all", ...HUES];
 const IDLE = 30000; // without any input for so long: 10 fps
 
 // ---------- Choice (localStorage dsm-bg) ----------
-// k = strength, t = tempo, d = density, each 0..100 (50 = as designed)
+// Saved before 2026-10-27 with a scene and tweaks (id, color, k, t, d): only `on` counts
 const KEY = "dsm-bg";
-const TWEAKS = { color: "all", k: 50, t: 50, d: 50 };
-const num = (v, def) => (typeof v === "number" && isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : def);
-function load() {
-  const s = store.json(KEY) || {};
-  // ids of the backgrounds until 2026-10-25 (aurora, milan …) no longer exist: the first scene
-  return { on: !!s.on, id: IDS.includes(s.id) ? s.id : IDS[0], color: COLORS.includes(s.color) ? s.color : "all",
-    k: num(s.k, 50), t: num(s.t, 50), d: num(s.d, 50) };
-}
-let pref = load();
+let pref = { on: !!(store.json(KEY) || {}).on };
 const listeners = new Set();
-let logTimer = 0;
 
-export function setBackground(next) {
-  const before = pref;
-  pref = { ...pref, ...next };
+export function setBackground(on) {
+  if (on === pref.on) return;
+  pref = { on };
   store.set(KEY, JSON.stringify(pref));
-  if (pref.on !== before.on || pref.id !== before.id) log("Setting", `Background: ${pref.on ? pref.id : "off"}`);
-  else { clearTimeout(logTimer); logTimer = setTimeout(() => log("Setting", `Background ${pref.id}: ${pref.color}, strength ${pref.k}, tempo ${pref.t}, density ${pref.d}`), 600); }
+  log("Setting", `Background: ${on ? "dots" : "off"}`);
   listeners.forEach(fn => fn());
   mount();
 }
@@ -88,13 +66,13 @@ let noGL = false; // WebGL failed once (none, blocked, shaders not compiled): ca
 // Test hooks, also handy in the console (window.DSM_BG): frames the page layer painted, WebGL or not, waves running
 const stats = { frames: 0, gl: false, waves: 0 };
 
-// The scene keeps its box and puts the right canvas into it: WebGL for Punkte (every dot computed on the GPU, sharp at
-// the device resolution), canvas 2D for Linien and wherever WebGL fails.
+// The scene keeps its box and puts the right canvas into it: WebGL (every dot computed on the GPU, sharp at the device
+// resolution), canvas 2D wherever WebGL fails.
 function scene(box, main) {
-  const S = { w: 0, h: 0, dpr: 1, t: 0, now: 0, P: null, k: 1, d: -1, hue: -1, sy: 0, lens: { x: 0, y: 0, a: 0 }, waves: [] };
+  const S = { w: 0, h: 0, dpr: 1, t: 0, now: 0, P: null, k: 1, sy: 0, lens: { x: 0, y: 0, a: 0 }, waves: [] };
   const ptr = { x: 0, y: 0, on: false, at: 0 }; // where the lens wants to go
   let canvas = null, kind = "", c = null, R = null, lost = false;
-  let spec = null, st = null, speed = 1, raf = 0, last = 0, later = 0;
+  let spec = null, st = null, raf = 0, last = 0, later = 0;
 
   const still = () => reduced.matches;
   // The page layer pauses under a modal dialog (Radix sets pointer-events: none on <body>)
@@ -146,7 +124,7 @@ function scene(box, main) {
     if (!main && !ptr.on) { ptr.x = S.w * (.5 + .34 * Math.sin(now / 2300)); ptr.y = S.h * (.5 + .3 * Math.sin(now / 1700)); ptr.at = now; }
     const L = S.lens, on = (ptr.on || !main) && now - ptr.at < 6000 && !still(); // a resting mouse: the lens fades after 6 s
     if (still()) { S.waves.length = 0; L.a = 0; } else {
-      S.t += dt * speed;
+      S.t += dt;
       if (L.a < .01 && on) { L.x = ptr.x; L.y = ptr.y; }
       const f = Math.min(1, dt / 90);
       L.x += (ptr.x - L.x) * f; L.y += (ptr.y - L.y) * f;
@@ -167,8 +145,6 @@ function scene(box, main) {
     raf = 0;
     if (!spec || !S.w || still() || document.hidden || paused()) return;
     const moving = busy(now);
-    // tempo 0 and nothing under the pointer: the picture only changes when something happens (wake)
-    if (!speed && !moving && S.sy === (main ? window.scrollY || 0 : 0)) return;
     // the pointer at the display rate (at most 60 fps; canvas 2D: 30), drifting at 20, 10 after 30 s without input
     const gap = moving ? (kind === "gl" ? 15 : 33) : now - input > IDLE ? 100 : 50;
     if (now - last >= gap - 4) paint(now);
@@ -181,15 +157,15 @@ function scene(box, main) {
     wake() { if (!raf) raf = requestAnimationFrame(frame); },
     stop() { cancelAnimationFrame(raf); raf = 0; clearTimeout(later); },
     destroy() { api.stop(); lose(); if (canvas) canvas.remove(); canvas = null; kind = ""; },
-    set(p) {
-      const d = p.d / 100, gl = p.id === "dots" && !noGL && surface(true);
+    // (again after a theme switch: new colors)
+    set() {
+      const gl = !noGL && surface(true);
       if (!gl) surface(false);
-      const next = gl ? dotsGL : SCENES[p.id], fresh = next !== spec || d !== S.d;
-      speed = 2 * p.t / 100; S.k = (.35 + 1.3 * p.k / 100) * (P ? P.fx : 1);
-      S.d = d; S.hue = p.color === "all" ? -1 : HUES.indexOf(p.color); S.P = P; spec = next;
+      const next = gl ? dotsGL : dots, fresh = next !== spec;
+      S.k = P ? P.fx : 1; S.P = P; spec = next;
       if (main) stats.gl = gl;
       if (!S.w) fit(true); else if (fresh) st = spec.init(S, R);
-      // under the settings dialog: one frame once the slider rests (each one recomputes the blur above it)
+      // under the settings dialog: one frame once the dialog has settled (each one recomputes the blur above it)
       clearTimeout(later);
       if (paused()) later = setTimeout(api.draw, 150); else api.draw();
     },
@@ -197,7 +173,7 @@ function scene(box, main) {
     move(x, y, on) { ptr.x = x; ptr.y = y; ptr.on = on; ptr.at = performance.now(); if (on && !still()) api.wake(); },
     tap(x, y) {
       if (still() || paused()) return;
-      S.waves.push({ x, y, t0: performance.now(), c: S.hue >= 0 ? S.hue : waveN++ % HUES.length });
+      S.waves.push({ x, y, t0: performance.now(), c: waveN++ % HUES.length });
       if (S.waves.length > WAVE.max) S.waves.shift();
       api.wake();
     },
@@ -224,8 +200,8 @@ function mount() {
     page = scene(layer, true);
     listen(true);
   }
-  page.set(pref);
-  layer.dataset.bg = root.dataset.bg = pref.id;
+  page.set();
+  layer.dataset.bg = root.dataset.bg = "dots";
 }
 
 // New colors after a theme switch; contrast and motion decide whether and how it runs at all
@@ -233,15 +209,23 @@ function restyle() {
   if (!pref.on) return;
   palette();
   mount();
-  for (const s of previews) s.set(pref);
+  for (const s of previews) s.set();
 }
 
 // Input, only while the layer is there (off = no listeners at all). A click meant for something – a book, a button,
-// a field, a link – starts no wave: only one on free space does.
+// a field, a link – starts no wave: only one on free space does. Nor one that began under a dialog: a click beside an
+// open book closes it, and by the time it arrives the dialog may already be gone.
 const QUIET = "a, button, input, select, textarea, label, summary, [role], [tabindex], [contenteditable]";
+const modal = () => document.body.style.pointerEvents === "none" || !!document.querySelector('[role="dialog"], [role="alertdialog"]');
+let downFree = false; // the last press began on the page itself, no dialog open
 const touched = () => { input = performance.now(); if (page) page.wake(); };
 const onMove = e => { touched(); if (page) page.move(e.clientX, e.clientY, true); };
-const onClick = e => { if (page && !(e.target.closest && e.target.closest(QUIET))) page.tap(e.clientX, e.clientY); };
+const onDown = e => { downFree = !modal(); onMove(e); };
+const onClick = e => {
+  const free = downFree;
+  downFree = false;
+  if (page && free && !modal() && !(e.target.closest && e.target.closest(QUIET))) page.tap(e.clientX, e.clientY);
+};
 // Mouse and pen: the lens follows while the pointer is over the window; finger: only while it touches
 const onLift = e => { if (page && e.pointerType === "touch") page.move(e.clientX, e.clientY, false); };
 const onOut = e => { if (page && !e.relatedTarget) page.move(e.clientX, e.clientY, false); };
@@ -250,8 +234,10 @@ const onVisible = () => { if (page) page.wake(); previews.forEach(s => s.wake())
 let dialogs = null; // a dialog closes (Radix gives <body> its pointer events back): the layer runs again
 function listen(on) {
   const m = on ? "addEventListener" : "removeEventListener", o = { passive: true };
-  for (const [type, fn] of [["scroll", touched], ["keydown", touched], ["pointermove", onMove], ["pointerdown", onMove],
+  for (const [type, fn] of [["scroll", touched], ["keydown", touched], ["pointermove", onMove],
     ["pointerup", onLift], ["pointercancel", onLift], ["click", onClick], ["resize", onResize]]) window[m](type, fn, o);
+  // capture: seen before the dialog's own listener closes it on this very press
+  window[m]("pointerdown", onDown, { passive: true, capture: true });
   document[m]("pointerout", onOut);
   document[m]("visibilitychange", onVisible);
   if (dialogs) { dialogs.disconnect(); dialogs = null; }
@@ -271,15 +257,14 @@ export function startBackground() {
 }
 
 // ---------- Settings section ----------
-// Live preview: the same scene with the same tweaks, at the page's scale; it answers the pointer inside it
-function Preview({ p }) {
+// Live preview: the same scene at the page's scale; it answers the pointer inside it
+function Preview() {
   const ref = React.useRef(null);
-  const sc = React.useRef(null);
   React.useEffect(() => {
     const box = ref.current, s = scene(box, false);
-    sc.current = s; previews.add(s);
+    previews.add(s);
     if (!P) palette();
-    s.set(pref);
+    s.set();
     const ro = new ResizeObserver(() => s.resize());
     ro.observe(box);
     const at = e => { const r = box.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -292,63 +277,22 @@ function Preview({ p }) {
     box.addEventListener("pointercancel", leave);
     return () => { ro.disconnect(); s.destroy(); previews.delete(s); };
   }, []);
-  React.useEffect(() => { if (sc.current) sc.current.set(p); }, [p]);
   return <div ref={ref} id="bg-preview" className="bgprev" aria-hidden="true" />;
 }
-
-function Slider({ id, label, value, disabled, note, onChange }) {
-  return (
-    <label htmlFor={id} className="bgrow">
-      <span className="grid">
-        <span className="font-medium">{label}</span>
-        {note ? <small className="text-s text-muted-foreground">{note}</small> : null}
-      </span>
-      <input
-        id={id} type="range" min="0" max="100" step="1" className="bgrange" style={{ "--p": value + "%" }}
-        value={value} disabled={disabled} onInput={e => onChange(+e.currentTarget.value)}
-      />
-    </label>
-  );
-}
-
-const onSystem = fn => { systemReduced.addEventListener("change", fn); return () => systemReduced.removeEventListener("change", fn); };
 
 export function BackgroundSettings() {
   const { t } = useLanguage();
   const p = useBackground();
   const a = useAppearance();
-  const still = React.useSyncExternalStore(onSystem, () => systemReduced.matches) || a.motion;
   const on = p.on && !a.contrast;
-  const tweaked = Object.keys(TWEAKS).some(k => p[k] !== TWEAKS[k]);
   return (
     <Section title={t("bgTitle")}>
       <Option
         id="s-bg" title={t("bgShow")} help={t(a.contrast ? "bgContrast" : "bgShowH")}
-        checked={on} disabled={a.contrast} onCheckedChange={v => setBackground({ on: v })}
+        checked={on} disabled={a.contrast} onCheckedChange={setBackground}
       />
-      <div id="s-bgpick" className="bgpick grid gap-2 pt-1.5" hidden={!on}>
-        {on ? <Preview p={p} /> : null}
-        <ToggleGroup
-          type="single" id="s-bgscene" aria-label={t("bgScene")} className="seg3 mt-1 grid-cols-2" style={{ "--i": IDS.indexOf(p.id), "--n": 2 }}
-          value={p.id} onValueChange={v => v && setBackground({ id: v })}
-        >
-          {IDS.map(id => <ToggleGroupItem key={id} value={id} data-v={id}>{t("bg_" + id)}</ToggleGroupItem>)}
-        </ToggleGroup>
-        <RadioGroupPrimitive.Root id="s-bgcolor" className="bgsw" aria-label={t("bgColor")} value={p.color} onValueChange={c => c && setBackground({ color: c })}>
-          {COLORS.map(c => (
-            <RadioGroupPrimitive.Item key={c} value={c} data-c={c} aria-label={t("bgc_" + c)} title={t("bgc_" + c)}>
-              <i style={c === "all" ? undefined : { background: `var(--${c})` }} />
-            </RadioGroupPrimitive.Item>
-          ))}
-        </RadioGroupPrimitive.Root>
-        <div className="grid">
-          <Slider id="s-bgk" label={t("bgK")} value={p.k} onChange={k => setBackground({ k })} />
-          <Slider id="s-bgt" label={t("bgT")} value={p.t} disabled={still} note={still ? t("bgStill") : null} onChange={v => setBackground({ t: v })} />
-          <Slider id="s-bgd" label={t("bgD")} value={p.d} onChange={d => setBackground({ d })} />
-        </div>
-        <Button id="bg-reset" variant="ghost" className="justify-self-end text-s" disabled={!tweaked} onClick={() => setBackground(TWEAKS)}>
-          {t("bgReset")}
-        </Button>
+      <div id="s-bgpick" className="bgpick grid pt-1.5" hidden={!on}>
+        {on ? <Preview /> : null}
       </div>
     </Section>
   );

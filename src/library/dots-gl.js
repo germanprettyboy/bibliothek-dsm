@@ -1,13 +1,13 @@
 /* Punkte on the GPU (WebGL 1): the same picture as `dots` in scenes.js, but each dot is computed in the vertex shader
    (landscape, lens, ring waves, color) and drawn as a round point with a one-pixel soft edge – sharp at the full device
    resolution, while the main thread only sets a few uniforms per frame and issues one draw call. The grid (dot indices)
-   is uploaded once per size and density. library/backdrop.jsx uses it wherever WebGL works, otherwise `dots` (canvas 2D).
+   is uploaded once per size. library/backdrop.jsx uses it wherever WebGL works, otherwise `dots` (canvas 2D).
    Contract: setup(gl) → resources or null (no shaders: canvas 2D); init(S, R) → state; draw(R, S, st).
    3D simplex noise in the shader: webgl-noise by Ian McEwan and Stefan Gustavson (Ashima Arts), MIT license. */
-import { PARALLAX, WAVE } from "@/library/scenes";
+import { GRID, PARALLAX, WAVE } from "@/library/scenes";
 
 const VS = `attribute vec2 aIdx;
-uniform vec2 uView;uniform vec4 uGrid;uniform float uZ,uBase,uK,uDpr,uMax,uHue;uniform vec4 uLens;
+uniform vec2 uView;uniform vec4 uGrid;uniform float uZ,uBase,uK,uDpr,uMax;uniform vec4 uLens;
 uniform vec4 uWave[6];uniform float uWaveC[6];uniform vec3 uFg;uniform vec3 uPal[6];
 varying vec4 vCol;varying float vR,vSize;
 vec3 m289(vec3 x){return x-floor(x*(1./289.))*289.;}vec4 m289(vec4 x){return x-floor(x*(1./289.))*289.;}
@@ -31,8 +31,8 @@ float wq=0.,wc=0.;for(int k=0;k<6;k++){vec4 w=uWave[k];if(w.w>0.){float q=max(0.
 if(q>wq){wq=q;wc=uWaveC[k];}}}
 if(wq>0.){r*=1.+2.4*wq;if(wq>acc){acc=wq;hue=wc;}}
 vec3 col=uFg;float a=.2;
-if(acc>.12){if(hue<0.){if(uHue>=0.)hue=uHue;else{float t=atan(snoise(vec3(home.x/700.,wy/700.,uZ*.5)),snoise(vec3(home.x/700.+31.,wy/700.-17.,uZ*.5)));
-hue=mod(floor((t/6.2831853+.5)*6.),6.);}}col=uPal[int(hue+.5)];a=.4+min(acc,1.)*.56;}
+if(acc>.12){if(hue<0.){float t=atan(snoise(vec3(home.x/700.,wy/700.,uZ*.5)),snoise(vec3(home.x/700.+31.,wy/700.-17.,uZ*.5)));
+hue=mod(floor((t/6.2831853+.5)*6.),6.);}col=uPal[int(hue+.5)];a=.4+min(acc,1.)*.56;}
 a=clamp(a*uK,0.,1.);vR=r*uDpr;vSize=min(2.*vR+2.,uMax);vCol=vec4(col*a,a);
 gl_PointSize=vSize;gl_Position=r<.35?vec4(2.,2.,2.,1.):vec4(p.x/uView.x*2.-1.,1.-p.y/uView.y*2.,0.,1.);}`;
 
@@ -40,7 +40,7 @@ gl_PointSize=vSize;gl_Position=r<.35?vec4(2.,2.,2.,1.):vec4(p.x/uView.x*2.-1.,1.
 const FS = `precision mediump float;varying vec4 vCol;varying float vR,vSize;
 void main(){float a=clamp(min(vR,vSize*.5-1.)-length(gl_PointCoord-.5)*vSize+.5,0.,1.);if(a<=0.)discard;gl_FragColor=vCol*a;}`;
 
-const UNIFORMS = ["uView", "uGrid", "uZ", "uBase", "uK", "uDpr", "uMax", "uHue", "uLens", "uWave", "uWaveC", "uFg", "uPal"];
+const UNIFORMS = ["uView", "uGrid", "uZ", "uBase", "uK", "uDpr", "uMax", "uLens", "uWave", "uWaveC", "uFg", "uPal"];
 const rgb = hex => { const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex); return m ? [m[1], m[2], m[3]].map(v => parseInt(v, 16) / 255) : [.2, .2, .2]; };
 const mod = (x, m) => ((x % m) + m) % m;
 
@@ -65,9 +65,9 @@ export const dotsGL = {
     gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.clearColor(0, 0, 0, 0);
     return { gl, u, max: gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE)[1] || 64, waves: new Float32Array(24), waveC: new Float32Array(6), P: null };
   },
-  // The same density as `dots`; the GPU affords every dot even on a big screen (cap only for 4K and beyond)
-  init({ w, h, d }, R) {
-    let g = 34 - 18 * d;
+  // The same grid as `dots`; the GPU affords every dot even on a big screen (cap only for 4K and beyond)
+  init({ w, h }, R) {
+    let g = GRID;
     while ((w / g + 1) * (h / g + 2) > 30000) g *= 1.1;
     const nx = Math.ceil(w / g) + 1, ny = Math.ceil(h / g) + 2, idx = new Float32Array(nx * ny * 2);
     for (let j = 0, k = 0; j < ny; j++) for (let i = 0; i < nx; i++) { idx[k++] = i; idx[k++] = j; }
@@ -92,7 +92,7 @@ export const dotsGL = {
     gl.uniform2f(u.uView, w, h);
     gl.uniform4f(u.uGrid, g, x0, mod(-shift, g), shift);
     gl.uniform1f(u.uZ, zz); gl.uniform1f(u.uBase, g * .085); gl.uniform1f(u.uK, S.k); gl.uniform1f(u.uDpr, S.dpr);
-    gl.uniform1f(u.uMax, R.max); gl.uniform1f(u.uHue, S.hue);
+    gl.uniform1f(u.uMax, R.max);
     gl.uniform4f(u.uLens, lens.x, lens.y, lens.a, Math.max(110, Math.min(220, Math.min(w, h) * .3)));
     gl.uniform4fv(u.uWave, R.waves); gl.uniform1fv(u.uWaveC, R.waveC);
     gl.drawArrays(gl.POINTS, 0, n);
