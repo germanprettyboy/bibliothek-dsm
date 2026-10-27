@@ -68,6 +68,8 @@ The admin password is in no file: never guess or write it down. Whatever the adm
   answer. Key = PBKDF2(password, salt "dsm-library/save.php", 310,000), only in the encrypted plaintext (`var DSM_SAVE_KEY`).
 - Admin lock only "student-proof": PBKDF2-SHA-256 (310,000) + AES-GCM 256. admin.enc.js and the repo are public, so the password's
   strength is the only barrier: long passphrase. Session key in sessionStorage expires 4 h after the page was last left.
+- No marking/copying of text on both pages (Johann, 2026-10-27): `user-select: none` on body (fields stay selectable,
+  `styles.css`), `head.js` refuses `copy`/`cut` outside fields.
 - Opening hours in Milan time (`Intl` Europe/Rome). Blur always on except "reduce transparency"/high contrast.
 - **Covers only via existing ISBN, NO Google** (Johann, 2026-10-23: visitor IPs not to Google): (1) ekz `cover.ekz.de/<ISBN>.jpg`
   (its "kein Bild" substitute detected by size + hash); (2) Open Library only for ekz misses, always `/api/books?jscmd=viewapi`,
@@ -80,12 +82,12 @@ The admin password is in no file: never guess or write it down. Whatever the adm
 - Slow connection: placeholders, after 6 s "Langsame Verbindung". library.js loads BEFORE books.js (setter on `window.DSM_LIBRARY`).
 - First visit: overlay "Möchten Sie Buchempfehlungen sehen?" → Mittelstufe / Oberstufe / Erwachsenenliteratur → Romane / Sachbücher /
   Biografien & Geschichte (`dsm-recs`); no language question, no progress bar. Settings: same choice.
-- Interactive backgrounds (`library/backdrop.jsx` engine + settings "Hintergrund", `library/scenes.js` drawing; `dsm-bg` =
-  `{on,id,color,k,t,d}`): OFF by default, only on the book list. Two abstract scenes (2026-10-26, after the 9 of 10-25 were
-  removed; Johann: no more scenes, Punkte optimized instead): Punkte (halftone dot grid, the pointer a lens showing the logo
-  colors) on the GPU (`library/dots-gl.js`, WebGL, full device resolution; canvas 2D only without WebGL) and Linien
-  (contour lines, the pointer a hill). Tweaks: color (all/one logo color), strength, tempo, density, live preview. Ring
-  wave only for a click on free space, never on a book/button/field/link. Fixed `#bg` behind the page, under the column
+- Interactive background (`library/backdrop.jsx` engine + settings "Hintergrund", `library/scenes.js` canvas 2D drawing;
+  `dsm-bg` = `{on}`): opt-in, OFF by default, only on the book list. ONE scene since 2026-10-27 (Johann: Linien and all
+  tweaks removed, keep the preview): Punkte (halftone dot grid, the pointer a lens showing the logo colors) on the GPU
+  (`library/dots-gl.js`, WebGL, full device resolution; canvas 2D only without WebGL). Settings = switch + live preview,
+  nothing to tweak. Ring wave only for a click on free space, never on a book/button/field/link, never for a click that
+  began under a dialog (closing a book beside it). Fixed `#bg` behind the page, under the column
   only `--fx-col`; none with high contrast/print; one still frame with reduced motion; while interacting 60 fps (WebGL) /
   30 (2D), else 20, 10 after 30 s idle, none under a dialog or in a hidden tab; input listeners only while on. Search bar
   transparent until `.stuck`. Test hook `window.DSM_BG` {frames, gl, waves}.

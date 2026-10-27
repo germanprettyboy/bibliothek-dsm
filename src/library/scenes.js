@@ -1,30 +1,24 @@
-/* The two interactive backgrounds (library/backdrop.jsx runs them): abstract, few elements, logo colors only as accents.
-     dots  = Punkte: a grid of small dots whose size follows a slowly drifting landscape, like a halftone print. Under the
-             pointer a lens pushes the dots apart, lets them grow and reveals the colors hidden in the landscape.
-     lines = Linien: contour lines of the same kind of landscape. The pointer raises a hill (the lines gather around it)
-             and lights the lines near it; every fourth line is a logo color, from blue in the valleys to mauve on the peaks.
-   Both: a click or tap sends a ring wave out, scrolling moves the landscape along a little (parallax).
-   init(S) → state (again on resize and density change); draw(c, S, st) paints one frame on a cleared canvas.
-   S = { w, h, t: scene time (ms × tempo), now: real time, P: colors, k: strength (alpha factor), d: density 0..1,
-         hue: -1 = all logo colors, 0..5 = one of HUES, sy: scroll offset px, lens: { x, y, a: presence 0..1 },
-         waves: [{ x, y, t0, c }] }
-   Budget whatever the screen size: at most ~6000 dots or ~9000 grid points (larger cells on big screens). */
+/* The interactive background Punkte with canvas 2D (library/backdrop.jsx runs it where WebGL fails; dots-gl.js draws the
+   same picture on the GPU): abstract, few elements, logo colors only as accents. A grid of small dots whose size follows
+   a slowly drifting landscape, like a halftone print. Under the pointer a lens pushes the dots apart, lets them grow and
+   reveals the colors hidden in the landscape. A click or tap sends a ring wave out, scrolling moves the landscape along
+   a little (parallax).
+   init(S) → state (again on resize); draw(c, S, st) paints one frame on a cleared canvas.
+   S = { w, h, t: scene time (ms), now: real time, P: colors, k: alpha factor, sy: scroll offset px,
+         lens: { x, y, a: presence 0..1 }, waves: [{ x, y, t0, c }] }
+   Budget whatever the screen size: at most ~6000 dots (larger cells on big screens). */
 
 const TAU = Math.PI * 2;
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const mod = (x, m) => ((x % m) + m) % m;
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-// "#rrggbb" → rgba() with alpha a (tokens are hex; anything else falls back to the text color of the light theme)
-const rgba = (hex, a) => {
-  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex) || [0, "33", "33", "33"];
-  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${clamp(a, 0, 1)})`;
-};
 
 // Logo colors in the order of the color wheel: neighbors in the landscape blend well (mauve – red – orange – yellow …)
 export const HUES = ["mauve", "red", "orange", "yellow", "green", "blue"];
 export const PARALLAX = .12; // share of the scroll distance the landscape moves along
 // Ring wave of a click or tap: speed px/ms, lifetime ms, at most this many at once
 export const WAVE = { v: .42, life: 2600, max: 6 };
+export const GRID = 25; // px between the dots
 
 // ---------- 3D simplex noise (Gustavson), fixed seed: about -1..1 ----------
 const GRAD = [1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1];
@@ -75,8 +69,8 @@ function waveAt(S, x, y, width) {
 
 // ---------- Punkte ----------
 export const dots = {
-  init({ w, h, d }) {
-    let g = 34 - 18 * d; // density: 34 px (sparse) … 16 px (dense) between the dots
+  init({ w, h }) {
+    let g = GRID;
     while ((w / g + 1) * (h / g + 2) > 6000) g *= 1.1;
     return { g };
   },
@@ -103,7 +97,7 @@ export const dots = {
         if (r < .35) continue;
         let b = 0;
         if (acc > .12) {
-          if (hue < 0) hue = S.hue >= 0 ? S.hue : hueAt(x0 + i * g, wy, z * .5);
+          if (hue < 0) hue = hueAt(x0 + i * g, wy, z * .5);
           b = 1 + hue * 3 + Math.min(2, acc * 3 | 0);
         }
         paths[b].moveTo(x + r, y); paths[b].arc(x, y, r, 0, TAU);
@@ -112,83 +106,6 @@ export const dots = {
     c.fillStyle = P.fg; c.globalAlpha = clamp(.2 * k, 0, 1); c.fill(paths[0]);
     for (let b = 1; b < 19; b++) {
       c.fillStyle = P.logo[(b - 1) / 3 | 0]; c.globalAlpha = clamp((.4 + (b - 1) % 3 * .28) * k, 0, 1); c.fill(paths[b]);
-    }
-  },
-};
-
-// ---------- Linien ----------
-// Marching squares: corners TL, TR, BR, BL as bits 8, 4, 2, 1 (above the level); edges 0 top, 1 right, 2 bottom,
-// 3 left. 5 and 10 are saddles, decided by the middle of the cell.
-const CASES = [[], [3, 2], [2, 1], [3, 1], [0, 1], null, [0, 2], [0, 3], [0, 3], [0, 2], null, [0, 1], [3, 1], [2, 1], [3, 2], []];
-let ex = 0, ey = 0;
-function edge(e, a, b, cc, d, L, x, y, s) {
-  if (e === 0) { ex = x + s * (L - a) / (b - a); ey = y; } else if (e === 1) { ex = x + s; ey = y + s * (L - b) / (cc - b); } else if (e === 2) { ex = x + s * (L - d) / (cc - d); ey = y + s; } else { ex = x; ey = y + s * (L - a) / (d - a); }
-}
-
-export const lines = {
-  init({ w, h }) {
-    let s = 12;
-    while ((w / s + 2) * (h / s + 3) > 9000) s *= 1.1;
-    const nx = Math.ceil(w / s) + 1, ny = Math.ceil(h / s) + 2;
-    return { s, nx, ny, v: new Float32Array(nx * ny) };
-  },
-  draw(c, S, { s, nx, ny, v }) {
-    const { w, h, P, k, lens } = S, shift = S.sy * PARALLAX, oy = mod(-shift, s), z = S.t * 4e-5, f = 1 / 430;
-    const R = clamp(Math.min(w, h) * .16, 80, 150);
-    for (let j = 0; j < ny; j++) {
-      const y = j * s + oy - s, wy = y + shift;
-      for (let i = 0; i < nx; i++) {
-        const x = i * s;
-        let e = noise(x * f, wy * f, z) * .85 + noise(x * f * 2.3, wy * f * 2.3, z * 1.6 + 7.3) * .2;
-        if (lens.a > .01) e += lens.a * Math.exp(-((x - lens.x) ** 2 + (y - lens.y) ** 2) / (R * R));
-        if (S.waves.length) e += waveAt(S, x, y, 44) * .6;
-        v[j * nx + i] = e;
-      }
-    }
-    // density: 7 … 22 levels between -1.2 and 1.2 (the hill under the pointer reaches beyond 1)
-    const n = Math.round(7 + 15 * S.d), step = 2.4 / n, lo = -1.2 + step / 2;
-    const paths = Array.from({ length: n }, () => new Path2D());
-    for (let j = 0; j < ny - 1; j++) {
-      const y = j * s + oy - s;
-      if (y > h) break;
-      for (let i = 0; i < nx - 1; i++) {
-        const o = j * nx + i, a = v[o], b = v[o + 1], cc = v[o + nx + 1], d = v[o + nx];
-        const l0 = Math.max(0, Math.ceil((Math.min(a, b, cc, d) - lo) / step));
-        const l1 = Math.min(n - 1, Math.floor((Math.max(a, b, cc, d) - lo) / step));
-        const x = i * s;
-        for (let l = l0; l <= l1; l++) {
-          const L = lo + l * step, m = (a > L ? 8 : 0) | (b > L ? 4 : 0) | (cc > L ? 2 : 0) | (d > L ? 1 : 0);
-          let seg = CASES[m];
-          if (!seg) {
-            const mid = (a + b + cc + d) / 4 > L;
-            seg = (m === 5) === mid ? [0, 3, 2, 1] : [0, 1, 3, 2];
-          }
-          const p = paths[l];
-          for (let q = 0; q < seg.length; q += 2) {
-            edge(seg[q], a, b, cc, d, L, x, y, s); p.moveTo(ex, ey);
-            edge(seg[q + 1], a, b, cc, d, L, x, y, s); p.lineTo(ex, ey);
-          }
-        }
-      }
-    }
-    // Near the pointer the lines are stronger: a radial gradient as the stroke, one per color
-    const ink = {}, lit = lens.a > .01, accents = Math.ceil((n - 2) / 4);
-    const style = (col, a) => {
-      if (!lit) return rgba(col, a * k);
-      if (!ink[col + a]) {
-        const g = c.createRadialGradient(lens.x, lens.y, 0, lens.x, lens.y, R * 2.2);
-        g.addColorStop(0, rgba(col, a * k * (1 + 1.8 * lens.a))); g.addColorStop(1, rgba(col, a * k));
-        ink[col + a] = g;
-      }
-      return ink[col + a];
-    };
-    c.lineCap = "round"; c.globalAlpha = 1;
-    for (let l = 0; l < n; l++) {
-      const accent = l % 4 === 2;
-      c.lineWidth = accent ? 1.6 : 1;
-      // all colors: by height, blue in the valleys … mauve on the peaks
-      c.strokeStyle = accent ? style(P.logo[S.hue >= 0 ? S.hue : 5 - Math.floor((l >> 2) * 6 / accents)], .6) : style(P.fg, .17);
-      c.stroke(paths[l]);
     }
   },
 };
