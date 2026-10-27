@@ -1,6 +1,6 @@
 /* Runs in <head> before the first paint (index.html, admin.html), without React:
    sets theme, font size, contrast, motion and language immediately (no flash), prepares placeholders for recommendations and
-   the info card, ends the logo's shimmer as soon as the visible image has loaded.
+   the info card, ends the logo's shimmer as soon as the visible image has loaded, refuses copying page text.
    React (assets/library.js or admin.js) then takes over the same values. */
 (function () {
   "use strict";
@@ -38,4 +38,11 @@
   }
   document.addEventListener("load", imgLoaded, true);
   document.addEventListener("error", imgLoaded, true);
+  // No copying of page text (styles.css also stops marking it): only what is typed into a field
+  function noCopy(ev) {
+    var t = ev.target, field = t && t.closest && t.closest("input, textarea, [contenteditable]:not([contenteditable=\"false\"])");
+    if (!field) ev.preventDefault();
+  }
+  document.addEventListener("copy", noCopy);
+  document.addEventListener("cut", noCopy);
 })();

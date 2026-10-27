@@ -54,6 +54,26 @@ test.describe("list", () => {
     expect(r.cv).toBe("auto");
   });
 
+  test("page text can be neither marked nor copied; the search field can", { tag: "@smoke" }, async ({ page }) => {
+    await open(page);
+    // user-select is not inherited (Firefox reports "auto" below body, which there means none): body, then a real try
+    expect(await page.evaluate(() => getComputedStyle(document.body).userSelect)).toBe("none");
+    await page.locator("#meta").dblclick();
+    expect(await page.evaluate(() => String(getSelection()))).toBe("");
+    // a copy anywhere on the page is refused, one in a field goes through
+    const copy = sel => page.evaluate(s => {
+      const e = new ClipboardEvent("copy", { bubbles: true, cancelable: true });
+      document.querySelector(s).dispatchEvent(e);
+      return e.defaultPrevented;
+    }, sel);
+    expect(await copy("#list .row")).toBe(true);
+    expect(await copy("#q")).toBe(false);
+    await page.fill("#q", "tschick");
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById("q")).userSelect)).not.toBe("none");
+    await page.locator("#q").selectText();
+    expect(await page.evaluate(() => { const q = document.getElementById("q"); return q.value.slice(q.selectionStart, q.selectionEnd); })).toBe("tschick");
+  });
+
   test("no loan information visible", async ({ page }) => {
     await open(page);
     await expect(page.locator("body")).not.toContainText(/verliehen|ausgeliehen|verfügbar|vorgemerkt/i);

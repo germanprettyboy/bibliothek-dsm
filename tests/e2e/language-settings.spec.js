@@ -250,10 +250,12 @@ test.describe("setting \"Keine Animationen\"", () => {
   });
 });
 
-// Interactive backgrounds (library/backdrop.jsx, scenes.js, dots-gl.js): off by default, two scenes, tweakable with a live
-// preview, none under high contrast, paused under a dialog, one still frame without motion, waves only on free space
-const BG = (p = {}) => JSON.stringify({ on: true, id: "dots", color: "all", k: 50, t: 50, d: 50, ...p });
+// Interactive background (library/backdrop.jsx, scenes.js, dots-gl.js): off by default, one scene (Punkte), nothing to
+// tweak, a live preview, none under high contrast, paused under a dialog, one still frame without motion, waves only on
+// free space and never for a click that closes a dialog
+const BG = JSON.stringify({ on: true });
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem("dsm-bg")));
+const withBg = page => page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG);
 // frames the page layer painted, WebGL or canvas 2D, waves running (window.DSM_BG)
 const bgStats = page => page.evaluate(() => ({ ...window.DSM_BG }));
 const frames = async page => (await bgStats(page)).frames;
@@ -276,7 +278,7 @@ const painted = (page, sel) => page.evaluate(s => new Promise(resolve => {
 }), sel);
 
 test.describe("background", () => {
-  test("off by default; on, scene, color, sliders, saved, reset, off again", { tag: "@smoke" }, async ({ page }) => {
+  test("off by default; on with a live preview and nothing to tweak, saved, off again", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("#bg")).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
@@ -292,50 +294,36 @@ test.describe("background", () => {
     // behind everything, never in the way of a click
     expect(await page.evaluate(() => { const s = getComputedStyle(document.getElementById("bg")); return [s.position, s.zIndex, s.pointerEvents]; }))
       .toEqual(["fixed", "-1", "none"]);
-    await expect(page.locator("#bg-reset")).toBeDisabled();
-    await page.click('#s-bgscene [data-v="lines"]');
-    await expect(page.locator("html")).toHaveAttribute("data-bg", "lines");
-    await page.click('#s-bgcolor [data-c="blue"]');
-    await expect(page.locator('#s-bgcolor [data-c="blue"]')).toHaveAttribute("aria-checked", "true");
-    await page.locator("#s-bgk").fill("80");
-    await page.locator("#s-bgd").fill("10");
-    await expect(page.locator("#bg-reset")).toBeEnabled();
-    expect(await saved(page)).toEqual({ on: true, id: "lines", color: "blue", k: 80, t: 50, d: 10 });
+    // no scene choice, colors or sliders
+    await expect(page.locator('#s-bgpick input, #s-bgpick button, #s-bgpick [role="radio"]')).toHaveCount(0);
+    expect(await saved(page)).toEqual({ on: true });
     await page.reload();
-    await expect(page.locator('#bg[data-bg="lines"] canvas')).toHaveCount(1);
+    await expect(page.locator('#bg[data-bg="dots"] canvas')).toHaveCount(1);
     await openSettings(page);
-    await expect(page.locator('#s-bgscene [data-v="lines"]')).toHaveAttribute("aria-checked", "true");
-    await expect(page.locator("#s-bgk")).toHaveValue("80");
-    await page.click("#bg-reset");
-    expect(await saved(page)).toEqual({ on: true, id: "lines", color: "all", k: 50, t: 50, d: 50 });
-    await expect(page.locator("#bg-reset")).toBeDisabled();
+    await expect(page.locator("#s-bg")).toBeChecked();
     await page.locator("#s-bg").uncheck();
     await expect(page.locator("#bg")).toHaveCount(0);
     await expect(page.locator("html")).not.toHaveAttribute("data-bg", /.*/);
+    expect(await saved(page)).toEqual({ on: false });
   });
 
-  test("both scenes draw, move and answer the pointer and clicks without script errors", async ({ page, browserName }) => {
+  test("draws, moves and answers the pointer and clicks without script errors", async ({ page, browserName }) => {
+    await withBg(page);
     await open(page);
-    for (const id of ["dots", "lines"]) {
-      await page.evaluate(v => localStorage.setItem("dsm-bg", v), BG({ id }));
-      await page.reload();
-      await page.locator("#list .row").first().waitFor();
-      await expect(page.locator(`#bg[data-bg="${id}"] canvas`)).toHaveCount(1);
-      await expect.poll(() => painted(page, "#bg canvas"), id).toBe(true);
-      // Punkte on the GPU where WebGL works (Chromium, also headless); Linien always canvas 2D
-      if (browserName === "chromium" || id === "lines") expect((await bgStats(page)).gl, id).toBe(id === "dots");
-      // in the left margin, next to the column: the lens, then a ring wave
-      const f = await frames(page);
-      await page.mouse.move(60, 300);
-      await page.mouse.move(120, 340, { steps: 4 });
-      await page.mouse.click(120, 340);
-      await expect.poll(() => frames(page), id).toBeGreaterThan(f + 3);
-      await expect.poll(async () => (await bgStats(page)).waves, id).toBe(1);
-    }
+    await expect(page.locator('#bg[data-bg="dots"] canvas')).toHaveCount(1);
+    await expect.poll(() => painted(page, "#bg canvas")).toBe(true);
+    if (browserName === "chromium") expect((await bgStats(page)).gl).toBe(true); // on the GPU where WebGL works (also headless)
+    // in the left margin, next to the column: the lens, then a ring wave
+    const f = await frames(page);
+    await page.mouse.move(60, 300);
+    await page.mouse.move(120, 340, { steps: 4 });
+    await page.mouse.click(120, 340);
+    await expect.poll(() => frames(page)).toBeGreaterThan(f + 3);
+    await expect.poll(async () => (await bgStats(page)).waves).toBe(1);
   });
 
-  test("a click on a book, a field or a button starts no wave, one on free space does", async ({ page }) => {
-    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG());
+  test("no wave for a click on a book, a field or a button, nor for one that closes a dialog; one on free space", async ({ page }) => {
+    await withBg(page);
     await open(page);
     // painted again after each click: the layer runs (not under a dialog), the count is current
     const quiet = async what => {
@@ -348,6 +336,13 @@ test.describe("background", () => {
     await page.keyboard.press("Escape");
     await expect(page.locator("#detail")).toHaveCount(0);
     await quiet("book");
+    // closing the book by a click beside it (the left margin, under the scrim)
+    await page.locator("#list .row").nth(1).click();
+    await expect(page.locator("#detail")).toBeVisible();
+    await settled(page);
+    await page.mouse.click(40, 400);
+    await expect(page.locator("#detail")).toHaveCount(0);
+    await quiet("book closed by a click beside it");
     await page.click("#q");
     await quiet("search field");
     await page.click("#cat-btn");
@@ -359,7 +354,7 @@ test.describe("background", () => {
   });
 
   test("the search bar lets the background through until it sticks", async ({ page }) => {
-    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG());
+    await withBg(page);
     await open(page);
     const bg = () => page.evaluate(() => getComputedStyle(document.getElementById("bar")).backgroundColor);
     expect(await bg()).toBe("rgba(0, 0, 0, 0)");
@@ -368,66 +363,61 @@ test.describe("background", () => {
     expect(await bg()).not.toBe("rgba(0, 0, 0, 0)");
   });
 
-  test("paused under a dialog; a slider there still repaints it once", async ({ page }) => {
-    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG({ t: 100 }));
+  test("paused under a dialog", async ({ page }) => {
+    await withBg(page);
     await open(page);
     await expect.poll(() => painted(page, "#bg canvas")).toBe(true);
     await openSettings(page);
     await settled(page); // dialog open, scroll lock (and with it a possible resize) done
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     const f = await frames(page);
-    await page.waitForTimeout(400); // tempo 100 would paint it 8 times meanwhile
+    await page.waitForTimeout(400); // running, it would paint at least 8 times meanwhile
     expect(await frames(page)).toBe(f);
-    await page.locator("#s-bgd").fill("100");
-    await expect.poll(() => frames(page)).toBeGreaterThan(f);
   });
 
   test("high contrast: no background, the switch locked; back afterwards", async ({ page }) => {
-    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG({ id: "lines" }));
+    await withBg(page);
     await open(page);
-    await expect(page.locator('#bg[data-bg="lines"]')).toHaveCount(1);
+    await expect(page.locator('#bg[data-bg="dots"]')).toHaveCount(1);
     await openSettings(page);
     await page.locator("#s-contrast").check();
     await expect(page.locator("#bg")).toHaveCount(0);
     await expect(page.locator("#s-bg")).toBeDisabled();
     await expect(page.locator("#s-bgpick")).toBeHidden();
     await page.locator("#s-contrast").uncheck();
-    await expect(page.locator('#bg[data-bg="lines"]')).toHaveCount(1);
+    await expect(page.locator('#bg[data-bg="dots"]')).toHaveCount(1);
   });
 
   test("in Italian", async ({ page }) => {
-    await page.addInitScript(v => { if (!localStorage.getItem("dsm-bg")) localStorage.setItem("dsm-bg", v); }, BG());
+    await withBg(page);
     await open(page);
     await page.click('.seg [data-lang="it"]');
     await openSettings(page);
     await expect(page.locator('label[for="s-bg"]')).toContainText("Sfondo animato");
-    await expect(page.locator('#s-bgscene [data-v="lines"]')).toHaveText("Linee");
-    await expect(page.locator('#s-bgcolor [data-c="green"]')).toHaveAttribute("aria-label", "Verde");
-    await expect(page.locator('label[for="s-bgt"]')).toContainText("Velocità");
   });
 
-  test.describe("saved before 2026-10-25", () => {
-    test.use({ storage: { "dsm-recs": OFF, "dsm-bg": JSON.stringify({ on: true, id: "aurora" }) } });
-    test("a background that no longer exists falls back to the first scene", async ({ page }) => {
+  test.describe("saved before 2026-10-27", () => {
+    test.use({ storage: { "dsm-recs": OFF, "dsm-bg": JSON.stringify({ on: true, id: "lines", color: "blue", k: 80, t: 50, d: 10 }) } });
+    test("an old scene and its tweaks: Punkte as designed", async ({ page }) => {
       await open(page);
       await expect(page.locator("html")).toHaveAttribute("data-bg", "dots");
+      await openSettings(page);
+      await expect(page.locator("#s-bg")).toBeChecked();
     });
   });
 });
 
 test.describe("background with reduced motion", () => {
-  test.use({ reducedMotion: "reduce", storage: { "dsm-recs": OFF, "dsm-bg": BG({ id: "lines", t: 100 }) } });
-  test("one still frame, no pointer; tempo locked", async ({ page }) => {
+  test.use({ reducedMotion: "reduce", storage: { "dsm-recs": OFF, "dsm-bg": BG } });
+  test("one still frame, no pointer, no wave", async ({ page }) => {
     await open(page);
-    await expect.poll(() => painted(page, "#bg canvas")).toBe(true); // Linien: canvas 2D, readable any time
+    await expect.poll(() => frames(page)).toBeGreaterThan(0);
     const f = await frames(page);
     await page.mouse.move(60, 300);
     await page.mouse.move(120, 340, { steps: 4 });
     await page.mouse.click(120, 340);
     await page.waitForTimeout(400); // nothing may be painted meanwhile
-    expect(await bgStats(page)).toEqual({ frames: f, gl: false, waves: 0 });
-    await openSettings(page);
-    await expect(page.locator("#s-bgt")).toBeDisabled();
-    await expect(page.locator('label[for="s-bgt"]')).toContainText("Steht still");
+    const s = await bgStats(page);
+    expect([s.frames, s.waves]).toEqual([f, 0]);
   });
 });
