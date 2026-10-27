@@ -276,7 +276,7 @@
     display: flex; flex: none; height: 48px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg);
     transition: border-color var(--t-base), background-color var(--t-base), color var(--t-base);
   }
-  .cat-pill:not(.on, .off):hover { border-color: var(--fg); }
+  @media (hover: hover) { .cat-pill:not(.on, .off):hover { border-color: var(--fg); } } /* touch: no hover left behind after a tap */
   .cat-pill.on { border-color: var(--fg); background: var(--fg); color: var(--bg); transition-delay: var(--t-out); }
   .cat-pill.off { opacity: .5; }
   .cat-pill button { display: flex; align-items: center; height: 46px; padding: 0; border: 0; border-radius: 11px; background: transparent; color: inherit; font: inherit; font-weight: 500; }
@@ -316,7 +316,7 @@
       color: var(--fg); font-weight: 500; font-size: var(--fs-s);
       transition: background-color .15s, color .15s;
     }
-    .index button:hover { background: var(--surface); }
+    @media (hover: hover) { .index button:hover { background: var(--surface); } } /* iPad: a deselected letter keeps no surface */
     .index button:disabled { color: var(--line); pointer-events: none; }
     .index button.on { background: var(--fg); color: var(--bg); }
     .floater { display: none; }
@@ -547,6 +547,8 @@
   .bar-c { width: 4px; align-self: stretch; flex: none; border-radius: 2px; background: var(--blue); }
   .bar-c.absent { background: var(--orange); }
   .bar-c.special { background: var(--mauve); }
+  /* In the card the bar stands centered in the 10 px column of the dot: the texts of both lines start at the same edge */
+  .info-line > .bar-c { margin: 0 3px; }
 
   /* ---------- Loading placeholders ----------
      Fixed in index.html (until React starts) and in React while books.js (large) is still loading.

@@ -15,7 +15,7 @@ import { CategoryDialog, categoryModel } from "@/library/categories";
 
 addStrings({
   de: {
-    search: "Titel, Autor oder ISBN suchen", searchLabel: "Bücher durchsuchen", clear: "Suche löschen",
+    search: "Titel, Autor oder ISBN", searchLabel: "Bücher durchsuchen", clear: "Suche löschen",
     index: "Nach Anfangsbuchstaben filtern", hits: "{n} Treffer", count: "{n} Bücher", count1: "1 Buch", listT: "Bücherliste",
     emptyT: "Kein Buch gefunden", emptyP: "Eine andere Schreibweise oder nur einen Teil des Titels versuchen.",
     emptyC: "In dieser Kategorie nichts gefunden – anders suchen oder die Kategorie aufheben.",
@@ -23,7 +23,7 @@ addStrings({
     noData: "Die Bücherliste konnte nicht geladen werden (books.js fehlt).",
   },
   it: {
-    search: "Cerca titolo, autore o ISBN", searchLabel: "Cerca nei libri", clear: "Cancella ricerca",
+    search: "Titolo, autore o ISBN", searchLabel: "Cerca nei libri", clear: "Cancella ricerca",
     index: "Filtra per lettera iniziale", hits: "{n} risultati", hits1: "1 risultato", count: "{n} libri", count1: "1 libro", listT: "Elenco dei libri",
     emptyT: "Nessun libro trovato", emptyP: "Prova un'altra grafia o solo una parte del titolo.",
     emptyC: "Nessun risultato in questa categoria – prova un'altra ricerca o rimuovi la categoria.",
@@ -332,10 +332,11 @@ export function BookList({ books, loaded, onOpen }) {
           <div className="flex gap-2">
           <label className="search relative min-w-0 flex-1">
             <SearchIcon aria-hidden="true" strokeWidth={2} className="pointer-events-none absolute top-1/2 left-4 size-[18px] -translate-y-1/2 text-muted-foreground" />
+            {/* Room for × only while there is text: empty, the placeholder gets the width (whole from 320 px, larger text from 360) */}
             <input
               id="q" ref={input} type="search" data-log="own" autoComplete="off" spellCheck="false" enterKeyHint="search"
               placeholder={t("search")} aria-label={t("searchLabel")}
-              className="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blue)_55%,transparent)]"
+              className="h-12 w-full appearance-none text-ellipsis rounded-lg border border-border bg-surface pr-12 pl-11 text-m outline-none transition-[border-color,background-color,box-shadow] duration-200 placeholder:text-muted-foreground placeholder-shown:pr-4 focus:border-foreground focus:bg-background focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--blue)_55%,transparent)]"
               onChange={e => search(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape" && e.currentTarget.value) clear(false); }}
               onFocus={onFocus}
