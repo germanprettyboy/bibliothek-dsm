@@ -225,6 +225,28 @@ test.describe("phone (390 px)", () => {
   });
 });
 
+test.describe("phone (360 px)", () => {
+  test.use({ ...PHONE, viewport: { width: 360, height: 740 } });
+
+  test("the search placeholder fits whole (DE and IT), the × gets its room only with text", async ({ page }) => {
+    await open(page);
+    // text width in the field's font against its content box (a placeholder has no scrollWidth)
+    const fits = () => page.locator("#q").evaluate(async i => {
+      await document.fonts.ready;
+      const cs = getComputedStyle(i), c = document.createElement("canvas").getContext("2d");
+      c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      return c.measureText(i.placeholder).width <= i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    });
+    expect(await fits()).toBe(true);
+    await page.click('.seg [data-lang="it"]');
+    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titolo, autore o ISBN");
+    expect(await fits()).toBe(true);
+    await page.locator("#q").fill("tschick");
+    await expect(page.locator(".search .clear")).toBeVisible();
+    await expect(page.locator("#q")).toHaveCSS("padding-right", "48px");
+  });
+});
+
 test.describe("preview from the admin page", () => {
   const preview = { updated: "2026-01-01", count: 2, books: [{ t: "Vorschau Eins", a: ["A B"] }, { t: "Vorschau Zwei" }] };
   test.use({ storage: { "dsm-recs": JSON.stringify({ want: false, group: null }), "dsm-preview": JSON.stringify(preview) } });
