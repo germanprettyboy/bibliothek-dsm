@@ -250,8 +250,8 @@ test.describe("phone (360 px)", () => {
 
   test("the search placeholder fits whole (DE and IT), the × gets its room only with text", async ({ page }) => {
     await open(page);
-    // the placeholder's text laid out in the field's font (a span: a placeholder has no scrollWidth; a canvas measured
-    // Firefox's fallback font) against the field's content box
+    // the placeholder's text laid out in the field's font (a span: a placeholder has no scrollWidth) against the content
+    // box from the border box (Firefox's clientWidth of an input already leaves out the padding)
     const fit = () => page.locator("#q").evaluate(async i => {
       await document.fonts.ready;
       const cs = getComputedStyle(i), s = document.createElement("span");
@@ -261,7 +261,8 @@ test.describe("phone (360 px)", () => {
       document.body.appendChild(s);
       const need = s.getBoundingClientRect().width;
       s.remove();
-      return { need, room: i.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) };
+      const edges = ["borderLeftWidth", "borderRightWidth", "paddingLeft", "paddingRight"].reduce((sum, k) => sum + parseFloat(cs[k]), 0);
+      return { need, room: i.getBoundingClientRect().width - edges };
     });
     let r = await fit();
     expect(r.need, JSON.stringify(r)).toBeLessThanOrEqual(r.room);
