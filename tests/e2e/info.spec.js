@@ -62,6 +62,18 @@ test.describe("info card", () => {
     await expect(card(page)).toContainText("Do, 15.10. · geschlossen");
   });
 
+  test("status and closing day line up: dot and bar on one axis, texts at one edge", async ({ page }) => {
+    const c = [{ from: "2026-10-15", to: "2026-10-15", type: "holiday", de: "Brückentag", it: "Ponte" }];
+    await withInfo(page, info({ closures: c }), "10:00");
+    await expect(card(page).locator(".info-line")).toHaveCount(2);
+    const [a, b] = await card(page).locator(".info-line").evaluateAll(ls => ls.map(l => {
+      const m = l.querySelector("i").getBoundingClientRect(), x = l.querySelector(".tx").getBoundingClientRect();
+      return { axis: m.left + m.width / 2, text: x.left };
+    }));
+    expect(Math.abs(a.axis - b.axis)).toBeLessThan(0.5);
+    expect(Math.abs(a.text - b.text)).toBeLessThan(0.5);
+  });
+
   test("holiday today: closed today with the name and the next opening", async ({ page }) => {
     const c = [{ from: "2026-10-12", to: "2026-10-14", type: "holiday", de: "Herbstferien", it: "Vacanze d'autunno" }];
     await withInfo(page, info({ closures: c }), "10:00");

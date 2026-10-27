@@ -10,7 +10,7 @@ test.describe("language", () => {
     await page.click('.seg [data-lang="it"]');
     await expect(page.locator("html")).toHaveAttribute("lang", "it");
     await expect(page.locator("h1")).toHaveText("Biblioteca");
-    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Cerca titolo, autore o ISBN");
+    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titolo, autore o ISBN");
     await expect(page.locator("#meta")).toHaveText(`${B.books.length.toLocaleString("it-IT")} libri`);
     await expect(page.locator('.seg [data-lang="it"]')).toHaveAttribute("aria-pressed", "true");
     await expect(page).toHaveTitle("Biblioteca – Scuola Germanica di Milano");
@@ -135,6 +135,16 @@ test.describe("settings", () => {
     expect(after).toBeGreaterThan(before);
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-font", "large");
+  });
+
+  test("dark: the thumb of a switch that is on stays visible (page color on the light track)", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await open(page);
+    await openSettings(page);
+    const thumb = page.locator('#s-font [data-slot="switch-thumb"]');
+    await expect(thumb).toHaveCSS("background-color", "rgb(255, 255, 255)");
+    await page.locator("#s-font").check();
+    await expect(thumb).toHaveCSS("background-color", await page.evaluate(() => getComputedStyle(document.body).backgroundColor));
   });
 
   test("high contrast", async ({ page }) => {

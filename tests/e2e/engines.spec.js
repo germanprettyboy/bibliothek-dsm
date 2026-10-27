@@ -28,7 +28,10 @@ test.describe("every engine", () => {
   });
 
   test("large cover: grows out of the small cover, stays centered when size L arrives", async ({ page, net }) => {
-    net.ol = keys => ({ [keys[0]]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } });
+    // BOOK (2nd row) gets its cover in whichever request asks for it: answering only keys[0], a background batch of the
+    // rows in view that came first (slow Firefox) marked it as without a cover before the click
+    const bib = "ISBN:" + BOOK.i[0];
+    net.ol = keys => (keys.includes(bib) ? { [bib]: { thumbnail_url: "http://covers.openlibrary.org/b/id/123-S.jpg" } } : {});
     await open(page);
     await page.fill("#q", BOOK.i[0]);
     await row(page, BOOK).click();
