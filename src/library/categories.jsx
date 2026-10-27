@@ -84,10 +84,13 @@ export function categoryModel(books) {
 // One word for a long name: its first part (before ":", ",", " - ", "/", "und"/"e", "&"), if that is still too long
 // its longest word, nouns (capitalized) preferred – "Wichtige Herrschergeschlechter im Mittelalter" → "Herrschergeschlechter"
 const SHORT = 18;
+// "und"/"e" not after a hyphen ("Natur- und Umweltschutz"): the character before is matched instead of a lookbehind,
+// which Safari before 16.4 can't parse – a syntax error there would stop the whole page
+const FIRST = /:\s|,\s|\s[-–]\s|\s?\/\s?|\s&\s|(^|[^-])\s(?:und|e)\s/;
 export function oneWord(s) {
   s = s.replace(/\s*\(.*?\)/g, "");
   if (s.length <= SHORT) return s;
-  const first = s.split(/:\s|,\s|\s[-–]\s|\s?\/\s?|\s&\s|(?<!-)\s(?:und|e)\s/)[0];
+  const m = FIRST.exec(s), first = m ? s.slice(0, m.index + (m[1] || "").length) : s;
   if (first.length <= SHORT) return first;
   const words = first.split(/\s+/), caps = words.filter(x => /^\p{Lu}/u.test(x));
   return (caps.length ? caps : words).reduce((a, x) => x.length >= a.length ? x : a, "");

@@ -19,6 +19,27 @@ async function throttle(page, pattern = "**/books.js", content) {
   return release;
 }
 
+test.describe("first visit on a slow connection", () => {
+  test.use({ storage: {} });
+
+  test("settings opened while loading stay open; the questions only come once they are closed", async ({ page }) => {
+    const release = await throttle(page);
+    await page.goto("index.html", { waitUntil: "commit" });
+    await page.locator(".settings-btn").click();
+    const settings = page.locator(".settings[role=dialog]"), ask = page.locator(".ask[role=dialog]");
+    await expect(settings).toBeVisible();
+    release();
+    await page.waitForLoadState("load");
+    await expect(page.locator("#list .row").first()).toBeAttached();
+    await page.waitForTimeout(800); // the questions come 450 ms after the list
+    await expect(settings).toBeVisible();
+    await expect(ask).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(settings).toHaveCount(0);
+    await expect(ask).toBeVisible();
+  });
+});
+
 test.describe("loading on a slow connection", () => {
   test.use({ storage: { "dsm-recs": OFF } });
 

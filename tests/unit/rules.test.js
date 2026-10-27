@@ -110,6 +110,11 @@ describe("technology: React + Tailwind, built into classic scripts", () => {
     }
     for (const f of ["assets/library.js", "assets/admin.js"]) assert.ok(!/^\s*import[\s{*]|\bimport\(/m.test(read(f)), f);
   });
+  test("no lookbehind in regular expressions: Safari before 16.4 can't parse the whole script then", () => {
+    const LOOKBEHIND = /\(\?<[=!]/;
+    for (const f of ["assets/head.js", "assets/library.js", "assets/admin.js", "assets/covers.js", "assets/logger.js"]) assert.ok(!LOOKBEHIND.test(read(f)), f);
+    for (const p of sources) assert.ok(!LOOKBEHIND.test(fs.readFileSync(p, "utf8")), path.relative(ROOT, p));
+  });
   test("order: opening hours and page before books.js; unlocking only after books.js", () => {
     const i = read("index.html"), a = read("admin.html");
     assert.ok(i.indexOf('src="info.js"') < i.indexOf('src="assets/library.js"'));
