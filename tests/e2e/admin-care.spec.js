@@ -1,9 +1,9 @@
 /*
- * Admin page, maintenance tools: tab "Pflege" (lists from the WinBIAP file, CSV, location list), new and dropped titles
+ * Admin page, maintenance tools: tab "Pflege" (lists from the WinBook file, CSV, location list), new and dropped titles
  * of an import, Italian category names and hidden covers (both published with books.js), and their effect on the list.
  */
 const { test, expect, open } = require("./helpers.js");
-const { adminSetup, unlock, importTest, tab, downloadFile, save, evaluate } = require("./admin-helpers.js");
+const { adminSetup, unlock, importTest, tab, downloadFile, save, evaluate, menusClosed } = require("./admin-helpers.js");
 
 adminSetup();
 
@@ -25,19 +25,19 @@ const rows = text => text.replace(/^﻿/, "").trim().split("\r\n").map(l => l.sp
 test.describe("tab Pflege", () => {
   test("before an import: note, the button leads to the catalog tab", async ({ page }) => {
     await unlock(page);
-    await expect(page.locator(".tabs [data-tab]")).toHaveText(["Bestand", "Pflege", "Empfehlungen", "Info"]);
+    await expect(page.locator(".tabs [data-tab]")).toHaveText(["Bestand", "Pflege", "Cover", "Empfehlungen", "Info", "Statistik"]);
     await tab(page, "care");
     await expect(page.locator("#m-none")).toContainText("Nichts davon wird veröffentlicht");
     await page.click("#m-to-catalog");
     await expect(page.locator("#tab-catalog")).toBeVisible();
   });
 
-  test("after the import: copies, lists with their WinBIAP numbers, no reader names", async ({ page }) => {
+  test("after the import: copies, lists with their WinBook numbers, no reader names", { tag: "@smoke" }, async ({ page }) => {
     await unlock(page);
     await importTest(page);
     await tab(page, "care");
     await expect(page.locator("#m-records")).toHaveText("10");
-    await expect(page.locator("#m-lines")).toContainText("Zuletzt in WinBIAP erfasst15.03.2026");
+    await expect(page.locator("#m-lines")).toContainText("Zuletzt in WinBook erfasst15.03.2026");
     const check = key => page.locator(`.check[data-check="${key}"]`);
     await expect(check("isbnBad").locator(":scope > button")).toHaveText(/Ungültige ISBN\s*1/);
     await expect(check("isbnNone").locator(":scope > button")).toHaveText(/Ohne ISBN\s*5/);
@@ -62,17 +62,24 @@ test.describe("tab Pflege", () => {
     await tab(page, "care");
     const one = page.locator('.check[data-check="yearOdd"]');
     await one.locator(":scope > button").click();
+    await one.locator('[data-dl="yearOdd"]').click(); // "Herunterladen ▾": Excel or CSV
     const a = await downloadFile(page, '[data-csv="yearOdd"]');
     expect(a.name).toMatch(/^erscheinungsjahr-nicht-als-jahreszahl-\d{4}-\d{2}-\d{2}\.csv$/);
     expect(a.text.startsWith("﻿")).toBe(true);
+    expect(a.text.endsWith("\r\n")).toBe(true);
     const r = rows(a.text);
     expect(r[0]).toEqual(["Nr.", "Titel", "Autor", "Verlag", "Jahr", "Kategorie", "Standort", "Signatur", "Erfasst am", "Wert"]);
-    expect(r.slice(1).map(x => [x[0], x[9]])).toEqual([["11", "um 1929"], ["3", "2010 (1. Aufl.)"]]);
+    expect(r.slice(1).map(x => [x[0], x[8], x[9]])).toEqual([["11", "", "um 1929"], ["3", "15.03.2026", "2010 (1. Aufl.)"]]);
+    // All lists in one file: the same 13 columns in every row, "Wert" holds the value or the master data entry
+    await page.click("#m-dl");
     const all = await downloadFile(page, "#m-all");
+    expect(all.name).toMatch(/^bestandspflege-\d{4}-\d{2}-\d{2}\.csv$/);
     const ra = rows(all.text);
-    expect(ra[0][0]).toBe("Liste");
-    expect(ra.some(x => x[0] === "Ungültige ISBN" && x[2] === "Das doppelte Lottchen")).toBe(true);
-    expect(ra.some(x => x[0] === "Ungenutzte Kategorien" && x[11] === "Ungenutzt")).toBe(true);
+    expect(ra[0]).toEqual(["Liste", "Bereich", "Nr.", "Titel", "Autor", "Verlag", "Jahr", "Kategorie", "Standort", "Signatur", "Erfasst am", "Wert", "Exemplare"]);
+    expect(new Set(ra.map(x => x.length))).toEqual(new Set([13]));
+    expect(ra).toContainEqual(["Ungültige ISBN", "ISBN und Cover", "4", "Das doppelte Lottchen", "Erich Kästner", "", "1949", "Sachbuch", "Jugendbücher 6 Brett 5", "", "", "9783522202100", ""]);
+    expect(ra.some(x => x[0] === "Ungenutzte Kategorien" && x[1] === "Stammdaten" && x[11] === "Ungenutzt")).toBe(true);
+    expect(ra.some(x => x[0] === "Autoren in mehreren Schreibweisen" && x[11] === "Preußler, Otfried · preussler, Otfried" && x[12] === "3")).toBe(true);
     expect(all.text).not.toContain("Musterfrau");
   });
 
@@ -81,26 +88,44 @@ test.describe("tab Pflege", () => {
     await importTest(page);
     await tab(page, "care");
     await page.selectOption("#m-loc", "Jugendbücher 6 Brett 5");
-    await expect(page.locator("#m-shelf-list tbody tr td:nth-child(2)")).toHaveText(["„Zitat am Anfang“", "Das doppelte Lottchen", "Krabat"]);
+    await expect(page.locator("#m-shelf-list tbody tr td:nth-child(1)")).toHaveText(["„Zitat am Anfang“", "Das doppelte Lottchen", "Krabat"]);
     await expect(page.locator("#m-shelf-list thead th:visible")).toHaveText(["Titel", "Autor", "Jahr", "Signatur", "Nr."]);
+    await page.click("#m-shelf-dl");
     const csv = rows((await downloadFile(page, "#m-shelf-csv")).text);
     expect(csv.length).toBe(4);
     expect(csv[3]).toEqual(["1", "Krabat", "Otfried Preußler", "Thienemann", "1981", "Jugendbuch", "Jugendbücher 6 Brett 5", "JB 6 Pre", "01.09.2025"]);
-    await page.evaluate(() => { window.__printed = 0; window.print = () => { window.__printed = document.querySelectorAll("[data-print]").length; }; });
+    await menusClosed(page);
+    await page.click("#m-shelf-dl");
+    const every = rows((await downloadFile(page, "#m-shelf-all")).text);
+    expect(every.length).toBe(11); // header + all 10 copies
+    // Printing: the printable document in body (header "Standortliste", only this location), html.printing meanwhile
+    await page.evaluate(() => {
+      window.__printed = null;
+      window.print = () => {
+        const d = document.querySelectorAll("[data-print]");
+        window.__printed = { n: d.length, text: d.length ? d[0].textContent : "", cls: document.documentElement.classList.contains("printing") };
+      };
+    });
     await page.click("#m-print");
-    await expect.poll(() => page.evaluate(() => window.__printed)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__printed && window.__printed.n)).toBe(1);
+    const p = await page.evaluate(() => window.__printed);
+    expect(p.cls).toBe(true);
+    expect(p.text).toContain("Standortliste");
+    expect(p.text).toContain("Jugendbücher 6 Brett 5");
+    expect(p.text).toContain("Das doppelte Lottchen");
+    expect(p.text).not.toContain("Tschick");
+    await expect(page.locator("[data-print]")).toBeHidden(); // never on screen
   });
 
-  test("phone: no horizontal scrolling, tabs in two rows", async ({ page }) => {
+  test("phone: no horizontal scrolling, navigation in one row", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await unlock(page);
     await importTest(page);
     await tab(page, "care");
     await page.locator('.check[data-check="isbnNone"] button').click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
-    const tops = await page.locator(".tabs [data-tab]").evaluateAll(t => t.map(e => Math.round(e.getBoundingClientRect().top)));
-    expect(tops[0]).toBe(tops[1]);
-    expect(tops[2]).toBeGreaterThan(tops[0]);
+    const tops = await page.locator(".tabs [data-tab], #help-btn, #lock-btn").evaluateAll(t => t.map(e => Math.round(e.getBoundingClientRect().top)));
+    expect(new Set(tops).size).toBe(1);
   });
 });
 
@@ -120,7 +145,8 @@ test.describe("Italian category names", () => {
   test("missing names entered, published with books.js; without an import the date stays", async ({ page }) => {
     await withLibrary(page, LIB);
     await unlock(page);
-    await expect(page.locator("#current #cov")).toBeVisible();
+    await expect(page.locator("#current #cat-it")).toBeVisible();
+    await expect(page.locator("#tab-catalog #cov")).toHaveCount(0); // coverage: tab "Cover"
     await expect(page.locator("#dl")).toHaveCount(0);
     const row = page.locator('#cat-it [data-cat="Unbekannte Kategorie XY"]');
     await row.locator("input").fill("Categoria sconosciuta XY");
@@ -147,6 +173,11 @@ test.describe("hiding a wrong cover", () => {
     net.image = url => url.includes("cover.ekz.de/" + ISBN);
     await withLibrary(page, LIB);
     await unlock(page);
+    await tab(page, "covers");
+    // without an import: coverage of the published list (1 of 3 books with an ISBN), no publish card yet
+    await expect(page.locator("#cov #c-big")).toHaveText("33,3 %");
+    await expect(page.locator("#c-run")).toBeVisible();
+    await expect(page.locator("#dl-covers")).toHaveCount(0);
     await page.fill("#nc-q", "krabat");
     await page.locator("#nc-res button").click();
     await expect(page.locator("#nc-sel img")).toHaveAttribute("src", `https://cover.ekz.de/${ISBN}.jpg`);
@@ -154,11 +185,31 @@ test.describe("hiding a wrong cover", () => {
     await page.click("#nc-hide");
     await expect(page.locator("#nc-sel img")).toHaveCount(0);
     await expect(page.locator(`#nc-list [data-isbn="${ISBN}"]`)).toContainText("Krabat");
-    const d = evaluate(await save(page, "#dl"), "DSM_LIBRARY");
+    const d = evaluate(await save(page, "#dl-covers"), "DSM_LIBRARY");
     expect(d.noCover).toEqual([ISBN]);
     await page.click("#nc-unhide");
     await expect(page.locator("#nocover")).toContainText("Keine Cover ausgeblendet.");
-    await expect(page.locator("#dl")).toBeVisible();
+    await expect(page.locator("#dl-covers")).toBeVisible();
+  });
+
+  test("tab Cover without any list: empty state leads to the catalog tab", { tag: "@smoke" }, async ({ page }) => {
+    await withLibrary(page, { updated: "2026-09-01", count: 0, books: [] });
+    await unlock(page);
+    await tab(page, "covers");
+    await expect(page.locator("#cov-empty")).toContainText("Noch keine Bücherliste");
+    await expect(page.locator("#cov")).toHaveCount(0);
+    await expect(page.locator("#nocover")).toHaveCount(0);
+    await page.click("#cov-go");
+    await expect(page.locator("#tab-catalog #drop")).toBeVisible();
+  });
+
+  test("tab Cover after an import: coverage of the imported list", async ({ page }) => {
+    await unlock(page);
+    await importTest(page);
+    await tab(page, "covers");
+    await expect(page.locator("#cov #c-big")).toHaveText("37,5 %");
+    await expect(page.locator("#c-sub")).toContainText("37,5");
+    await expect(page.locator("#c-hist")).toBeVisible();
   });
 
   test("the list shows the placeholder and asks no cover service", async ({ page, net }) => {

@@ -1,5 +1,7 @@
 /* Book recommendations above the list (at most 4 of the chosen group), dialog "Previous recommendations",
-   section in the settings and the questions on the first visit.
+   section in the settings and the questions on the first visit. No book of the chosen group in the catalog =
+   empty state in the card (shelf, note, button to the settings). Switched off in the admin page (off: true):
+   app.jsx renders none of this.
    Data: recommendations.js (window.DSM_RECOMMENDATIONS) or the preview from the admin page. */
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
@@ -34,6 +36,8 @@ addStrings({
     sRecs: "Buchempfehlungen", sRecsShow: "Empfehlungen anzeigen", sRecsShowH: "Drei bis vier ausgewählte Bücher über der Liste.",
     sRecsFor: "Empfehlungen für",
     arcT: "Bisherige Empfehlungen", arcOpen: "Alle bisherigen Empfehlungen", arcNow: "Aktuell", arcGone: "Nicht mehr im Bestand",
+    recsNoneT: "Gerade keine Empfehlungen", recsNoneP: "Die Bibliothek stellt hier bald neue Bücher vor. Bis dahin lohnt sich das Stöbern in der Liste.",
+    recsNoneBtn: "Andere Gruppe wählen",
   },
   it: {
     recsT: "Consigli di lettura", recsClose: "Nascondi i consigli",
@@ -49,6 +53,8 @@ addStrings({
     sRecs: "Consigli di lettura", sRecsShow: "Mostra i consigli", sRecsShowH: "Da tre a quattro libri scelti sopra l'elenco.",
     sRecsFor: "Consigli per",
     arcT: "Consigli precedenti", arcOpen: "Tutti i consigli precedenti", arcNow: "Attuali", arcGone: "Non più in catalogo",
+    recsNoneT: "Al momento nessun consiglio", recsNoneP: "La biblioteca presenterà presto nuovi libri. Nel frattempo vale la pena sfogliare l'elenco.",
+    recsNoneBtn: "Scegli un altro gruppo",
   },
 });
 
@@ -79,6 +85,8 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
     [R, byKey, loaded, chosen, p]);
   const books = React.useMemo(() => shown.map(x => x.b), [shown]);
   const found = useCoverList(books);
+  // Empty state: the head opens the previous recommendations only if there are any for this group
+  const hasArc = chosen && Array.isArray(R.archive) && R.archive.some(x => ((x.groups && x.groups[p.group]) || []).length);
   const logged = React.useRef(null);
   React.useEffect(() => {
     if (!shown.length) { logged.current = null; return; }
@@ -109,31 +117,48 @@ export function Recommendations({ R, byKey, loaded, onOpen, onArchive, onSetting
       </section>
     );
   }
-  if (!shown.length) return <section className="wrap recs" id="recs" hidden />;
+  if (!chosen) return <section className="wrap recs" id="recs" hidden />;
+  const empty = !shown.length;
   return (
     <section className="wrap recs pb-4" id="recs" aria-labelledby="recs-title">
-      <div className={cn("recs-card card relative overflow-hidden p-4", gone && "hide")}>
+      <div className={cn("recs-card card relative overflow-hidden p-4", empty && "recs-empty", gone && "hide")}>
         <div className="recs-head flex items-center justify-between gap-3">
           <h2 id="recs-title" className="m-0 min-w-0 text-m font-semibold leading-[1.2]">
             {/* The head opens the previous recommendations */}
-            <button
-              type="button" id="recs-open" aria-haspopup="dialog" title={t("arcOpen")} onClick={onArchive}
-              className="group/head -mx-2 -my-1.5 grid gap-0.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-background active:bg-background"
-            >
-              <span className="inline-flex items-center gap-1">
+            {!empty || hasArc ? (
+              <button
+                type="button" id="recs-open" aria-haspopup="dialog" title={t("arcOpen")} onClick={onArchive}
+                className="group/head -mx-2 -my-1.5 grid gap-0.5 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-background active:bg-background"
+              >
+                <span className="inline-flex items-center gap-1">
+                  {t("recsT")}
+                  <ChevronRightIcon aria-hidden="true" className="size-3.5 text-muted-foreground transition-transform duration-150 group-hover/head:translate-x-0.5" />
+                </span>
+                <small className="text-s font-normal text-muted-foreground">{gLabel(p.group)}</small>
+              </button>
+            ) : (
+              <span className="grid gap-0.5">
                 {t("recsT")}
-                <ChevronRightIcon aria-hidden="true" className="size-3.5 text-muted-foreground transition-transform duration-150 group-hover/head:translate-x-0.5" />
+                <small className="text-s font-normal text-muted-foreground">{gLabel(p.group)}</small>
               </span>
-              <small className="text-s font-normal text-muted-foreground">{gLabel(p.group)}</small>
-            </button>
+            )}
           </h2>
           <Button variant="icon" size="icon-sm" className="-my-1 -mr-1" id="recs-x" aria-label={t("recsClose")} onClick={hide}><XIcon aria-hidden="true" /></Button>
         </div>
-        <div className="recs-row mt-2 grid sm:mt-4 sm:grid-cols-4 sm:gap-4">
+        {/* Empty state: no book of this group (in the catalog) – the shelf of the first question, a note, the settings */}
+        {empty ? (
+          <div className="grid justify-items-center gap-1 pt-4 pb-1 text-center" id="recs-none">
+            <Shelf />
+            <b className="mt-3 font-semibold">{t("recsNoneT")}</b>
+            <p className="m-0 max-w-[30rem] text-s text-muted-foreground">{t("recsNoneP")}</p>
+            <Button variant="outline" className="mt-3" id="recs-other" onClick={onSettings}>{t("recsNoneBtn")}</Button>
+          </div>
+        ) : null}
+        <div className={cn("recs-row mt-2 grid sm:mt-4 sm:flex sm:gap-4", shown.length === 1 && "sm:justify-center")} hidden={empty}>
           {shown.map((x, n) => (
             <button
               key={x.r.k} type="button" onClick={() => onOpen(x.b, x.r)}
-              className="rec group/rec grid min-w-0 grid-cols-[44px_1fr] items-center gap-4 border-t border-border py-3 text-left transition-opacity first:border-t-0 active:opacity-60 sm:flex sm:flex-col sm:items-stretch sm:justify-start sm:border-0 sm:p-0 sm:active:opacity-100"
+              className="rec group/rec grid min-w-0 sm:w-[calc((100%-3rem)/4)] sm:flex-none grid-cols-[44px_1fr] items-center gap-4 border-t border-border py-3 text-left transition-opacity first:border-t-0 active:opacity-60 sm:flex sm:flex-col sm:items-stretch sm:justify-start sm:border-0 sm:p-0 sm:active:opacity-100"
             >
               <Cover
                 small title={x.b.t} isbn={!!x.b.i} found={found[n]}

@@ -60,7 +60,7 @@ test.describe("archive of previous rounds", () => {
     await expect(page.locator("#rec-arc-none")).toHaveCount(0);
   });
 
-  test("editing an archived text: archive changed, current round and date unchanged", async ({ page }) => {
+  test("editing an archived text: archive changed, current round and date unchanged", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expand(page, 0);
     await row(page, 0).locator('.arc-g[data-g="middle"] .rec-ed[data-n="0"] textarea[data-f=de]').fill("  Korrigierter Text.  ");
@@ -188,4 +188,35 @@ test("missing translations: notes appear and disappear", async ({ page }) => {
   await expect(last.locator(".warn")).toHaveCount(0);
   await last.locator("textarea[data-f=it]").fill("   ");
   await expect(last.locator(".warn-it")).toHaveCount(1);
+});
+
+test.describe('switch "Empfehlungen auf der Website"', () => {
+  test("off → off: true published, same round, groups and archive kept; on again → no off", { tag: "@smoke" }, async ({ page }) => {
+    await open(page);
+    await expect(page.locator("#rec-on")).toBeChecked();
+    await expect(page.locator("#rec-on-p")).toContainText("Eingeschaltet");
+    await page.click("#rec-on");
+    await expect(page.locator("#rec-on")).not.toBeChecked();
+    await expect(page.locator("#rec-on-p")).toContainText("Ausgeschaltet");
+    await expect.poll(async () => (await draft(page))?.off).toBe(true);
+    const s = await published(page);
+    expect(s.off).toBe(true);
+    expect(s.updated).toBe(R.updated);
+    expect(s.groups.middle.map(r => r.k)).toEqual(R.groups.middle.map(r => r.k));
+    expect(s.archive).toHaveLength(ARC.length);
+    await page.click("#rec-on");
+    await expect(page.locator("#rec-on")).toBeChecked();
+    expect((await republished(page, d => !d.off)).off).toBeUndefined();
+  });
+
+  test("published off: the switch starts off, also with an older draft without the field", async ({ page }) => {
+    await page.route("**/recommendations.js", r => r.fulfill({
+      contentType: "text/javascript",
+      body: "window.DSM_RECOMMENDATIONS = " + JSON.stringify({ ...PUBLISHED, off: true }) + ";\n",
+    }));
+    await page.addInitScript(d => localStorage.setItem("dsm-recs-draft", JSON.stringify(d)), { topic: { de: "", it: "" }, groups: R.groups });
+    await open(page);
+    await expect(page.locator("#rec-on")).not.toBeChecked();
+    await expect(page.locator("#rec-list .rec-ed b")).toHaveText(R.groups.middle.map(r => r.t));
+  });
 });

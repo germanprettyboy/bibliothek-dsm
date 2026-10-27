@@ -1,4 +1,4 @@
-/* Italian names of the categories (WinBIAP "Bereiche"). If a category is missing, the German name is shown. */
+/* Italian names of the categories (WinBook "Bereiche"). If a category is missing, the German name is shown. */
 window.DSM_CATEGORIES_IT = {
   "Abenteuer": "Avventura",
   "Abenteuer - Reise": "Avventura – Viaggi",

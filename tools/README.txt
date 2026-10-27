@@ -5,11 +5,13 @@ build.mjs           Builds the website from ../src (React, Tailwind CSS, shadcn/
                     index.html, admin.html, assets/library.js, admin.js, style.css, head.js.
                     Run in the project folder: npm run build   (once beforehand: npm install)
 
-source/extract.js   Plaintext: reads the WinBIAP database, removes personal data
-source/admin/       Plaintext: admin user interface (React: catalog, cover coverage, recommendations, info)
+source/extract.js   Plaintext: reads the WinBook database, removes personal data
+source/admin/       Plaintext: admin user interface (React: catalog, covers, maintenance + exports + table + corrections,
+                    statistics, recommendations, info, help, local versions)
 encrypt-admin.js    Builds source/admin/ and encrypts it together with extract.js
                     into ../website/assets/admin.enc.js; also writes ../website/save-access.php
                     (access for save.php, derived from the password)
+check-admin.cjs     Only builds source/admin/ (no password, writes nothing): node tools/check-admin.cjs = compile check
 
 After every change to source/ or to change the password (Node.js 18+, in the project folder):
   node tools/encrypt-admin.js   (asks for the password without echo, doesn't end up in the shell history)
@@ -31,3 +33,14 @@ guide/template.html + build-guide.js
                     Guide for colleagues (admin page, copying the WinBook file), in German.
                     node tools/build-guide.js  ->  anleitung/Anleitung_Verwaltung.html
                     (standalone file with embedded font and logo, offline and printable)
+
+generate-books.js   data/*.winbook -> ../website/books.js (npm run books); stops on a reader name in a public field
+pack.mjs            upload/website/ from the committed website/ (npm run pack)
+migrate-data.mjs    old German data files -> current format
+tunnel.mjs          public https URL for website/ (npm run tunnel, tunnel:dev, tunnel:php)
+
+branches.sh         Claude worktrees and main (npm run branches / integrate; SessionStart hook in ../.claude/settings.json):
+                    integrate = merge origin/main + the branch into main, push main, remove the finished worktree.
+                    Build output never blocks: changed in the main checkout (watch build) it is reset; a conflict only in
+                    build output is resolved in the branch worktree (merge main, npm run build, commit, push)
+main-guard.cjs      PreToolUse hook for Edit/Write: refuses file edits in the main checkout (work happens in worktrees)

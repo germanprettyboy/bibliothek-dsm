@@ -1,5 +1,5 @@
 /*
- * Generates website/books.js directly from a WinBIAP database (same logic as admin.html).
+ * Generates website/books.js directly from a WinBook database (same logic as admin.html).
  *
  *   npm install            (once, installs sql.js)
  *   node tools/generate-books.js data/BIBLIOTHEK_DSM_2024.winbook [YYYY-MM-DD] [--names-checked]

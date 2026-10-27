@@ -4,7 +4,7 @@ Public book list of the school library of the Deutsche Schule Mailand (DSM) with
 Bilingual German/Italian, mobile first.
 
 - **Book list** (`index.html`): alphabetical, search, category filter, A–Z jump, detail view with cover, book recommendations, opening hours/holidays.
-- **Admin page** (`admin.html`): import the catalog from the WinBIAP database, maintain recommendations, enter opening hours, publish.
+- **Admin page** (`admin.html`): import the catalog from the WinBook database, maintain recommendations, enter opening hours, publish.
 - **Technology**: React API on Preact, Tailwind CSS v4, shadcn/ui, built with Vite. The result in `website/` is plain HTML/CSS/JS and also runs via double-click (`file://`).
   Only server file: `website/save.php` (online saving from the admin page).
 
@@ -12,7 +12,8 @@ Bilingual German/Italian, mobile first.
 
 No student data and no loan status in public. The extraction works with a whitelist (title, subtitle, author, publisher, year, ISBN, category, location);
 reader, loan and fee tables are only counted. `data/` (original database) is in `.gitignore` and never committed.
-`tools/source/` is plaintext: keep the repository private.
+The repository is public on purpose (free GitHub Actions): `tools/source/` is plaintext, so the admin password is the only
+protection. Never commit the password, secrets or anything from `data/`. Privacy policy and imprint: the school's main website.
 
 ## Folders
 
@@ -22,7 +23,7 @@ reader, loan and fee tables are only counted. `data/` (original database) is in 
 | `src/` | source of the pages (React, Tailwind, shadcn/ui) | no |
 | `tools/` | build, encryption of the admin app, extraction, data migration, local server, tunnel | no |
 | `tests/` | unit tests (`node:test`) and browser tests (Playwright) | no |
-| `docs/`, `anleitung/` | background analyses, German staff guide | no |
+| `docs/`, `anleitung/` | UI drafts, German staff guide | no |
 | `data/` | original database with student data | never |
 
 ## Getting started
@@ -46,11 +47,11 @@ The admin password is in no file.
 
 ## Tests
 
+Tests run only on GitHub Actions (every push, see `.github/workflows/test.yml`), never on the development Mac:
+
 ```bash
-npm test             # unit tests, about 15 s
-npm run test:e2e     # browser tests (Chromium), about 1.5 min
-npm run test:all     # both
-npm run test:live    # browser tests via a Cloudflare tunnel (needs cloudflared)
+git push && gh run watch <id> --exit-status   # unit tests (node:test) + browser tests (Playwright), about 5 min
+gh run view <id> --log-failed
 ```
 
 ## Publishing

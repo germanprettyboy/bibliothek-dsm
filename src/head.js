@@ -1,6 +1,6 @@
 /* Runs in <head> before the first paint (index.html, admin.html), without React:
-   sets theme, font size, contrast and language immediately (no flash), prepares placeholders for recommendations and
-   the info card, ends the logo's shimmer as soon as the visible image has loaded.
+   sets theme, font size, contrast, motion and language immediately (no flash), prepares placeholders for recommendations and
+   the info card, ends the logo's shimmer as soon as the visible image has loaded, refuses copying page text.
    React (assets/library.js or admin.js) then takes over the same values. */
 (function () {
   "use strict";
@@ -22,6 +22,7 @@
   if (theme === "light" || theme === "dark") root.setAttribute("data-theme", theme);
   if (get("dsm-font") === "large") root.setAttribute("data-font", "large");
   if (get("dsm-contrast") === "high") root.setAttribute("data-contrast", "high");
+  if (get("dsm-motion") === "reduce") root.setAttribute("data-motion", "reduce");
   var lang = get("dsm-lang");
   root.lang = lang === "it" || lang === "de" ? lang : (/^it\b/i.test(navigator.language || "") ? "it" : "de");
   // Recommendations chosen? Then a placeholder stands in their place while loading
@@ -37,4 +38,11 @@
   }
   document.addEventListener("load", imgLoaded, true);
   document.addEventListener("error", imgLoaded, true);
+  // No copying of page text (styles.css also stops marking it): only what is typed into a field
+  function noCopy(ev) {
+    var t = ev.target, field = t && t.closest && t.closest("input, textarea, [contenteditable]:not([contenteditable=\"false\"])");
+    if (!field) ev.preventDefault();
+  }
+  document.addEventListener("copy", noCopy);
+  document.addEventListener("cut", noCopy);
 })();

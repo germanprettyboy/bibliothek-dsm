@@ -32,7 +32,7 @@ test.describe("first visit", () => {
     await expect(ask(page).locator(".lead")).toHaveText("Desidera vedere dei consigli di lettura?");
   });
 
-  test("no → saved, notice, no recommendations, no repeated question", async ({ page }) => {
+  test("no → saved, notice, no recommendations, no repeated question", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await ask(page).locator('[data-a="no"]').click();
     // the notice disappears after 3.6 s: hovered at once, Sonner pauses that (slower engines need the time)
@@ -62,7 +62,7 @@ test.describe("first visit", () => {
   });
 
   // Oberstufe takes the same path (only data-g differs); switching groups is covered by "settings: change the group"
-  test("yes → Mittelstufe → recommendations visible", async ({ page }) => {
+  test("yes → Mittelstufe → recommendations visible", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await ask(page).locator('[data-a="yes"]').click();
     await expect(ask(page).locator("#ask-t")).toHaveText("Für wen?");
@@ -203,5 +203,75 @@ test.describe("recommendations switched off", () => {
     await page.locator("#s-recs").check();
     await expect(page.locator("#recs")).toBeVisible();
     expect(await pref(page)).toEqual({ want: true, group: "middle" });
+  });
+});
+
+// Published recommendations.js replaced by the given data
+const recsFile = (page, d) => page.route("**/recommendations.js", r => r.fulfill({
+  contentType: "text/javascript", body: "window.DSM_RECOMMENDATIONS = " + JSON.stringify(d) + ";\n",
+}));
+
+test.describe("no recommendations for the chosen group", () => {
+  test.use({ storage: { "dsm-recs": JSON.stringify({ want: true, group: "middle" }) } });
+
+  test("empty state: shelf, note, button to the settings; the head opens nothing", { tag: "@smoke" }, async ({ page }) => {
+    await recsFile(page, { updated: "2026-01-01", groups: { upper: R.groups.upper } });
+    await open(page);
+    await expect(page.locator("#recs")).toBeVisible();
+    await expect(page.locator("#recs-none")).toContainText("Gerade keine Empfehlungen");
+    await expect(page.locator("#recs-none .shelf i")).toHaveCount(7);
+    await expect(page.locator("#recs .rec")).toHaveCount(0);
+    await expect(page.locator("#recs-title")).toContainText("Mittelstufe");
+    await expect(page.locator("#recs-open")).toHaveCount(0);
+    await page.click("#recs-other");
+    await expect(page.locator(".settings[role=dialog]")).toBeVisible();
+    await page.locator('.settings .gpick [data-g="upper"]').click();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#recs .rec .rt b").first()).toHaveText(R.groups.upper[0].t);
+    await expect(page.locator("#recs-none")).toHaveCount(0);
+  });
+
+  test("empty state with earlier rounds of the group: the head opens the previous recommendations", async ({ page }) => {
+    await recsFile(page, { updated: "2026-09-01", groups: {}, archive: [{ updated: "2026-03-01", groups: { middle: R.groups.middle.slice(0, 1) } }] });
+    await open(page);
+    await expect(page.locator("#recs-none")).toBeVisible();
+    await page.click("#recs-open");
+    await expect(page.locator(".archive[role=dialog] .arc-round")).toHaveCount(1);
+  });
+
+  test("Italian page language: the note in Italian", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("dsm-lang", "it"));
+    await recsFile(page, { updated: "2026-01-01", groups: {} });
+    await open(page);
+    await expect(page.locator("#recs-none b")).toHaveText("Al momento nessun consiglio");
+  });
+});
+
+test.describe("first visit without any recommendation", () => {
+  test.use({ storage: {} });
+  test("no questions", async ({ page }) => {
+    await recsFile(page, { updated: "2026-01-01", groups: { middle: [{ k: "gibt es nicht|niemand", t: "Gibt es nicht", a: "Niemand", de: "x", it: "x" }] } });
+    await open(page);
+    await page.waitForTimeout(800);
+    await expect(ask(page)).toHaveCount(0);
+    expect(await pref(page)).toBe(null);
+  });
+});
+
+test.describe("recommendations switched off in the admin page (off: true)", () => {
+  test.use({ storage: {} });
+  test("no card, no questions, no section in the settings – also with a saved choice", { tag: "@smoke" }, async ({ page }) => {
+    await recsFile(page, { ...R, off: true });
+    await open(page);
+    await page.waitForTimeout(800);
+    await expect(ask(page)).toHaveCount(0);
+    await expect(page.locator("#recs")).toHaveCount(0);
+    await page.click(".settings-btn");
+    await expect(page.locator(".settings[role=dialog]")).toBeVisible();
+    await expect(page.locator("#s-recs")).toHaveCount(0);
+    await page.evaluate(() => localStorage.setItem("dsm-recs", JSON.stringify({ want: true, group: "middle" })));
+    await page.reload();
+    await page.locator("#list .row").first().waitFor();
+    await expect(page.locator("#recs")).toHaveCount(0);
   });
 });

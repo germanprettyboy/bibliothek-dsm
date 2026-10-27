@@ -42,7 +42,7 @@ test.describe("Sunday", () => {
 });
 
 test.describe("special opening hours", () => {
-  test("third type with its own time ranges, written sorted with valid ranges only", async ({ page }) => {
+  test("third type with its own time ranges, written sorted with valid ranges only", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await page.click("#i-add-special");
     const c = clo(page, 0);
@@ -152,5 +152,24 @@ test.describe("contact", () => {
     await expect(page.locator("#tab-info")).toContainText("Contatti");
     await expect(page.locator("#tab-info")).toContainText("Visibile dal");
     await expect(page.locator("#i-add-special")).toHaveText("+ Altri orari");
+  });
+});
+
+test.describe("live preview", () => {
+  test("hours, notice and contact appear as on the website while typing", { tag: "@smoke" }, async ({ page }) => {
+    await open(page);
+    const dialog = page.locator("#i-preview-dialog");
+    await expect(dialog).toContainText("Öffnungszeiten");
+    await page.locator('#i-hours .day[data-d="mon"] [data-op="add"]').click();
+    await page.locator('#i-hours .day[data-d="mon"] input[data-f="1"]').fill("12:30");
+    await expect(dialog.locator("dd").first()).toHaveText("8:00–12:30");
+    await page.fill("#i-note-de", "Ausleihe nur mit Schülerausweis");
+    await expect(dialog).toContainText("Ausleihe nur mit Schülerausweis");
+    await page.fill("#i-contact-de", "Raum 12");
+    await expect(dialog.locator("#info-contact")).toContainText("Raum 12");
+    await expect(page.locator("#i-preview-card .info-card")).toBeVisible();
+    // the preview is not clickable and remembers nothing for the website
+    await expect(page.locator("#i-preview > div").last()).toHaveAttribute("inert", "");
+    expect(await page.evaluate(() => localStorage.getItem("dsm-info-card"))).toBeNull();
   });
 });

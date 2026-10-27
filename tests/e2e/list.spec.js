@@ -4,7 +4,7 @@ const { test, expect, PHONE, open, data, hits } = require("./helpers.js");
 const { B } = data();
 
 test.describe("list", () => {
-  test("shows all books as plain text (title + author), no images", async ({ page }) => {
+  test("shows all books as plain text (title + author), no images", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("#list .row")).toHaveCount(B.books.length);
     await expect(page.locator("#list img")).toHaveCount(0);
@@ -54,6 +54,26 @@ test.describe("list", () => {
     expect(r.cv).toBe("auto");
   });
 
+  test("page text can be neither marked nor copied; the search field can", { tag: "@smoke" }, async ({ page }) => {
+    await open(page);
+    // user-select is not inherited (Firefox reports "auto" below body, which there means none): body, then a real try
+    expect(await page.evaluate(() => getComputedStyle(document.body).userSelect)).toBe("none");
+    await page.locator("#meta").dblclick();
+    expect(await page.evaluate(() => String(getSelection()))).toBe("");
+    // a copy anywhere on the page is refused, one in a field goes through
+    const copy = sel => page.evaluate(s => {
+      const e = new ClipboardEvent("copy", { bubbles: true, cancelable: true });
+      document.querySelector(s).dispatchEvent(e);
+      return e.defaultPrevented;
+    }, sel);
+    expect(await copy("#list .row")).toBe(true);
+    expect(await copy("#q")).toBe(false);
+    await page.fill("#q", "tschick");
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById("q")).userSelect)).not.toBe("none");
+    await page.locator("#q").selectText();
+    expect(await page.evaluate(() => { const q = document.getElementById("q"); return q.value.slice(q.selectionStart, q.selectionEnd); })).toBe("tschick");
+  });
+
   test("no loan information visible", async ({ page }) => {
     await open(page);
     await expect(page.locator("body")).not.toContainText(/verliehen|ausgeliehen|verfügbar|vorgemerkt/i);
@@ -69,7 +89,7 @@ test.describe("list", () => {
 test.describe("search", () => {
   const search = async (page, q) => { await page.fill("#q", q); await expect(page.locator("#list")).toHaveClass(/live/); };
 
-  test("hits by title, count and highlighting", async ({ page }) => {
+  test("hits by title, count and highlighting", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await search(page, "tschick");
     const n = hits(B.books, "tschick").length;
@@ -142,7 +162,7 @@ test.describe("search", () => {
 });
 
 test.describe("A–Z bar (from 768 px)", () => {
-  test("desktop: a letter filters the list, the same letter again lifts the filter", async ({ page }) => {
+  test("desktop: a letter filters the list, the same letter again lifts the filter", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await expect(page.locator("#index")).toBeVisible();
     await expect(page.locator("#index button")).toHaveCount(27);
@@ -216,12 +236,43 @@ test.describe("phone (390 px)", () => {
     expect(w).toBeLessThanOrEqual(390);
   });
 
-  test("the search bar sticks at the top", async ({ page }) => {
+  test("the search bar sticks at the top", { tag: "@smoke" }, async ({ page }) => {
     await open(page);
     await page.evaluate(() => scrollTo({ top: 5000, behavior: "instant" }));
     await expect(page.locator("#bar")).toHaveClass(/stuck/);
     const top = await page.locator("#bar").evaluate(el => el.getBoundingClientRect().top);
     expect(top).toBeLessThan(5);
+  });
+});
+
+test.describe("phone (360 px)", () => {
+  test.use({ ...PHONE, viewport: { width: 360, height: 740 } });
+
+  test("the search placeholder fits whole (DE and IT), the × gets its room only with text", async ({ page }) => {
+    await open(page);
+    // the placeholder's text laid out in the field's font (a span: a placeholder has no scrollWidth) against the content
+    // box from the border box (Firefox's clientWidth of an input already leaves out the padding)
+    const fit = () => page.locator("#q").evaluate(async i => {
+      await document.fonts.ready;
+      const cs = getComputedStyle(i), s = document.createElement("span");
+      for (const k of ["fontFamily", "fontSize", "fontWeight", "letterSpacing"]) s.style[k] = cs[k];
+      Object.assign(s.style, { position: "absolute", visibility: "hidden", whiteSpace: "pre" });
+      s.textContent = i.placeholder;
+      document.body.appendChild(s);
+      const need = s.getBoundingClientRect().width;
+      s.remove();
+      const edges = ["borderLeftWidth", "borderRightWidth", "paddingLeft", "paddingRight"].reduce((sum, k) => sum + parseFloat(cs[k]), 0);
+      return { need, room: i.getBoundingClientRect().width - edges };
+    });
+    let r = await fit();
+    expect(r.need, JSON.stringify(r)).toBeLessThanOrEqual(r.room);
+    await page.click('.seg [data-lang="it"]');
+    await expect(page.locator("#q")).toHaveAttribute("placeholder", "Titolo, autore o ISBN");
+    r = await fit();
+    expect(r.need, JSON.stringify(r)).toBeLessThanOrEqual(r.room);
+    await page.locator("#q").fill("tschick");
+    await expect(page.locator(".search .clear")).toBeVisible();
+    await expect(page.locator("#q")).toHaveCSS("padding-right", "48px");
   });
 });
 
@@ -233,6 +284,10 @@ test.describe("preview from the admin page", () => {
     await open(page, "index.html#preview");
     await expect(page.locator("#preview")).toBeVisible();
     await expect(page.locator("#list .row")).toHaveCount(2);
+    // "Vorschau beenden" leads back to the admin page (a tab without history closes instead, then the same address)
+    await expect(page.locator("#preview-end")).toHaveAttribute("href", "admin.html");
+    await page.click("#preview-end");
+    await expect(page).toHaveURL(/admin\.html$/);
   });
 
   test("without #preview: the published list", async ({ page }) => {

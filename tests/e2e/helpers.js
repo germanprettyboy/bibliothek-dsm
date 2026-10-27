@@ -69,8 +69,9 @@ const PHONE = {
 
 // Swiping a sheet via CDP touch (phone viewport 390 px wide, hasTouch). Firefox/WebKit have no CDP: touch events
 // built in the page instead, on the element under the finger like a real touch (lib/swipe.js only reads touches[0]).
-async function swipe(page, from, to, steps = 8) {
-  if (page.context().browser().browserType().name() !== "chromium") {
+// inPage: built in the page in Chromium too – for a swipe whose velocity counts (a CDP round trip per step is slow on CI).
+async function swipe(page, from, to, steps = 8, { inPage = false } = {}) {
+  if (inPage || page.context().browser().browserType().name() !== "chromium") {
     // the whole gesture in one call: a round trip per step is far slower than 12 ms in WebKit
     await page.evaluate(([from, to, steps]) => new Promise(resolve => {
       const target = document.elementFromPoint(195, from);

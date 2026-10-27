@@ -3,6 +3,8 @@
 # Runs on every push (all branches) and by hand (Actions → Tests → Run workflow).
 # Skipped as locally: real-db.test (data/*.winbook is never committed), data.test info.js (website/info.js not committed),
 # encryption "is current" (only if the repository secret DSM_ADMIN_PW exists – optional, see CLAUDE.md "Checking").
+# Suite (CLAUDE.md "CI suites", tests/suites.js): full by default; the line "CI-Suite: smoke [area,…]" in the head commit
+# message (or the input "suite" of a run by hand) runs unit + one Chromium job with the core tests instead, no Apache job (≈1.5 min).
 name: Tests
 
 on:
@@ -16,6 +18,10 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
+    inputs:
+      suite:
+        description: 'full, smoke or "smoke <area>[,<area>…]" (areas: node tests/suites.js)'
+        default: full
 
 permissions:
   contents: read
@@ -35,8 +41,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 26
           cache: npm
@@ -65,16 +71,15 @@ jobs:
       fail-fast: false # one shard failing must not cancel the others
       # Sharding: Chromium's and Firefox's full suites split over parallel jobs (Playwright --shard; balanced per test,
       # fullyParallel). Duration ≈ the slowest shard. WebKit desktop + iPhone only run engines.spec.js: one job.
+      # Smoke: a single Chromium job (shard "smoke"). The condition is the same in the apache job; the matrix can't see env.
       matrix:
-        include:
-          - { browser: chromium, shard: 1/2 }
-          - { browser: chromium, shard: 2/2 }
-          - { browser: firefox, shard: 1/2 }
-          - { browser: firefox, shard: 2/2 }
-          - { browser: webkit, shard: 1/1 }
+        include: >-
+          ${{ fromJSON((contains(github.event.head_commit.message, 'CI-Suite: smoke') || startsWith(inputs.suite, 'smoke'))
+          && '[{"browser":"chromium","shard":"smoke"}]'
+          || '[{"browser":"chromium","shard":"1/2"},{"browser":"chromium","shard":"2/2"},{"browser":"firefox","shard":"1/2"},{"browser":"firefox","shard":"2/2"},{"browser":"webkit","shard":"1/1"}]') }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 26
           cache: npm
@@ -90,7 +95,7 @@ jobs:
       # install (not only after a green job), so a failing test doesn't cost the next run the download again.
       - name: Restore ${{ matrix.browser }} and its system packages
         id: cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cache/ms-playwright
@@ -114,7 +119,7 @@ jobs:
           mkdir -p ~/apt-archives && cp /var/cache/apt/archives/*.deb ~/apt-archives/ 2>/dev/null || true
       - name: Save ${{ matrix.browser }} and its system packages
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         continue-on-error: true # two shards of one browser save the same key: the second one may be refused
         with:
           path: |
@@ -126,16 +131,24 @@ jobs:
       - name: CPU cores (Playwright workers)
         run: nproc
       # The WebKit job also runs the iPhone viewport (WebKit device; both only engines.spec.js)
-      - run: >
+      - if: matrix.shard != 'smoke'
+        run: >
           npm run test:e2e -- --project=${{ matrix.browser }} ${{ matrix.browser == 'webkit' && '--project=iphone' || '' }}
           --shard=${{ matrix.shard }}
+      # Smoke: playwright.config.js builds the projects from DSM_SUITE (message or input via env, never pasted into the script)
+      - if: matrix.shard == 'smoke'
+        run: |
+          node tests/suites.js "$DSM_SUITE" | tee -a "$GITHUB_STEP_SUMMARY"
+          npm run test:e2e
+        env:
+          DSM_SUITE: ${{ inputs.suite || github.event.head_commit.message }}
       # retries: 1 lets a test pass on the second attempt – list those, so flakiness doesn't stay invisible
       - name: Flaky tests (passed only on the retry)
         if: always()
         run: node tests/helpers/flaky-report.js tests/.tmp/report.json
       - name: Traces of failed tests
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: playwright-results-${{ matrix.browser }}-${{ strategy.job-index }}
           path: tests/.tmp/results/
@@ -146,11 +159,13 @@ jobs:
   # .htaccess (headers, compression, no listings, https redirect), save.php end to end, backup/ locked, parallel POSTs.
   apache:
     name: Apache + PHP 7.1
+    if: >-
+      ${{ !(contains(github.event.head_commit.message, 'CI-Suite: smoke') || startsWith(inputs.suite, 'smoke')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 26
       - run: docker pull php:7.1-apache

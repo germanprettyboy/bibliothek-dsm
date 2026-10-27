@@ -10,11 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AnnouncementBar, ColorDots, ANNOUNCE_COLORS, announceColor } from "@/components/announcement";
+import { InfoBody, InfoCard } from "@/library/info";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 import { Publish } from "./publish";
+import { registerRestore } from "./versions";
 
 const IDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const IDRAFT = "dsm-info-draft";
@@ -130,6 +132,13 @@ export function Info({ info, setInfo }) {
     const fresh = normInfo(window.DSM_INFO);
     setInfo(fresh); setOrder(sorted(fresh.closures));
   };
+  // Restoring an earlier info.js (versions.js): it is the published state now, the draft is dropped
+  React.useEffect(() => registerRestore("info.js", data => {
+    window.DSM_INFO = data;
+    store.del(IDRAFT);
+    const fresh = normInfo(data);
+    setInfo(fresh); setOrder(sorted(fresh.closures));
+  }), [setInfo]);
   const build = () => {
     const out = infoOut(info);
     return {
@@ -139,6 +148,7 @@ export function Info({ info, setInfo }) {
       done: () => { window.DSM_INFO = out; },
     };
   };
+  const preview = React.useMemo(() => infoOut(info), [info]);
   const ann = info.announcement;
   const annText = (ann[lang] || ann.de || ann.it).trim();
   const annPast = YMD.test(ann.until) && ann.until < today();
@@ -329,6 +339,15 @@ export function Info({ info, setInfo }) {
           <Button variant="outline" size="sm" id="i-clean" hidden={!past}
             onClick={() => change(d => { d.closures = d.closures.filter(c => cloProblem(c) !== "iPast"); }, true)}>{t("iClean")}</Button>
         </CardFooter>
+      </Card>
+      {/* Live preview: the line above the book list and the window "Öffnungszeiten", as on the website (src/library/info.jsx) */}
+      <Card id="i-preview">
+        <CardTitle>{t("iPrevT")}</CardTitle>
+        <CardDescription>{t("iPrevP")}</CardDescription>
+        <div className="mt-2 grid gap-3" inert>
+          <div className="[&_.wrap]:max-w-none [&_.wrap]:px-0 [&_.wrap]:pb-0" id="i-preview-card"><InfoCard I={preview} preview onOpen={() => {}} /></div>
+          <div className="grid gap-5 rounded-3xl p-5 [background:var(--gb-bot)] shadow-[inset_0_0_0_1px_var(--line)]" id="i-preview-dialog"><InfoBody I={preview} preview /></div>
+        </div>
       </Card>
       <Publish
         file="info.js" build={build} ids={{ button: "i-dl", how: "i-how", preview: "i-prev" }} alt="iDl" howKey="iHow" preview
