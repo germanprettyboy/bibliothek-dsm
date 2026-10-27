@@ -1,0 +1,15 @@
+# ripgrep (rg, Claude Code's Grep tool) skips these files: build output (edit src/ instead), generated data, vendor code,
+# the built guide. Single lines of 100–720 KB that would only duplicate or bury real hits. git, Vite and Tailwind
+# (@source in src/styles.css) ignore this file. To search one of them anyway, name the file as the search path.
+website/index.html
+website/admin.html
+website/assets/head.js
+website/assets/library.js
+website/assets/admin.js
+website/assets/style.css
+website/assets/admin.enc.js
+website/assets/vendor/
+website/books.js
+anleitung/
+docs/entwuerfe/
+package-lock.json
