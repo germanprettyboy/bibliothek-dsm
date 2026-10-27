@@ -1,5 +1,6 @@
 // Book list: display, search, A–Z bar (from 768 px), letter floater (below), preview.
 const { test, expect, PHONE, open, data, hits } = require("./helpers.js");
+const { isbn10 } = require("../helpers/load.js");
 
 const { B } = data();
 
@@ -123,6 +124,18 @@ test.describe("search", () => {
     await expect(page.locator("#list .row .t").first()).toHaveText(b.t);
   });
 
+  test("ISBN-10 (printed on books before 2007) finds the book like its ISBN-13, also with check digit X and hyphens", async ({ page }) => {
+    // check digit X: the ISBN-10 is no part of the ISBN-13's digits at all
+    const b = B.books.find(x => x.i && isbn10(x.i[0]).endsWith("X"));
+    const ten = isbn10(b.i[0]), row = page.locator(`#list .row[data-i="${B.books.indexOf(b)}"]`);
+    await open(page);
+    await search(page, ten);
+    await expect(row).toHaveCount(1);
+    await expect(page.locator("#meta")).toHaveText(`${hits(B.books, ten).length} Treffer`);
+    await search(page, `${ten.slice(0, 1)}-${ten.slice(1, 4)}-${ten.slice(4, 9)}-${ten.slice(9).toLowerCase()}`);
+    await expect(row).toHaveCount(1);
+  });
+
   test("several terms: all must match", async ({ page }) => {
     await open(page);
     await search(page, "harry potter");
@@ -200,6 +213,18 @@ test.describe("A–Z bar (from 768 px)", () => {
     await expect(page.locator("#index")).toBeVisible();
     await page.setViewportSize({ width: 767, height: 900 });
     await expect(page.locator("#index")).toBeHidden();
+  });
+
+  test("narrower than 768 px (phone turned upright): a chosen letter goes with the bar, the whole list is back", async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 900 });
+    await open(page);
+    await page.click('#index button[data-l="M"]');
+    await expect(page.locator("#meta")).toHaveText(/Treffer/);
+    await page.setViewportSize({ width: 767, height: 900 });
+    await expect(page.locator("#index")).toBeHidden();
+    await expect(page.locator("#meta")).toHaveText(`${B.books.length.toLocaleString("de-DE")} Bücher`);
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect(page.locator('#index button[data-l="M"]')).toHaveAttribute("aria-pressed", "false");
   });
 
   test("desktop: no floater while scrolling", async ({ page }) => {

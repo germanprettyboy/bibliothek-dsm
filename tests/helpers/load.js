@@ -28,11 +28,20 @@ const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ
   .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
 const keyOf = b => norm(b.t) + "|" + norm((b.a && b.a[0]) || "");
 
-// Search as in the page (all terms in title, subtitle, authors, ISBN, publisher)
+// ISBN-10 of a 978 ISBN-13 (src/library/data.js: the search finds it too)
+function isbn10(i) {
+  if (!/^978\d{10}$/.test(i)) return "";
+  let s = 0;
+  for (let k = 0; k < 9; k++) s += +i[3 + k] * (10 - k);
+  const c = (11 - (s % 11)) % 11;
+  return i.slice(3, 12) + (c === 10 ? "X" : c);
+}
+
+// Search as in the page (all terms in title, subtitle, authors, ISBN-13 and -10, publisher)
 function hits(books, q) {
   const terms = norm(q).split(" ").filter(Boolean);
   return books.filter(b => {
-    const s = norm([b.t, b.s, (b.a || []).join(" "), (b.i || []).join(" "), b.p].join(" "));
+    const s = norm([b.t, b.s, (b.a || []).join(" "), (b.i || []).map(i => i + " " + isbn10(i)).join(" "), b.p].join(" "));
     return terms.every(t => s.includes(t));
   });
 }
@@ -48,4 +57,4 @@ function realDb() {
   return candidates.find(p => p && fs.existsSync(p)) || null;
 }
 
-module.exports = { ROOT, WEB, TMP, browserFile, data, norm, keyOf, hits, realDb };
+module.exports = { ROOT, WEB, TMP, browserFile, data, norm, keyOf, isbn10, hits, realDb };

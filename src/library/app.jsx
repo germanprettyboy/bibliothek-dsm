@@ -44,13 +44,14 @@ export function App() {
   React.useEffect(() => loadBooks(d => { setBooks(prepare(d)); setLoaded(true); }), []);
   React.useEffect(startBackground, []); // interactive background, if chosen (settings)
   const byKey = React.useMemo(() => new Map(books.map(b => [keyOf(b), b])), [books]);
-  // Questions on the first visit, only if there is a recommendation in the catalog at all
+  // Questions on the first visit, only if there is a recommendation in the catalog at all. Never in place of another
+  // window (on a slow connection the settings or opening hours may already be open when the list arrives): after it.
   React.useEffect(() => {
-    if (!RECS || !loaded || getChoice() || !books.length) return undefined;
+    if (!RECS || !loaded || dialog || detail || getChoice() || !books.length) return undefined;
     if (!Object.values(R.groups || {}).some(l => (l || []).some(r => byKey.has(r.k)))) return undefined;
     const id = setTimeout(() => setDialog("questions"), 450);
     return () => clearTimeout(id);
-  }, [loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loaded, dialog, detail]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const open = React.useCallback((b, rec) => setDetail({ b, rec: rec || null }), []);
   const dialogToggle = name => on => setDialog(on ? name : null);
