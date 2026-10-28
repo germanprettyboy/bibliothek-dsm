@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_CODE_GLOB_NO_IGNORE": "false"
+  },
   "hooks": {
     "SessionStart": [
       {

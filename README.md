@@ -64,7 +64,8 @@ Details in `website/LIESMICH.txt` (German).
 
 Every task runs in its own git worktree and is merged into `main` with `--no-ff` at the end via `npm run integrate -- worktree-<name>`.
 `main` is always working and may be uploaded. Overview of open branches: `npm run branches`.
-All rules, design requirements and data formats are in `CLAUDE.md`.
+Rules for Claude: `CLAUDE.md` (every session), area rules in `.claude/rules/` (design, data formats, admin, …, loaded by path),
+file map `docs/sitemap.md`.
 
 ## Client
 

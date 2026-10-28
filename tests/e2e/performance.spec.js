@@ -2,7 +2,7 @@
  * Performance and stress, Chromium only (CDP CPU throttling; the budgets are Chromium values – WebKit's search over the
  * 3× catalog takes ≈4.4 s on the runner). Budgets are generous on purpose (shared 2-core runner):
  * they catch a regression by a factor, not by percent. Measured values appear as annotations in the report.
- * Reference (CLAUDE.md, 390 px, CPU 4×, Mac): DOMContentLoaded ≈0.5 s, longest task ≈0.9 s (parsing books.js).
+ * Reference (.claude/rules/library.md, 390 px, CPU 4×, Mac): DOMContentLoaded ≈0.5 s, longest task ≈0.9 s (parsing books.js).
  */
 const { test, expect, open, PHONE, data } = require("./helpers.js");
 
