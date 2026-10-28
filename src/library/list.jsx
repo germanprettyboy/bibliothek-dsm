@@ -205,6 +205,14 @@ export function BookList({ books, loaded, onOpen }) {
     setLive(true); setLetter(next);
     log("Filter", next ? `letter "${next}": ${base.filter(b => b._l === next).length} books` : "letter cleared");
   };
+  // Below 48rem the bar is gone (phone turned upright, narrower window): the letter would filter on with nothing left to
+  // lift it, so it goes with the bar
+  React.useEffect(() => {
+    if (!letter) return undefined;
+    const narrow = () => { if (!wide.matches) { setLetter(null); log("Filter", "letter cleared (A–Z bar hidden)"); } };
+    wide.addEventListener("change", narrow);
+    return () => wide.removeEventListener("change", narrow);
+  }, [letter]);
 
   // ---------- Sticky bar ----------
   React.useLayoutEffect(() => {

@@ -25,6 +25,16 @@ export const previewBooks = () => preview("dsm-preview", p => Array.isArray(p.bo
 export const previewRecs = () => preview("dsm-preview-recs", p => !!p.groups);
 export const previewInfo = () => preview("dsm-preview-info", p => !!p.hours);
 
+// ISBN-10 of a 978 ISBN-13: the same number as printed on books before 2007, so the search finds it as well
+// (only in the search text, never shown)
+function isbn10(i) {
+  if (!/^978\d{10}$/.test(i)) return "";
+  let s = 0;
+  for (let k = 0; k < 9; k++) s += +i[3 + k] * (10 - k);
+  const c = (11 - (s % 11)) % 11;
+  return i.slice(3, 12) + (c === 10 ? "X" : c);
+}
+
 // Prepare books for list and search: running number, initial letter, search text
 export function prepare(data) {
   const books = (data && data.books) || [];
@@ -33,7 +43,7 @@ export function prepare(data) {
   books.forEach((b, i) => {
     b._i = i;
     b._l = letterOf(b.t);
-    b._s = norm([b.t, b.s, (b.a || []).join(" "), (b.i || []).join(" "), b.p].join(" "));
+    b._s = norm([b.t, b.s, (b.a || []).join(" "), (b.i || []).map(i => i + " " + isbn10(i)).join(" "), b.p].join(" "));
   });
   return books;
 }
