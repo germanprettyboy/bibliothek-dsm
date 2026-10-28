@@ -118,9 +118,10 @@ function Sheet({ ins, inv, T, open, onOpenChange, onPrint }) {
   };
   const submit = e => { e.preventDefault(); scan(code); setCode(""); };
   const refocus = () => { if (fine() && field.current) field.current.focus({ preventScroll: true }); };
-  // A key typed outside a field (scanner after a click on a button) goes into the code field
+  // A character typed outside a field (scanner after a click on a button) goes into the code field; Space and Enter keep
+  // pressing a focused button (keyboard use: by then a scanner's first character has moved the focus into the field)
   const keys = e => {
-    if (isField(e.target) || e.target.closest('[role="menu"]') || e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || !field.current) return;
+    if (isField(e.target) || e.target.closest('[role="menu"]') || e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || e.key === " " || !field.current) return;
     e.preventDefault();
     setCode(c => c + e.key);
     field.current.focus({ preventScroll: true });
