@@ -48,6 +48,7 @@ The admin password is in no file: never guess or write it down. Whatever the adm
   location. Reader/loan/fee/user/session tables only counted; loan columns of `books` never read. Name check reader file ↔ public
   fields (generate-books.js stops on a hit or without name columns). Maintenance (`inspect()`, tab Pflege) reads `INSPECT_COLUMNS` =
   public columns + `bsignatur`, `bzugang` (SQL spy test); nothing published; category/location names containing a reader name only as `#id`.
+  Its records `{id,t,a,p,y,c,l,sig,z,i}` carry the valid ISBNs (`i`, ISBN-13) for the inventory.
 - Only media type Buch/Graphic Novel; copies merged (title + first author). **No ISBN completion.** Privacy policy and imprint come
   from the school's main website (it links here): no footer, no own privacy page.
 - List = plain text (title + author); covers only in detail/recommendations. No "as of" date in public. `#meta` "4.545 Bücher"/"n Treffer".
@@ -59,9 +60,18 @@ The admin password is in no file: never guess or write it down. Whatever the adm
   floater. Category filter = glass dialog with search and groups (`categories.jsx`). Neither filter is saved.
 - Admin page: no "Aktuell veröffentlicht …", no draft notice, no privacy notices (import: no "Nicht übernommen" card, success =
   "Upload erfolgreich"; only the reader-name warning stays). Floating sticky nav bar (`nav.jsx`): tabs Bestand | Pflege | Cover |
-  Empfehlungen | Info | Statistik (column 54rem, `body.adm`), then help (`?`, `help.jsx`) and lock. Charts only in tab Statistik. Destructive actions = two
+  Empfehlungen | Info | Statistik (column 54rem, `body.adm`), then search (`#cmd-btn`), help (`?`, `help.jsx`) and lock. Charts only in tab Statistik. Destructive actions = two
   clicks within 4 s. `App` only gets `lock`. Automatic corrections (`fixes.jsx`) only change the public list, never the WinBook
   file. Every publish keeps a local version (IndexedDB `dsm-admin`, `versions.js`). Print without `:has()` (Firefox ESR 115).
+- Command palette `#cmd` (`palette.jsx`; Ctrl/⌘+K anywhere, "/" outside a field): one search over tabs, actions, help articles and
+  books (an ISBN with hyphens or scanned finds its book). Empty = "Anstehend" (`todos.js`: only what needs doing – never a draft or
+  "currently published" line), recent books (`dsm-cmd-recent`), tabs, actions. Book card (`book-card.jsx`): cover hide/show, Italian
+  category, recommend into a group (`recommend()`, saved at once), after an import copies + maintenance entries (`buildData`).
+- Inventory (`inventory.jsx`, tab Pflege, needs an import): a USB scanner types code + Enter into `#inv-code`; keys typed elsewhere in
+  the sheet go there too (a scanner's Enter must never press a focused button); camera only with `BarcodeDetector`. Match ISBN →
+  WinBook number → shelf mark. State `dsm-inventory` (ids + times only), nothing published; missing ≠ lost (loan status never read).
+- Maintenance progress (`care-history.js`, `dsm-care-history`, counts per list and import day): Pflege shows each list's change since
+  an earlier day, Statistik its course – the only history chart (no list history or accessions charts, Johann 2026-10-24).
 - Only HTML/CSS/JS, no deploy services/database/server code except `save.php`; double-click (file://) works: classic scripts, no modules.
   "Publish": (1) online save.php; (2) Chrome/Edge folder access (must contain index.html, handle in IndexedDB); (3) else download.
 - save.php: PHP ≥ 7.1 (no str_starts_with/array_is_list/match); protocol and backups in its header comment. Warnings never in the

@@ -44,6 +44,11 @@ addStrings({
     stLocP: "Exemplare mit Pflegeeintrag je Standort und Bereich, die {k} auffälligsten Standorte.",
     stLocCell: "{loc}, {g}: {n} von {m} Exemplaren",
     stLow: "wenige", stHigh: "viele", stLocation: "Standort",
+
+    stCareT: "Wird der Bestand sauberer?", stDate: "Eingelesen am",
+    stCareDown: "{n} Pflegeeinträge weniger als beim Einlesen am {from}. Ein Punkt je Tag mit Einlesen ({k}).",
+    stCareUp: "{n} Pflegeeinträge mehr als beim Einlesen am {from}. Ein Punkt je Tag mit Einlesen ({k}).",
+    stCareSame: "Gleich viele Pflegeeinträge wie beim Einlesen am {from}. Ein Punkt je Tag mit Einlesen ({k}).",
   },
   it: {
     stEmpty: "Ancora nessun libro. Prima importare il file WinBook nella scheda «Catalogo».",
@@ -87,5 +92,10 @@ addStrings({
     stLocP: "Esemplari con voce di manutenzione per collocazione e ambito, le {k} collocazioni più critiche.",
     stLocCell: "{loc}, {g}: {n} su {m} esemplari",
     stLow: "pochi", stHigh: "molti", stLocation: "Collocazione",
+
+    stCareT: "Il patrimonio diventa più ordinato?", stDate: "Letto il",
+    stCareDown: "{n} voci di manutenzione in meno rispetto all'importazione del {from}. Un punto per ogni giorno con importazione ({k}).",
+    stCareUp: "{n} voci di manutenzione in più rispetto all'importazione del {from}. Un punto per ogni giorno con importazione ({k}).",
+    stCareSame: "Tante voci di manutenzione quante all'importazione del {from}. Un punto per ogni giorno con importazione ({k}).",
   },
 });

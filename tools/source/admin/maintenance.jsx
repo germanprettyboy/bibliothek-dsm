@@ -1,19 +1,22 @@
 /* Tab "Pflege": maintenance lists from the WinBook file (source/extract.js inspect) – what should be fixed in WinBook,
-   media types, a location list for the inventory at the shelf. Every list: table view (table-view.jsx), download as
-   Excel (xlsx.js, formatted, one sheet per list) or CSV, printing (print.jsx); all lists also as PDF via the print
-   dialog (#m-all-pdf). Nothing here is published. */
+   media types, the inventory with a barcode scanner (inventory.jsx) and a location list for the inventory on paper.
+   Every list: table view (table-view.jsx), download as Excel (xlsx.js, formatted, one sheet per list) or CSV, printing
+   (print.jsx); all lists also as PDF via the print dialog (#m-all-pdf). Beside each list its change since the import of
+   an earlier day (care-history.js). Nothing here is published. */
 import * as React from "react";
-import { ChevronDownIcon, DownloadIcon, PrinterIcon, TableIcon } from "lucide-react";
+import { ChevronDownIcon, PrinterIcon, TableIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 import { notify } from "@/lib/notice";
 import { Big, Lines } from "./catalog";
+import { DownloadMenu } from "./download-menu";
 import { Fixes } from "./fixes";
+import { Inventory } from "./inventory";
+import { previous } from "./care-history";
 import { TableView } from "./table-view";
 import { GROUP_COLOR, PrintDialog, PrintJob } from "./print";
 import { sheetNames, xlsx } from "./xlsx";
@@ -31,6 +34,8 @@ const SHOWN = 100; // rows on the page per list, all of them in the table view a
 const WIDE = "h-auto min-h-11 w-full whitespace-normal py-2 text-center [text-wrap:balance]"; // summary card buttons
 const today = () => new Date().toLocaleDateString("sv-SE");
 const coll = new Intl.Collator("de", { sensitivity: "base", numeric: true });
+// Change of a count with its sign (typographic minus); 0 = "±0"
+export const signed = (n, nf) => (n > 0 ? "+" : n < 0 ? "−" : "±") + nf(Math.abs(n));
 
 function saveBlob(name, blob, rows) {
   const url = URL.createObjectURL(blob);
@@ -118,34 +123,8 @@ function useExport() {
   };
 }
 
-// "Herunterladen ▾": Excel first, CSV second. sections: [[label | null, [{ text, on, props }]]]
-// Not modal (the tab is no dialog): a modal menu locks clicks on the page until its closing animation has ended, so
-// opening it again right after a download did nothing. The download runs after the menu has closed.
-function DownloadMenu({ triggerProps, label, sections }) {
-  const { t } = useLanguage();
-  const [open, setOpen] = React.useState(false);
-  const pick = fn => () => { setOpen(false); setTimeout(fn, 0); };
-  return (
-    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" {...triggerProps}>
-          <DownloadIcon aria-hidden="true" /><span>{label || t("mxDl")}</span><ChevronDownIcon aria-hidden="true" className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        {sections.map(([head, items], i) => (
-          <React.Fragment key={i}>
-            {i ? <DropdownMenuSeparator /> : null}
-            {head ? <DropdownMenuLabel>{head}</DropdownMenuLabel> : null}
-            {items.map(it => <DropdownMenuItem key={it.text} onSelect={pick(it.on)} {...it.props}>{it.text}</DropdownMenuItem>)}
-          </React.Fragment>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-export function Care({ B, ins, report, cov, onCatalog }) {
+// invOpen/onInv: the inventory sheet (app.jsx, so the command palette can open it)
+export function Care({ B, ins, report, cov, onCatalog, invOpen, onInv }) {
   const { t, nf, df } = useLanguage();
   const X = useExport();
   const [view, setView] = React.useState(null); // table view: { check } (null check = all data)
@@ -165,6 +144,11 @@ export function Care({ B, ins, report, cov, onCatalog }) {
   const groups = allChecks(ins, report, cov);
   const found = groups.reduce((s, [, list]) => s + list.reduce((n, c) => n + c.rows.length, 0), 0);
   const lines = [[t("mRecords"), nf(ins.records.length)]].concat(ins.latest ? [[t("mLatest"), df(ins.latest)]] : [], [[t("mFound"), nf(found)]]);
+  // Change since the import of an earlier day (care-history.js): the lists of that day only (the cover list is not kept)
+  const prev = previous(B.careHist || []);
+  const now = (B.careHist || []).length ? B.careHist[B.careHist.length - 1] : null;
+  const delta = key => (prev && now && prev.c[key] != null && now.c[key] != null ? now.c[key] - prev.c[key] : null);
+  if (prev && now) lines.push([t("mSince", { d: df(prev.d) }), signed(Object.keys(now.c).reduce((sum, k) => sum + (delta(k) || 0), 0), nf)]);
   /* "PDF": browsers save a PDF only through their print dialog (no library). So: the print job with every non-empty list,
      the document title = file name (proposed by "Als PDF speichern"), a notice first, then the print dialog. */
   const pdf = () => {
@@ -205,7 +189,7 @@ export function Care({ B, ins, report, cov, onCatalog }) {
               <i className="pd-dot" data-c={GROUP_COLOR[g]} aria-hidden="true" />{t("mG_" + g)}
             </h3>
             {list.map(c => (
-              <Check key={c.key} c={c} onTable={() => setView({ check: c.key })} onCsv={() => X.listCsv(c)} onXlsx={() => X.listXlsx(c, g)} />
+              <Check key={c.key} c={c} delta={delta(c.key)} onTable={() => setView({ check: c.key })} onCsv={() => X.listCsv(c)} onXlsx={() => X.listXlsx(c, g)} />
             ))}
           </section>
         ))}
@@ -215,6 +199,7 @@ export function Care({ B, ins, report, cov, onCatalog }) {
         <CardDescription>{t("mTypesP")}</CardDescription>
         <Lines id="m-types-lines" lines={ins.types.map(x => [`${x.name || "–"} · ${t(x.book ? "mTaken" : "mLeft")}`, nf(x.n)])} />
       </Card>
+      <Inventory ins={ins} open={!!invOpen} onOpenChange={onInv} onPrint={setJob} />
       <Shelf ins={ins} X={X} onPrint={setJob} />
       <TableView open={!!view} onOpenChange={o => { if (!o) setView(null); }} ins={ins} books={B.books} report={report} cov={cov} check={view ? view.check : null} />
       <PrintDialog open={printOpen} onOpenChange={setPrintOpen} groups={groups} onPrint={setJob} />
@@ -223,8 +208,9 @@ export function Care({ B, ins, report, cov, onCatalog }) {
   );
 }
 
-// One list: row with name and count; opened: hint, the first rows, table view, download
-function Check({ c, onTable, onCsv, onXlsx }) {
+// One list: row with name, change since an earlier import (fewer = good) and count; opened: hint, the first rows, table
+// view, download
+function Check({ c, delta, onTable, onCsv, onXlsx }) {
   const { t, nf } = useLanguage();
   const [open, setOpen] = React.useState(false);
   const n = c.rows.length, records = !!(n && c.rows[0].r), withValue = c.rows.some(x => x.v !== undefined);
@@ -237,6 +223,11 @@ function Check({ c, onTable, onCsv, onXlsx }) {
         aria-expanded={n ? open : undefined} disabled={!n} onClick={() => setOpen(o => !o)}
       >
         <span className="min-w-0 flex-1">{t("m_" + c.key)}</span>
+        {delta ? (
+          <span className="cd-delta" data-dir={delta < 0 ? "down" : "up"} data-delta={delta} title={t(delta < 0 ? "mFewer" : "mMore")}>
+            <span className="sr-only">{t(delta < 0 ? "mFewer" : "mMore")}: </span>{signed(delta, nf)}
+          </span>
+        ) : null}
         <span className="font-medium tabular-nums">{nf(n)}</span>
         <ChevronDownIcon aria-hidden="true" className={cn("size-4 shrink-0 transition-transform duration-150 ease-dsm motion-reduce:transition-none", open && "rotate-180", !n && "invisible")} />
       </button>

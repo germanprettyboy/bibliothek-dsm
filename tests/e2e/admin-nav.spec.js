@@ -1,6 +1,7 @@
 /*
  * Admin page, navigation bar (tools/source/admin/nav.jsx): six tabs with icons and names, a pill that glides behind the
- * active tab, help and lock with sliding labels; the bar floats sticky 12 px below the top edge; phones: one row, icons only.
+ * active tab, search, help and lock with sliding labels; the bar floats sticky 12 px below the top edge; phones: one row,
+ * icons only.
  */
 const { test, expect, PHONE, settled } = require("./helpers.js");
 const { adminSetup, unlock, tab } = require("./admin-helpers.js");
@@ -17,7 +18,7 @@ const pillOff = page => page.evaluate(() => {
   const a = document.querySelector('.tabs [data-tab][data-state="active"]').getBoundingClientRect();
   return Math.max(Math.abs(p.left - a.left), Math.abs(p.width - a.width));
 });
-const tops = page => page.locator(".tabs [data-tab], #help-btn, #lock-btn")
+const tops = page => page.locator(".tabs [data-tab], #cmd-btn, #help-btn, #lock-btn")
   .evaluateAll(t => t.map(e => Math.round(e.getBoundingClientRect().top)));
 const noSideScroll = page => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 // Tall tab content, so the page can scroll far below the bar
@@ -67,8 +68,18 @@ test.describe("admin navigation", () => {
     await page.mouse.move(0, 0);
     await expect.poll(() => label('.tabs [data-tab="recs"]')).toBeGreaterThan(30);
     // every item is at least 44 px high
-    const heights = await page.locator(".tabs [data-tab], #help-btn, #lock-btn").evaluateAll(t => t.map(e => e.getBoundingClientRect().height));
+    const heights = await page.locator(".tabs [data-tab], #cmd-btn, #help-btn, #lock-btn").evaluateAll(t => t.map(e => e.getBoundingClientRect().height));
     for (const h of heights) expect(h).toBeGreaterThanOrEqual(44);
+  });
+
+  test("search button opens the command palette; its name says the shortcut", async ({ page }) => {
+    await unlock(page);
+    await expect(page.locator("#cmd-btn")).toHaveAccessibleName("Suchen");
+    await expect(page.locator("#cmd-btn")).toHaveAttribute("aria-keyshortcuts", /^(Control|Meta)\+K$/);
+    await page.click("#cmd-btn");
+    await expect(page.locator("#cmd")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#cmd")).toBeHidden();
   });
 
   test("help button opens the help page", async ({ page }) => {

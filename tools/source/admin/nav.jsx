@@ -1,17 +1,18 @@
 /* Navigation bar of the admin page: one bar over the full content width that floats 12 px below the top edge while
    scrolling (sticky, subtle shadow; styles.css "Admin navigation"). Tabs with icons, a pill glides behind the active tab;
-   then help and lock, separated by thin lines. All items 44 px high, icons 18 px.
+   then search (command palette) and help, then lock, separated by thin lines. All items 44 px high, icons 18 px.
    Labels open sideways; how many show depends on the room (data-fit, measured here):
-     all    = every tab label; help and lock slide theirs out on hover/focus
-     lead   = every tab label but the last tab's (Statistik); it, help and lock slide theirs out on hover/focus
-     active = only the active tab's label; the other tabs, help and lock slide theirs out on hover/focus (like the lock)
+     all    = every tab label; search, help and lock slide theirs out on hover/focus
+     lead   = every tab label but the last tab's (Statistik); it, search, help and lock slide theirs out on hover/focus
+     active = only the active tab's label; the other tabs, search, help and lock slide theirs out on hover/focus
      none   = phones: icons only, nothing slides out (no room; touch has no hover)
    The measure adds natural widths (paddings + icon + label text), not the current ones: it doesn't depend on the state
-   it switches, so it can't flip back and forth. Test hooks: .tabs, [data-tab], #help-btn, #lock-btn, .adm-nav[data-fit]
-   [data-active], .adm-pill. */
+   it switches, so it can't flip back and forth. Test hooks: .tabs, [data-tab], #cmd-btn, #help-btn, #lock-btn,
+   .adm-nav[data-fit] [data-active], .adm-pill. */
 import "./strings-nav";
+import "./strings-palette";
 import * as React from "react";
-import { ChartColumnIcon, CircleHelpIcon, DatabaseIcon, ImageIcon, InfoIcon, LockIcon, SparklesIcon, WrenchIcon } from "lucide-react";
+import { ChartColumnIcon, CircleHelpIcon, DatabaseIcon, ImageIcon, InfoIcon, LockIcon, SearchIcon, SparklesIcon, WrenchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -67,7 +68,10 @@ function fitOf(bar) {
   return "none";
 }
 
-export function AdminNav({ tab, lock, onHelp }) {
+// Shortcut of the search on this computer: ⌘K on a Mac, Ctrl+K elsewhere
+const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
+
+export function AdminNav({ tab, lock, onHelp, onSearch }) {
   const { t } = useLanguage();
   const bar = React.useRef(null), pill = React.useRef(null);
   const [fit, setFit] = React.useState("active");
@@ -114,7 +118,13 @@ export function AdminNav({ tab, lock, onHelp }) {
         ))}
       </TabsList>
       <span className="adm-vr" aria-hidden="true" />
-      {/* Help and lock: icon only, the text slides out to the right on hover/focus */}
+      {/* Search, help and lock: icon only, the text slides out to the right on hover/focus */}
+      <Button
+        variant="ghost" id="cmd-btn" onClick={onSearch} aria-label={t("kSearch")} aria-keyshortcuts={MAC ? "Meta+K" : "Control+K"}
+        title={`${t("kSearch")} (${MAC ? "⌘K" : t("kKeys")})`} className={`${item} adm-act gap-0`}
+      >
+        <SearchIcon {...ICON} /><Label>{t("kSearch")}</Label>
+      </Button>
       <Button variant="ghost" id="help-btn" onClick={onHelp} aria-label={t("help")} className={`${item} adm-act gap-0`}>
         <CircleHelpIcon {...ICON} /><Label>{t("help")}</Label>
       </Button>

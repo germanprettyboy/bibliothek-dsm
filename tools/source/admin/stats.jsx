@@ -1,7 +1,8 @@
 /* Tab "Statistik": charts about the collection, each answering one question of the library (title = question,
    caption = key number). Without an import from the published list (books.js): key figures, covers, age, categories.
    After an import (B.ins) also the maintenance lists: problems per list (a bar opens tab "Pflege"), share of copies
-   with problems per category/location, location × area. Nothing here is published.
+   with problems per category/location, location × area. With imports on at least two days (care-history.js) the
+   course of the maintenance entries. No accessions or list history (Johann, 2026-10-24). Nothing here is published.
    Charts: charts.jsx; colors = logo tokens, one hue per single-series chart. Props: B (app state, app.jsx). */
 import "./strings-stats";
 import * as React from "react";
@@ -10,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardFooter, CardTitle } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useLanguage } from "@/lib/language";
-import { allChecks } from "./maintenance";
-import { ChartCard, Columns, Donut, HBars, Heatmap, Kpis, Treemap } from "./charts";
+import { allChecks, signed } from "./maintenance";
+import { total } from "./care-history";
+import { ChartCard, Columns, Donut, HBars, Heatmap, Kpis, LineChart, Treemap } from "./charts";
 
 const C = { mauve: "var(--mauve)", yellow: "var(--yellow)", orange: "var(--orange)", blue: "var(--blue)", red: "var(--red)", green: "var(--green)", line: "var(--line)" };
 // Areas of the maintenance lists that concern single copies (columns of the location heatmap)
@@ -122,6 +124,7 @@ export function Stats({ B }) {
   }
 
   if (groups) cards.push(<Problems key="problems" groups={groups} onPick={() => B.setTab("care")} />);
+  if ((B.careHist || []).length >= 2) cards.push(<CareTrend key="care" list={B.careHist} />);
   if (ins && flags) cards.push(<Rate key="rate" ins={ins} flags={flags} />);
   if (ins && flags) cards.push(<Locations key="locations" ins={ins} flags={flags} />);
   if (books.length) cards.push(<Coverage key="cov" books={books.length} isbn={pub.isbn} cover={cover} />);
@@ -294,6 +297,39 @@ function Categories({ cats, total }) {
       table={{ head: [t("stCategory"), t("stBooks"), t("stShare")], rows: items.map(i => [i.label, nf(i.value), nf(Math.round((i.value / (total || 1)) * 1000) / 10) + " %"]) }}
     >
       <Treemap items={items} color={C.blue} total={total} aria={t("stCatT")} />
+    </ChartCard>
+  );
+}
+
+// Axis label of a date: "15.10." (it "15/10") within one year, otherwise month and year ("Okt. 26")
+function useShortDate(dates) {
+  const { lang } = useLanguage();
+  const one = new Set(dates.map(d => d.slice(0, 4))).size <= 1;
+  const loc = lang === "it" ? "it-IT" : "de-DE";
+  return iso => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+    if (!m) return iso || "";
+    if (one) return lang === "it" ? `${m[3]}/${m[2]}` : `${m[3]}.${m[2]}.`;
+    return new Date(+m[1], m[2] - 1, 1).toLocaleDateString(loc, { month: "short", year: "2-digit" });
+  };
+}
+
+// Entries in the maintenance lists per import day (care-history.js): fewer = the collection gets cleaner
+function CareTrend({ list }) {
+  const { t, nf, df } = useLanguage();
+  const short = useShortDate(list.map(e => e.d));
+  const values = list.map(total);
+  const first = list[0], d = values[values.length - 1] - values[0];
+  const caption = t(d < 0 ? "stCareDown" : d > 0 ? "stCareUp" : "stCareSame", { n: nf(Math.abs(d)), from: df(first.d), k: nf(list.length) });
+  return (
+    <ChartCard
+      name="care" wide title={t("stCareT")} caption={caption}
+      table={{ head: [t("stDate"), t("stKOpen"), t("stCopies")], rows: list.map((e, i) => [df(e.d), nf(values[i]), nf(e.n)]) }}
+    >
+      <LineChart
+        points={list.map(e => ({ key: e.d, label: short(e.d), name: df(e.d) }))} zero
+        series={[{ key: "entries", label: t("stKOpen"), color: C.red, values }]} aria={t("stCareT")}
+      />
     </ChartCard>
   );
 }

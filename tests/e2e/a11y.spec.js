@@ -1,6 +1,6 @@
 /*
  * Accessibility (axe-core, WCAG 2.1 A/AA) of every view: list in light, dark and high contrast, phone, all dialogs,
- * admin page locked and unlocked. A violation lists rule, impact and the first elements.
+ * admin page locked and unlocked, its command palette and inventory. A violation lists rule, impact and the first elements.
  */
 const path = require("path");
 const AxeBuilder = require("@axe-core/playwright").default;
@@ -90,5 +90,36 @@ test.describe("accessibility", () => {
     await page.click("#unlock");
     await expect(page.locator("#app")).toBeVisible({ timeout: 15000 });
     expect(await violations(page), "admin app").toEqual([]);
+  });
+
+  test("admin page: command palette with a book card, inventory", async ({ page, context }) => {
+    await context.route("**/assets/admin.enc.js", r => r.fulfill({ path: path.join(TMP, "admin.enc.js"), contentType: "text/javascript" }));
+    await page.goto("admin.html");
+    await page.fill("#pw", "test-password");
+    await page.click("#unlock");
+    await expect(page.locator("#app")).toBeVisible({ timeout: 15000 });
+    await page.setInputFiles("#file", path.join(TMP, "test.winbook"));
+    await expect(page.locator("#report")).toBeVisible({ timeout: 20000 });
+    await page.keyboard.press("Control+k");
+    await expect(page.locator("#cmd")).toBeVisible();
+    await settled(page);
+    expect(await violations(page), "palette").toEqual([]);
+    await page.fill("#cmd-q", "krabat");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#cmd-book")).toBeVisible();
+    await settled(page);
+    expect(await violations(page), "book card").toEqual([]);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#cmd")).toBeHidden();
+    await page.click('.tabs [data-tab="care"]');
+    await page.click("#inv-open");
+    await expect(page.locator("#inventory")).toBeVisible();
+    await page.fill("#inv-code", "9783522202107");
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#inv-last")).toHaveAttribute("data-kind", "found");
+    await settled(page);
+    expect(await violations(page), "inventory").toEqual([]);
   });
 });

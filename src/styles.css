@@ -848,7 +848,7 @@
      below dialogs z-50 and notices). Items 44 px, icons 18 px; thin lines separate tabs | help | lock. A pill glides
      behind the active tab (position set by nav.jsx). Labels open sideways (grid 0fr → 1fr) depending on data-fit:
      all = every tab label; active = the active tab's; none (phones) = icons only. Help, lock and (with "active") the other
-     tabs slide their label out on hover/focus. On phones the items may shrink below 44 px width (8 in one row at 320 px). */
+     tabs slide their label out on hover/focus. On phones the items may shrink below 44 px width (9 in one row at 320 px). */
   .adm-nav {
     position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 20;
     display: flex; align-items: center; gap: 2px; margin-bottom: 18px; padding: 4px;
@@ -859,7 +859,7 @@
   .adm-item > svg { flex: none; }
   @media (hover: hover) { .adm-item:not([data-state="active"]):hover { background: var(--surface); } }
   .adm-vr { flex: none; width: 1px; height: 24px; margin-inline: 4px; background: var(--line); }
-  /* Phones: all eight items share the row equally (no side padding: max-sm utilities in nav.jsx), otherwise the bar is
+  /* Phones: all nine items share the row equally (no side padding: max-sm utilities in nav.jsx), otherwise the bar is
      wider than the screen */
   @media (max-width: 39.999rem) {
     .adm-tabs { flex: 6 1 0; }
@@ -889,7 +889,80 @@
   }
   /* Tab switch: the incoming tab rises in */
   #app > [data-slot="tabs"] > [data-slot="tabs-content"][data-state="active"] { animation: rise var(--t-slow) var(--ease) both; }
+
+  /* ---------- Admin command palette (tools/source/admin/palette.jsx, book-card.jsx) ----------
+     Phone: the screen-high swipe sheet (constant height, the list changes while typing). From 40rem a wide panel at a
+     fixed distance from the top that grows downwards (the field never jumps); the pane scrolls, the search bar sticks,
+     × stays. Items: icon tile | title + line | count | ↵ on the chosen one; to-dos show a dot in the level's color. */
+  .sheet.cmd { display: flex; flex-direction: column; overflow: hidden; height: 92dvh; }
+  .sheet.cmd > .cmd-pane { --px: 20px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; align-content: start; gap: 4px; padding-top: 0; }
+  @media (min-width: 40rem) {
+    .sheet.cmd { top: max(24px, 12vh); translate: -50% 0; width: min(42rem, calc(100% - 48px)); height: auto; max-height: min(42rem, calc(100dvh - max(24px, 12vh) - 24px)); }
+    .sheet.cmd > .cmd-pane { --px: 16px; padding: 0 16px; }
+  }
+  /* sticky at the pane's edge: the pane has no top padding (a sticky element stops at the padding, not above it) */
+  .cmd-bar { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--px)); padding: 14px 68px 8px var(--px); background: var(--glass-solid); }
+  @media (min-width: 40rem) { .cmd-bar { padding-top: 16px; } }
+  .cmd-list { display: grid; align-content: start; padding-bottom: 12px; }
+  .cmd-group { display: grid; padding-top: 4px; }
+  .cmd-gh { padding: 8px 12px 4px; color: var(--muted); font-size: var(--fs-s); font-weight: 500; }
+  .cmd-item { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 12px; border-radius: 12px; cursor: pointer; transition: background-color var(--t-fast); }
+  .cmd-item.on { background: var(--hl); }
+  :root[data-contrast="high"] .cmd-item.on { background: none; box-shadow: inset 0 0 0 2px var(--fg); }
+  .cmd-ic { display: grid; flex: none; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+  .cmd-ic svg { width: 18px; height: 18px; }
+  .cmd-ic[data-level]::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+  .cmd-ic[data-level="warn"] { --c: var(--red); }
+  .cmd-ic[data-level="mid"] { --c: var(--yellow); }
+  .cmd-ic[data-level="ok"] { --c: var(--blue); }
+  .cmd-t { overflow-wrap: anywhere; }
+  .cmd-s { overflow: hidden; color: var(--muted); font-size: var(--fs-s); white-space: nowrap; text-overflow: ellipsis; }
+  .cmd-n { flex: none; min-width: 28px; height: 24px; padding: 0 8px; border-radius: 999px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: var(--fs-s); font-weight: 500; line-height: 24px; text-align: center; }
+  .cmd-enter { flex: none; width: 16px; height: 16px; color: var(--muted); opacity: 0; }
+  .cmd-item.on .cmd-enter { opacity: 1; }
+  .cmd-empty { display: grid; justify-items: center; gap: 6px; padding: 40px 12px; text-align: center; animation: rise var(--t-base) var(--ease) both; }
+  .cmd-calm, .cmd-more { padding: 8px 12px; color: var(--muted); font-size: var(--fs-s); }
+  .cmd-calm + .cmd-list > .cmd-group:first-child { padding-top: 0; }
+  .cmd-foot {
+    position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 calc(-1 * var(--px));
+    padding: 10px var(--px) 12px; background: var(--glass-solid); box-shadow: 0 -1px 0 var(--line); color: var(--muted); font-size: var(--fs-s);
+  }
+  @media (pointer: coarse), (max-width: 39.999rem) { .cmd-enter, .cmd-foot { display: none; } }
+  /* Book card: facts as a two-column list */
+  .cmd-dl > div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 2px 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .cmd-dl > div:first-child { border-top: 0; }
+  .cmd-dl dt { padding-top: 1px; color: var(--muted); font-size: var(--fs-s); }
+  .cmd-dl dd { margin: 0; }
+
+  /* ---------- Admin inventory (tools/source/admin/inventory.jsx, tab "Pflege") ----------
+     Large sheet like the table viewer; scan field and answer left, progress ring right (from 40rem). The answer to a
+     scan flashes in (a new element per scan); camera picture with a frame to aim. */
+  .sheet.inv { height: 92dvh; }
+  @media (max-width: 39.999rem) and (pointer: coarse) { .sheet.inv > .pane { flex: 1 1 auto; } }
+  @media (min-width: 40rem) { .sheet.inv { width: min(52rem, calc(100% - 48px)); height: 88dvh; } }
+  .inv-pane { align-content: start; }
+  .inv-top { display: grid; gap: 16px; }
+  @media (min-width: 40rem) { .inv-top { grid-template-columns: minmax(0, 1fr) auto; align-items: start; } }
+  .inv-ring { display: grid; justify-items: center; gap: 6px; }
+  .inv-ring circle { fill: none; stroke-width: 10; }
+  .inv-ring .track { stroke: var(--line); }
+  .inv-ring .arc { stroke: var(--green); stroke-linecap: round; transition: stroke-dasharray var(--t-slow) var(--ease); }
+  :root[data-contrast="high"] .inv-ring .arc { stroke: var(--fg); }
+  .flag.info { border-left-color: var(--blue); }
+  .inv-last { animation: inv-flash var(--t-slow) var(--snap); }
+  .inv-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .inv-row:first-child { border-top: 0; }
+  .inv-cam { position: relative; overflow: hidden; aspect-ratio: 4 / 3; max-height: 42vh; border-radius: 14px; background: #000000; }
+  .inv-cam video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .inv-aim { position: absolute; inset: 30% 10%; border: 2px solid rgba(255, 255, 255, .9); border-radius: 12px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .28); pointer-events: none; }
+
+  /* Tab "Pflege": change of a list since the import of an earlier day – fewer (good) green, more red */
+  .cd-delta { flex: none; padding: 0 8px; border-radius: 999px; font-size: var(--fs-s); font-weight: 500; line-height: 22px; font-variant-numeric: tabular-nums; }
+  .cd-delta[data-dir="down"] { background: rgba(179, 206, 161, .5); background: color-mix(in srgb, var(--green) 50%, transparent); }
+  .cd-delta[data-dir="up"] { background: rgba(169, 58, 57, .16); background: color-mix(in srgb, var(--red) 16%, transparent); }
+  :root[data-contrast="high"] .cd-delta { background: none; box-shadow: inset 0 0 0 1px var(--fg); }
 }
+@keyframes inv-flash { from { opacity: .3; transform: scale(.985); } }
 
 /* Dark logo: after @layer so it wins against .logo .logo-d */
 @media (prefers-color-scheme: dark) {
@@ -1040,7 +1113,7 @@
 
   /* Tooltip: inverted label above the mark, value first */
   .st-tip {
-    position: absolute; z-index: 5; display: grid; gap: 2px; max-width: 11rem; padding: 6px 10px; border-radius: 10px;
+    position: absolute; z-index: 5; display: grid; gap: 2px; width: max-content; max-width: 11rem; padding: 6px 10px; border-radius: 10px;
     background: var(--fg); color: var(--bg); box-shadow: 0 6px 18px rgba(0, 0, 0, .18); pointer-events: none;
     transform: translate(-50%, calc(-100% - 8px)); overflow-wrap: anywhere; animation: fade var(--t-fast) var(--ease);
   }
@@ -1075,6 +1148,9 @@
   .st-seg { outline: none; animation: st-seg calc(var(--t-slow) * 2) var(--ease) backwards; }
   .st-seg:focus-visible { stroke-width: 28px; }
   .st-pop { animation: st-pop var(--t-slow) var(--ease) backwards; }
+  /* Lines (LineChart): 2.5 px, draw themselves from the left (pathLength 1); dots with a ring in the card color */
+  .st-line { stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1; animation: st-draw calc(var(--t-slow) * 3) var(--ease) backwards; }
+  .st-dot { stroke: var(--bg); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; transition: r var(--t-fast) var(--ease); }
 
   /* Donut: legend below the ring, beside it once the card is ≥ 30rem wide (no container queries = below);
      legend rows swatch | label (wraps, takes the free space) | count | share, numbers right-aligned */
@@ -1120,10 +1196,11 @@
 @keyframes st-grow-y { from { transform: scaleY(0); } }
 @keyframes st-seg { from { stroke-dasharray: 0 var(--c); } }
 @keyframes st-pop { from { opacity: 0; transform: scale(.96); } }
+@keyframes st-draw { from { stroke-dashoffset: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .st-grow-x, .st-grow-y, .st-seg, .st-pop, .st-tip { animation: none; }
+  .st-grow-x, .st-grow-y, .st-seg, .st-pop, .st-tip, .st-line { animation: none; }
 }
-:root[data-motion="reduce"] :is(.st-grow-x, .st-grow-y, .st-seg, .st-pop, .st-tip) { animation: none; }
+:root[data-motion="reduce"] :is(.st-grow-x, .st-grow-y, .st-seg, .st-pop, .st-tip, .st-line) { animation: none; }
 
 /* ---------- Admin table viewer (tools/source/admin/table-view.jsx, opened from tab "Pflege") ----------
    Large sheet: from 40rem nearly the whole window, on phones (touch) the screen-high swipe sheet of lib/swipe.js. The

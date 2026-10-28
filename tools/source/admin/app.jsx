@@ -1,5 +1,6 @@
 /* Admin app (gets encrypted, see tools/encrypt-admin.js): tabs catalog, covers, care, statistics, recommendations, info,
-   help page and lock in the navigation bar (nav.jsx).
+   search (command palette, palette.jsx: Ctrl+K / ⌘K, "/" outside a field), help page and lock in the navigation bar
+   (nav.jsx).
    React and the shared building blocks come from the page at runtime (src/admin/shared.js).
    After decryption the admin app registers itself as window.DSM_ADMIN, the lock then shows it. */
 import "./strings";
@@ -15,6 +16,9 @@ import { Recommendations, loadDraft } from "./recommendations";
 import { Info, loadInfo } from "./info";
 import { Help } from "./help";
 import { AdminNav, TABS } from "./nav";
+import { Palette } from "./palette";
+import { startInventory } from "./inventory";
+import { loadCare, recordCare } from "./care-history";
 import { registerRestore } from "./versions";
 
 // Discard old previews, so index.html#preview only shows what is created in this session
@@ -29,10 +33,16 @@ function loadExtra() {
 }
 const cleanCatIt = o => Object.fromEntries(Object.keys(o).sort().map(k => [k, String(o[k] || "").trim()]).filter(([, v]) => v));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const isField = el => !!el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable);
 
 function App({ lock }) {
   const [tab, setTab] = React.useState("catalog");
   const [help, setHelp] = React.useState(false);
+  const [helpAt, setHelpAt] = React.useState({}); // { section, item } the help opens on
+  const [cmd, setCmd] = React.useState(false);
+  const [invOpen, setInvOpen] = React.useState(false);
+  // Maintenance entries per import day (care-history.js)
+  const [careHist, setCareHist] = React.useState(loadCare);
   // Catalog: published list, imported database, maintenance analysis, cover coverage
   const [cur, setCur] = React.useState(window.DSM_LIBRARY);
   const [result, setResult] = React.useState(null);
@@ -45,6 +55,23 @@ function App({ lock }) {
   const [fixed, setFixed] = React.useState(null);
   const [draft, setDraft] = React.useState(loadDraft);
   const [info, setInfo] = React.useState(loadInfo);
+
+  // Command palette: Ctrl+K / ⌘K toggles it (not over another dialog), "/" opens it outside a field
+  React.useEffect(() => {
+    const other = () => !!document.querySelector('[role="dialog"]:not(#cmd)');
+    const onKey = e => {
+      if (e.key.toLowerCase() === "k" && (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+        if (other()) return;
+        e.preventDefault();
+        setCmd(o => !o);
+      } else if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey && !isField(e.target) && !document.querySelector('[role="dialog"]')) {
+        e.preventDefault();
+        setCmd(true);
+      }
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, []);
 
   React.useEffect(() => {
     if (!extra.changed) return undefined;
@@ -87,9 +114,10 @@ function App({ lock }) {
   // Restoring an earlier books.js (versions.js): it counts as published (only state setters inside, so registered once)
   React.useEffect(() => registerRestore("books.js", next => published(next)), []); // eslint-disable-line react-hooks/exhaustive-deps
   const B = {
-    cur, result, ins, updated, cov, survey, entry, history, books, base, extra, changed, fixed, setTab,
+    cur, result, ins, updated, cov, survey, entry, history, books, base, extra, changed, fixed, setTab, careHist,
     imported(r, inspection) {
       const s = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD, local date
+      if (inspection) setCareHist(recordCare(inspection, r.report));
       if (survey) survey.stop();
       setSurvey(null); setCov(null); setFixed(null); setUpdated(s); setResult(r); setIns(inspection || null);
       store.set("dsm-preview", JSON.stringify({ updated: s, count: r.books.length, books: r.books }));
@@ -126,16 +154,24 @@ function App({ lock }) {
     },
   };
 
+  const openHelp = (section, item) => { setHelpAt({ section, item }); setHelp(true); };
+  const inventory = () => { startInventory(); setTab("care"); setInvOpen(true); };
   return (
     <Tabs value={tab} onValueChange={setTab}>
-      <AdminNav tab={tab} lock={lock} onHelp={() => setHelp(true)} />
+      <AdminNav tab={tab} lock={lock} onHelp={() => openHelp()} onSearch={() => setCmd(true)} />
       <TabsContent value="catalog"><Catalog B={B} /></TabsContent>
       <TabsContent value="covers"><Covers B={B} /></TabsContent>
-      <TabsContent value="care"><Care B={B} ins={ins} report={result && result.report} cov={cov} onCatalog={() => setTab("catalog")} /></TabsContent>
+      <TabsContent value="care">
+        <Care B={B} ins={ins} report={result && result.report} cov={cov} onCatalog={() => setTab("catalog")} invOpen={invOpen} onInv={setInvOpen} />
+      </TabsContent>
       <TabsContent value="stats"><Stats B={B} /></TabsContent>
       <TabsContent value="recs"><Recommendations draft={draft} setDraft={setDraft} catalog={books} /></TabsContent>
       <TabsContent value="info"><Info info={info} setInfo={setInfo} /></TabsContent>
-      <Help open={help} onOpenChange={setHelp} onTab={v => { setHelp(false); setTab(v); }} tabs={TABS} />
+      <Help open={help} onOpenChange={setHelp} onTab={v => { setHelp(false); setTab(v); }} tabs={TABS} section={helpAt.section} item={helpAt.item} />
+      <Palette
+        open={cmd} onOpenChange={setCmd} B={B} draft={draft} setDraft={setDraft} info={info} ins={ins} report={result && result.report} cov={cov}
+        onTab={setTab} onHelp={openHelp} onInventory={inventory} lock={lock}
+      />
     </Tabs>
   );
 }

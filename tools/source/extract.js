@@ -237,7 +237,8 @@
    * Maintenance analysis for the admin page (tab "Pflege"): every copy that the public list is built from (same
    * rules as extract, but not merged) and what should be fixed in WinBook. Never published, only shown and
    * exported as CSV. Returns { records, checks: [{ key, rows }], types, latest }:
-   *   records: one per copy { id, t, a, p, y, c, l, sig, z } (id = WinBook number, z = accession date YYYY-MM-DD)
+   *   records: one per copy { id, t, a, p, y, c, l, sig, z, i } (id = WinBook number, z = accession date YYYY-MM-DD,
+   *            i = valid ISBNs as ISBN-13: the inventory finds a scanned EAN barcode by them)
    *   rows: { r: record, v? } for a copy (v = the value to fix) or { v, n } for a master data entry (n = copies)
    * Category and location names that contain a reader name are never shown, only their number (#id).
    */
@@ -276,6 +277,8 @@
         c: safe(category, r.bbereich, namedCat), l: safe(location, r.bstandort, namedLoc),
         sig: clean(r.bsignatur), z: /^\d{4}-\d{2}-\d{2}/.test(zugang) ? zugang.slice(0, 10) : "",
       };
+      const isbns = [r.bisbn13, r.bisbn].map(x => (x == null ? "" : String(x).trim())).filter(Boolean);
+      rec.i = isbns.map(isbn13).filter((x, i, arr) => x && arr.indexOf(x) === i);
       records.push(rec);
       if (rec.z > latest) latest = rec.z;
       ids.forEach(id => count(refs.a, id));
@@ -295,7 +298,6 @@
         const n = author.get(id);
         if (!n.includes(",") && n.split(" ").length >= 2) count(authorFormat, n);
       }
-      const isbns = [r.bisbn13, r.bisbn].map(x => (x == null ? "" : String(x).trim())).filter(Boolean);
       if (!isbns.length) add("isbnNone", row());
       for (const x of isbns) {
         const i = isbn13(x);

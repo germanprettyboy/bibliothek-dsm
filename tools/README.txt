@@ -6,8 +6,8 @@ build.mjs           Builds the website from ../src (React, Tailwind CSS, shadcn/
                     Run in the project folder: npm run build   (once beforehand: npm install)
 
 source/extract.js   Plaintext: reads the WinBook database, removes personal data
-source/admin/       Plaintext: admin user interface (React: catalog, covers, maintenance + exports + table + corrections,
-                    statistics, recommendations, info, help, local versions)
+source/admin/       Plaintext: admin user interface (React: catalog, covers, maintenance + exports + table + corrections +
+                    inventory + progress, statistics, recommendations, info, help, command palette with book card, local versions)
 encrypt-admin.js    Builds source/admin/ and encrypts it together with extract.js
                     into ../website/assets/admin.enc.js; also writes ../website/save-access.php
                     (access for save.php, derived from the password)

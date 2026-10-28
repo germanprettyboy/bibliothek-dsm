@@ -264,6 +264,81 @@ export function Columns({ bins, color, marker, height = 200, aria }) {
   );
 }
 
+/* Lines over points in time (imports): points = [{ key, label (axis), name (tooltip) }], series = [{ key, label, color,
+   values: [number | null] }] (null = no value at that point, the line has a gap). Evenly spaced points (one per import,
+   not by date). The value axis need not start at 0 (a collection of 4,500 books growing by 30 would be a flat line):
+   clean steps around the values, the lowest step under the smallest value. Every point is a focusable band with one
+   tooltip for all series; lines draw themselves from the left, dots pop in. */
+function span(lo, hi, n = 4) {
+  if (!(hi > lo)) { const pad = Math.max(1, Math.abs(hi) * 0.1); lo -= pad; hi += pad; }
+  const raw = (hi - lo) / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+  const a = Math.max(0, Math.floor(lo / step) * step), out = [];
+  for (let v = a; v < hi + step * 0.999; v += step) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+export function LineChart({ points, series, height = 210, aria, zero = false }) {
+  const { nf } = useLanguage();
+  const [wref, w] = useWidth();
+  const tip = useTip();
+  const all = series.flatMap(s => s.values.filter(v => v != null));
+  const yt = span(zero ? 0 : Math.min(...all), Math.max(...all));
+  const lo = yt[0], hi = yt[yt.length - 1];
+  const left = 8 + 8 * String(axisNum(nf, hi)).length, right = 12, upper = 16, lower = 26;
+  const pw = Math.max(0, w - left - right), ph = height - upper - lower, base = upper + ph;
+  const n = points.length, band = n > 1 ? pw / (n - 1) : pw;
+  const x = i => left + (n > 1 ? band * i : pw / 2);
+  const y = v => base - ((v - lo) / (hi - lo || 1)) * ph;
+  const labelW = Math.max(...points.map(p => String(p.label).length)) * 8 + 12;
+  const every = LABEL_STEPS.find(st => st >= labelW / Math.max(1, band)) || Math.ceil(labelW / Math.max(1, band));
+  const path = s => s.values.reduce((d, v, i) => (v == null ? d : d + (i && s.values[i - 1] != null ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1)), "");
+  return (
+    <div ref={tip.ref} className="relative">
+      <div ref={wref} className="w-full">
+        {w > 0 ? (
+          <svg className="st-svg text-s" width={w} height={height} viewBox={`0 0 ${w} ${height}`} role="group" aria-label={aria}>
+            {yt.map(v => (
+              <g key={v}>
+                <line x1={left} x2={w - right} y1={y(v)} y2={y(v)} className="st-grid-line" />
+                <text x={left - 6} y={y(v)} dy="0.32em" textAnchor="end" className="st-axis">{axisNum(nf, v)}</text>
+              </g>
+            ))}
+            {points.map((p, i) => {
+              // every n-th label, and the newest one when it keeps its distance from the label before it; the first and
+              // the last label lean inwards (they stand at the plot's edges)
+              const shown = i % every === 0 || (i === n - 1 && (i % every) * band >= labelW);
+              if (!shown) return null;
+              const edge = n > 1 && i === 0 ? "start" : n > 1 && i === n - 1 ? "end" : "middle";
+              return (
+                <text key={p.key} x={x(i) + (edge === "start" ? -6 : edge === "end" ? 6 : 0)} y={base + 18} textAnchor={edge} className="st-axis" data-tick={p.label}>{p.label}</text>
+              );
+            })}
+            {tip.active != null ? <line x1={x(tip.active)} x2={x(tip.active)} y1={upper} y2={base} className="st-grid-line" /> : null}
+            {series.map(s => <path key={s.key} d={path(s)} pathLength="1" fill="none" stroke={s.color} className="st-line" data-series={s.key} />)}
+            {series.map(s => s.values.map((v, i) => (v == null ? null : (
+              <circle key={s.key + i} cx={x(i)} cy={y(v)} r={tip.active === i ? 4.5 : 3} fill={s.color} className="st-dot st-pop" style={{ animationDelay: delay(i) }} />
+            ))))}
+            {points.map((p, i) => {
+              const here = series.filter(s => s.values[i] != null);
+              const x0 = n > 1 ? Math.max(left, x(i) - band / 2) : left, x1 = n > 1 ? Math.min(w - right, x(i) + band / 2) : left + pw;
+              const top = Math.min(base, ...here.map(s => y(s.values[i])));
+              return (
+                <rect
+                  key={p.key} x={x0} y={upper} width={x1 - x0} height={ph} tabIndex={0} role="img" className="st-hit" data-point={p.key}
+                  aria-label={p.name + ": " + here.map(s => `${s.label} ${nf(s.values[i])}`).join(", ")}
+                  {...tip.on([[null, p.name]].concat(here.map(s => [nf(s.values[i]), s.label, s.color])), i, { x: x(i), y: top - 6 })}
+                />
+              );
+            })}
+            <line x1={left} x2={w - right} y1={base} y2={base} className="st-base" />
+          </svg>
+        ) : <div style={{ height: height + "px" }} />}
+      </div>
+      {tip.node}
+    </div>
+  );
+}
+
 /* Donut (part of a whole, ≤ 6 parts): parts = [{ key, label, value, color }], 2 px gaps between segments;
    center = { value, label } in HTML; the list is the legend with values and shares: beside the ring when the card
    has room (container query on .st-donut-box), below it otherwise; rows = grid swatch | label | count | share. */

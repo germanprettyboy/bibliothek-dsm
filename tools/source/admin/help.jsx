@@ -4,7 +4,8 @@
    below: search and horizontally scrolling section chips stick above the content (phone: swipe sheet).
    Search filters articles, questions and glossary entries across all sections (case/accent-insensitive) and marks
    the hits. Props: open, onOpenChange, onTab(value) = close and switch to a tab, tabs (TABS of nav.jsx),
-   section (optional: open on this section). From 40rem a round button left of × switches to full screen (class `full`
+   section (optional: open on this section), item (optional, with section: that article open and in view – the
+   command palette's help hits). From 40rem a round button left of × switches to full screen (class `full`
    on the sheet; kept while the page is open). Test hooks: #help, #help-q, #help-count, #help-empty, #help-full
    ([data-fullscreen], aria-pressed), [data-help-section], [data-help-nav], [data-help-item], [data-help-tab]. */
 import "./strings-help";
@@ -68,8 +69,9 @@ function filter(idx, terms) {
   });
 }
 
-// Marks the search terms in a text (positions found on the normalized text, mapped back to the original)
-function mark(text, terms) {
+// Marks the search terms in a text (positions found on the normalized text, mapped back to the original; also the
+// command palette)
+export function mark(text, terms) {
   if (!terms.length) return text;
   let n = "";
   const at = [];
@@ -241,7 +243,7 @@ function Section({ r, terms, searching, open, setOpen, tabs, onTab }) {
   );
 }
 
-export function Help({ open, onOpenChange, onTab, tabs = [], section }) {
+export function Help({ open, onOpenChange, onTab, tabs = [], section, item }) {
   const { t, lang } = useLanguage();
   const sections = HELP[lang] || HELP.de;
   const idx = React.useMemo(() => index(sections), [sections]);
@@ -252,13 +254,21 @@ export function Help({ open, onOpenChange, onTab, tabs = [], section }) {
   const search = React.useRef(null), main = React.useRef(null), side = React.useRef(null), nav = React.useRef(null);
   const swipeRef = useSwipe(".scrim.swipe", () => onOpenChange(false));
 
-  // Opening: empty search, optionally straight onto a section
+  // Opening: empty search, optionally straight onto a section (and one of its articles, opened and scrolled into view
+  // once the sheet stands)
   React.useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     setQ("");
-    setOpenItems([]);
-    if (section && IDS.includes(section)) setActive(section);
-  }, [open, section]);
+    const sec = section && IDS.includes(section) ? section : null;
+    if (sec) setActive(sec);
+    setOpenItems(sec && item ? [sec + ":" + item] : []);
+    if (!sec || !item) return undefined;
+    const id = setTimeout(() => {
+      const el = document.querySelector(`[data-help-section="${sec}"] [data-help-item="${item}"]`);
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: "start" });
+    }, 260);
+    return () => clearTimeout(id);
+  }, [open, section, item]);
 
   const terms = React.useMemo(() => norm(q).split(/\s+/).filter(Boolean), [q]);
   const searching = terms.length > 0;

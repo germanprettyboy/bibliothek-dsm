@@ -18,8 +18,9 @@ export const HELP = {
           list: [
             "[[Bestand]]: WinBook-Datei einlesen, Bericht prüfen, italienische Kategorienamen ergänzen, veröffentlichen.",
             "[[Cover]]: Cover-Abdeckung prüfen und falsche Cover ausblenden.",
-            "[[Pflege]]: Listen, was in WinBook korrigiert werden sollte, Inventurlisten und automatische Korrekturen. Die Listen werden nicht veröffentlicht.",
-            "[[Statistik]]: Diagramme zum Bestand.",
+            "[[Pflege]]: Listen, was in WinBook korrigiert werden sollte, die Inventur mit dem Barcode-Scanner, Inventurlisten und automatische Korrekturen. Die Listen werden nicht veröffentlicht.",
+            "[[Statistik]]: Diagramme zum Bestand, auch ob er von Einlesen zu Einlesen sauberer wird.",
+            "[[Suchen]] ({{Strg}} + {{K}}, am Mac {{⌘}} + {{K}}): ein Feld für Bücher, Tabs, Aktionen und Hilfe. Ohne Suchbegriff zeigt es, was gerade ansteht.",
             "[[Empfehlungen]]: Buchtipps für fünf Lesergruppen.",
             "[[Info]]: Öffnungszeiten, Ferien, Hinweis, Kontakt und Banner.",
           ],
@@ -114,10 +115,46 @@ export const HELP = {
                 "Datentabelle: zeigt die Einträge als Tabelle zum Durchsehen, Sortieren und Filtern – ohne etwas herunterzuladen.",
                 "Drucken: [[Fehlerliste drucken]] druckt die ausgewählten Listen zum Abarbeiten. Die [[Standortliste für die Inventur]] druckt ein Regal mit der Spalte „Vorhanden“ zum Abhaken.",
                 "Automatische Korrekturen: vereinheitlichen nur sichere Fälle, etwa überzählige Leerzeichen oder dieselbe Angabe in mehreren Schreibweisen. Sie wirken nur auf die öffentliche Liste und gehen mit books.js online; die WinBook-Datei wird nie verändert.",
+                "Fortschritt: Neben jeder Liste steht, wie sich ihre Zahl seit dem Einlesen an einem früheren Tag verändert hat – grün heißt weniger Einträge. Der Tab „Statistik“ zeigt den Verlauf über alle Einlesetage.",
               ],
             },
             { tip: "Nicht alles ist ein Fehler: Bei Sammelbänden fehlt der Autor zu Recht, bei Pseudonymen passt „Nachname, Vorname“ nicht. Die Hinweise unter jeder Liste sagen, wann es so richtig ist." },
             { tab: "care" },
+          ],
+        },
+        {
+          id: "inventory",
+          title: "Inventur mit dem Barcode-Scanner",
+          blocks: [
+            "Die Inventur prüft Regal für Regal, welche Exemplare wirklich da sind. Sie braucht eine eingelesene WinBook-Datei und merkt sich den Stand in diesem Browser – auch über mehrere Tage und neue Einlesungen hinweg.",
+            {
+              steps: [
+                { t: "Im Tab „Pflege“ auf [[Inventur starten]] klicken (später: [[Inventur fortsetzen]]).", tab: "care" },
+                "Oben den [[Standort]] wählen, also das Regal, vor dem Sie stehen. „Alle Standorte“ zählt alles zusammen.",
+                "Die Bücher scannen: Ein USB-Barcode-Scanner tippt den Code wie eine Tastatur und schließt mit {{Enter}} ab. Ohne Scanner die ISBN, die WinBook-Nummer oder die Signatur eintippen und [[Erfassen]] klicken. Am Android-Handy liest [[Kamera]] die Strichcodes.",
+                "Jeder Scan antwortet sofort: „Gefunden“ (grün), „Gehört an einen anderen Standort“ mit dem richtigen Regal (gelb), „Schon erfasst“ (blau) oder „Kein Exemplar mit diesem Code“ (rot).",
+                "Unter [[Fehlend]] stehen die Bücher, die noch nicht gescannt sind. Ein Buch ohne lesbaren Strichcode mit [[Gefunden]] von Hand abhaken.",
+                "Am Ende [[Ergebnis herunterladen]] (Excel mit Fehlenden, Verstellten und unbekannten Codes) oder [[Fehlende drucken]].",
+              ],
+            },
+            { tip: "Fehlende Bücher sind oft nur ausgeliehen: Den Ausleihstatus liest die Verwaltung absichtlich nie. Die Liste der Fehlenden deshalb mit WinBook abgleichen, bevor etwas als verloren gilt." },
+            { tip: "[[Neu beginnen]] (zweimal innerhalb von 4 Sekunden klicken) verwirft den Stand und beginnt eine neue Inventur." },
+            { tab: "care" },
+          ],
+        },
+        {
+          id: "search",
+          title: "Suchen und springen",
+          blocks: [
+            "Das Suchfeld erreichen Sie von überall: über die Lupe in der Leiste oben, mit {{Strg}} + {{K}} (am Mac {{⌘}} + {{K}}) oder mit {{/}}, wenn gerade kein Feld aktiv ist.",
+            {
+              list: [
+                "Ohne Suchbegriff: [[Anstehend]] – was jetzt zu tun ist, etwa ein fälliges Einlesen, empfohlene Bücher, die nicht mehr im Bestand sind, oder eine abgelaufene Ankündigung. Ein Klick führt in den passenden Tab.",
+                "Mit Suchbegriff: passende Tabs, Aktionen, Hilfeartikel und Bücher. Eine ISBN – mit oder ohne Bindestriche – findet ihr Buch direkt.",
+                "Ein Buch öffnet seine Karte: Cover, alle Angaben, italienischer Kategoriename, nach dem Einlesen die Exemplare mit Nummer und Signatur und ihre Pflegeeinträge. Von dort lässt sich das Buch empfehlen und sein Cover ausblenden.",
+                "{{↑}} und {{↓}} wählen, {{Enter}} öffnet, {{Esc}} geht zurück und schließt.",
+              ],
+            },
           ],
         },
         {
@@ -450,7 +487,12 @@ export const HELP = {
         {
           id: "stats",
           title: "Was zeigt der Tab „Statistik“?",
-          blocks: ["Diagramme zum aktuellen Bestand – aus der eingelesenen Datei oder, ohne Einlesen, aus der veröffentlichten Liste. Die Statistik dient nur der Übersicht und wird nicht veröffentlicht."],
+          blocks: ["Diagramme zum aktuellen Bestand – aus der eingelesenen Datei oder, ohne Einlesen, aus der veröffentlichten Liste. Nach Einlesungen an mindestens zwei Tagen dazu der Verlauf der offenen Pflegeeinträge. Die Statistik dient nur der Übersicht und wird nicht veröffentlicht."],
+        },
+        {
+          id: "scanner",
+          title: "Welcher Barcode-Scanner eignet sich für die Inventur?",
+          blocks: ["Jeder USB- oder Bluetooth-Scanner, der wie eine Tastatur tippt und den Code mit Enter abschließt – so sind fast alle eingestellt. Die Kamera liest Strichcodes in Chrome auf Android-Handys; auf dem iPhone und an Computern ohne diese Funktion den Scanner oder die Tastatur nutzen."],
         },
         {
           id: "mail",
@@ -512,6 +554,8 @@ export const HELP = {
             ["Runde", "Eine Auswahl von Empfehlungen. Frühere Runden sehen Besucher unter „Bisherige Empfehlungen“."],
             ["Vorschau", "Die Bücherliste mit noch nicht veröffentlichten Änderungen, nur auf diesem Computer."],
             ["CSV / Excel", "Tabellendateien der Pflegelisten zum Öffnen, Sortieren und Abhaken in Excel."],
+            ["Inventur", "Abgleich, welche Exemplare wirklich im Regal stehen. Fehlend, verstellt und unbekannt werden beim Scannen sichtbar."],
+            ["Anstehend", "Die Liste im Suchfeld ohne Suchbegriff: was in der Verwaltung gerade zu tun ist."],
           ],
         },
       ],
@@ -526,6 +570,7 @@ export const HELP = {
         { h: "Tastenkürzel" },
         {
           list: [
+            "{{Strg}} + {{K}} (am Mac {{⌘}} + {{K}}) öffnet das Suchfeld, außerhalb von Feldern auch {{/}}.",
             "{{Esc}} schließt die Hilfe und andere Fenster.",
             "{{/}} springt in die Suche dieser Hilfe.",
             "{{Tab}} wechselt zwischen Knöpfen und Feldern, {{Enter}} oder die {{Leertaste}} löst sie aus.",
@@ -557,8 +602,9 @@ export const HELP = {
           list: [
             "[[Catalogo]]: leggere il file WinBook, controllare il resoconto, aggiungere i nomi italiani delle categorie, pubblicare.",
             "[[Copertine]]: verificare la copertura delle copertine e nascondere quelle sbagliate.",
-            "[[Cura]]: liste di ciò che andrebbe corretto in WinBook, elenchi per l'inventario e correzioni automatiche. Le liste non vengono pubblicate.",
-            "[[Statistiche]]: grafici sul catalogo.",
+            "[[Cura]]: liste di ciò che andrebbe corretto in WinBook, l'inventario con il lettore di codici a barre, elenchi per l'inventario e correzioni automatiche. Le liste non vengono pubblicate.",
+            "[[Statistiche]]: grafici sul catalogo, anche se diventa più ordinato da una lettura all'altra.",
+            "[[Cerca]] ({{Ctrl}} + {{K}}, sul Mac {{⌘}} + {{K}}): un campo per libri, schede, azioni e aiuto. Senza termine di ricerca mostra che cosa c'è da fare.",
             "[[Consigli]]: suggerimenti di lettura per cinque gruppi di lettori.",
             "[[Info]]: orari di apertura, vacanze, avviso, contatti e banner.",
           ],
@@ -653,10 +699,46 @@ export const HELP = {
                 "Tabella dati: mostra le voci in una tabella da consultare, ordinare e filtrare – senza scaricare nulla.",
                 "Stampa: l'elenco degli errori si stampa con le liste selezionate, da elaborare con calma. L'[[Elenco per collocazione (inventario)]] stampa uno scaffale con la colonna «Presente» da spuntare.",
                 "Correzioni automatiche: uniformano solo casi sicuri, per esempio spazi superflui o lo stesso dato scritto in modi diversi. Valgono solo per l'elenco pubblico e vanno online con books.js; il file WinBook non viene mai modificato.",
+                "Progressi: accanto a ogni lista si vede come è cambiato il suo numero rispetto alla lettura di un giorno precedente – verde significa meno voci. La scheda «Statistiche» mostra l'andamento su tutti i giorni di lettura.",
               ],
             },
             { tip: "Non tutto è un errore: nelle raccolte l'autore manca a ragione, per gli pseudonimi «Cognome, Nome» non si applica. Le note sotto ogni lista spiegano quando va bene così." },
             { tab: "care" },
+          ],
+        },
+        {
+          id: "inventory",
+          title: "Inventario con il lettore di codici a barre",
+          blocks: [
+            "L'inventario verifica scaffale per scaffale quali esemplari ci sono davvero. Richiede un file WinBook letto e ricorda lo stato in questo browser – anche per più giorni e dopo nuove letture.",
+            {
+              steps: [
+                { t: "Nella scheda «Cura» cliccare [[Avvia inventario]] (in seguito: [[Continua inventario]]).", tab: "care" },
+                "In alto scegliere la [[Collocazione]], cioè lo scaffale davanti a cui si trova. «Tutte le collocazioni» conta tutto insieme.",
+                "Scansionare i libri: un lettore USB digita il codice come una tastiera e termina con {{Invio}}. Senza lettore digitare ISBN, numero WinBook o segnatura e cliccare [[Registra]]. Sugli smartphone Android [[Fotocamera]] legge i codici a barre.",
+                "Ogni scansione risponde subito: «Trovato» (verde), «Appartiene a un'altra collocazione» con lo scaffale giusto (giallo), «Già registrato» (blu) o «Nessun esemplare con questo codice» (rosso).",
+                "In [[Mancanti]] ci sono i libri non ancora scansionati. Un libro senza codice leggibile si spunta a mano con [[Trovato]].",
+                "Alla fine [[Scarica il risultato]] (Excel con mancanti, fuori posto e codici sconosciuti) oppure [[Stampa i mancanti]].",
+              ],
+            },
+            { tip: "I libri mancanti spesso sono solo in prestito: la gestione non legge mai lo stato dei prestiti, di proposito. Confrontare quindi la lista dei mancanti con WinBook prima di considerare perso un libro." },
+            { tip: "[[Ricomincia]] (due clic entro 4 secondi) scarta lo stato e avvia un nuovo inventario." },
+            { tab: "care" },
+          ],
+        },
+        {
+          id: "search",
+          title: "Cercare e saltare",
+          blocks: [
+            "Il campo di ricerca si raggiunge da ovunque: con la lente nella barra in alto, con {{Ctrl}} + {{K}} (sul Mac {{⌘}} + {{K}}) oppure con {{/}} quando nessun campo è attivo.",
+            {
+              list: [
+                "Senza termine di ricerca: [[Da fare]] – che cosa c'è da fare ora, per esempio una lettura scaduta, libri consigliati non più nel patrimonio o un annuncio scaduto. Un clic porta alla scheda giusta.",
+                "Con un termine: schede, azioni, articoli dell'aiuto e libri. Un ISBN – con o senza trattini – trova direttamente il suo libro.",
+                "Un libro apre la sua scheda: copertina, tutti i dati, nome italiano della categoria, dopo la lettura gli esemplari con numero e segnatura e le loro voci di manutenzione. Da lì si può consigliare il libro e nasconderne la copertina.",
+                "{{↑}} e {{↓}} scelgono, {{Invio}} apre, {{Esc}} torna indietro e chiude.",
+              ],
+            },
           ],
         },
         {
@@ -989,7 +1071,12 @@ export const HELP = {
         {
           id: "stats",
           title: "Che cosa mostra la scheda «Statistiche»?",
-          blocks: ["Grafici sul catalogo attuale – dal file letto oppure, senza lettura, dall'elenco pubblicato. Le statistiche servono solo come panoramica e non vengono pubblicate."],
+          blocks: ["Grafici sul catalogo attuale – dal file letto oppure, senza lettura, dall'elenco pubblicato. Dopo letture in almeno due giorni anche l'andamento delle voci di manutenzione aperte. Le statistiche servono solo come panoramica e non vengono pubblicate."],
+        },
+        {
+          id: "scanner",
+          title: "Quale lettore di codici a barre va bene per l'inventario?",
+          blocks: ["Qualsiasi lettore USB o Bluetooth che digita come una tastiera e termina il codice con Invio – quasi tutti sono impostati così. La fotocamera legge i codici a barre in Chrome sugli smartphone Android; su iPhone e sui computer senza questa funzione usare il lettore o la tastiera."],
         },
         {
           id: "mail",
@@ -1051,6 +1138,8 @@ export const HELP = {
             ["Turno", "Una selezione di consigli. I turni precedenti sono visibili ai visitatori in «Consigli precedenti»."],
             ["Anteprima", "L'elenco dei libri con modifiche non ancora pubblicate, solo su questo computer."],
             ["CSV / Excel", "File di tabella delle liste di manutenzione da aprire, ordinare e spuntare in Excel."],
+            ["Inventario", "Verifica di quali esemplari stanno davvero sullo scaffale. Mancanti, fuori posto e sconosciuti emergono durante la scansione."],
+            ["Da fare", "L'elenco nel campo di ricerca senza termine: che cosa c'è da fare ora nella gestione."],
           ],
         },
       ],
@@ -1065,6 +1154,7 @@ export const HELP = {
         { h: "Scorciatoie da tastiera" },
         {
           list: [
+            "{{Ctrl}} + {{K}} (sul Mac {{⌘}} + {{K}}) apre il campo di ricerca, fuori dai campi anche {{/}}.",
             "{{Esc}} chiude l'aiuto e le altre finestre.",
             "{{/}} porta alla ricerca di questo aiuto.",
             "{{Tab}} passa da un pulsante o campo all'altro, {{Invio}} o la {{barra spaziatrice}} li attiva.",

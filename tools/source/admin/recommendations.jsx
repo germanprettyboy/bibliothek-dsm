@@ -25,7 +25,9 @@ export const GROUPS = ["middle", "upper", "adult-fiction", "adult-nonfiction", "
 const DRAFT = "dsm-recs-draft";
 const normE = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
 const keyB = b => normE(b.t) + "|" + normE((b.a && b.a[0]) || "");
+export const recKey = keyB;
 const clone = o => JSON.parse(JSON.stringify(o));
+const saveDraft = d => { const { changed, ...rest } = d; store.set(DRAFT, JSON.stringify(rest)); }; // eslint-disable-line no-unused-vars
 
 function fromPublished() {
   const d = clone(window.DSM_RECOMMENDATIONS || { groups: {} });
@@ -42,6 +44,17 @@ export function loadDraft() {
   // drafts from before the switch: published state
   if (d.off === undefined) d.off = !!(window.DSM_RECOMMENDATIONS && window.DSM_RECOMMENDATIONS.off);
   return d;
+}
+
+// Add a book to a group from outside the tab (book card of the command palette): the same entry as "Hinzufügen", saved
+// at once (the tab's own save only runs while the tab is shown). false = group full or the book already in it.
+export function recommend(draft, setDraft, g, b) {
+  const k = keyB(b), list = draft.groups[g] || [];
+  if (list.length >= 4 || list.some(r => r.k === k)) return false;
+  const next = { ...draft, groups: { ...draft.groups, [g]: list.concat({ k, t: b.t, a: (b.a || []).join(", "), de: "", it: "" }) }, changed: true };
+  saveDraft(next);
+  setDraft(next);
+  return true;
 }
 
 // Archive as edited in the draft: trimmed texts, empty topic dropped
@@ -89,7 +102,7 @@ export function Recommendations({ draft, setDraft, catalog }) {
   const change = fn => setDraft(d => { const n = { ...d, topic: { ...d.topic }, groups: { ...d.groups, [g]: d.groups[g].map(r => ({ ...r })) } }; fn(n); n.changed = true; return n; });
   React.useEffect(() => {
     if (!draft.changed) return undefined;
-    const id = setTimeout(() => { const { changed, ...d } = draft; store.set(DRAFT, JSON.stringify(d)); }, 300); // eslint-disable-line no-unused-vars
+    const id = setTimeout(() => saveDraft(draft), 300);
     return () => clearTimeout(id);
   }, [draft]);
   // After adding: edit the text of the new book right away

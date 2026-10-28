@@ -236,7 +236,9 @@ describe("inspect: maintenance lists (admin page only)", () => {
   test("one record per copy that the public list is built from (books and graphic novels, not withdrawn)", () => {
     assert.deepEqual(r.records.map(x => x.id).sort((a, b) => a - b), [1, 2, 3, 4, 8, 9, 10, 11, 13, 14]);
     assert.deepEqual(r.records.find(x => x.id === 1), { id: 1, t: "Krabat", a: "Otfried Preußler", p: "Thienemann", y: "1981",
-      c: "Jugendbuch", l: "Jugendbücher 6 Brett 5", sig: "JB 6 Pre", z: "2025-09-01" });
+      c: "Jugendbuch", l: "Jugendbücher 6 Brett 5", sig: "JB 6 Pre", z: "2025-09-01", i: ["9783522202107"] });
+    assert.deepEqual(r.records.find(x => x.id === 11).i, ["9780804429573"], "ISBN-10 as ISBN-13");
+    assert.deepEqual(r.records.find(x => x.id === 4).i, [], "an invalid ISBN is no ISBN");
     assert.equal(r.latest, "2026-03-15");
     assert.deepEqual(r.types, [{ name: "Buch", n: 9, book: true }, { name: "DVD", n: 1, book: false },
       { name: "Graphic Novel", n: 1, book: true }, { name: "Hörbuch", n: 1, book: false }]);
