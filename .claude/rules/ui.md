@@ -26,7 +26,8 @@ paths:
 - Color switch (`lib/appearance.js`): every change freezes transitions; View Transition only outside WebKit (UA check). Never switch
   `meta[name=theme-color]` by script.
 - Targets incl. the school PC (Windows 7: Chrome 109 / Firefox ESR 115; `@supports` fallbacks, es2020) and iPhone Safari – both
-  untested on real devices. Print without `:has()` (Firefox ESR 115).
+  untested on real devices. Print without `:has()` (Firefox ESR 115). No regex lookbehind `(?<=`/`(?<!` (Safari < 16.4 then
+  can't parse the whole script; rules.test checks).
 - UI variants for decisions: `docs/entwuerfe/` (see docs/sitemap.md).
 
 ## Dialogs
