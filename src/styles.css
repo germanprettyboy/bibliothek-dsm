@@ -958,6 +958,7 @@
 .pdoc [data-c="green"], .pd-dot[data-c="green"] { --pd-c: var(--green); }
 .pdoc [data-c="orange"], .pd-dot[data-c="orange"] { --pd-c: var(--orange); }
 .pdoc [data-c="red"], .pd-dot[data-c="red"] { --pd-c: var(--red); }
+.pdoc [data-c="yellow"], .pd-dot[data-c="yellow"] { --pd-c: var(--yellow); }
 .pd-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; border: 4px solid var(--pd-c, var(--line)); }
 /* Header like the website: logo | Bibliothek · Fehlerliste, date and count on the right, a mauve line below */
 .pd-hd { display: flex; align-items: center; gap: 14px; padding-bottom: 12px; margin-bottom: 6px; border-bottom: 2px solid var(--mauve); }
@@ -1185,6 +1186,7 @@
   #table-view [data-g="title"], .tv-chipdot[data-g="title"] { --tv-c: var(--yellow); }
   #table-view [data-g="copies"], .tv-chipdot[data-g="copies"] { --tv-c: var(--orange); }
   #table-view [data-g="names"], .tv-chipdot[data-g="names"] { --tv-c: var(--red); }
+  #table-view [data-g="place"], .tv-chipdot[data-g="place"] { --tv-c: var(--mauve); }
   /* Phone: one compact card per row (title, author, meta line, chips) */
   .tv-card {
     position: absolute; top: 0; left: 16px; right: 16px; display: flex; flex-direction: column; gap: 2px; padding: 10px 14px;

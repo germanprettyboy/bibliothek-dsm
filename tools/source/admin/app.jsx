@@ -1,4 +1,4 @@
-/* Admin app (gets encrypted, see tools/encrypt-admin.js): tabs catalog, covers, care, statistics, recommendations, info,
+/* Admin app (gets encrypted, see tools/encrypt-admin.js): tabs catalog, care, shelves, covers, statistics, recommendations, info,
    help page and lock in the navigation bar (nav.jsx).
    React and the shared building blocks come from the page at runtime (src/admin/shared.js).
    After decryption the admin app registers itself as window.DSM_ADMIN, the lock then shows it. */
@@ -16,6 +16,8 @@ import { Info, loadInfo } from "./info";
 import { Help } from "./help";
 import { AdminNav, TABS } from "./nav";
 import { registerRestore } from "./versions";
+import { attach } from "./shelves-core";
+import { Shelves } from "./shelves";
 
 // Discard old previews, so index.html#preview only shows what is created in this session
 ["dsm-preview", "dsm-preview-recs", "dsm-preview-info"].forEach(k => store.del(k));
@@ -91,7 +93,7 @@ function App({ lock }) {
     imported(r, inspection) {
       const s = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD, local date
       if (survey) survey.stop();
-      setSurvey(null); setCov(null); setFixed(null); setUpdated(s); setResult(r); setIns(inspection || null);
+      setSurvey(null); setCov(null); setFixed(null); setUpdated(s); setResult(r); setIns(inspection ? attach(inspection) : null);
       store.set("dsm-preview", JSON.stringify({ updated: s, count: r.books.length, books: r.books }));
     },
     check() {
@@ -130,6 +132,7 @@ function App({ lock }) {
     <Tabs value={tab} onValueChange={setTab}>
       <AdminNav tab={tab} lock={lock} onHelp={() => setHelp(true)} />
       <TabsContent value="catalog"><Catalog B={B} /></TabsContent>
+      <TabsContent value="shelves"><Shelves ins={ins} onCatalog={() => setTab("catalog")} /></TabsContent>
       <TabsContent value="covers"><Covers B={B} /></TabsContent>
       <TabsContent value="care"><Care B={B} ins={ins} report={result && result.report} cov={cov} onCatalog={() => setTab("catalog")} /></TabsContent>
       <TabsContent value="stats"><Stats B={B} /></TabsContent>

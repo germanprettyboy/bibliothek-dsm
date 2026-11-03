@@ -1,6 +1,7 @@
 /* Data of the table viewer (table-view.jsx): the rows of both datasets with the maintenance lists they appear in, the
    columns, search, filters, sorting and the CSV of the current view. Admin page only – nothing here is published. */
 import { log } from "@/lib/storage";
+import { PLACE_CHECKS } from "./shelves-core";
 
 // Search like the other admin searches: lower case, no accents, ß = ss, only letters and digits
 export const normE = s => String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
@@ -14,6 +15,7 @@ export const LISTS = [
   ["title", ["titleNone", "titleSpaces", "titleCaps", "yearOdd", "yearNone", "authorNone", "categoryNone", "locationNone"]],
   ["copies", ["copiesCategory", "copiesLocation"]],
   ["names", ["nameHits"]],
+  ["place", PLACE_CHECKS],
 ];
 export const GROUP = {};
 LISTS.forEach(([g, keys]) => keys.forEach(k => { GROUP[k] = g; }));

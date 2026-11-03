@@ -24,6 +24,7 @@ addStrings({
     ts_titleNone: "ohne Titel", ts_titleSpaces: "Leerzeichen", ts_titleCaps: "Großbuchstaben", ts_yearOdd: "Jahr unklar",
     ts_yearNone: "ohne Jahr", ts_authorNone: "ohne Autor", ts_categoryNone: "ohne Kategorie", ts_locationNone: "ohne Standort",
     ts_copiesCategory: "Kategorie abweichend", ts_copiesLocation: "Standort abweichend", ts_nameHits: "Namenstreffer",
+    ts_placeCategory: "abseits der Kategorie", ts_placeOrder: "außerhalb A–Z", ts_placeVague: "ohne Brett",
   },
   it: {
     tvT: "Tabella dati", tvFull: "Schermo intero", tvFullOff: "Esci dallo schermo intero",
@@ -46,5 +47,6 @@ addStrings({
     ts_titleNone: "senza titolo", ts_titleSpaces: "spazi", ts_titleCaps: "maiuscole", ts_yearOdd: "anno poco chiaro",
     ts_yearNone: "senza anno", ts_authorNone: "senza autore", ts_categoryNone: "senza categoria", ts_locationNone: "senza collocazione",
     ts_copiesCategory: "categoria diversa", ts_copiesLocation: "collocazione diversa", ts_nameHits: "nome trovato",
+    ts_placeCategory: "lontano dalla categoria", ts_placeOrder: "fuori A–Z", ts_placeVague: "senza ripiano",
   },
 });

@@ -101,4 +101,71 @@ async function noLibrary() {
   return db;
 }
 
-module.exports = { library, noLibrary, bytes, sql, ISBN, READERS, EXPECTED };
+/* Library with an order on the shelves (tab "Regale", shelves-core.js): a novel section sorted A–Z by author over four
+   boards (Romane 1 Brett 1 – Romane 2 Brett 2), youth books with one category per board, a non-fiction board, the
+   section without a board ("Romane") and the desk. Placed wrong on purpose (SHELF_WRONG):
+     placeCategory  "Drachenherz" (Fantasy) on the Liebe board, "Tatort Hafen" (Krimi) on the non-fiction board,
+                    "Liegengeblieben" (Roman) on the desk
+     placeOrder     "Der Steppenwolf" (Hesse) on the A–D board, "Der Zauberberg" (Mann) on the S–Z board
+     placeVague     "Ohne Brett 1" and "Ohne Brett 2" in "Romane" */
+const SHELF_LOCS = ["Romane 1 Brett 1", "Romane 1 Brett 2", "Romane 2 Brett 1", "Romane 2 Brett 2", "Jugendbücher 1 Brett 1",
+  "Jugendbücher 1 Brett 2", "Jugendbücher 1 Brett 3", "Romane", "Schreibtisch", "Sachbuch Brett 1"];
+const SHELF_CATS = ["Roman", "Fantasy", "Krimi", "Liebe", "Natur"];
+const SHELF_NOVELS = [ // [surname, first name, board (1–4), copies of different titles]
+  ["Adler", "Anna", 1, 2], ["Arndt", "Paul", 1, 1], ["Bauer", "Lisa", 1, 1], ["Brecht", "Bertolt", 1, 2], ["Böll", "Heinrich", 1, 1],
+  ["Celan", "Paul", 1, 1], ["Dürrenmatt", "Friedrich", 1, 1], ["Droste", "Annette", 1, 1],
+  ["Eich", "Günter", 2, 1], ["Ende", "Michael", 2, 2], ["Fontane", "Theodor", 2, 1], ["Frisch", "Max", 2, 1], ["Grass", "Günter", 2, 1],
+  ["Goethe", "Johann Wolfgang", 2, 1], ["Hesse", "Hermann", 2, 1], ["Heine", "Heinrich", 2, 1], ["Kafka", "Franz", 2, 1],
+  ["Kästner", "Erich", 2, 1], ["Kehlmann", "Daniel", 2, 1],
+  ["Lenz", "Siegfried", 3, 1], ["Lessing", "Gotthold", 3, 1], ["Mann", "Thomas", 3, 2], ["Musil", "Robert", 3, 1], ["Rilke", "Rainer Maria", 3, 1],
+  ["Roth", "Joseph", 3, 1],
+  ["Schiller", "Friedrich", 4, 1], ["Storm", "Theodor", 4, 1], ["Süskind", "Patrick", 4, 1], ["Tucholsky", "Kurt", 4, 1], ["Timm", "Uwe", 4, 1],
+  ["Walser", "Martin", 4, 1], ["Wolf", "Christa", 4, 1], ["Zweig", "Stefan", 4, 1], ["Zeh", "Juli", 4, 1],
+];
+const SHELF_WRONG = {
+  placeCategory: ["Drachenherz", "Tatort Hafen", "Liegengeblieben"],
+  placeOrder: ["Der Steppenwolf", "Der Zauberberg"],
+  placeVague: ["Ohne Brett 1", "Ohne Brett 2"],
+};
+
+async function shelves() {
+  const SQL = await sql();
+  const db = new SQL.Database();
+  db.run(`
+    CREATE TABLE medientyp (typid INTEGER, typname TEXT);
+    INSERT INTO medientyp VALUES (1,'Buch');
+    CREATE TABLE autor (aid INTEGER, aname TEXT);
+    CREATE TABLE verlage (vid INTEGER, vname TEXT);
+    CREATE TABLE bereiche (bid INTEGER, bname TEXT);
+    CREATE TABLE standorte (stid INTEGER, stname TEXT);
+    CREATE TABLE leiher (lid INTEGER, lname TEXT, lvorname TEXT);
+    INSERT INTO leiher VALUES (1,'Musterfrau','Erika');
+    CREATE TABLE books (bid INTEGER, btitel TEXT, bautor INT, bjahr TEXT, bbereich INT, bstandort INT, bmedientyp INT, bsignatur TEXT, bzugang TEXT);
+  `);
+  const run = (sqlText, rows) => { const s = db.prepare(sqlText); for (const r of rows) s.run(r); s.free(); };
+  run("INSERT INTO standorte VALUES (?,?)", SHELF_LOCS.map((n, i) => [i + 1, n]));
+  run("INSERT INTO bereiche VALUES (?,?)", SHELF_CATS.map((n, i) => [i + 1, n]));
+  const loc = n => SHELF_LOCS.indexOf(n) + 1, cat = n => SHELF_CATS.indexOf(n) + 1;
+  const authors = [], books = [];
+  const author = name => { let i = authors.indexOf(name); if (i < 0) { authors.push(name); i = authors.length - 1; } return i + 1; };
+  const book = (t, a, c, l, y) => books.push([books.length + 1, t, author(a), String(y || 2000 + (books.length % 20)), cat(c), loc(l), 1, null, null]);
+  for (const [sn, fn, board, n] of SHELF_NOVELS) {
+    for (let k = 1; k <= n; k++) book(`Roman von ${fn} ${sn}${n > 1 ? " " + k : ""}`, `${sn}, ${fn}`, "Roman", SHELF_LOCS[board - 1]);
+  }
+  book("Der Steppenwolf", "Hesse, Hermann", "Roman", "Romane 1 Brett 1", 1927);
+  book("Der Zauberberg", "Mann, Thomas", "Roman", "Romane 2 Brett 2", 1924);
+  book("Ohne Brett 1", "Adler, Anna", "Roman", "Romane");
+  book("Ohne Brett 2", "Zweig, Stefan", "Roman", "Romane");
+  book("Liegengeblieben", "Bauer, Lisa", "Roman", "Schreibtisch");
+  for (let k = 1; k <= 8; k++) book(`Fantasy-Band ${k}`, `Funke, Cornelia`, "Fantasy", "Jugendbücher 1 Brett 1");
+  book("Drachenherz", "Funke, Cornelia", "Fantasy", "Jugendbücher 1 Brett 3");
+  for (let k = 1; k <= 6; k++) book(`Krimi ${k}`, `Kommissar, Klara`, "Krimi", "Jugendbücher 1 Brett 2");
+  book("Tatort Hafen", "Kommissar, Klara", "Krimi", "Sachbuch Brett 1");
+  for (let k = 1; k <= 5; k++) book(`Liebesroman ${k}`, `Herz, Hanna`, "Liebe", "Jugendbücher 1 Brett 3");
+  for (let k = 1; k <= 6; k++) book(`Naturbuch ${k}`, `Grün, Gustav`, "Natur", "Sachbuch Brett 1");
+  run("INSERT INTO autor VALUES (?,?)", authors.map((n, i) => [i + 1, n]));
+  run("INSERT INTO books VALUES (?,?,?,?,?,?,?,?,?)", books);
+  return db;
+}
+
+module.exports = { library, noLibrary, shelves, bytes, sql, ISBN, READERS, EXPECTED, SHELF_WRONG, SHELF_LOCS };

@@ -65,11 +65,13 @@ B = built by `npm run build` from src/ (never edit), G = generated (never by han
 - `tools/build.mjs` – `npm run build` (`--watch`): src/ → website/, one IIFE per page, fixed names; `preactAlias`
 - `tools/source/extract.js` – WinBook SQLite → public list (whitelist, name check, `inspect()`); encrypted with the admin app
 - `tools/source/admin/app.jsx` – admin app root: tabs, nav, help, lock; sets `window.DSM_ADMIN`
-- `tools/source/admin/nav.jsx` – floating tab bar Bestand … Statistik, help, lock
+- `tools/source/admin/nav.jsx` – floating tab bar Bestand … Statistik (7 tabs), help, lock; label fit all/lead/active/none
 - `tools/source/admin/catalog.jsx` – tab Bestand: import WinBook file, loader, report, Italian categories, publish books.js
 - `tools/source/admin/maintenance.jsx` – tab Pflege: maintenance lists, Excel/CSV/print/PDF
 - `tools/source/admin/fixes.jsx` – tab Pflege: automatic corrections (public list only)
 - `tools/source/admin/fixes-core.js` – correction logic (pure, also runs in Node)
+- `tools/source/admin/shelves.jsx` – tab Regale: books placed wrong (check list, "Passt so"), shelf overview, board dialog, inventory
+- `tools/source/admin/shelves-core.js` – shelf analysis (pure, also runs in Node): locations, category home, A–Z order, no board, inventory
 - `tools/source/admin/table-view.jsx` – table viewer dialog (search, filter, sort, export)
 - `tools/source/admin/table-data.js` – rows, columns, filters of the table viewer
 - `tools/source/admin/print.jsx` – print documents of tab Pflege
@@ -84,7 +86,7 @@ B = built by `npm run build` from src/ (never edit), G = generated (never by han
 - `tools/source/admin/help.jsx` – help page dialog (sidebar, search)
 - `tools/source/admin/help-content.js` – help content DE/IT as data; 1,100 lines: grep the id
 - `tools/source/admin/strings.js` – shared admin texts DE/IT (tab, list and column names)
-- `tools/source/admin/strings-*.js` – texts per area: care, fixes, help, import, nav, stats, table, versions
+- `tools/source/admin/strings-*.js` – texts per area: care, fixes, help, import, nav, shelves, stats, table, versions
 - `tools/encrypt-admin.js` – `npm run encrypt`: bundle admin app + extract.js, encrypt → admin.enc.js + save-access.php
 - `tools/check-admin.cjs` – compile check of the admin app (no password, writes nothing)
 - `tools/generate-books.js` – `npm run books`: data/*.winbook → website/books.js (name check, exit 2)
@@ -129,10 +131,10 @@ B = built by `npm run build` from src/ (never edit), G = generated (never by han
 - `tests/e2e/helpers.js` – fixture: cover services mocked, request log, `settled(page)`, `PHONE`, swipe helpers
 - `tests/e2e/admin-helpers.js` – admin spec helpers (test-password encryption, unlock, import)
 - `tests/e2e/setup.js` – global setup: encrypt the admin app with the test password, write test databases
-- `tests/unit/*.test.js` – node --test: build (gzip budgets), covers, data (books.js budget, formats), encryption, extract, generate-books, migrate, pack, real-db (needs data/), rules (hard rules on the source), save, sitemap, suites, tunnel
+- `tests/unit/*.test.js` – node --test: build (gzip budgets), covers, data (books.js budget, formats), encryption, extract, generate-books, migrate, pack, real-db (needs data/), rules (hard rules on the source), save, shelves (tab Regale), sitemap, suites, tunnel
 - `tests/apache/apache.test.js` – upload folder on a real Apache + PHP 7.1 (CI job only)
 - `tests/helpers/load.js` – paths, loading `window.X` data files in Node, norm()/search as in the page
-- `tests/helpers/testdb.js` – synthetic WinBook database (invented readers and loans)
+- `tests/helpers/testdb.js` – synthetic WinBook databases: invented readers and loans; shelves() with books placed wrong on purpose
 - `tests/helpers/flaky-report.js` – flaky tests from the Playwright report → Actions annotations
 - `tests/helpers/stress-report.js` – failure rate per test of a stress run
 - `tests/helpers/ekz-placeholder.jpg` – ekz "kein Bild" substitute image for the cover tests

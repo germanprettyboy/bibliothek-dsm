@@ -3,15 +3,16 @@
    then help and lock, separated by thin lines. All items 44 px high, icons 18 px.
    Labels open sideways; how many show depends on the room (data-fit, measured here):
      all    = every tab label; help and lock slide theirs out on hover/focus
-     lead   = every tab label but the last tab's (Statistik); it, help and lock slide theirs out on hover/focus
+     lead   = every tab label but the last tab's (Statistik) – or, if only that fits, but the last two tabs' (Info,
+              Statistik; data-lead = number of tabs with their label); they, help and lock slide theirs out on hover/focus
      active = only the active tab's label; the other tabs, help and lock slide theirs out on hover/focus (like the lock)
      none   = phones: icons only, nothing slides out (no room; touch has no hover)
    The measure adds natural widths (paddings + icon + label text), not the current ones: it doesn't depend on the state
-   it switches, so it can't flip back and forth. Test hooks: .tabs, [data-tab], #help-btn, #lock-btn, .adm-nav[data-fit]
+   it switches, so it can't flip back and forth. Test hooks: .tabs, [data-tab], #help-btn, #lock-btn, .adm-nav[data-fit][data-lead]
    [data-active], .adm-pill. */
 import "./strings-nav";
 import * as React from "react";
-import { ChartColumnIcon, CircleHelpIcon, DatabaseIcon, ImageIcon, InfoIcon, LockIcon, SparklesIcon, WrenchIcon } from "lucide-react";
+import { ChartColumnIcon, CircleHelpIcon, DatabaseIcon, ImageIcon, InfoIcon, LibraryBigIcon, LockIcon, SparklesIcon, WrenchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,6 +22,7 @@ import { useLanguage } from "@/lib/language";
 export const TABS = [
   ["catalog", "tabCatalog", DatabaseIcon],
   ["care", "tabCare", WrenchIcon],
+  ["shelves", "tabShelves", LibraryBigIcon],
   ["covers", "tabCovers", ImageIcon],
   ["recs", "tabRecs", SparklesIcon],
   ["info", "tabInfo", InfoIcon],
@@ -40,8 +42,8 @@ function bare(el) {
 const labelOf = el => { const l = el.querySelector(".adm-lbl > span > span"); return l ? l.offsetWidth : 0; };
 
 // How many labels fit: "all" needs every tab label plus room for help/lock sliding out; "lead" every label but the last
-// tab's plus room for the widest of it, help and lock sliding out; "active" the two widest labels (active tab + one
-// sliding out); otherwise "none"
+// tab's (else the last two tabs') plus room for the widest of them, help and lock sliding out; "active" the two widest
+// labels (active tab + one sliding out); otherwise "none". Returns "<fit>:<tabs with their label in lead>".
 function fitOf(bar) {
   const s = getComputedStyle(bar);
   const room = bar.clientWidth - px(s.paddingLeft) - px(s.paddingRight);
@@ -60,17 +62,21 @@ function fitOf(bar) {
   });
   const sum = tabs.reduce((a, b) => a + b, 0);
   const top = tabs.concat(acts).sort((a, b) => b - a);
-  if (fixed + sum + Math.max(0, ...acts) + 2 <= room) return "all";
-  const last = tabs[tabs.length - 1] || 0;
-  if (fixed + sum - last + Math.max(last, ...acts) + 2 <= room) return "lead";
-  if (fixed + top[0] + (top[1] || 0) + 2 <= room) return "active";
-  return "none";
+  const lead = tabs.length - 1;
+  if (fixed + sum + Math.max(0, ...acts) + 2 <= room) return "all:" + lead;
+  for (let k = 1; k <= 2 && k < tabs.length; k++) {
+    const tail = tabs.slice(-k);
+    if (fixed + sum - tail.reduce((a, b) => a + b, 0) + Math.max(...tail, ...acts) + 2 <= room) return "lead:" + (tabs.length - k);
+  }
+  if (fixed + top[0] + (top[1] || 0) + 2 <= room) return "active:" + lead;
+  return "none:" + lead;
 }
 
 export function AdminNav({ tab, lock, onHelp }) {
   const { t } = useLanguage();
   const bar = React.useRef(null), pill = React.useRef(null);
-  const [fit, setFit] = React.useState("active");
+  const [state, setFit] = React.useState("active:" + (TABS.length - 1)); // "<fit>:<tabs with their label in lead>"
+  const [fit, lead] = state.split(":");
 
   // Pill behind the active tab: its real position (follows widths that are still opening, see the observer below)
   const place = () => {
@@ -80,7 +86,7 @@ export function AdminNav({ tab, lock, onHelp }) {
     p.style.width = a.offsetWidth + "px";
     p.style.transform = `translateX(${a.offsetLeft}px)`;
   };
-  React.useLayoutEffect(place, [tab, fit]);
+  React.useLayoutEffect(place, [tab, state]);
 
   // Measure on every size change of the bar, the items (labels opening, hover) and the label texts (language, font).
   // One frame later, outside the observer callback: changing the layout inside it would loop.
@@ -101,13 +107,13 @@ export function AdminNav({ tab, lock, onHelp }) {
   // (styles.css .adm-tabs flex 6), otherwise the bar is wider than the screen
   const item = "adm-item h-11 shrink rounded-lg px-[13px] font-medium text-m hover:text-foreground max-sm:flex-1 max-sm:px-0";
   return (
-    <div ref={bar} className="adm-nav" data-fit={fit} data-active={tab}>
+    <div ref={bar} className="adm-nav" data-fit={fit} data-lead={lead} data-active={tab}>
       <TabsList aria-label={t("navTabs")} className="tabs adm-tabs flex w-auto rounded-lg bg-transparent p-0 shadow-none">
         <span ref={pill} className="adm-pill" aria-hidden="true" />
         {TABS.map(([v, k, Icon], n) => (
           <TabsTrigger
             key={v} value={v} data-tab={v}
-            className={`${item} adm-tab${n < TABS.length - 1 ? " adm-lead" : ""} data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:shadow-none`}
+            className={`${item} adm-tab${n < +lead ? " adm-lead" : ""} data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:shadow-none`}
           >
             <Icon {...ICON} /><Label>{t(k)}</Label>
           </TabsTrigger>

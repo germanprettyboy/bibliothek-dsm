@@ -76,6 +76,14 @@
     return parts.length === 2 ? parts[1] + " " + parts[0] : n;
   }
 
+  // Surname that orders a name on the shelf: "Preußler, Otfried" → "Preußler", "Max Mustermann" → "Mustermann",
+  // "von Schirach, Ferdinand" → "Schirach" (lower-case particles don't count; "De Amicis" stays)
+  function surname(name) {
+    const n = clean(name);
+    const s = n.includes(",") ? n.slice(0, n.indexOf(",")).trim() : n.split(" ").pop();
+    return s.replace(/^(?:(?:von|van|vom|zu|zum|zur|der|den|de|di|du|da|del|della|des|la|le|ten|ter)\s+)+(?=\S)/, "");
+  }
+
   function isbn13(raw) {
     if (!raw) return "";
     const s = String(raw).toUpperCase().replace(/[^0-9X]/g, "");
@@ -237,7 +245,8 @@
    * Maintenance analysis for the admin page (tab "Pflege"): every copy that the public list is built from (same
    * rules as extract, but not merged) and what should be fixed in WinBook. Never published, only shown and
    * exported as CSV. Returns { records, checks: [{ key, rows }], types, latest }:
-   *   records: one per copy { id, t, a, p, y, c, l, sig, z } (id = WinBook number, z = accession date YYYY-MM-DD)
+   *   records: one per copy { id, t, a, sn, p, y, c, l, sig, z } (id = WinBook number, sn = surname of the first author
+   *            for the A–Z order of the shelves, z = accession date YYYY-MM-DD)
    *   rows: { r: record, v? } for a copy (v = the value to fix) or { v, n } for a master data entry (n = copies)
    * Category and location names that contain a reader name are never shown, only their number (#id).
    */
@@ -272,7 +281,7 @@
       const a = ids.map(id => authorDisplay(author.get(id))).filter((x, i, arr) => arr.indexOf(x) === i);
       const zugang = String(r.bzugang || "");
       const rec = {
-        id: r.bid, t: clean(raw), a: a.join(", "), p: clean(publisher.get(r.bverlag)), y: year(r.bjahr),
+        id: r.bid, t: clean(raw), a: a.join(", "), sn: ids.length ? surname(author.get(ids[0])) : "", p: clean(publisher.get(r.bverlag)), y: year(r.bjahr),
         c: safe(category, r.bbereich, namedCat), l: safe(location, r.bstandort, namedLoc),
         sig: clean(r.bsignatur), z: /^\d{4}-\d{2}-\d{2}/.test(zugang) ? zugang.slice(0, 10) : "",
       };

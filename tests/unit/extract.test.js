@@ -235,8 +235,11 @@ describe("inspect: maintenance lists (admin page only)", () => {
 
   test("one record per copy that the public list is built from (books and graphic novels, not withdrawn)", () => {
     assert.deepEqual(r.records.map(x => x.id).sort((a, b) => a - b), [1, 2, 3, 4, 8, 9, 10, 11, 13, 14]);
-    assert.deepEqual(r.records.find(x => x.id === 1), { id: 1, t: "Krabat", a: "Otfried Preußler", p: "Thienemann", y: "1981",
+    assert.deepEqual(r.records.find(x => x.id === 1), { id: 1, t: "Krabat", a: "Otfried Preußler", sn: "Preußler", p: "Thienemann", y: "1981",
       c: "Jugendbuch", l: "Jugendbücher 6 Brett 5", sig: "JB 6 Pre", z: "2025-09-01" });
+    // surname of the first author for the A–Z order of the shelves: also without "Nachname, Vorname", empty without author
+    assert.equal(r.records.find(x => x.id === 9).sn, "Mustermann");
+    assert.equal(r.records.find(x => x.id === 13).sn, "");
     assert.equal(r.latest, "2026-03-15");
     assert.deepEqual(r.types, [{ name: "Buch", n: 9, book: true }, { name: "DVD", n: 1, book: false },
       { name: "Graphic Novel", n: 1, book: true }, { name: "Hörbuch", n: 1, book: false }]);
