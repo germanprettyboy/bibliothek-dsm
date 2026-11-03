@@ -1,6 +1,7 @@
 /*
  * Admin page, navigation bar (tools/source/admin/nav.jsx): six tabs with icons and names, a pill that glides behind the
- * active tab, help and lock with sliding labels; the bar floats sticky 12 px below the top edge; phones: one row, icons only.
+ * active tab, help and lock with sliding labels; the bar floats sticky 12 px below the top edge; phones: one row, icons only
+ * (no label opens, not even the active tab's: the pill marks it).
  */
 const { test, expect, PHONE, settled } = require("./helpers.js");
 const { adminSetup, unlock, tab } = require("./admin-helpers.js");
@@ -105,6 +106,16 @@ test.describe("admin navigation on the phone", () => {
     await tall(page);
     await page.evaluate(() => window.scrollTo({ top: 1200, behavior: "instant" }));
     await expect.poll(() => nav(page).evaluate(e => Math.round(e.getBoundingClientRect().top))).toBe(12);
+  });
+
+  test("wide phone (430 px): no label opens, the pill alone marks the active tab", async ({ page }) => {
+    await page.setViewportSize({ width: 430, height: 932 });
+    await unlock(page);
+    await tab(page, "recs");
+    await settled(page);
+    await expect.poll(() => pillOff(page)).toBeLessThan(2);
+    const widths = await page.locator(".adm-lbl").evaluateAll(l => l.map(e => e.getBoundingClientRect().width));
+    for (const w of widths) expect(w).toBeLessThan(1);
   });
 
   test("320 px: still one row without horizontal scrolling", async ({ page }) => {

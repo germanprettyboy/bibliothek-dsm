@@ -847,8 +847,9 @@
      One bar over the full content width; while scrolling it floats 12 px below the top edge (sticky, own subtle shadow,
      below dialogs z-50 and notices). Items 44 px, icons 18 px; thin lines separate tabs | help | lock. A pill glides
      behind the active tab (position set by nav.jsx). Labels open sideways (grid 0fr → 1fr) depending on data-fit:
-     all = every tab label; active = the active tab's; none (phones) = icons only. Help, lock and (with "active") the other
-     tabs slide their label out on hover/focus. On phones the items may shrink below 44 px width (8 in one row at 320 px). */
+     all = every tab label; active = the active tab's; none = icons only. Help, lock and (with "active") the other tabs
+     slide their label out on hover/focus. Phones (< 40rem): icons only whatever data-fit says, the pill marks the active
+     tab. On phones the items may shrink below 44 px width (8 in one row at 320 px). */
   .adm-nav {
     position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 20;
     display: flex; align-items: center; gap: 2px; margin-bottom: 18px; padding: 4px;
@@ -877,13 +878,17 @@
     display: inline-block; padding-left: 8px; white-space: nowrap; opacity: 0; transform: translateX(-4px);
     transition: opacity var(--t-fast) var(--ease-in), transform var(--t-out) var(--ease-in);
   }
-  .adm-nav[data-fit="all"] .adm-tab .adm-lbl, .adm-nav[data-fit="lead"] .adm-lead .adm-lbl,
-  .adm-nav:not([data-fit="none"]) .adm-tab[data-state="active"] .adm-lbl,
-  .adm-nav:not([data-fit="none"]) .adm-item:focus-visible .adm-lbl { grid-template-columns: 1fr; transition: grid-template-columns var(--t-slow) var(--snap); }
-  .adm-nav[data-fit="all"] .adm-tab .adm-lbl > span > span, .adm-nav[data-fit="lead"] .adm-lead .adm-lbl > span > span,
-  .adm-nav:not([data-fit="none"]) .adm-tab[data-state="active"] .adm-lbl > span > span,
-  .adm-nav:not([data-fit="none"]) .adm-item:focus-visible .adm-lbl > span > span { opacity: 1; transform: none; transition: opacity var(--t-base) ease-out 60ms, transform var(--t-slow) var(--snap); }
-  @media (hover: hover) {
+  /* Labels open only from 40rem: phones show icons only, the pill alone marks the active tab (Johann, 2026-11-03), even
+     where wide phones (≥ 412 px, Italian already at 390 px) would measure data-fit "active" */
+  @media (min-width: 40rem) {
+    .adm-nav[data-fit="all"] .adm-tab .adm-lbl, .adm-nav[data-fit="lead"] .adm-lead .adm-lbl,
+    .adm-nav:not([data-fit="none"]) .adm-tab[data-state="active"] .adm-lbl,
+    .adm-nav:not([data-fit="none"]) .adm-item:focus-visible .adm-lbl { grid-template-columns: 1fr; transition: grid-template-columns var(--t-slow) var(--snap); }
+    .adm-nav[data-fit="all"] .adm-tab .adm-lbl > span > span, .adm-nav[data-fit="lead"] .adm-lead .adm-lbl > span > span,
+    .adm-nav:not([data-fit="none"]) .adm-tab[data-state="active"] .adm-lbl > span > span,
+    .adm-nav:not([data-fit="none"]) .adm-item:focus-visible .adm-lbl > span > span { opacity: 1; transform: none; transition: opacity var(--t-base) ease-out 60ms, transform var(--t-slow) var(--snap); }
+  }
+  @media (min-width: 40rem) and (hover: hover) {
     .adm-nav:not([data-fit="none"]) .adm-item:hover .adm-lbl { grid-template-columns: 1fr; transition: grid-template-columns var(--t-slow) var(--snap); }
     .adm-nav:not([data-fit="none"]) .adm-item:hover .adm-lbl > span > span { opacity: 1; transform: none; transition: opacity var(--t-base) ease-out 60ms, transform var(--t-slow) var(--snap); }
   }
