@@ -17,6 +17,7 @@ import { Fixes } from "./fixes";
 import { TableView } from "./table-view";
 import { GROUP_COLOR, PrintDialog, PrintJob } from "./print";
 import { sheetNames, xlsx } from "./xlsx";
+import { PLACE_CHECKS } from "./shelves-core";
 import "./strings-care";
 
 const GROUPS = [
@@ -25,8 +26,9 @@ const GROUPS = [
   ["copies", ["copiesCategory", "copiesLocation"]],
   ["master", ["authorDup", "publisherDup", "categoryDup", "locationDup", "categoryUnused", "locationUnused"]],
   ["names", ["nameHits", "namedCategory", "namedLocation"]],
+  ["place", PLACE_CHECKS], // shelf analysis (shelves-core.js, tab "Regale")
 ];
-const HEX = { blue: "B5C9D0", mauve: "BA8EA7", green: "B3CEA1", orange: "DB9F00", red: "A93A39" }; // logo colours (styles.css)
+const HEX = { blue: "B5C9D0", mauve: "BA8EA7", green: "B3CEA1", orange: "DB9F00", red: "A93A39", yellow: "DDD300" }; // logo colours (styles.css)
 const SHOWN = 100; // rows on the page per list, all of them in the table view and the files
 const WIDE = "h-auto min-h-11 w-full whitespace-normal py-2 text-center [text-wrap:balance]"; // summary card buttons
 const today = () => new Date().toLocaleDateString("sv-SE");
@@ -50,7 +52,7 @@ const csvCell = v => {
   return /[";\r\n]|^\s|\s$/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 };
 const csvBlob = rows => new Blob(["﻿" + rows.map(r => r.map(csvCell).join(";")).join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" });
-const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+export const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 // All lists: the checks of inspect, plus the cover check (tab "Cover") and the name check of the import (also stats.jsx)
 export function allChecks(ins, report, cov) {
@@ -67,7 +69,7 @@ export function allChecks(ins, report, cov) {
 
 /* Tables for the files: columns { head, type: s|n|d, max } and raw rows (dates as YYYY-MM-DD). The same table becomes the
    CSV (dates in the page's format) and an Excel sheet (real dates, ISBN and value columns as text). */
-function useExport() {
+export function useExport() {
   const { t, df, lang } = useLanguage();
   const d = today();
   const recCols = () => [
@@ -94,24 +96,24 @@ function useExport() {
   const opts = doc => ({ date: lang === "it" ? "dd/mm/yyyy" : "dd.mm.yyyy", title: `${t("mxLib")} · ${doc}`, footer: `${t("mxLib")} · ${doc} · ${t("mxAsOf", { d: df(d) })}` });
   const title = (doc, what) => `${t("mxLib")} · ${doc} · ${what} · ${t("mxAsOf", { d: df(d) })}`;
   const book = (name, sheets, doc) => saveBlob(name, xlsx(sheets, opts(doc)), sheets.reduce((s, x) => s + x.rows.length, 0));
-  const listSheet = (c, g, name) => ({ name, tab: HEX[GROUP_COLOR[g]], title: title(t("mxDoc"), t("m_" + c.key)), sub: t("mh_" + c.key), ...tableOf(c) });
+  const listSheet = (c, g, name, doc = t("mxDoc")) => ({ name, tab: HEX[GROUP_COLOR[g]], title: title(doc, t("m_" + c.key)), sub: t("mh_" + c.key), ...tableOf(c) });
   return {
     d, tableOf, recCols, recVals,
     listCsv: c => csv(`${slug(t("m_" + c.key))}-${d}.csv`, tableOf(c)),
     listXlsx: (c, g) => book(`${slug(t("m_" + c.key))}-${d}.xlsx`, [listSheet(c, g, t("m_" + c.key))], t("mxDoc")),
-    allCsv: groups => csv(`bestandspflege-${d}.csv`, allTable(groups)),
+    allCsv: (groups, file = "bestandspflege") => csv(`${file}-${d}.csv`, allTable(groups)),
     // Overview first (group stripe, link to each list's sheet), then one sheet per non-empty list
-    allXlsx(groups, sub) {
+    allXlsx(groups, sub, file = "bestandspflege", doc = t("mxDoc")) {
       const lists = groups.reduce((a, [g, list]) => a.concat(list.map(c => ({ c, g }))), []);
       const full = lists.filter(x => x.c.rows.length);
       const names = sheetNames([t("mxOverview")].concat(full.map(x => t("m_" + x.c.key))));
       const sheetOf = new Map(full.map((x, i) => [x.c.key, names[i + 1]]));
       const overview = {
-        name: names[0], tab: HEX.mauve, title: `${t("mxLib")} · ${t("mxDoc")} · ${t("mxAsOf", { d: df(d) })}`, sub,
+        name: names[0], tab: HEX.mauve, title: `${t("mxLib")} · ${doc} · ${t("mxAsOf", { d: df(d) })}`, sub,
         cols: [{ head: "", min: 2.5, max: 2.5 }, { head: t("mxGroup"), max: 24 }, { head: t("cCheck"), max: 46 }, { head: t("mxCount"), type: "n" }, { head: t("mxHint"), max: 90 }],
         rows: lists.map(({ c, g }) => [{ v: "", fill: HEX[GROUP_COLOR[g]] }, t("mG_" + g), sheetOf.has(c.key) ? { v: t("m_" + c.key), link: sheetOf.get(c.key) } : t("m_" + c.key), c.rows.length, t("mh_" + c.key)]),
       };
-      book(`bestandspflege-${d}.xlsx`, [overview].concat(full.map(x => listSheet(x.c, x.g, sheetOf.get(x.c.key)))), t("mxDoc"));
+      book(`${file}-${d}.xlsx`, [overview].concat(full.map(x => listSheet(x.c, x.g, sheetOf.get(x.c.key), doc))), doc);
     },
     shelfCsv: (name, recs) => csv(`${slug(name)}-${d}.csv`, { cols: recCols(), rows: recs.map(recVals) }),
     shelfXlsx: (name, what, recs) => book(`${slug(name)}-${d}.xlsx`, [{ name: what, tab: HEX.mauve, title: title(t("mxShelfDoc"), what), cols: recCols(), rows: recs.map(recVals) }], t("mxShelfDoc")),
@@ -121,7 +123,7 @@ function useExport() {
 // "Herunterladen ▾": Excel first, CSV second. sections: [[label | null, [{ text, on, props }]]]
 // Not modal (the tab is no dialog): a modal menu locks clicks on the page until its closing animation has ended, so
 // opening it again right after a download did nothing. The download runs after the menu has closed.
-function DownloadMenu({ triggerProps, label, sections }) {
+export function DownloadMenu({ triggerProps, label, sections }) {
   const { t } = useLanguage();
   const [open, setOpen] = React.useState(false);
   const pick = fn => () => { setOpen(false); setTimeout(fn, 0); };
@@ -224,7 +226,7 @@ export function Care({ B, ins, report, cov, onCatalog }) {
 }
 
 // One list: row with name and count; opened: hint, the first rows, table view, download
-function Check({ c, onTable, onCsv, onXlsx }) {
+export function Check({ c, onTable, onCsv, onXlsx }) {
   const { t, nf } = useLanguage();
   const [open, setOpen] = React.useState(false);
   const n = c.rows.length, records = !!(n && c.rows[0].r), withValue = c.rows.some(x => x.v !== undefined);
@@ -271,7 +273,7 @@ function Check({ c, onTable, onCsv, onXlsx }) {
           </div>
           {n > SHOWN ? <p className="m-0 text-s text-muted-foreground">{t("mxFirst", { s: nf(SHOWN), n: nf(n) })}</p> : null}
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" data-table={c.key} onClick={onTable}><TableIcon aria-hidden="true" /><span>{t("mxTable")}</span></Button>
+            {onTable ? <Button variant="outline" data-table={c.key} onClick={onTable}><TableIcon aria-hidden="true" /><span>{t("mxTable")}</span></Button> : null}
             <DownloadMenu
               triggerProps={{ "data-dl": c.key }}
               sections={[[null, [

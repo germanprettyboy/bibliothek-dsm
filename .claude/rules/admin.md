@@ -25,8 +25,13 @@ paths:
   `node tools/check-admin.cjs`.
 - No "Aktuell veröffentlicht …", no draft notice, no privacy notices (import: no "Nicht übernommen" card, success = "Upload
   erfolgreich"; only the reader-name warning stays).
-- Floating sticky nav bar (`nav.jsx`): tabs Bestand | Pflege | Cover | Empfehlungen | Info | Statistik (column 54rem, `body.adm`),
-  then help (`?`, `help.jsx`) and lock. Charts only in tab Statistik.
+- Floating sticky nav bar (`nav.jsx`): tabs Bestand | Pflege | Regale | Cover | Empfehlungen | Info | Statistik (column 54rem,
+  `body.adm`), then help (`?`, `help.jsx`) and lock. At 1280 px the first five tab labels stay written out (fit "lead" leaves out
+  the last one or two, `data-lead`). Charts only in tab Statistik.
+- Tab Regale (`shelves.jsx`, logic `shelves-core.js`, attached to the maintenance analysis on import): WinBook only knows where a
+  copy should stand, so "placed wrong" = location doesn't fit the shelf order (category home, A–Z section, no board). Its lists
+  also appear in Pflege (group `place`). "Passt so" (`dsm-shelf-ok`) and the inventory (`dsm-inventory`) stay in this browser,
+  only WinBook numbers and location names. Thresholds were tuned on the real list (2026-11): change them only with data.
 - Destructive actions = two clicks within 4 s. Automatic corrections (`fixes.jsx`) only change the public list, never the WinBook
   file. Every publish keeps a local version (IndexedDB `dsm-admin`, `versions.js`). Print without `:has()` (Firefox ESR 115).
 - Recommendations switch `#rec-on` "Empfehlungen auf der Website" (`off: true`): the book list shows nothing of them; data stays.

@@ -21,6 +21,7 @@ const AREAS = {
   settings: { specs: ["language-settings"], about: "language, theme, larger text, high contrast, reduced motion, backgrounds" },
   admin: { specs: ["admin", "admin-backups", "publish", "admin-versions"], about: "lock, import, loader, publishing (folder, save.php, backups, local versions)" },
   "admin-care": { specs: ["admin-care", "admin-export", "admin-table", "admin-fixes"], about: "tabs Pflege + Cover, new/dropped titles, Italian categories, hidden covers, Excel/CSV, print, table viewer, corrections" },
+  "admin-shelves": { specs: ["admin-shelves"], about: "tab Regale: books placed wrong, shelf overview, board dialog, inventory" },
   "admin-nav": { specs: ["admin-nav", "admin-help"], about: "admin navigation bar, tab switching, help page" },
   "admin-stats": { specs: ["admin-stats"], about: "tab Statistik: charts" },
   "admin-recs": { specs: ["admin-recs"], about: "recommendation archive in the admin page" },

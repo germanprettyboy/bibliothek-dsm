@@ -19,12 +19,13 @@ import { useSwipe } from "@/lib/swipe";
 import "./strings-care";
 
 // Group colours (logo colours, as lines only): also the sheet tabs of the Excel file (maintenance.jsx)
-export const GROUP_COLOR = { isbn: "blue", title: "mauve", copies: "green", master: "orange", names: "red" };
+export const GROUP_COLOR = { isbn: "blue", title: "mauve", copies: "green", master: "orange", names: "red", place: "yellow" };
 const ALT = "Deutsche Schule Mailand – Scuola Germanica di Milano";
 const PREVIEW_ROWS = 24; // rows per list in the on-screen preview (the printout has all of them)
 const today = () => new Date().toLocaleDateString("sv-SE");
 
-// The document. job: { kind: "lists", lists: [{ key, group, rows }] } or { kind: "shelf", loc, list: [records] }
+// The document. job: { kind: "lists", lists: [{ key, group, rows }], doc? } or { kind: "shelf", loc, list: [records] }
+// (doc: name of the document in the header instead of "Fehlerliste")
 export function PrintDoc({ job, preview }) {
   const { t, nf, df } = useLanguage();
   const cut = rows => (preview ? rows.slice(0, PREVIEW_ROWS) : rows);
@@ -35,7 +36,7 @@ export function PrintDoc({ job, preview }) {
       <header className="pd-hd">
         <img src="assets/logo-light.webp" width="360" height="200" alt={ALT} />
         <span className="pd-vr" aria-hidden="true" />
-        <div className="pd-t"><b>{t("prBib")}</b> · {t(shelf ? "mxShelfDoc" : "mxDoc")}</div>
+        <div className="pd-t"><b>{t("prBib")}</b> · {job.doc || t(shelf ? "mxShelfDoc" : "mxDoc")}</div>
         <div className="pd-meta">
           <span>{t("mxAsOf", { d: df(today()) })}</span>
           <span>{t(shelf ? "mxCopiesN" : "mxEntries", { n: nf(count) })}</span>

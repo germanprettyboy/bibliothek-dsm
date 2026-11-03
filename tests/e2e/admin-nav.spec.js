@@ -8,7 +8,7 @@ const { adminSetup, unlock, tab } = require("./admin-helpers.js");
 
 adminSetup();
 
-const NAMES = ["Bestand", "Pflege", "Cover", "Empfehlungen", "Info", "Statistik"];
+const NAMES = ["Bestand", "Pflege", "Regale", "Cover", "Empfehlungen", "Info", "Statistik"];
 const nav = page => page.locator(".adm-nav");
 // Left edge of the pill (current transform)
 const pillX = page => page.locator(".adm-pill").evaluate(p => new DOMMatrix(getComputedStyle(p).transform).m41);
@@ -25,9 +25,9 @@ const noSideScroll = page => page.evaluate(() => document.documentElement.scroll
 const tall = page => page.evaluate(() => { document.querySelector("#tab-catalog").style.minHeight = "3000px"; });
 
 test.describe("admin navigation", () => {
-  test("six named tabs; switching moves the pill under the active tab", { tag: "@smoke" }, async ({ page }) => {
+  test("seven named tabs; switching moves the pill under the active tab", { tag: "@smoke" }, async ({ page }) => {
     await unlock(page);
-    await expect(page.getByRole("tab")).toHaveCount(6);
+    await expect(page.getByRole("tab")).toHaveCount(7);
     for (const [i, n] of NAMES.entries()) await expect(page.getByRole("tab").nth(i)).toHaveAccessibleName(n);
     await expect(nav(page)).toHaveAttribute("data-active", "catalog");
     await expect.poll(() => pillOff(page)).toBeLessThan(2);
@@ -63,8 +63,11 @@ test.describe("admin navigation", () => {
     await page.hover("#lock-btn");
     await expect.poll(() => label("#lock-btn")).toBeGreaterThan(30);
     // the active tab shows its name; with the room of a computer (1280 px) the first five tabs keep theirs written out
+    // (seven tabs: "lead" leaves out the labels of the last one or two tabs, Info and Statistik slide theirs out on hover)
     expect(await label('.tabs [data-state="active"]')).toBeGreaterThan(30);
     await expect(nav(page)).toHaveAttribute("data-fit", /^(lead|all)$/);
+    expect(+(await nav(page).getAttribute("data-lead"))).toBeGreaterThanOrEqual(5);
+    await expect(page.locator(".tabs .adm-lead")).toHaveCount(+(await nav(page).getAttribute("data-lead")));
     await page.mouse.move(0, 0);
     await expect.poll(() => label('.tabs [data-tab="recs"]')).toBeGreaterThan(30);
     // every item is at least 44 px high
