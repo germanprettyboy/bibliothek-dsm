@@ -99,7 +99,7 @@ export function Shelves({ ins, onCatalog }) {
     [t("shUnits"), nf(A.units.filter(u => u.boards.some(b => b.board)).length)],
     [t("shNoBoard"), nf(noBoard)],
     [t("shAz"), A.runs.length ? A.runs.map(r => r.base).join(", ") : t("shAzNone")],
-  ].concat(ok.size ? [[t("shOkN"), nf(items.length - open.length)]] : []);
+  ].concat(items.length > open.length ? [[t("shOkN"), nf(items.length - open.length)]] : []); // marks of this file only
   const sub = lines.map(l => l.join(": ")).join(" · ");
   const printLists = () => setJob({ kind: "lists", lists: lists.filter(c => c.rows.length), doc: t("shDoc") });
 
