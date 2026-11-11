@@ -161,6 +161,7 @@ p { text-wrap: pretty; }
 .mock .tl .st::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--off); }
 .mock .tl[aria-pressed="true"] .st::before { background: #6f9a52; }
 .mock .tl .nm { font-weight: 600; overflow-wrap: anywhere; }
+@container (max-width: 420px) { .mock .tl { padding: 12px 10px; } .mock .tl .nm { font-size: 14px; } }
 /* page map */
 .mock .plan { margin-top: 14px; display: grid; gap: 6px; padding: 10px; border-radius: 14px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
 .mock .blk { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); min-width: 0; }
