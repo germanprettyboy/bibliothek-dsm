@@ -143,5 +143,5 @@ B = built by `npm run build` from src/ (never edit), G = generated (never by han
 ## Not code
 
 - `docs/sitemap.md` – this file
-- `docs/entwuerfe/` – UI variants, also as private artifact https://claude.ai/artifact/EuCPm1eKryK64A8YD5ywNP (picks: `ArtifactData get`, collection `picks`, doc `main`)
+- `docs/entwuerfe/` – UI variants as pages with per-section picks: `index.html` = book list (private artifact https://claude.ai/artifact/EuCPm1eKryK64A8YD5ywNP), `verwaltung.html` = card "Website", archive note, preview (artifact ARTIFACT_URL); picks of each: `ArtifactData get`, collection `picks`, doc `main`
 - `anleitung/Anleitung_Verwaltung.html` – G: built guide (tools/build-guide.js), 340 KB

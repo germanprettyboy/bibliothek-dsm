@@ -104,7 +104,8 @@ export function Site({ books, setInfo, setDraft, go }) {
   };
 
   const row = "flex items-center gap-3 border-t border-border py-2.5";
-  const tile = "grid size-10 shrink-0 place-items-center rounded-lg shadow-[inset_0_0_0_1px_var(--line)]";
+  // Narrowest phones (320 px): no icon tile, and the names may break – otherwise the row is wider than the screen
+  const tile = "grid size-10 shrink-0 place-items-center rounded-lg shadow-[inset_0_0_0_1px_var(--line)] max-[22.5rem]:hidden";
   return (
     <Card id="site" className="mb-3.5">
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -124,7 +125,7 @@ export function Site({ books, setInfo, setDraft, go }) {
       <div className="mt-3 grid">
         <div className={cn(row, "border-t-0 pt-0")}>
           <span className="grid min-w-0 flex-1 gap-0.5">
-            <span className="font-semibold" id="site-all-t">{t("siteAll")}</span>
+            <span className="font-semibold [overflow-wrap:anywhere]" id="site-all-t">{t("siteAll")}</span>
             <span className="text-s text-muted-foreground" id="site-all-n">{t("siteAllN", { n: nf(onCount), m: nf(usable.length) })}</span>
           </span>
           <Switch
@@ -139,7 +140,7 @@ export function Site({ books, setInfo, setDraft, go }) {
             <div key={k} className={row} data-site={k} data-on={s.can && s.on ? "" : undefined}>
               <span className={cn(tile, !(s.can && s.on) && "text-muted-foreground")}><Icon size={18} strokeWidth={1.8} aria-hidden="true" /></span>
               <span className="grid min-w-0 flex-1 gap-0.5">
-                <span className="font-medium" id={"site-t-" + k}>{t("site_" + k)}</span>
+                <span className="font-medium [overflow-wrap:anywhere]" id={"site-t-" + k}>{t("site_" + k)}</span>
                 <span className="truncate text-s text-muted-foreground" id={"site-s-" + k} data-site-status>{status}</span>
               </span>
               {to ? (
