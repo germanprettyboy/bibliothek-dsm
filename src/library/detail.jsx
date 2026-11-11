@@ -1,4 +1,5 @@
-/* Detail view of a book: cover (or placeholder), details, for recommendations "Why this book?".
+/* Detail view of a book: cover (or placeholder), details, for recommendations "Why this book?", for a title that only
+   stands in the archive (location "Archiv …") the archive note #d-archive (drawer, "Archiv", one sentence).
    Tapping a real cover: the image flies via FLIP (transform only) into its own dialog in the center. */
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
@@ -12,6 +13,7 @@ import { useSwipe } from "@/lib/swipe";
 import { addStrings, useLanguage, t as tx } from "@/lib/language";
 import { Cover } from "@/library/cover";
 import { categoryName } from "@/library/categories";
+import { inArchive } from "@/library/data";
 
 addStrings({
   de: {
@@ -19,20 +21,37 @@ addStrings({
     publisher: "Verlag", year: "Jahr", isbn: "ISBN", category: "Kategorie", location: "Standort",
     coverEKZ: "Cover: ekz-Bibliotheksservice", coverOL: "Cover: Open Library",
     why: "Warum dieses Buch?",
+    archT: "Archiv", archP: "Der Titel entspricht nicht dem Bibliothekskonzept, er ist im Archiv zu erhalten.",
   },
   it: {
     coverZoom: "Ingrandisci copertina", coverBig: "Copertina",
     publisher: "Editore", year: "Anno", isbn: "ISBN", category: "Categoria", location: "Collocazione",
     coverEKZ: "Copertina: ekz-Bibliotheksservice", coverOL: "Copertina: Open Library",
     why: "Perché questo libro?",
+    archT: "Archivio", archP: "Il titolo non rientra nel progetto della biblioteca, è disponibile in archivio.",
   },
 });
 
 // Location texts come from the catalog in German ("Regal 3 Brett 2"): translate the two words for Italian
-const shelf = (s, lang) => (lang === "it" ? s.replace(/\s+Brett\s+(\d+)/i, ", ripiano $1").replace(/\s+Regal\s+(\d+)/i, " scaffale $1") : s);
+const shelf = (s, lang) => (lang === "it"
+  ? s.replace(/\s+Brett\s+(\d+)/i, ", ripiano $1").replace(/\s+Regal\s+(\d+)/i, " scaffale $1").replace(/^\s*Archiv(?=\s|$)/i, "Archivio") : s);
 const lines = a => a.map((x, n) => <React.Fragment key={n}>{n ? <br /> : null}{x}</React.Fragment>);
 
-export function Detail({ entry, onClose }) {
+// Stylized archive drawer: a cabinet, its upper drawer pulled out, three folders in logo colors standing in it
+const Drawer = () => (
+  <svg className="drawer shrink-0 text-muted-foreground" width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+    <rect className="f" x="15" y="8" width="7" height="13" rx="1.5" fill="var(--mauve)" />
+    <rect className="f" x="24.5" y="5" width="7" height="16" rx="1.5" fill="var(--blue)" />
+    <rect className="f" x="34" y="9" width="7" height="12" rx="1.5" fill="var(--green)" />
+    <rect x="8.8" y="17.8" width="38.4" height="14.4" rx="4" fill="var(--surface)" stroke="currentColor" strokeWidth="1.6" />
+    <rect x="22" y="22.8" width="12" height="4.4" rx="2.2" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M12.8 32.2V45a4 4 0 0 0 4 4h22.4a4 4 0 0 0 4-4V32.2" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M24 40.6h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+// archive = false: the note is switched off in the admin page (info.js "hide")
+export function Detail({ entry, onClose, archive = true }) {
   const { lang, t } = useLanguage();
   // content stays while fading out
   const [last, setLast] = React.useState(entry);
@@ -96,6 +115,15 @@ export function Detail({ entry, onClose }) {
               <b className="mb-1 block text-s font-semibold">{t("why")}</b>
               <p className="m-0 leading-normal">{txt || ""}</p>
             </div>
+            {archive && inArchive(b) ? (
+              <div className="arch card col-span-full flex items-center gap-4 px-4 py-3" id="d-archive" role="note">
+                <Drawer />
+                <div className="min-w-0">
+                  <b className="block font-semibold">{t("archT")}</b>
+                  <p className="m-0 mt-0.5 text-s leading-[1.4] text-muted-foreground">{t("archP")}</p>
+                </div>
+              </div>
+            ) : null}
             <dl className="col-span-full mt-1 mb-0 grid grid-cols-[max-content_1fr]" id="d-dl">
               {details.map(([k, v]) => (
                 <React.Fragment key={k}>

@@ -26,6 +26,7 @@ const AREAS = {
   "admin-stats": { specs: ["admin-stats"], about: "tab Statistik: charts" },
   "admin-recs": { specs: ["admin-recs"], about: "recommendation archive in the admin page" },
   "admin-info": { specs: ["admin-info"], about: "opening hours editor: Sunday, special hours, notice, contact" },
+  "admin-site": { specs: ["admin-site"], about: "card Website: switches per element and for all, jump to the editors, live preview" },
   engines: { specs: ["engines"], smoke: false, about: "basics in every engine (in a smoke run: Chromium only)" },
   a11y: { specs: ["a11y"], smoke: false, about: "axe WCAG 2.1 AA, every view" },
   performance: { specs: ["performance"], smoke: false, about: "CPU 4× budgets, 3× catalog" },

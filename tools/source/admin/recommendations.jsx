@@ -22,7 +22,7 @@ import { Publish } from "./publish";
 import { registerRestore } from "./versions";
 
 export const GROUPS = ["middle", "upper", "adult-fiction", "adult-nonfiction", "adult-bio"];
-const DRAFT = "dsm-recs-draft";
+export const DRAFT = "dsm-recs-draft";
 const normE = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
 const keyB = b => normE(b.t) + "|" + normE((b.a && b.a[0]) || "");
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -56,7 +56,11 @@ function cleanArchive(arc) {
   });
 }
 
-function recsOut(draft) {
+// Header line exactly as save.php expects it (DSM_FILES)
+export const recsText = out => "/* Book recommendations of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
+  "window.DSM_RECOMMENDATIONS = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n";
+
+export function recsOut(draft) {
   const pub = window.DSM_RECOMMENDATIONS || { groups: {} };
   const base = draft.restored || pub;
   const groups = {};
@@ -151,8 +155,7 @@ export function Recommendations({ draft, setDraft, catalog }) {
   const build = () => {
     const out = recsOut(draft);
     return {
-      text: "/* Book recommendations of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
-        "window.DSM_RECOMMENDATIONS = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n",
+      text: recsText(out),
       // afterwards the new state counts as published (otherwise the round would move into the archive twice next time)
       done: () => {
         window.DSM_RECOMMENDATIONS = out;

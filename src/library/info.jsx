@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
 import { addStrings, useLanguage, t } from "@/lib/language";
 import { useSwipe } from "@/lib/swipe";
-import { PREVIEW } from "@/library/data";
+import { PREVIEW, hiddenBy } from "@/library/data";
 
 addStrings({
   de: {
@@ -152,7 +152,8 @@ export function InfoCard({ I, onOpen, preview }) {
   const active = A && A.closedOn(today);
   const soonLimit = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 21, 12));
   const soon = A && A.closures.find(c => c !== active && c.to >= today && c.from <= soonLimit);
-  const show = !!A && !!(st || soon || A.closures.some(c => c.to >= today) || A.notice || A.hasContact);
+  // Switched off in the admin page (info.js "hide"): no card on the website; the admin preview still shows it
+  const show = !!A && (preview || !hiddenBy(I, "info")) && !!(st || soon || A.closures.some(c => c.to >= today) || A.notice || A.hasContact);
   // Remember for the next visit whether a card comes (placeholder, head.js); the preview doesn't count
   React.useEffect(() => {
     if (!PREVIEW && !preview && store.get("dsm-info-card") !== (show ? "1" : "0")) store.set("dsm-info-card", show ? "1" : "0");

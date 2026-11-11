@@ -109,6 +109,21 @@ test.describe("announcement", () => {
   });
 });
 
+test.describe("switched off in the admin page (card Website: info.js hide)", () => {
+  const body = hide => `window.DSM_INFO = ${JSON.stringify({ updated: "2026-10-01", hours: { ...HOURS, mon: [["08:00", "13:00"]] }, notice: { de: "", it: "" }, closures: [], announcement: ANN, hide })};\n`;
+  test("no banner and no opening hours card, although both are in the file; without hide both show", async ({ page }) => {
+    await page.route("**/info.js", r => r.fulfill({ body: body(["announcement", "info"]), contentType: "text/javascript" }));
+    await open(page);
+    await expect(banner(page)).toHaveCount(0);
+    await expect(page.locator("#info")).toBeHidden();
+    await page.unroute("**/info.js");
+    await page.route("**/info.js", r => r.fulfill({ body: body([]), contentType: "text/javascript" }));
+    await page.reload();
+    await expect(banner(page)).toHaveClass(/\bopen\b/);
+    await expect(page.locator("#info .info-card")).toBeVisible();
+  });
+});
+
 test.describe("announcement with reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
   test("there at once, no transition", async ({ page }) => {

@@ -1,5 +1,8 @@
 /* Admin app (gets encrypted, see tools/encrypt-admin.js): tabs catalog, care, shelves, covers, statistics, recommendations, info,
-   help page and lock in the navigation bar (nav.jsx).
+   help page and lock in the navigation bar (nav.jsx); card "Website" (site.jsx) on top of tab catalog.
+   Bond with the book list: admin.html#<tab>[:<element id>] opens a tab (and scrolls to the element); an open preview
+   (index.html#preview) gets the drafts of info and recommendations over BroadcastChannel "dsm-preview" on every change
+   and can ask for a tab ({edit}).
    React and the shared building blocks come from the page at runtime (src/admin/shared.js).
    After decryption the admin app registers itself as window.DSM_ADMIN, the lock then shows it. */
 import "./strings";
@@ -11,8 +14,9 @@ import { Catalog } from "./catalog";
 import { Covers } from "./covers";
 import { Care } from "./maintenance";
 import { Stats } from "./stats";
-import { Recommendations, loadDraft } from "./recommendations";
-import { Info, loadInfo } from "./info";
+import { Recommendations, loadDraft, recsOut } from "./recommendations";
+import { Info, loadInfo, infoOut } from "./info";
+import { Site } from "./site";
 import { Help } from "./help";
 import { AdminNav, TABS } from "./nav";
 import { registerRestore } from "./versions";
@@ -32,8 +36,14 @@ function loadExtra() {
 const cleanCatIt = o => Object.fromEntries(Object.keys(o).sort().map(k => [k, String(o[k] || "").trim()]).filter(([, v]) => v));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+// "info:i-ann" → ["info", "i-ann"]; unknown tab → null
+const target = to => {
+  const [name, id] = String(to || "").split(":");
+  return TABS.some(x => x[0] === name) ? [name, /^[\w-]+$/.test(id || "") ? id : ""] : null;
+};
+
 function App({ lock }) {
-  const [tab, setTab] = React.useState("catalog");
+  const [tab, setTab] = React.useState(() => (target(location.hash.slice(1)) || ["catalog"])[0]);
   const [help, setHelp] = React.useState(false);
   // Catalog: published list, imported database, maintenance analysis, cover coverage
   const [cur, setCur] = React.useState(window.DSM_LIBRARY);
@@ -47,6 +57,44 @@ function App({ lock }) {
   const [fixed, setFixed] = React.useState(null);
   const [draft, setDraft] = React.useState(loadDraft);
   const [info, setInfo] = React.useState(loadInfo);
+
+  // Open a tab, scroll to one of its elements (below the floating navigation) and mark it for a moment
+  const go = React.useCallback(to => {
+    const x = target(to);
+    if (!x) return;
+    setTab(x[0]);
+    setTimeout(() => {
+      const el = x[1] && document.getElementById(x[1]);
+      if (!el) { window.scrollTo(0, 0); return; }
+      window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + window.scrollY - 88));
+      el.classList.add("site-flash");
+      setTimeout(() => el.classList.remove("site-flash"), 1600);
+    }, 60);
+  }, []);
+  React.useEffect(() => {
+    const onHash = () => go(location.hash.slice(1));
+    if (location.hash.includes(":")) onHash();
+    addEventListener("hashchange", onHash);
+    return () => removeEventListener("hashchange", onHash);
+  }, [go]);
+  // Live preview: an open index.html#preview follows the drafts (it asks with {hello}) and can ask for a tab ({edit})
+  const channel = React.useRef(null), drafts = React.useRef(null);
+  drafts.current = { info, draft };
+  const send = () => { if (channel.current) channel.current.postMessage({ info: infoOut(drafts.current.info), recs: recsOut(drafts.current.draft) }); };
+  React.useEffect(() => {
+    if (typeof BroadcastChannel !== "function") return undefined;
+    const ch = channel.current = new BroadcastChannel("dsm-preview");
+    ch.onmessage = e => {
+      const d = e.data || {};
+      if (d.hello) send();
+      if (typeof d.edit === "string") go(d.edit);
+    };
+    return () => { channel.current = null; ch.close(); };
+  }, [go]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    const id = setTimeout(send, 150);
+    return () => clearTimeout(id);
+  }, [info, draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
     if (!extra.changed) return undefined;
@@ -131,7 +179,7 @@ function App({ lock }) {
   return (
     <Tabs value={tab} onValueChange={setTab}>
       <AdminNav tab={tab} lock={lock} onHelp={() => setHelp(true)} />
-      <TabsContent value="catalog"><Catalog B={B} /></TabsContent>
+      <TabsContent value="catalog"><Site books={books} setInfo={setInfo} setDraft={setDraft} go={go} /><Catalog B={B} /></TabsContent>
       <TabsContent value="shelves"><Shelves ins={ins} onCatalog={() => setTab("catalog")} /></TabsContent>
       <TabsContent value="covers"><Covers B={B} /></TabsContent>
       <TabsContent value="care"><Care B={B} ins={ins} report={result && result.report} cov={cov} onCatalog={() => setTab("catalog")} /></TabsContent>

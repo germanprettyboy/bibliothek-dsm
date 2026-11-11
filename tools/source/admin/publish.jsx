@@ -28,7 +28,7 @@ let state = { folder: null, message: {}, running: null, server: null, v: 0 };
 const listeners = new Set();
 const update = next => { state = { ...state, ...next }; listeners.forEach(fn => fn()); };
 const message = (file, m) => update({ message: { ...state.message, [file]: m } });
-const usePub = () => React.useSyncExternalStore(fn => { listeners.add(fn); return () => listeners.delete(fn); }, () => state);
+export const usePub = () => React.useSyncExternalStore(fn => { listeners.add(fn); return () => listeners.delete(fn); }, () => state);
 
 // IndexedDB "dsm-admin" store "kv" (the database is opened by versions.js, which also owns the store "versions")
 function kv(mode, op) {
@@ -296,27 +296,36 @@ async function write(file, text) {
   return { live: false, o: dir.name };
 }
 
-// build() returns { text, done }: done() runs after a successful write (the new state counts as published)
+// build() returns { text, done }: done() runs after a successful write (the new state counts as published).
+// Resolves { mode: "live" | "folder" | "download", message? } or { error: message } or { cancelled: true } (folder dialog).
 async function publish(file, build, lang) {
   const { text, done } = build();
   if (!live() && !FS) {
     download(file, text);
     versions.record(file, text, { note: "download", live: false });
-    return;
+    return { mode: "download" };
   }
   update({ running: file });
   try {
     const z = new Date().toLocaleTimeString(lang === "it" ? "it-IT" : "de-DE", { hour: "2-digit", minute: "2-digit" });
     const w = await write(file, text);
-    message(file, w.live ? { key: "pubLiveOk", vars: { f: file, z } } : { key: "pubOk", vars: { f: file, o: w.o, z } });
+    const m = w.live ? { key: "pubLiveOk", vars: { f: file, z } } : { key: "pubOk", vars: { f: file, o: w.o, z } };
+    message(file, m);
     done();
     versions.record(file, text);
+    return { mode: w.live ? "live" : "folder", message: m };
   } catch (e) {
-    if (!e || e.name !== "AbortError") { message(file, failure(e)); log("Publish", `${file} not saved: ${(e && e.message) || e}`); }
+    if (e && e.name === "AbortError") return { cancelled: true };
+    const m = failure(e);
+    message(file, m);
+    log("Publish", `${file} not saved: ${(e && e.message) || e}`);
+    return { error: m };
   } finally {
     update({ running: null });
   }
 }
+// One-click publishing of the card "Website" (site.jsx)
+export const publishNow = publish;
 async function changeFolder(file) {
   try { await chooseFolder(); message(file, null); } catch (err) { if (!err || err.name !== "AbortError") message(file, failure(err)); }
 }

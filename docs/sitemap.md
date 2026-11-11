@@ -66,6 +66,7 @@ B = built by `npm run build` from src/ (never edit), G = generated (never by han
 - `tools/source/extract.js` – WinBook SQLite → public list (whitelist, name check, `inspect()`); encrypted with the admin app
 - `tools/source/admin/app.jsx` – admin app root: tabs, nav, help, lock; sets `window.DSM_ADMIN`
 - `tools/source/admin/nav.jsx` – floating tab bar Bestand … Statistik (7 tabs), help, lock; label fit all/lead/active/none
+- `tools/source/admin/site.jsx` – card "Website" on top of tab Bestand: one switch per element of the book list + one for all (publishes at once), jump to the editors, live preview
 - `tools/source/admin/catalog.jsx` – tab Bestand: import WinBook file, loader, report, Italian categories, publish books.js
 - `tools/source/admin/maintenance.jsx` – tab Pflege: maintenance lists, Excel/CSV/print/PDF
 - `tools/source/admin/fixes.jsx` – tab Pflege: automatic corrections (public list only)
@@ -86,7 +87,7 @@ B = built by `npm run build` from src/ (never edit), G = generated (never by han
 - `tools/source/admin/help.jsx` – help page dialog (sidebar, search)
 - `tools/source/admin/help-content.js` – help content DE/IT as data; 1,100 lines: grep the id
 - `tools/source/admin/strings.js` – shared admin texts DE/IT (tab, list and column names)
-- `tools/source/admin/strings-*.js` – texts per area: care, fixes, help, import, nav, shelves, stats, table, versions
+- `tools/source/admin/strings-*.js` – texts per area: care, fixes, help, import, nav, shelves, site, stats, table, versions
 - `tools/encrypt-admin.js` – `npm run encrypt`: bundle admin app + extract.js, encrypt → admin.enc.js + save-access.php
 - `tools/check-admin.cjs` – compile check of the admin app (no password, writes nothing)
 - `tools/generate-books.js` – `npm run books`: data/*.winbook → website/books.js (name check, exit 2)

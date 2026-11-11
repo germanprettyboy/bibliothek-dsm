@@ -5,6 +5,13 @@ import { store } from "@/lib/storage";
 
 export const PREVIEW = location.hash === "#preview";
 
+// Locations named "Archiv", "Archiv 1", "Archiv 2" … (WinBook "Standort"): the copy is kept in the archive. A title
+// only counts as archived if every copy is there – one copy on a shelf can simply be taken.
+const ARCHIVE = /^\s*archiv/i;
+export const inArchive = b => !!(b && b.l && b.l.length) && b.l.every(s => ARCHIVE.test(s));
+// Elements switched off in the admin page (info.js "hide"): "announcement" | "info" | "archive"
+export const hiddenBy = (I, k) => !!(I && Array.isArray(I.hide) && I.hide.includes(k));
+
 export const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
   .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
 // Key of the recommendations: title + first author
