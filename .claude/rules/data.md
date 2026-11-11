@@ -5,7 +5,7 @@ paths:
   - "tools/migrate-data.mjs"
   - "src/library/data.js"
   - "src/library/info.jsx"
-  - "tools/source/admin/{catalog,publish,recommendations,info,covers,maintenance,fixes,stats}.jsx"
+  - "tools/source/admin/{catalog,publish,recommendations,info,covers,maintenance,fixes,stats,site}.jsx"
   - "tools/source/admin/{fixes-core,versions,table-data}.js"
   - "website/books.js"
   - "website/recommendations.js"
@@ -33,6 +33,8 @@ paths:
   archive?:[{updated, topic?, groups}]}` (newest first, max 40). Other books = new round (old one to archive); only texts → same round.
   `k` = norm(title)|norm(first author) (lower case, no accents, ß→ss, a–z0–9 and spaces).
 - `info.js`: `{updated, hours:{mon..sun:[["HH:MM","HH:MM"]]}, notice:{de,it,from?,to?}, contact?:{email?,phone?,de?,it?},
-  closures:[{type:"holiday"|"absent"|"special",from,to,de,it,hours?}], announcement?:{de,it,color,until?}}` (YYYY-MM-DD; `special` with
-  1–2 hours = open ONLY then, holiday/absence wins). NOT committed (`.gitignore`); missing = no info card.
+  closures:[{type:"holiday"|"absent"|"special",from,to,de,it,hours?}], announcement?:{de,it,color,until?},
+  hide?:["announcement"|"info"|"archive"]}` (YYYY-MM-DD; `special` with 1–2 hours = open ONLY then, holiday/absence wins; `hide` =
+  elements switched off in the admin card "Website", their data stays). NOT committed (`.gitignore`); missing = no info card.
+- Location names starting with "Archiv" (books.js `l`) mark a copy as kept in the archive (`inArchive`, `src/library/data.js`).
 - A changed data format = full CI.

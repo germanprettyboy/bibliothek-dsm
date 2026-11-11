@@ -114,11 +114,6 @@ export function Info({ info, setInfo }) {
     resort.current = false;
     setOrder(sorted(info.closures));
   }, [info]);
-  React.useEffect(() => {
-    if (!info.changed) return undefined;
-    const id = setTimeout(() => { const { changed, ...d } = info; store.set(IDRAFT, JSON.stringify(d)); }, 300); // eslint-disable-line no-unused-vars
-    return () => clearTimeout(id);
-  }, [info]);
   // Edit a new field (time range, entry) right away
   React.useEffect(() => {
     if (!focus.current) return;

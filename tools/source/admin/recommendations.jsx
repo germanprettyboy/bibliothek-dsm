@@ -80,6 +80,16 @@ export function recsOut(draft) {
   return out;
 }
 
+// A changed draft is saved after 300 ms of quiet. Called by the app (always mounted), not by the tab: leaving the tab
+// within those 300 ms cancelled the timer, and the last change was lost on a reload.
+export function useDraftSaving(key, draft) {
+  React.useEffect(() => {
+    if (!draft.changed) return undefined;
+    const id = setTimeout(() => { const { changed, ...d } = draft; store.set(key, JSON.stringify(d)); }, 300); // eslint-disable-line no-unused-vars
+    return () => clearTimeout(id);
+  }, [key, draft]);
+}
+
 export function Recommendations({ draft, setDraft, catalog }) {
   const { t, df, lang } = useLanguage();
   const [g, setG] = React.useState("middle");
@@ -89,13 +99,8 @@ export function Recommendations({ draft, setDraft, catalog }) {
   const listRef = React.useRef(null), focusNew = React.useRef(false);
   const list = draft.groups[g], full = list.length >= 4;
 
-  // Change = new draft object (group copied), saved after 300 ms of quiet
+  // Change = new draft object (group copied), saved after 300 ms of quiet (useDraftSaving in app.jsx)
   const change = fn => setDraft(d => { const n = { ...d, topic: { ...d.topic }, groups: { ...d.groups, [g]: d.groups[g].map(r => ({ ...r })) } }; fn(n); n.changed = true; return n; });
-  React.useEffect(() => {
-    if (!draft.changed) return undefined;
-    const id = setTimeout(() => { const { changed, ...d } = draft; store.set(DRAFT, JSON.stringify(d)); }, 300); // eslint-disable-line no-unused-vars
-    return () => clearTimeout(id);
-  }, [draft]);
   // After adding: edit the text of the new book right away
   React.useEffect(() => {
     if (!focusNew.current) return;

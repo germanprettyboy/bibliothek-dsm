@@ -14,8 +14,8 @@ import { Catalog } from "./catalog";
 import { Covers } from "./covers";
 import { Care } from "./maintenance";
 import { Stats } from "./stats";
-import { Recommendations, loadDraft, recsOut } from "./recommendations";
-import { Info, loadInfo, infoOut } from "./info";
+import { Recommendations, loadDraft, recsOut, useDraftSaving, DRAFT } from "./recommendations";
+import { Info, loadInfo, infoOut, IDRAFT } from "./info";
 import { Site } from "./site";
 import { Help } from "./help";
 import { AdminNav, TABS } from "./nav";
@@ -57,6 +57,8 @@ function App({ lock }) {
   const [fixed, setFixed] = React.useState(null);
   const [draft, setDraft] = React.useState(loadDraft);
   const [info, setInfo] = React.useState(loadInfo);
+  useDraftSaving(DRAFT, draft);
+  useDraftSaving(IDRAFT, info);
 
   // Open a tab, scroll to one of its elements (below the floating navigation) and mark it for a moment
   const go = React.useCallback(to => {

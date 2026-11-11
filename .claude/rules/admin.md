@@ -28,6 +28,14 @@ paths:
 - Floating sticky nav bar (`nav.jsx`): tabs Bestand | Pflege | Regale | Cover | Empfehlungen | Info | Statistik (column 54rem,
   `body.adm`), then help (`?`, `help.jsx`) and lock. At 1280 px the first five tab labels stay written out (fit "lead" leaves out
   the last one or two, `data-lead`). Charts only in tab Statistik.
+- Card "Website" (`site.jsx`, on top of tab Bestand; Johann, 2026-11-11: "everything changeable with one click"): one switch per
+  element of the book list (Ankündigung, Öffnungszeiten, Empfehlungen, Archiv-Hinweis) and one for all. A switch publishes at once
+  like the publish cards – the PUBLISHED file with only the switch changed (info.js `hide`, recommendations.js `off`); drafts stay
+  drafts and get the same switch. "Bearbeiten" and `admin.html#<tab>[:<element id>]` open an editor; "Live-Vorschau" opens
+  `index.html#preview`, which follows the drafts over BroadcastChannel `dsm-preview` and can ask for a tab (`{edit}`).
+  No iframe preview: `.htaccess` forbids framing (`X-Frame-Options: DENY`) on purpose.
+- Drafts (`dsm-recs-draft`, `dsm-info-draft`) are saved by the app (`useDraftSaving` in `app.jsx`), not by the tabs: a tab unmounts
+  when it is left.
 - Tab Regale (`shelves.jsx`, logic `shelves-core.js`, attached to the maintenance analysis on import): WinBook only knows where a
   copy should stand, so "placed wrong" = location doesn't fit the shelf order (category home, A–Z section, no board). Its lists
   also appear in Pflege (group `place`). "Passt so" (`dsm-shelf-ok`) and the inventory (`dsm-inventory`) stay in this browser,
