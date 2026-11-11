@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { store, log } from "@/lib/storage";
 import { useLanguage } from "@/lib/language";
 import { reduced } from "@/lib/environment";
-import { PREVIEW } from "@/library/data";
+import { PREVIEW, hiddenBy } from "@/library/data";
 
 const KEY = "dsm-announce";
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -20,7 +20,7 @@ const idOf = a => { let h = 0x811c9dc5; for (const c of (a.de || "") + "|" + (a.
 
 export function announcementOf(I, lang) {
   const a = I && I.announcement;
-  if (!a) return null;
+  if (!a || hiddenBy(I, "announcement")) return null; // switched off in the admin page: the text stays in info.js
   const text = String(a[lang] || a.de || a.it || "").trim();
   if (!text || (ISO.test(a.until || "") && a.until < today())) return null;
   return { text, color: a.color, id: idOf(a) };

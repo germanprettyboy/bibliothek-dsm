@@ -1,7 +1,7 @@
-// Detail view with cover (ekz / Open Library mocked, never Google), placeholder, closing.
+// Detail view with cover (ekz / Open Library mocked, never Google), placeholder, closing, archive note.
 const fs = require("fs");
 const path = require("path");
-const { test, expect, PHONE, open, settled, swipeStages, data } = require("./helpers.js");
+const { test, expect, PHONE, open, settled, swipeStages, data, OFF } = require("./helpers.js");
 
 const { B } = data();
 const WITH_ISBN = B.books.find(b => b.i && b.p && b.y && b.c && b.l && b.a);
@@ -300,5 +300,87 @@ test.describe("detail on the phone", () => {
     await open(page);
     await openBook(page, WITH_ISBN);
     await swipeStages(page, page.locator("#detail"));
+  });
+});
+
+// Location "Archiv", "Archiv 1" … on every copy: the note #d-archive (drawer left, "Archiv", one sentence). Books via the preview.
+const ARCHIVE_BOOKS = [
+  { t: "Archivbuch", a: ["Erika Beispiel"], y: "1987", l: ["Archiv 2"] },
+  { t: "Beide Orte", l: ["Archiv", "Jugendbücher 3 Brett 2"] },
+  { t: "Regalbuch", l: ["Jugendbücher 3 Brett 2"] },
+];
+const ARCHIVE_PREVIEW = JSON.stringify({ updated: "2026-01-01", count: ARCHIVE_BOOKS.length, books: ARCHIVE_BOOKS });
+const NOTE_DE = "Der Titel entspricht nicht dem Bibliothekskonzept, er ist im Archiv zu erhalten.";
+async function openRow(page, n) {
+  await page.locator("#list .row").nth(n).click();
+  await expect(page.locator("#detail")).toBeVisible();
+}
+
+test.describe("archive note", () => {
+  test.use({ storage: { "dsm-recs": OFF, "dsm-preview": ARCHIVE_PREVIEW } });
+
+  test("title only in the archive: drawer on the left, „Archiv“ and the sentence beside it, above the details", { tag: "@smoke" }, async ({ page }) => {
+    await open(page, "index.html#preview");
+    await openRow(page, 0);
+    const note = page.locator("#d-archive");
+    await expect(note).toBeVisible();
+    await expect(note.locator("b")).toHaveText("Archiv");
+    await expect(note.locator("p")).toHaveText(NOTE_DE);
+    await settled(page);
+    const [drawer, title, text, dl] = await Promise.all(["svg.drawer", "b", "p"].map(s => note.locator(s).boundingBox()).concat(page.locator("#d-dl").boundingBox()));
+    expect(drawer.x + drawer.width).toBeLessThanOrEqual(title.x);
+    expect(title.y + title.height).toBeLessThanOrEqual(text.y + 1);
+    expect(text.y + text.height).toBeLessThanOrEqual(dl.y);
+    // the sentence smaller and more muted than the heading
+    const st = await note.evaluate(n => { const b = getComputedStyle(n.querySelector("b")), p = getComputedStyle(n.querySelector("p")); return [parseFloat(b.fontSize), parseFloat(p.fontSize), b.color, p.color]; });
+    expect(st[1]).toBeLessThan(st[0]);
+    expect(st[3]).not.toBe(st[2]);
+    await expect(page.locator("#d-dl")).toContainText("Archiv 2");
+  });
+
+  test("a copy on a shelf or no archive location: no note", async ({ page }) => {
+    await open(page, "index.html#preview");
+    await openRow(page, 1);
+    await expect(page.locator("#d-dl")).toContainText("Jugendbücher 3 Brett 2");
+    await expect(page.locator("#d-archive")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#detail")).toBeHidden();
+    await openRow(page, 2);
+    await expect(page.locator("#d-archive")).toHaveCount(0);
+  });
+
+  test("Italian: „Archivio“, also in the location", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("dsm-lang", "it"));
+    await open(page, "index.html#preview");
+    await openRow(page, 0);
+    await expect(page.locator("#d-archive b")).toHaveText("Archivio");
+    await expect(page.locator("#d-archive p")).toHaveText("Il titolo non rientra nel progetto della biblioteca, è disponibile in archivio.");
+    await expect(page.locator("#d-dl dd").last()).toHaveText("Archivio 2");
+  });
+
+  test("switched off in the admin page (info.js hide): no note", async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("dsm-preview-info", JSON.stringify({ updated: "2026-10-01", hours: {}, closures: [], hide: ["archive"] })));
+    await open(page, "index.html#preview");
+    await openRow(page, 0);
+    await expect(page.locator("#d-dl")).toContainText("Archiv 2");
+    await expect(page.locator("#d-archive")).toHaveCount(0);
+  });
+});
+
+test.describe("archive note on the phone", () => {
+  test.use({ ...PHONE, storage: { "dsm-recs": OFF, "dsm-preview": ARCHIVE_PREVIEW } });
+
+  test("fits the sheet: drawer left, text right, nothing cut off", async ({ page }) => {
+    await open(page, "index.html#preview");
+    await openRow(page, 0);
+    const note = page.locator("#d-archive");
+    await expect(note).toBeVisible();
+    await settled(page);
+    const [box, drawer, text] = await Promise.all([note.boundingBox(), note.locator("svg.drawer").boundingBox(), note.locator("p").boundingBox()]);
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    expect(drawer.x + drawer.width).toBeLessThanOrEqual(text.x);
+    expect(text.x + text.width).toBeLessThanOrEqual(box.x + box.width);
+    expect(await note.locator("p").evaluate(p => p.scrollWidth <= p.clientWidth)).toBe(true);
   });
 });

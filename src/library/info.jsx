@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { store } from "@/lib/storage";
 import { addStrings, useLanguage, t } from "@/lib/language";
 import { useSwipe } from "@/lib/swipe";
-import { PREVIEW } from "@/library/data";
+import { PREVIEW, hiddenBy } from "@/library/data";
 
 addStrings({
   de: {
@@ -118,9 +118,19 @@ function evaluate(I, lang, today) {
 
 // The library is in Milan: "open now" in Italian time, also on a device set to another time zone.
 // Returns the wall-clock time there as a local Date (everything here reads the local fields). Old browser: device time.
+// Rome's distance from UTC in minutes by the EU rule: summer time from the last Sunday of March to the last Sunday of
+// October, switching at 01:00 UTC
+function romeOffset(d) {
+  const lastSunday = m => { const x = new Date(Date.UTC(d.getUTCFullYear(), m + 1, 0, 1)); x.setUTCDate(x.getUTCDate() - x.getUTCDay()); return x.getTime(); };
+  return d.getTime() >= lastSunday(2) && d.getTime() < lastSunday(9) ? 120 : 60;
+}
 let milan;
 function milanNow() {
   const d = new Date();
+  // Device on Milan time (nearly every visitor): its own clock is the answer. Intl only for other time zones – or if the
+  // rule above should ever stop matching the device's time zone data: the first Intl object of a page costs ≈ 12 ms
+  // (ICU start, ≈ 50 ms on a slow phone), a third of the first render.
+  if (-d.getTimezoneOffset() === romeOffset(d)) return d;
   try {
     milan = milan || new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Rome", hourCycle: "h23",
       year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
@@ -130,8 +140,8 @@ function milanNow() {
   } catch (e) { return d; }
 }
 
-// Recompute every minute (and on returning to the tab)
-function useNow() {
+// Recompute every minute (and on returning to the tab); on = false: nothing to show, the device time will do
+function useNow(on = true) {
   const [, setN] = React.useState(0);
   React.useEffect(() => {
     const tick = () => { if (!document.hidden) setN(n => n + 1); };
@@ -139,20 +149,21 @@ function useNow() {
     document.addEventListener("visibilitychange", tick);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", tick); };
   }, []);
-  return milanNow();
+  return on ? milanNow() : new Date();
 }
 
 // preview: live preview in the admin page (tab Info) – remembers nothing for the next visit
 export function InfoCard({ I, onOpen, preview }) {
   const { lang } = useLanguage();
-  const now = useNow();
+  const now = useNow(!!I);
   const today = iso(now);
   const A = I ? evaluate(I, lang, today) : null;
   const st = A && A.status(now);
   const active = A && A.closedOn(today);
   const soonLimit = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 21, 12));
   const soon = A && A.closures.find(c => c !== active && c.to >= today && c.from <= soonLimit);
-  const show = !!A && !!(st || soon || A.closures.some(c => c.to >= today) || A.notice || A.hasContact);
+  // Switched off in the admin page (info.js "hide"): no card on the website; the admin preview still shows it
+  const show = !!A && (preview || !hiddenBy(I, "info")) && !!(st || soon || A.closures.some(c => c.to >= today) || A.notice || A.hasContact);
   // Remember for the next visit whether a card comes (placeholder, head.js); the preview doesn't count
   React.useEffect(() => {
     if (!PREVIEW && !preview && store.get("dsm-info-card") !== (show ? "1" : "0")) store.set("dsm-info-card", show ? "1" : "0");

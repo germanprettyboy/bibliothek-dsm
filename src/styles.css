@@ -606,6 +606,8 @@
   .shake { animation: shake var(--t-slow) ease-out; }
 
   /* Admin page: notice bars (green = good, yellow = check, red = error) */
+  /* Jump from the card "Website" or the live preview to an editor: the element is framed for a moment */
+  .site-flash { border-radius: 16px; animation: site-flash 1.6s var(--ease) both; }
   .flag { border-left: 4px solid var(--green); padding: 10px 14px; background: var(--surface); border-radius: 0 10px 10px 0; }
   .flag.warn { border-left-color: var(--red); }
   .flag.mid { border-left-color: var(--yellow); }
@@ -915,6 +917,7 @@
 .toaster[data-sonner-toaster] .has-btn { padding: 0; }
 .toast-btn { display: block; width: 100%; padding: 12px 18px; border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: left; }
 
+@keyframes site-flash { 0%, 60% { box-shadow: 0 0 0 3px var(--orange); } 100% { box-shadow: 0 0 0 3px transparent; } }
 @keyframes rise { from { opacity: .001; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes pop-a { 40% { transform: scale(1.18); } }
 @keyframes pop-b { 40% { transform: scale(1.18); } }

@@ -57,9 +57,17 @@ export const getLang = () => lang;
 
 // Number and date format per language (create the Intl objects only once)
 const NF = {};
-// Grouping fixed: left to the browser, Italian 4545 depends on its CLDR version ("4545" Chrome, "4.545" Safari)
-export const nf = n => (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE",
-  { useGrouping: lang === "it" ? "min2" : "auto" }))).format(n);
+// Grouping fixed: left to the browser, Italian 4545 depends on its CLDR version ("4545" Chrome, "4.545" Safari).
+// Whole numbers by hand – German groups from 1.000, Italian from 10.000 (Intl "min2"): the first Intl object of a page
+// starts ICU (≈ 12 ms, ≈ 50 ms on a slow phone), and "4.545 Bücher" would be it while the list arrives.
+export const nf = n => {
+  if (Number.isInteger(n) && Math.abs(n) < 1e15) {
+    const s = String(Math.abs(n));
+    return (n < 0 ? "-" : "") + (s.length > (lang === "it" ? 4 : 3) ? s.replace(/\B(?=(\d{3})+$)/g, ".") : s);
+  }
+  return (NF[lang] || (NF[lang] = new Intl.NumberFormat(lang === "it" ? "it-IT" : "de-DE",
+    { useGrouping: lang === "it" ? "min2" : "auto" }))).format(n);
+};
 export function df(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
   if (!m) return iso || "";

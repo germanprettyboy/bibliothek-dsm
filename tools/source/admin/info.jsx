@@ -19,13 +19,16 @@ import { Publish } from "./publish";
 import { registerRestore } from "./versions";
 
 const IDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
-const IDRAFT = "dsm-info-draft";
+export const IDRAFT = "dsm-info-draft";
+// Elements of the book list that can be switched off (card "Website", site.jsx): info.js "hide"
+export const HIDE = ["announcement", "info", "archive"];
 const HHMM = /^\d{2}:\d{2}$/, YMD = /^\d{4}-\d{2}-\d{2}$/;
 const today = () => new Date().toLocaleDateString("sv-SE");
 const ANN_MAX = 140; // one or two lines on the phone
 export function normInfo(x) {
   const o = { hours: {}, notice: { de: "", it: "", from: "", to: "" }, contact: { email: "", phone: "", de: "", it: "" }, closures: [],
-    announcement: { de: "", it: "", color: "neutral", until: "" } };
+    announcement: { de: "", it: "", color: "neutral", until: "" },
+    hide: HIDE.filter(k => !!x && Array.isArray(x.hide) && x.hide.includes(k)) };
   IDAYS.forEach(k => { o.hours[k] = (x && x.hours && Array.isArray(x.hours[k]) ? x.hours[k] : []).slice(0, 2).map(r => [r[0] || "", r[1] || ""]); });
   if (x && x.notice) o.notice = { de: x.notice.de || "", it: x.notice.it || "", from: x.notice.from || "", to: x.notice.to || "" };
   if (x && x.contact) o.contact = { email: x.contact.email || "", phone: x.contact.phone || "", de: x.contact.de || "", it: x.contact.it || "" };
@@ -56,7 +59,7 @@ function cloProblem(c) {
 }
 // Order of the entries (by first day); only renewed on add/remove/type change, not while typing
 const sorted = l => l.map((c, n) => n).sort((a, b) => { const x = l[a].from || "9", y = l[b].from || "9"; return x < y ? -1 : x > y ? 1 : a - b; });
-function infoOut(info) {
+export function infoOut(info) {
   const hours = {};
   IDAYS.forEach(k => { hours[k] = info.hours[k].filter(okRange).map(r => [r[0], r[1]]).sort(); });
   const closures = info.closures.filter(c => YMD.test(c.from))
@@ -80,8 +83,14 @@ function infoOut(info) {
     out.announcement = { de, it, color: announceColor(a.color) };
     if (YMD.test(a.until)) out.announcement.until = a.until;
   }
+  if (info.hide && info.hide.length) out.hide = info.hide.slice();
   return out;
 }
+// info.js without any entry (nothing published yet)
+export const emptyInfo = () => infoOut(normInfo(null));
+// Header line exactly as save.php expects it (DSM_FILES), otherwise publishing online fails with "format"
+export const infoText = out => "/* Opening hours, holidays and absences of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
+  "window.DSM_INFO = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n";
 
 export function Info({ info, setInfo }) {
   const { t, nf, lang } = useLanguage();
@@ -93,6 +102,7 @@ export function Info({ info, setInfo }) {
     if (sortAgain) resort.current = true;
     setInfo(old => {
       const n = { hours: { ...old.hours }, notice: { ...old.notice }, contact: { ...old.contact }, announcement: { ...old.announcement }, changed: true,
+        hide: (old.hide || []).slice(),
         closures: old.closures.map(c => (c.hours ? { ...c, hours: c.hours.map(r => r.slice()) } : { ...c })) };
       IDAYS.forEach(k => { n.hours[k] = old.hours[k].map(r => r.slice()); });
       fn(n);
@@ -103,11 +113,6 @@ export function Info({ info, setInfo }) {
     if (!resort.current) return;
     resort.current = false;
     setOrder(sorted(info.closures));
-  }, [info]);
-  React.useEffect(() => {
-    if (!info.changed) return undefined;
-    const id = setTimeout(() => { const { changed, ...d } = info; store.set(IDRAFT, JSON.stringify(d)); }, 300); // eslint-disable-line no-unused-vars
-    return () => clearTimeout(id);
   }, [info]);
   // Edit a new field (time range, entry) right away
   React.useEffect(() => {
@@ -141,12 +146,7 @@ export function Info({ info, setInfo }) {
   }), [setInfo]);
   const build = () => {
     const out = infoOut(info);
-    return {
-      // Header line exactly as save.php expects it (DSM_FILES), otherwise publishing online fails with "format"
-      text: "/* Opening hours, holidays and absences of the library of the Deutsche Schule Mailand. Maintained via admin.html – do not edit by hand. */\n" +
-        "window.DSM_INFO = " + JSON.stringify(out, null, 1).replace(/</g, "\\u003c") + ";\n",
-      done: () => { window.DSM_INFO = out; },
-    };
+    return { text: infoText(out), done: () => { window.DSM_INFO = out; } };
   };
   const preview = React.useMemo(() => infoOut(info), [info]);
   const ann = info.announcement;

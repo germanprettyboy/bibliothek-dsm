@@ -235,6 +235,20 @@ export const HELP = {
           ],
         },
         {
+          id: "site",
+          title: "Karte „Website“: ein- und ausschalten",
+          blocks: [
+            "Oben im Tab [[Bestand]] zeigt die Karte „Website“, was die Bücherliste gerade anzeigt: Ankündigung, Öffnungszeiten, Empfehlungen und den Archiv-Hinweis im Buch. Jeder Schalter gilt sofort für die Website, ohne den Umweg über „Veröffentlichen“. Texte und Zeiten bleiben gespeichert; ausgeschaltet heißt nur: Besucher sehen es nicht.",
+            { list: [
+              "[[Alle Zusätze]] schaltet alles auf einmal aus oder wieder ein.",
+              "[[Bearbeiten]] springt zur passenden Stelle in den Tabs [[Info]] oder [[Empfehlungen]].",
+              "[[Live-Vorschau]] öffnet die Bücherliste in einem zweiten Fenster. Solange die Verwaltung offen bleibt, folgt sie jeder Änderung beim Tippen; die Namen im gelben Streifen führen zurück zur passenden Stelle in der Verwaltung.",
+            ] },
+            { tip: "Der Archiv-Hinweis erscheint bei Titeln, deren Standort in WinBook mit „Archiv“ beginnt (Archiv, Archiv 1, Archiv 2 …) und von denen kein Exemplar in einem Regal steht." },
+            { tab: "catalog" },
+          ],
+        },
+        {
           id: "lock",
           title: "Sperren und Sitzung (4 Stunden)",
           blocks: [
@@ -805,6 +819,20 @@ export const HELP = {
             "[[Vedi anteprima]] apre l'elenco dei libri in una nuova scheda con le modifiche non ancora pubblicate – catalogo, consigli o orari. Una striscia gialla indica che si tratta di un'anteprima. È visibile solo su questo computer.",
             { list: ["Per prova cerchi un libro appena acquistato o controlli gli orari.", "Poi chiuda la scheda dell'anteprima e pubblichi qui."] },
             { tip: "L'anteprima mostra solo ciò che è stato creato in questa sessione. L'elenco aperto da un segnalibro mostra sempre lo stato pubblicato." },
+          ],
+        },
+        {
+          id: "site",
+          title: "Riquadro «Sito»: attivare e disattivare",
+          blocks: [
+            "In alto nella scheda [[Catalogo]] il riquadro «Sito» mostra che cosa presenta l'elenco dei libri in questo momento: avviso, orari di apertura, consigli e la nota archivio nel libro. Ogni interruttore vale subito per il sito, senza passare da «Pubblica». Testi e orari restano salvati; disattivato significa soltanto che i visitatori non lo vedono.",
+            { list: [
+              "[[Tutti gli extra]] disattiva o riattiva tutto in una volta.",
+              "[[Modifica]] porta al punto giusto nelle schede [[Info]] o [[Consigli]].",
+              "[[Anteprima dal vivo]] apre l'elenco dei libri in una seconda finestra. Finché l'amministrazione resta aperta, segue ogni modifica mentre si scrive; i nomi nella striscia gialla riportano al punto giusto dell'amministrazione.",
+            ] },
+            { tip: "La nota archivio compare per i titoli la cui collocazione in WinBook inizia con «Archiv» (Archiv, Archiv 1, Archiv 2 …) e di cui nessuna copia si trova su uno scaffale." },
+            { tab: "catalog" },
           ],
         },
         {

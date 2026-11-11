@@ -1,0 +1,541 @@
+<meta charset="utf-8">
+<title>DSM Verwaltung Entwürfe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: variant tabs on top, notes column left (idea, per-section picks), stage right with two live mockups:
+   the admin page (card "Website") and the book list it controls. The switches in the mockups work. */
+@font-face { font-family: "Fira Sans"; font-weight: 400; font-display: swap; src: url(fonts/fira-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Fira Sans"; font-weight: 500; font-display: swap; src: url(fonts/fira-sans-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Fira Sans"; font-weight: 600; font-display: swap; src: url(fonts/fira-sans-latin-600-normal.woff2) format("woff2"); }
+
+:root {
+  --page: #f1eeeb; --panel: #ffffff; --ink: #333333; --ink-2: #6e6967; --rule: #dfd9d4;
+  --sel: #333333; --sel-ink: #ffffff; --ring: #333333; --tint: #e8e3df;
+  --frame-shadow: 0 1px 2px rgba(51, 40, 35, .08), 0 14px 36px -14px rgba(51, 40, 35, .22);
+  --mauve: #ba8ea7; --yellow: #ddd300; --orange: #db9f00; --blue: #b5c9d0; --red: #a93a39; --green: #b3cea1;
+  --font: "Fira Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --fs-s: .875rem; --fs-m: 1rem; --fs-l: 1.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #121110; --panel: #1d1b1a; --ink: #ece9e6; --ink-2: #a49f9b; --rule: #34312f;
+    --sel: #ece9e6; --sel-ink: #1b1a19; --ring: #ece9e6; --tint: #2a2826;
+    --frame-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 36px -14px rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #121110; --panel: #1d1b1a; --ink: #ece9e6; --ink-2: #a49f9b; --rule: #34312f;
+  --sel: #ece9e6; --sel-ink: #1b1a19; --ring: #ece9e6; --tint: #2a2826;
+  --frame-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 36px -14px rgba(0, 0, 0, .7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--page); color: var(--ink); font: 400 var(--fs-m)/1.5 var(--font); -webkit-font-smoothing: antialiased;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+h1, h2 { text-wrap: balance; }
+p { text-wrap: pretty; }
+
+.shell { max-width: 96rem; margin: 0 auto; }
+.top { display: flex; align-items: center; gap: 16px; padding-block: 24px 16px; }
+.top img { height: 44px; width: auto; flex: none; }
+.top .ld { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .top .ll { display: none; } :root:not([data-theme="light"]) .top .ld { display: block; } }
+:root[data-theme="dark"] .top .ll { display: none; } :root[data-theme="dark"] .top .ld { display: block; }
+.top h1 { font-size: var(--fs-l); font-weight: 600; line-height: 1.15; }
+.top p { color: var(--ink-2); max-width: 68ch; margin-top: 4px; }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; margin-inline: -2px; scrollbar-width: none; }
+.tab {
+  flex: none; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 8px;
+  border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); font-weight: 500; white-space: nowrap;
+}
+.tab .k { display: grid; place-items: center; min-width: 28px; height: 28px; padding-inline: 6px; border-radius: 8px; background: var(--tint); font-size: var(--fs-s); font-weight: 600; }
+.tab[aria-selected="true"] { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.tab[aria-selected="true"] .k { background: color-mix(in srgb, var(--sel-ink) 18%, transparent); }
+.tab.mix { margin-left: 10px; padding-left: 16px; }
+.tab.mix .n { font-size: var(--fs-s); opacity: .75; font-variant-numeric: tabular-nums; }
+
+.bar2 { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; padding-block: 8px 20px; }
+.ctl { display: flex; align-items: center; gap: 10px; }
+.ctl > span { color: var(--ink-2); font-size: var(--fs-s); }
+.sg { display: inline-flex; padding: 3px; border-radius: 999px; border: 1px solid var(--rule); background: var(--panel); }
+.sg button { height: 38px; padding: 0 14px; border: 0; border-radius: 999px; background: none; font-size: var(--fs-s); font-weight: 500; color: var(--ink-2); }
+.sg button[aria-pressed="true"] { background: var(--sel); color: var(--sel-ink); }
+
+.work { display: grid; gap: 24px; align-items: start; }
+@media (min-width: 64rem) { .work { grid-template-columns: 21rem minmax(0, 1fr); gap: 32px; } .notes { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; } }
+
+.notes { background: var(--panel); border: 1px solid var(--rule); border-radius: 16px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.notes h2 { font-size: var(--fs-l); font-weight: 600; line-height: 1.15; display: flex; align-items: center; gap: 10px; }
+.notes h2 .k { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--tint); font-size: var(--fs-m); }
+.chg { list-style: none; margin: 0; padding: 0; display: grid; }
+.chg li { display: grid; gap: 8px; padding-block: 14px; border-top: 1px solid var(--rule); }
+.chg li:first-child { border-top: 0; padding-top: 0; }
+.chg .sec { font-weight: 600; }
+.chg p, .same, .pick .d { font-size: var(--fs-s); color: var(--ink-2); }
+.take {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px;
+  border: 1px solid var(--rule); border-radius: 10px; background: none; font-size: var(--fs-s); font-weight: 500;
+}
+.take[aria-pressed="true"] { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.pick { border: 0; margin: 0; padding: 12px 0; border-top: 1px solid var(--rule); min-width: 0; display: grid; gap: 8px; }
+.pick:first-of-type { border-top: 0; padding-top: 0; }
+.pick legend { font-weight: 600; padding: 0; float: left; width: 100%; margin-bottom: 8px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; clear: both; }
+.opts input { position: absolute; opacity: 0; pointer-events: none; }
+.opts label { display: inline-flex; align-items: center; height: 38px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 10px; font-size: var(--fs-s); font-weight: 500; cursor: pointer; }
+.opts input:checked + label { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.opts input:focus-visible + label { outline: 2px solid var(--ring); outline-offset: 2px; }
+.field { display: grid; gap: 6px; }
+.field label { font-size: var(--fs-s); font-weight: 500; }
+.field textarea { min-height: 84px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--page); resize: vertical; }
+.save { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.save .state { font-size: var(--fs-s); color: var(--ink-2); flex: 1 1 12rem; }
+.save .state.err { color: var(--red); }
+.btn { height: 40px; padding: 0 14px; border: 1px solid var(--rule); border-radius: 10px; background: none; font-size: var(--fs-s); font-weight: 500; }
+.copybox { width: 100%; min-height: 120px; padding: 10px; border: 1px solid var(--rule); border-radius: 10px; background: var(--page); font-size: var(--fs-s); }
+
+.stage { min-width: 0; display: grid; gap: 28px; }
+.fr { margin: 0; min-width: 0; display: grid; gap: 8px; }
+.fr figcaption { font-size: var(--fs-s); color: var(--ink-2); }
+.scr { border-radius: 16px; overflow: hidden; box-shadow: var(--frame-shadow); border: 1px solid var(--rule); max-width: 100%; }
+.fr.phone .scr { max-width: 390px; }
+.pair { display: grid; gap: 28px; align-items: start; }
+@media (min-width: 84rem) { .pair { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } .pair.phone { grid-template-columns: repeat(2, minmax(0, 390px)); } }
+
+/* ---------- Mockups: the site's own tokens ---------- */
+.mock {
+  --bg: #ffffff; --fg: #333333; --muted: #6b6664; --line: #e3deda; --surface: #f5f3f1; --on: #333333; --knob: #ffffff; --off: #d9d4cf; --banner-ink: #333333;
+  background: var(--bg); color: var(--fg); font-size: 16px; line-height: 1.45; container-type: inline-size;
+}
+.mock.dark { --bg: #1b1a19; --fg: #ece9e6; --muted: #a49f9b; --line: #383533; --surface: #252322; --on: #ece9e6; --knob: #1b1a19; --off: #4a4643; }
+.mock svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.mock button { border: 0; background: none; padding: 0; text-align: left; }
+.mock .mu { color: var(--muted); }
+.mock .s { font-size: 14px; }
+.mock .col { padding: 16px; display: grid; gap: 14px; }
+.mock .crd { border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); padding: 16px; }
+.mock .hd { display: flex; align-items: center; gap: 12px; }
+.mock .hd .logo img { height: 40px; width: auto; display: block; }
+.mock .hd .logo .d, .mock.dark .hd .logo .l { display: none; }
+.mock.dark .hd .logo .d { display: block; }
+.mock .hd b { font-size: 20px; font-weight: 600; padding-left: 12px; border-left: 1px solid var(--line); }
+.mock .sw { flex: none; position: relative; width: 50px; height: 30px; border-radius: 999px; background: var(--off); transition: background .2s; }
+.mock .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); transition: transform .25s; }
+.mock .sw[aria-checked="true"] { background: var(--on); }
+.mock .sw[aria-checked="true"]::after { transform: translateX(20px); background: var(--knob); }
+.mock .nav { display: flex; gap: 2px; padding: 4px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line), 0 4px 14px -6px rgba(0, 0, 0, .18); overflow: hidden; }
+.mock .nav span { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: 8px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.mock .nav span.on { background: var(--surface); color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); }
+@container (max-width: 520px) { .mock .nav span:not(.on) i { display: none; } .mock .nav span:not(.on) { padding: 0 9px; } }
+.mock .nav i { font-style: normal; }
+.mock .ttl { font-weight: 600; }
+.mock .head { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: flex-start; }
+.mock .head > div:first-child { flex: 1 1 14rem; min-width: 0; display: grid; gap: 4px; }
+.mock .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.mock .ob { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line); background: var(--bg); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.mock .ob.fill { background: var(--on); color: var(--knob); box-shadow: none; }
+.mock .row { display: flex; align-items: center; gap: 12px; padding-block: 10px; border-top: 1px solid var(--line); min-width: 0; }
+.mock .row.first { border-top: 0; padding-top: 0; }
+.mock .row .tx { flex: 1 1 0; min-width: 0; display: grid; gap: 1px; }
+.mock .row .tx span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock .tile { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line); }
+.mock .off .tile, .mock .off .nm { color: var(--muted); }
+.mock .edit { font-size: 14px; color: var(--muted); padding: 6px 8px; }
+@container (max-width: 520px) { .mock .edit { display: none; } }
+/* tiles */
+.mock .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+@container (min-width: 700px) { .mock .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.mock .tl { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); min-width: 0; width: 100%; }
+.mock .tl[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--on); }
+.mock .tl .st { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.mock .tl .st::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--off); }
+.mock .tl[aria-pressed="true"] .st::before { background: #6f9a52; }
+.mock .tl .nm { font-weight: 600; overflow-wrap: anywhere; }
+@container (max-width: 420px) { .mock .tl { padding: 12px 10px; } .mock .tl .nm { font-size: 14px; } }
+/* page map */
+.mock .plan { margin-top: 14px; display: grid; gap: 6px; padding: 10px; border-radius: 14px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.mock .blk { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); min-width: 0; }
+.mock .blk.fix { min-height: 40px; background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); font-size: 14px; }
+.mock .blk.off { background: repeating-linear-gradient(135deg, transparent 0 7px, var(--line) 7px 8px); }
+.mock .blk .tx { flex: 1 1 0; min-width: 0; display: grid; }
+.mock .blk .tx span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock .blk.sub { margin-left: 28px; }
+/* strip */
+.mock .strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.mock .strip > b { font-weight: 600; margin-right: 4px; }
+.mock .chip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 999px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); font-size: 14px; font-weight: 500; color: var(--muted); }
+.mock .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--off); }
+.mock .chip[aria-pressed="true"] { color: var(--fg); }
+.mock .chip[aria-pressed="true"]::before { background: #6f9a52; }
+.mock .strip .sp { flex: 1 1 0; }
+.mock .pause { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 12px; }
+.mock .drafts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); border-left: 4px solid var(--yellow); font-size: 14px; }
+.mock .ghost { border-radius: 16px; border: 1px dashed var(--line); padding: 22px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+/* book list */
+.mock .ban { background: var(--yellow); color: var(--banner-ink); font-size: 14px; font-weight: 500; padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: space-between; }
+.mock .ban b { font-weight: 600; }
+.mock .ann { background: var(--surface); border-bottom: 1px solid var(--line); padding: 10px 16px; font-weight: 500; display: flex; justify-content: space-between; gap: 12px; }
+.mock .paused { padding: 40px 20px; text-align: center; display: grid; gap: 6px; }
+.mock .info { display: flex; align-items: center; gap: 12px; }
+.mock .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 4px color-mix(in srgb, var(--red) 22%, transparent); }
+.mock .info .tx { flex: 1 1 0; display: grid; min-width: 0; }
+.mock .recs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.mock .cv { aspect-ratio: 2 / 3; border-radius: 3px 6px 6px 3px; background: var(--bg); box-shadow: inset 6px 0 0 var(--c), inset 0 0 0 1px var(--line); }
+.mock .q { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+.mock .li { padding-block: 10px; border-bottom: 1px solid var(--line); display: grid; }
+.mock .sec { position: relative; }
+.mock .pen { position: absolute; top: -8px; right: -6px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--yellow); color: #333; box-shadow: 0 2px 6px rgba(0, 0, 0, .2); }
+.mock .pen svg { width: 15px; height: 15px; }
+.mock .float { position: sticky; bottom: 10px; margin: 0 auto 10px; width: max-content; max-width: calc(100% - 20px); display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; padding: 8px 16px; border-radius: 999px; background: #333; color: #fff; font-size: 14px; box-shadow: 0 8px 24px -8px rgba(0, 0, 0, .5); }
+.mock .float b { font-weight: 600; color: var(--yellow); }
+/* detail */
+.mock .det { border-radius: 20px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line), 0 10px 30px -14px rgba(0, 0, 0, .3); padding: 18px; display: grid; gap: 14px; }
+.mock .dh { display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: start; }
+.mock .dh .cv { --c: var(--green); }
+.mock .dh h3 { font-size: 20px; font-weight: 600; line-height: 1.2; }
+.mock .arch { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.mock .arch svg.drw { width: 52px; height: 52px; stroke-width: 1.6; color: var(--muted); }
+.mock .arch.line { border-radius: 0 10px 10px 0; border-left: 4px solid var(--mauve); box-shadow: none; padding: 8px 12px; gap: 10px; }
+.mock .arch.line svg { color: var(--muted); }
+.mock .arch.tall { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 16px; }
+.mock .arch.tall svg.drw { width: 72px; height: 72px; }
+.mock .dl { display: grid; grid-template-columns: max-content 1fr; }
+.mock .dl > * { padding-block: 9px; border-top: 1px solid var(--line); }
+.mock .dl dt { color: var(--muted); font-size: 14px; padding-right: 16px; }
+.mock .dl dd { margin: 0; }
+.mock .tag { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; margin-left: 8px; border-radius: 999px; font-size: 14px; box-shadow: inset 0 0 0 1.5px var(--mauve); }
+.mock .tag svg { width: 13px; height: 13px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="shell">
+  <header class="top">
+    <img class="ll" src="img/logo-light.webp" width="360" height="200" alt="Deutsche Schule Mailand">
+    <img class="ld" src="img/logo-dark.webp" width="360" height="200" alt="">
+    <div>
+      <h1>Verwaltung und Bücherliste – Entwürfe</h1>
+      <p>Die Karte „Website“, der Archiv-Hinweis und die Vorschau in mehreren Fassungen. Die Schalter in den Vorschauen funktionieren: ausschalten, und die Bücherliste darunter folgt. Was gefällt, übernehmen; unter „Zusammenstellen“ entsteht daraus eine Version.</p>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Entwürfe" id="tabs"></nav>
+
+  <div class="bar2">
+    <div class="ctl"><span id="w-l">Breite</span><div class="sg" role="group" aria-labelledby="w-l" id="views"></div></div>
+    <div class="ctl"><span id="t-l">Vorschau</span><div class="sg" role="group" aria-labelledby="t-l" id="themes"></div></div>
+  </div>
+
+  <main class="work">
+    <aside class="notes" id="notes" aria-live="polite"></aside>
+    <section class="stage" id="stage" aria-label="Vorschau"></section>
+  </main>
+</div>
+
+<script>
+// ---------- Variants ----------
+const SECTIONS = [["karte", "Karte „Website“"], ["ort", "Platz der Karte"], ["alle", "Schalter für alles"], ["entwurf", "Entwürfe"], ["archiv", "Archiv-Hinweis"], ["vorschau", "Vorschau"]];
+const BASE = { karte: "cur", ort: "cur", alle: "cur", entwurf: "cur", archiv: "cur", vorschau: "cur" };
+const V = {
+  cur: { k: "–", name: "Umgesetzt", idea: "Der Stand, der jetzt eingebaut ist: eine Karte oben im Reiter Bestand, ein Schalter je Element und einer für alle. Ein Klick gilt sofort für die Website.", ch: {} },
+  a: { k: "A", name: "Seitenplan", idea: "Die Karte zeigt die Bücherliste als kleinen Plan von oben nach unten. Man schaltet dort, wo das Element auf der Seite steht, und sieht sofort, was Besucher nicht bekommen.", ch: {
+    karte: "Plan der Seite: Ankündigung, Kopf, Öffnungszeiten, Empfehlungen, Liste, Buch. Ausgeschaltete Bereiche sind schraffiert.",
+    archiv: "Größere Schublade mittig, Text darunter. Fällt stärker auf, braucht mehr Höhe.",
+    vorschau: "Gelbe Stift-Marken direkt an jedem Bereich der Vorschau statt einer Linkzeile im Banner." } },
+  b: { k: "B", name: "Kacheln", idea: "Große Flächen statt kleiner Schalter: Jede Kachel ist der Schalter. Am Handy und am Tablet am leichtesten zu treffen.", ch: {
+    karte: "Vier Kacheln, die ganze Kachel schaltet. Grüner Punkt = sichtbar. „Bearbeiten“ entfällt hier.",
+    alle: "Zwei Knöpfe „Alle ein“ und „Alle aus“ statt eines Schalters: eindeutig auch bei gemischtem Stand.",
+    archiv: "Schmale Zeile mit mauvefarbener Linie und kleinem Symbol. Ruhiger, eine Zeile weniger." } },
+  c: { k: "C", name: "Leiste überall", idea: "Die Schalter als schmale Leiste unter der Navigation, in jedem Reiter sichtbar. Man muss nie zum Bestand zurück, um etwas aus- oder einzuschalten.", ch: {
+    karte: "Eine Zeile mit vier Marken; ein Klick auf die Marke schaltet. Kein Statustext.",
+    ort: "Unter der Navigation in jedem Reiter (hier: Pflege).",
+    archiv: "Marke „Archiv“ direkt am Standort, der Satz steht klein darunter. Keine eigene Karte.",
+    vorschau: "Schwebende dunkle Leiste am unteren Rand statt des gelben Banners oben: die Seite beginnt wie für Besucher." } },
+  d: { k: "D", name: "Mehr Kontrolle", idea: "Zwei Zusätze für mehr Überblick. Beide gehen über das hinaus, was bisher vereinbart war, deshalb hier nur als Vorschlag.", ch: {
+    ort: "Eigener erster Reiter „Website“. Die Navigation bekommt damit acht Reiter; am Handy wird es eng.",
+    alle: "Zusätzlich „Website pausieren“: Besucher sehen statt der Liste einen Hinweis (etwa während der Inventur). Zweiter Klick nötig.",
+    entwurf: "Zeile „Noch nicht veröffentlicht“ mit einem Knopf, der alle Entwürfe auf einmal veröffentlicht. Bisher galt: kein Entwurfshinweis." } },
+};
+const ORDER = ["cur", "a", "b", "c", "d"];
+const NOTE = {
+  karte: "Liste mit Symbol, Stand, „Bearbeiten“ und Schalter.", ort: "Oben im Reiter Bestand.", alle: "Ein Schalter „Alle Zusätze“.",
+  entwurf: "Veröffentlicht wird je Reiter, ohne Hinweis auf Entwürfe.", archiv: "Karte mit Schublade links, „Archiv“ und dem Satz rechts.",
+  vorschau: "Gelbes Banner oben mit Links zu den Editoren.",
+};
+const OPTS = {};
+for (const [s] of SECTIONS) OPTS[s] = ORDER.filter(v => v === "cur" || V[v].ch[s]);
+const selOf = v => ({ ...BASE, ...Object.fromEntries(Object.keys(V[v].ch).map(s => [s, v])) });
+const label = v => (v === "cur" ? "Umgesetzt" : V[v].k + " " + V[v].name);
+
+// ---------- Icons (lucide) ----------
+const svg = (d, c) => `<svg viewBox="0 0 24 24" aria-hidden="true"${c ? ` class="${c}"` : ""}>${d}</svg>`;
+const I = {
+  mega: svg('<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>'),
+  clock: svg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>'),
+  spark: svg('<path d="M9.9 15.5A2 2 0 0 0 8.5 14.1l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6A2 2 0 0 0 9.9 8.5l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z"/>'),
+  box: svg('<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>'),
+  ext: svg('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'),
+  eye: svg('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>'),
+  pen: svg('<path d="M21.2 6.8a2.8 2.8 0 0 0-4-4L3.8 16.2a2 2 0 0 0-.5.8l-1.3 4.4a.5.5 0 0 0 .6.6l4.4-1.3a2 2 0 0 0 .8-.5z"/>'),
+  db: svg('<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>'),
+  wrench: svg('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/>'),
+  globe: svg('<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>'),
+  search: svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+  x: svg('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
+};
+const DRAWER = '<svg class="drw" viewBox="0 0 56 56" aria-hidden="true"><rect x="15" y="8" width="7" height="13" rx="1.5" fill="var(--mauve)" stroke="none"/><rect x="24.5" y="5" width="7" height="16" rx="1.5" fill="var(--blue)" stroke="none"/><rect x="34" y="9" width="7" height="12" rx="1.5" fill="var(--green)" stroke="none"/><rect x="8.8" y="17.8" width="38.4" height="14.4" rx="4" fill="var(--bg)"/><rect x="22" y="22.8" width="12" height="4.4" rx="2.2"/><path d="M12.8 32.2V45a4 4 0 0 0 4 4h22.4a4 4 0 0 0 4-4V32.2"/><path d="M24 40.6h8"/></svg>';
+
+// ---------- The four elements and their state in the mockups ----------
+const ITEMS = [
+  ["announcement", "Ankündigung", I.mega, "„Am Freitag wegen Inventur geschlossen.“"],
+  ["info", "Öffnungszeiten", I.clock, "Karte über der Bücherliste"],
+  ["recs", "Empfehlungen", I.spark, "20 Bücher in der aktuellen Runde"],
+  ["archive", "Archiv-Hinweis", I.box, "37 Titel stehen nur im Archiv"],
+];
+const NOTE_TEXT = "Der Titel entspricht nicht dem Bibliothekskonzept, er ist im Archiv zu erhalten.";
+
+// ---------- State ----------
+const ls = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem("dsm-entwurf2-" + k)); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("dsm-entwurf2-" + k, JSON.stringify(v)); } catch (e) { /* private */ } },
+};
+const start = (location.hash || "").slice(1);
+const state = {
+  tab: ORDER.concat("mix").includes(start) ? start : ls.get("tab", "cur"),
+  view: ls.get("view", "desk"), theme: ls.get("theme", "light"),
+  pick: { ...BASE, ...ls.get("pick", {}) }, note: ls.get("note", ""),
+  on: { announcement: true, info: true, recs: true, archive: true }, paused: false,
+};
+for (const [s] of SECTIONS) if (!OPTS[s].includes(state.pick[s])) state.pick[s] = "cur";
+let save = { mode: "pending", msg: "" };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------- Mockup: admin page ----------
+const sw = (k, on, name) => `<button type="button" class="sw" role="switch" aria-checked="${on}" aria-label="${name}" data-flip="${k}"></button>`;
+function master(v) {
+  const n = ITEMS.filter(([k]) => state.on[k]).length;
+  const count = `<span class="s mu">${n} von 4 eingeschaltet</span>`;
+  let h;
+  if (v === "b") h = `<div class="row first"><span class="tx"><span class="ttl">Alle Zusätze</span>${count}</span><span class="acts"><button type="button" class="ob" data-all="1">Alle ein</button><button type="button" class="ob" data-all="0">Alle aus</button></span></div>`;
+  else h = `<div class="row first"><span class="tx"><span class="ttl">Alle Zusätze</span>${count}</span>${sw("all", n === 4, "Alle Zusätze")}</div>`;
+  if (v === "d") h += `<div class="row pause"><span class="tx"><span class="ttl">Website pausieren</span><span class="s mu">Besucher sehen einen Hinweis statt der Liste</span></span>${sw("pause", state.paused, "Website pausieren")}</div>`;
+  return h;
+}
+function card(sel) {
+  const head = `<div class="head"><div><span class="ttl">Website</span><span class="s mu">Was die Bücherliste gerade zeigt. Ein Schalter gilt sofort.</span></div>`
+    + `<span class="acts"><span class="ob">${I.ext}Website öffnen</span><span class="ob">${I.eye}Live-Vorschau</span></span></div>`;
+  const drafts = sel.entwurf === "d" ? `<div class="drafts"><span>Noch nicht veröffentlicht: <b>Info</b> · <b>Empfehlungen</b></span><span class="ob fill">Alles veröffentlichen</span></div>` : "";
+  if (sel.karte === "c") {
+    return `<div class="strip"><b>Website</b>${ITEMS.map(([k, n]) => `<button type="button" class="chip" aria-pressed="${state.on[k]}" data-flip="${k}">${n}</button>`).join("")}`
+      + `<span class="sp"></span>${sel.alle === "b" ? '<button type="button" class="ob" data-all="1">Alle ein</button><button type="button" class="ob" data-all="0">Alle aus</button>' : sw("all", ITEMS.every(([k]) => state.on[k]), "Alle Zusätze")}`
+      + `${sel.alle === "d" ? `<button type="button" class="chip" aria-pressed="${state.paused}" data-flip="pause">Pause</button>` : ""}<span class="ob">${I.eye}Vorschau</span></div>${drafts}`;
+  }
+  let body;
+  if (sel.karte === "a") {
+    const blk = ([k, n, , st], sub) => `<div class="blk${state.on[k] ? "" : " off"}${sub ? " sub" : ""}"><span class="tx"><span class="ttl">${n}</span><span class="s mu">${state.on[k] ? esc(st) : "Ausgeblendet"}</span></span><span class="edit">Bearbeiten</span>${sw(k, state.on[k], n)}</div>`;
+    body = `<div class="plan">${blk(ITEMS[0])}<div class="blk fix">Kopf: Logo, „Bibliothek“, Sprache, Einstellungen</div>${blk(ITEMS[1])}${blk(ITEMS[2])}<div class="blk fix">Suche, Kategorien, 4.545 Bücher</div><div class="blk fix sub">Buch: Cover, Angaben</div>${blk(ITEMS[3], true)}</div>`;
+  } else if (sel.karte === "b") {
+    body = `<div class="tiles">${ITEMS.map(([k, n, ic]) => `<button type="button" class="tl" aria-pressed="${state.on[k]}" data-flip="${k}">${ic}<span class="nm">${n}</span><span class="st">${state.on[k] ? "Sichtbar" : "Ausgeblendet"}</span></button>`).join("")}</div>`;
+  } else {
+    body = ITEMS.map(([k, n, ic, st]) => `<div class="row${state.on[k] ? "" : " off"}"><span class="tile">${ic}</span><span class="tx"><span class="nm" style="font-weight:500">${n}</span><span class="s mu">${esc(st)}</span></span>${k === "archive" ? "" : '<span class="edit">Bearbeiten</span>'}${sw(k, state.on[k], n)}</div>`).join("");
+  }
+  return `<div class="crd">${head}<div style="margin-top:14px">${master(sel.alle)}</div>${body}${drafts}</div>`;
+}
+function admin(sel) {
+  const tabs = [["Bestand", I.db], ["Pflege", I.wrench], ["Empfehlungen", I.spark], ["Info", I.clock]];
+  const active = sel.ort === "d" ? "Website" : sel.ort === "c" ? "Pflege" : "Bestand";
+  if (sel.ort === "d") tabs.unshift(["Website", I.globe]);
+  const nav = `<div class="nav">${tabs.map(([n, ic]) => `<span class="${n === active ? "on" : ""}">${ic}<i>${n}</i></span>`).join("")}</div>`;
+  const logo = '<span class="logo"><img class="l" src="img/logo-light.webp" width="360" height="200" alt=""><img class="d" src="img/logo-dark.webp" width="360" height="200" alt=""></span>';
+  const rest = sel.ort === "d" ? "" : sel.ort === "c" ? '<div class="ghost">Reiter Pflege: Pflegelisten …</div>' : '<div class="ghost">Datenbank auswählen – WinBook-Datei hierher ziehen</div>';
+  return `<div class="col"><div class="hd">${logo}<b>Verwaltung</b></div>${nav}${card(sel)}${rest}</div>`;
+}
+
+// ---------- Mockup: book list with a book open ----------
+function archiveNote(v) {
+  if (v === "a") return `<div class="arch tall">${DRAWER}<b>Archiv</b><span class="s mu">${NOTE_TEXT}</span></div>`;
+  if (v === "b") return `<div class="arch line">${I.box}<span><b>Archiv</b> <span class="s mu">· ${NOTE_TEXT}</span></span></div>`;
+  if (v === "c") return "";
+  return `<div class="arch">${DRAWER}<span><b style="display:block">Archiv</b><span class="s mu">${NOTE_TEXT}</span></span></div>`;
+}
+function library(sel) {
+  const pv = sel.vorschau, pen = pv === "a" ? `<span class="pen" title="Bearbeiten">${I.pen}</span>` : "";
+  const links = "<b>Ankündigung</b> <b>Öffnungszeiten</b> <b>Empfehlungen</b> <b>Bestand</b>";
+  const banner = pv === "c" ? "" : `<div class="ban"><span>Vorschau der neuen Liste – noch nicht veröffentlicht.${pv === "a" ? "" : ` &nbsp; Bearbeiten: ${links}`}</span><b>Vorschau beenden</b></div>`;
+  const float = pv === "c" ? `<div class="float"><span>Vorschau</span><span>Bearbeiten: ${links}</span><b>Beenden</b></div>` : "";
+  if (state.paused && sel.alle === "d") {
+    return `${banner}<div class="col"><div class="hd"><span class="logo"><img class="l" src="img/logo-light.webp" width="360" height="200" alt=""><img class="d" src="img/logo-dark.webp" width="360" height="200" alt=""></span><b>Bibliothek</b></div>`
+      + `<div class="paused"><b>Die Bücherliste macht eine kurze Pause.</b><span class="mu">Bitte später wieder vorbeischauen.</span></div></div>${float}`;
+  }
+  const ann = state.on.announcement ? `<div class="ann sec"><span>Am Freitag wegen Inventur geschlossen.</span>${I.x}${pen}</div>` : "";
+  const info = state.on.info ? `<div class="crd info sec"><i class="dot"></i><span class="tx"><b style="font-weight:600">Jetzt geschlossen</b><span class="s mu">Wieder geöffnet am Montag ab 8:00</span></span>${pen}</div>` : "";
+  const recs = state.on.recs ? `<div class="crd sec"><b style="font-weight:600">Empfehlungen</b> <span class="s mu">· Oberstufe</span><div class="recs">${["--mauve", "--orange", "--blue", "--green"].map(c => `<span class="cv" style="--c:var(${c})"></span>`).join("")}</div>${pen}</div>` : "";
+  const arch = state.on.archive ? archiveNote(sel.archiv) : "";
+  const loc = state.on.archive && sel.archiv === "c"
+    ? `Archiv 2 <span class="tag">${I.box}Archiv</span><span class="s mu" style="display:block;margin-top:4px">${NOTE_TEXT}</span>` : "Archiv 2";
+  const det = `<div class="det"><div class="dh"><span class="cv"></span><div><h3>Die Welt von gestern</h3><p class="mu" style="margin-top:4px">Erinnerungen eines Europäers</p><p style="margin-top:6px;font-weight:500">Stefan Zweig</p></div></div>${arch}`
+    + `<dl class="dl"><dt>Jahr</dt><dd>1987</dd><dt>Kategorie</dt><dd>Biografien</dd><dt>Standort</dt><dd>${loc}</dd></dl></div>`;
+  return `${banner}${ann}<div class="col"><div class="hd"><span class="logo"><img class="l" src="img/logo-light.webp" width="360" height="200" alt=""><img class="d" src="img/logo-dark.webp" width="360" height="200" alt=""></span><b>Bibliothek</b></div>`
+    + `${info}${recs}<div class="q">${I.search}Titel, Autor oder ISBN</div>`
+    + `<div><div class="li"><span>Die Welle</span><span class="s mu">Morton Rhue</span></div><div class="li"><span>Die Welt von gestern</span><span class="s mu">Stefan Zweig</span></div></div>`
+    + `<span class="s mu">Geöffnetes Buch:</span>${det}</div>${float}`;
+}
+
+// ---------- Rendering ----------
+function renderTabs() {
+  const n = SECTIONS.filter(([s]) => state.pick[s] !== "cur").length;
+  $("tabs").innerHTML = ORDER.map(v => `<button type="button" class="tab" role="tab" id="tab-${v}" data-tab="${v}" aria-selected="${state.tab === v}" tabindex="${state.tab === v ? 0 : -1}"><span class="k">${V[v].k}</span>${V[v].name}</button>`).join("")
+    + `<button type="button" class="tab mix" role="tab" id="tab-mix" data-tab="mix" aria-selected="${state.tab === "mix"}" tabindex="${state.tab === "mix" ? 0 : -1}">Zusammenstellen <span class="n">${n ? n + " gewählt" : ""}</span></button>`;
+}
+function renderControls() {
+  $("views").innerHTML = [["phone", "Handy"], ["desk", "Desktop"]].map(([k, t]) => `<button type="button" data-view="${k}" aria-pressed="${state.view === k}">${t}</button>`).join("");
+  $("themes").innerHTML = [["light", "Hell"], ["dark", "Dunkel"]].map(([k, t]) => `<button type="button" data-theme="${k}" aria-pressed="${state.theme === k}">${t}</button>`).join("");
+}
+function saveText() {
+  return { pending: "Auswahl wird geladen …", db: "Gespeichert. Claude kann die Auswahl direkt lesen.", local: "Nur in diesem Browser gespeichert. Zum Weitergeben „Auswahl kopieren“.",
+    busy: "Wird gespeichert …", error: "Nicht gespeichert: " + save.msg + ". Die Auswahl bleibt in diesem Browser." }[save.mode];
+}
+function renderNotes() {
+  const n = $("notes");
+  if (state.tab !== "mix") {
+    const v = V[state.tab], keys = Object.keys(v.ch);
+    const rest = SECTIONS.filter(([s]) => !v.ch[s]).map(([, t]) => t);
+    n.innerHTML = `<h2><span class="k">${v.k}</span>${v.name}</h2><p>${v.idea}</p>`
+      + (keys.length ? `<ul class="chg">${SECTIONS.filter(([s]) => v.ch[s]).map(([s, t]) => {
+        const on = state.pick[s] === state.tab;
+        return `<li><span class="sec">${t}</span><p>${v.ch[s]}</p><button type="button" class="take" data-take="${s}" aria-pressed="${on}">${on ? "Übernommen" : "Übernehmen"}</button></li>`;
+      }).join("")}</ul>` : `<ul class="chg">${SECTIONS.map(([s, t]) => `<li><span class="sec">${t}</span><p>${NOTE[s]}</p></li>`).join("")}</ul>`)
+      + (keys.length && rest.length ? `<p class="same">Wie umgesetzt: ${rest.join(", ")}.</p>` : "");
+    return;
+  }
+  n.innerHTML = `<h2>Zusammenstellen</h2><p>Pro Bereich eine Fassung wählen. Die Vorschau zeigt das Ergebnis.</p>`
+    + SECTIONS.map(([s, t]) => `<fieldset class="pick"><legend>${t}</legend><div class="opts">${OPTS[s].map(v =>
+      `<input type="radio" name="p-${s}" id="p-${s}-${v}" value="${v}" data-pick="${s}"${state.pick[s] === v ? " checked" : ""}><label for="p-${s}-${v}">${v === "cur" ? "Umgesetzt" : V[v].k}</label>`).join("")}</div>`
+      + `<p class="d" id="d-${s}">${state.pick[s] === "cur" ? NOTE[s] : V[state.pick[s]].ch[s]}</p></fieldset>`).join("")
+    + `<div class="field"><label for="note">Notiz</label><textarea id="note" placeholder="Was soll noch anders werden?">${esc(state.note)}</textarea></div>`
+    + `<div class="save"><span class="state${save.mode === "error" ? " err" : ""}" id="save-state">${saveText()}</span><button type="button" class="btn" id="copy">Auswahl kopieren</button></div>`
+    + `<textarea class="copybox" id="copybox" readonly hidden aria-label="Auswahl als Text"></textarea>`;
+}
+function renderStage() {
+  const sel = state.tab === "mix" ? state.pick : selOf(state.tab);
+  const dark = state.theme === "dark" ? " dark" : "", ph = state.view === "phone" ? " phone" : "";
+  $("stage").innerHTML = `<div class="pair${ph}">`
+    + `<figure class="fr${ph}"><figcaption>Verwaltung – die Schalter funktionieren</figcaption><div class="scr"><div class="mock${dark}">${admin(sel)}</div></div></figure>`
+    + `<figure class="fr${ph}"><figcaption>Bücherliste in der Vorschau, ein Buch aus dem Archiv geöffnet</figcaption><div class="scr"><div class="mock${dark}">${library(sel)}</div></div></figure></div>`;
+}
+function render() { renderTabs(); renderControls(); renderNotes(); renderStage(); }
+
+// ---------- Saving: db (readable by Claude), browser storage as fallback ----------
+let ref = null, timer = null, writing = false, again = false;
+function persist() {
+  ls.set("pick", state.pick); ls.set("note", state.note);
+  if (!ref) return;
+  clearTimeout(timer);
+  timer = setTimeout(write, 700);
+}
+async function write() {
+  if (writing) { again = true; return; }
+  writing = true; setSave("busy");
+  try {
+    await ref.set({ pick: { ...state.pick }, note: state.note, updated: new Date().toISOString() });
+    setSave("db");
+  } catch (e) {
+    setSave("error", (e && (e.message || e.code)) || "unbekannter Fehler");
+  }
+  writing = false;
+  if (again) { again = false; write(); }
+}
+function setSave(mode, msg) {
+  save = { mode, msg: msg || "" };
+  const el = $("save-state");
+  if (el) { el.textContent = saveText(); el.classList.toggle("err", mode === "error"); }
+}
+(async () => {
+  const db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+  if (!db) { setSave("local"); return; }
+  ref = db.doc("picks/main");
+  try {
+    const snap = await ref.get();
+    if (snap.exists) {
+      const d = snap.data() || {};
+      state.pick = { ...BASE, ...(d.pick || {}) };
+      for (const [s] of SECTIONS) if (!OPTS[s].includes(state.pick[s])) state.pick[s] = "cur";
+      state.note = typeof d.note === "string" ? d.note : "";
+      ls.set("pick", state.pick); ls.set("note", state.note);
+      render();
+    }
+    setSave("db");
+  } catch (e) {
+    setSave("error", (e && (e.message || e.code)) || "unbekannter Fehler");
+  }
+})();
+
+function summary() {
+  return "Bibliothek DSM – Auswahl: Verwaltung und Bücherliste\n"
+    + SECTIONS.map(([s, t]) => `${t}: ${label(state.pick[s])} – ${state.pick[s] === "cur" ? NOTE[s] : V[state.pick[s]].ch[s]}`).join("\n")
+    + (state.note.trim() ? "\nNotiz: " + state.note.trim() : "");
+}
+
+// ---------- Events ----------
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-tab],[data-view],[data-theme],[data-take],[data-flip],[data-all],#copy");
+  if (!t) return;
+  if (t.dataset.tab) {
+    state.tab = t.dataset.tab; ls.set("tab", state.tab);
+    try { history.replaceState(null, "", "#" + state.tab); } catch (err) { /* sandboxed */ }
+    render(); $("tab-" + state.tab).focus();
+  } else if (t.dataset.view) {
+    state.view = t.dataset.view; ls.set("view", state.view); renderControls(); renderStage();
+  } else if (t.dataset.theme) {
+    state.theme = t.dataset.theme; ls.set("theme", state.theme); renderControls(); renderStage();
+  } else if (t.dataset.take) {
+    const s = t.dataset.take;
+    state.pick[s] = state.pick[s] === state.tab ? "cur" : state.tab;
+    persist(); renderTabs(); renderNotes();
+    const b = document.querySelector(`[data-take="${s}"]`); if (b) b.focus();
+  } else if (t.dataset.flip || t.dataset.all) {
+    // the switches of the mockup: the book list below follows
+    const k = t.dataset.flip;
+    if (t.dataset.all) ITEMS.forEach(([x]) => { state.on[x] = t.dataset.all === "1"; });
+    else if (k === "all") { const all = ITEMS.every(([x]) => state.on[x]); ITEMS.forEach(([x]) => { state.on[x] = !all; }); }
+    else if (k === "pause") state.paused = !state.paused;
+    else state.on[k] = !state.on[k];
+    renderStage();
+    const b = k && document.querySelector(`[data-flip="${k}"]`); if (b) b.focus();
+  } else if (t.id === "copy") {
+    const text = summary(), box = $("copybox");
+    const fallback = () => { box.value = text; box.hidden = false; box.focus(); box.select(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => { t.textContent = "Kopiert"; setTimeout(() => { t.textContent = "Auswahl kopieren"; }, 1600); }, fallback);
+    } else fallback();
+  }
+});
+document.addEventListener("change", e => {
+  const s = e.target.dataset && e.target.dataset.pick;
+  if (!s) return;
+  state.pick[s] = e.target.value;
+  $("d-" + s).textContent = state.pick[s] === "cur" ? NOTE[s] : V[state.pick[s]].ch[s];
+  persist(); renderTabs(); renderStage();
+});
+document.addEventListener("input", e => {
+  if (e.target.id !== "note") return;
+  state.note = e.target.value; persist();
+});
+$("tabs").addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  const all = ORDER.concat("mix"), i = all.indexOf(state.tab);
+  $("tab-" + all[(i + (e.key === "ArrowRight" ? 1 : all.length - 1)) % all.length]).click();
+});
+render();
+</script>
