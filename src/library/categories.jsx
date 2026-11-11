@@ -116,8 +116,13 @@ export function CategoryDialog({ open, onOpenChange, model, total, choice, onCho
   const [q, setQ] = React.useState("");
   React.useEffect(() => { if (open) setQ(""); }, [open]);
 
-  // Sorted by the displayed name; subcategories under their parent term, "general" first
+  // Sorted by the displayed name; subcategories under their parent term, "general" first. Only once the dialog has been
+  // opened: sorting needs an Intl.Collator, whose creation would otherwise fall into the arrival of the list.
+  const used = React.useRef(false);
+  if (open) used.current = true;
+  const ready = used.current;
   const list = React.useMemo(() => {
+    if (!ready) return [];
     const coll = new Intl.Collator(lang === "it" ? "it" : "de", { sensitivity: "base", numeric: true });
     return model.groups.map(g => {
       const group = model.real.has(g.parent);
@@ -126,7 +131,7 @@ export function CategoryDialog({ open, onOpenChange, model, total, choice, onCho
         .sort((a, b) => (b.general - a.general) || coll.compare(a.name, b.name)) : null;
       return { id: group ? "g:" + g.parent : "c:" + g.cats[0].k, name, n: g.n, children, s: norm(name + " " + g.parent) };
     }).sort((a, b) => coll.compare(a.name, b.name));
-  }, [model, lang, t]);
+  }, [model, lang, t, ready]);
 
   const terms = norm(q).split(" ").filter(Boolean);
   const matches = s => terms.every(w => s.includes(w));

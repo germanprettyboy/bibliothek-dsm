@@ -118,9 +118,19 @@ function evaluate(I, lang, today) {
 
 // The library is in Milan: "open now" in Italian time, also on a device set to another time zone.
 // Returns the wall-clock time there as a local Date (everything here reads the local fields). Old browser: device time.
+// Rome's distance from UTC in minutes by the EU rule: summer time from the last Sunday of March to the last Sunday of
+// October, switching at 01:00 UTC
+function romeOffset(d) {
+  const lastSunday = m => { const x = new Date(Date.UTC(d.getUTCFullYear(), m + 1, 0, 1)); x.setUTCDate(x.getUTCDate() - x.getUTCDay()); return x.getTime(); };
+  return d.getTime() >= lastSunday(2) && d.getTime() < lastSunday(9) ? 120 : 60;
+}
 let milan;
 function milanNow() {
   const d = new Date();
+  // Device on Milan time (nearly every visitor): its own clock is the answer. Intl only for other time zones – or if the
+  // rule above should ever stop matching the device's time zone data: the first Intl object of a page costs ≈ 12 ms
+  // (ICU start, ≈ 50 ms on a slow phone), a third of the first render.
+  if (-d.getTimezoneOffset() === romeOffset(d)) return d;
   try {
     milan = milan || new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Rome", hourCycle: "h23",
       year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" });
@@ -130,8 +140,8 @@ function milanNow() {
   } catch (e) { return d; }
 }
 
-// Recompute every minute (and on returning to the tab)
-function useNow() {
+// Recompute every minute (and on returning to the tab); on = false: nothing to show, the device time will do
+function useNow(on = true) {
   const [, setN] = React.useState(0);
   React.useEffect(() => {
     const tick = () => { if (!document.hidden) setN(n => n + 1); };
@@ -139,13 +149,13 @@ function useNow() {
     document.addEventListener("visibilitychange", tick);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", tick); };
   }, []);
-  return milanNow();
+  return on ? milanNow() : new Date();
 }
 
 // preview: live preview in the admin page (tab Info) – remembers nothing for the next visit
 export function InfoCard({ I, onOpen, preview }) {
   const { lang } = useLanguage();
-  const now = useNow();
+  const now = useNow(!!I);
   const today = iso(now);
   const A = I ? evaluate(I, lang, today) : null;
   const st = A && A.status(now);

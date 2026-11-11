@@ -1,7 +1,9 @@
 /* Book list: search, filter by category, A–Z bar = filter by initial letter (from tablet width), letter floater (phone), list as plain text.
    The list consists of chunks of at most 40 books; every letter starts a new one (anchor ul#L-X).
    Via CSS (content-visibility) the browser only renders chunks in view; the others carry a height estimated from
-   the text length in their style until they have been rendered once. */
+   the text length in their style until they have been rendered once.
+   The rows of a chunk are one HTML string (innerHTML): 4500 rows as elements of their own cost three times the script
+   time (13,000 createElement calls, their props and text nodes). Texts go through esc(). */
 import * as React from "react";
 import { ListFilterIcon, SearchIcon, XIcon } from "lucide-react";
 
@@ -39,7 +41,13 @@ const FIRST = 2, STEP = 20; // chunks in the first frame, chunks per further ste
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const wide = matchMedia("(min-width: 48rem)");
 
+// Text as HTML: the catalog's titles and names are data, never markup
+const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }, UNSAFE = /[&<>"]/;
+const esc = s => (UNSAFE.test(s) ? s.replace(/[&<>"]/g, c => ESC[c]) : s);
+const mark = (s, on) => (on ? "<mark>" + esc(s) + "</mark>" : esc(s));
+
 // Highlight hits the way the search matches (norm): without accents, ß = ss – "kastner" highlights "Kästner".
+// Returns HTML (escaped text, hits in <mark>).
 // Plain ASCII text (most rows): split with a group in the expression, odd parts are hits.
 // Otherwise fold every character on its own and map the hits in the folded text back onto the original characters.
 const ASCII = /^[\x20-\x7e]*$/;
@@ -50,25 +58,23 @@ const fold = c => {
   return f;
 };
 function hl(text, query) {
-  if (!query) return text;
   const s = String(text);
-  if (ASCII.test(s)) return s.split(query.re).map((p, n) => (n % 2 ? <mark key={n}>{p}</mark> : p));
+  if (!query) return esc(s);
+  if (ASCII.test(s)) return s.split(query.re).map((p, n) => mark(p, n % 2 === 1)).join("");
   const chars = [...s], at = [];
   let f = "";
   for (const c of chars) { at.push(f.length); f += fold(c); }
   at.push(f.length);
   const hit = new Uint8Array(f.length);
   for (const w of query.terms) for (let i = f.indexOf(w); i >= 0; i = f.indexOf(w, i + 1)) hit.fill(1, i, i + w.length);
-  const out = [];
-  let part = "", marked = false;
+  let out = "", part = "", marked = false;
   chars.forEach((c, n) => {
     // characters without a folded form (a lone combining accent) belong to the previous one
     const m = at[n] < at[n + 1] ? hit.subarray(at[n], at[n + 1]).includes(1) : marked;
-    if (m !== marked && part) { out.push(marked ? <mark key={out.length}>{part}</mark> : part); part = ""; }
+    if (m !== marked && part) { out += mark(part, marked); part = ""; }
     marked = m; part += c;
   });
-  if (part) out.push(marked ? <mark key={out.length}>{part}</mark> : part);
-  return out;
+  return part ? out + mark(part, marked) : out;
 }
 
 // Estimated height of a chunk: characters per line for title (fs-m) and author (fs-s), roughly via the mean character width
@@ -81,6 +87,7 @@ function sizer() {
 // Head (anchor ul#L-X) only on the first occurrence of a letter: the sort order (Collator) can interrupt it,
 // e.g. "Œuvres" between the O's (counts as "#") or Greek titles after Z
 function chunks(current) {
+  if (!current.length) return []; // sizer() reads a computed style: not for the empty list of the first render
   const est = sizer(), out = [], heads = new Set();
   let cur = null, last = null;
   for (const b of current) {
@@ -100,20 +107,16 @@ function chunks(current) {
 
 // One chunk; only re-renders when its books or the highlighting change
 const Chunk = React.memo(function Chunk({ head, items, h, query }) {
+  let html = "";
+  for (const b of items) {
+    const a = b.a ? b.a.join(", ") : "";
+    html += `<li><button class="row" type="button" data-i="${b._i}"><span class="t">${hl(b.t, query)}</span>${a ? `<span class="a">${hl(a, query)}</span>` : ""}</button></li>`;
+  }
   return (
-    <ul data-l={head || undefined} id={head ? lid(head) : undefined} style={{ containIntrinsicSize: `auto ${Math.round(h)}px` }}>
-      {items.map(b => {
-        const a = b.a ? b.a.join(", ") : "";
-        return (
-          <li key={b._i}>
-            <button className="row" type="button" data-i={b._i}>
-              <span className="t">{hl(b.t, query)}</span>
-              {a ? <span className="a">{hl(a, query)}</span> : null}
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+    <ul
+      data-l={head || undefined} id={head ? lid(head) : undefined} style={{ containIntrinsicSize: `auto ${Math.round(h)}px` }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 });
 
@@ -253,13 +256,17 @@ export function BookList({ books, loaded, onOpen }) {
   // Floater only visible while scrolling; switches when a new letter begins (DOM directly, without re-rendering)
   const flState = React.useRef({ letter: null, hide: 0 });
   const onScroll = React.useCallback(fromScroll => {
-    const el = fl.current, lim = bar.current.getBoundingClientRect().bottom + 2, ms = marks.current;
+    const el = fl.current;
+    // Only scrolling on the phone shows the floater. Otherwise nothing is measured: this also runs after every step of
+    // a new list, where reading positions forced a layout of the rows just inserted.
+    if (fromScroll !== true || wide.matches) { el.classList.remove("show"); return; }
+    const lim = bar.current.getBoundingClientRect().bottom + 2, ms = marks.current;
     let cur = null;
     if (ms.length && list.current.getBoundingClientRect().top <= lim) {
       cur = ms[0].dataset.l;
       for (const m of ms) { if (m.getBoundingClientRect().top <= lim + 40) cur = m.dataset.l; else break; }
     }
-    if (!cur || wide.matches || fromScroll !== true) { el.classList.remove("show"); return; }
+    if (!cur) { el.classList.remove("show"); return; }
     const st = flState.current;
     if (cur !== st.letter) {
       st.letter = cur; el.textContent = cur;
@@ -291,8 +298,13 @@ export function BookList({ books, loaded, onOpen }) {
         if (e.isIntersecting) { warm(); C().want(b); wanted.add(b); } else { C().unwant(b); wanted.delete(b); }
       }
     }, { rootMargin: "150px 0px" });
+    // Chunks whose rows are being watched. A chunk far away reports "not intersecting" once when its observation
+    // starts: nothing to undo then (it used to run through all 4500 rows of a new list)
+    const close = new WeakSet();
     const near = new IntersectionObserver(entries => {
       for (const e of entries) {
+        if (!e.isIntersecting && !close.has(e.target)) continue;
+        if (e.isIntersecting) close.add(e.target); else close.delete(e.target);
         for (const r of e.target.querySelectorAll(".row")) {
           const b = all.current[+r.dataset.i];
           if (!b.i) continue;

@@ -12,13 +12,24 @@ export const inArchive = b => !!(b && b.l && b.l.length) && b.l.every(s => ARCHI
 // Elements switched off in the admin page (info.js "hide"): "announcement" | "info" | "archive"
 export const hiddenBy = (I, k) => !!(I && Array.isArray(I.hide) && I.hide.includes(k));
 
-export const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-  .replace(/ß/g, "ss").replace(/[^a-z0-9]+/g, " ").trim();
-// Key of the recommendations: title + first author
-export const keyOf = b => norm(b.t) + "|" + norm((b.a && b.a[0]) || "");
+// Lower case, no accents, ß → ss, everything but a–z0–9 becomes one space (as in extract.js). Only the non-ASCII
+// characters are folded, each once (cache): normalize("NFD") over every whole text was a third of the preparation.
+const FOLD = new Map(), NON_ASCII = /[^\x00-\x7f]/g;
+const foldChar = c => {
+  let f = FOLD.get(c);
+  if (f === undefined) FOLD.set(c, f = c.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss"));
+  return f;
+};
+export const norm = s => String(s || "").toLowerCase().replace(NON_ASCII, foldChar).replace(/[^a-z0-9]+/g, " ").trim();
+// Key of the recommendations: title + first author (prepared books carry it as _k)
+export const keyOf = b => b._k || norm(b.t) + "|" + norm((b.a && b.a[0]) || "");
 
+const LEAD = /^[^\p{L}\p{N}]+/u;
 const letterOf = t => {
-  const c = String(t).replace(/^[^\p{L}\p{N}]+/u, "").normalize("NFD").charAt(0).toUpperCase();
+  const s = String(t), c0 = s.charCodeAt(0);
+  if (c0 >= 65 && c0 <= 90) return s[0];               // A–Z: most titles
+  if (c0 >= 97 && c0 <= 122) return s[0].toUpperCase(); // a–z
+  const c = s.replace(LEAD, "").normalize("NFD").charAt(0).toUpperCase();
   return /[A-Z]/.test(c) ? c : "#";
 };
 
@@ -42,7 +53,9 @@ function isbn10(i) {
   return i.slice(3, 12) + (c === 10 ? "X" : c);
 }
 
-// Prepare books for list and search: running number, initial letter, search text
+// Prepare books for list and search: running number, initial letter, search text, key of the recommendations.
+// Every field is normalized once: the key is built from the same parts as the search text (before, title and author
+// were normalized a second time for the key of all books – together a quarter of the work after books.js arrived).
 export function prepare(data) {
   const books = (data && data.books) || [];
   // Italian names of new categories, maintained in admin.html, complete categories-it.js
@@ -50,7 +63,12 @@ export function prepare(data) {
   books.forEach((b, i) => {
     b._i = i;
     b._l = letterOf(b.t);
-    b._s = norm([b.t, b.s, (b.a || []).join(" "), (b.i || []).map(i => i + " " + isbn10(i)).join(" "), b.p].join(" "));
+    const nt = norm(b.t), na = (b.a || []).map(norm);
+    b._k = nt + "|" + (na[0] || "");
+    const parts = [nt, norm(b.s), ...na];
+    for (const x of b.i || []) parts.push(x, isbn10(x).toLowerCase());
+    parts.push(norm(b.p));
+    b._s = parts.filter(Boolean).join(" ");
   });
   return books;
 }
