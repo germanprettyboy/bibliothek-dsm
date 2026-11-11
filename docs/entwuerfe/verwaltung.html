@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>DSM Verwaltung Entwürfe</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
@@ -109,7 +110,7 @@ p { text-wrap: pretty; }
 .scr { border-radius: 16px; overflow: hidden; box-shadow: var(--frame-shadow); border: 1px solid var(--rule); max-width: 100%; }
 .fr.phone .scr { max-width: 390px; }
 .pair { display: grid; gap: 28px; align-items: start; }
-@media (min-width: 84rem) { .pair.phone { grid-template-columns: repeat(2, minmax(0, 390px)); } }
+@media (min-width: 84rem) { .pair { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } .pair.phone { grid-template-columns: repeat(2, minmax(0, 390px)); } }
 
 /* ---------- Mockups: the site's own tokens ---------- */
 .mock {
